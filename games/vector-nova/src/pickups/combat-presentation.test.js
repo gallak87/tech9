@@ -183,7 +183,7 @@ test('Lance keeps a thick molten-orange blast and large fireball in both presets
       const bounds = localBounds(cores);
       assert.ok(bounds.min.z >= -1e-4, 'the blast grows from the launch point');
       assert.ok(
-        bounds.getSize(new T.Vector3()).x > 1.3,
+        bounds.getSize(new T.Vector3()).x > 1.6,
         'the yellow-hot center is visibly thicker than the old narrow spear',
       );
       assert.ok(bounds.getSize(new T.Vector3()).z <= 14.0001);
@@ -192,7 +192,7 @@ test('Lance keeps a thick molten-orange blast and large fireball in both presets
         'Lance / lava-orange body, fireball and hot fragments',
       );
       assert.ok(
-        localBounds(body).getSize(new T.Vector3()).x > 3,
+        localBounds(body).getSize(new T.Vector3()).x > 4,
         'the orange body gives the blast several meters of thickness',
       );
       assert.equal(body.material.color.getHex(), 0xff5908);
@@ -211,9 +211,14 @@ test('Lance keeps a thick molten-orange blast and large fireball in both presets
     );
     assert.equal(fragments.count, quality === 'high' ? 15 : 8);
     assert.ok(
-      localBounds(fragments).getSize(new T.Vector3()).x > 5,
+      localBounds(fragments).getSize(new T.Vector3()).x > 7,
       'the main orange fireball is large relative to the struck hull',
     );
+    const lanceBatches = scene.getObjectByName(
+      'Lance / molten blast and fireball',
+    ).children;
+    assert.equal(lanceBatches.length, quality === 'high' ? 3 : 2);
+    assert.ok(lanceBatches.every((mesh) => mesh.isInstancedMesh));
     const moving = new T.Matrix4();
     const spark = quality === 'high' ? 5 : 3;
     fragments.getMatrixAt(spark, moving);

@@ -6,6 +6,7 @@ import { sweepGeometry } from '../src/track/geometry.js';
 import { createFlightModel } from '../src/physics/flight.js';
 import { createVehicleState } from '../src/physics/index.js';
 import { projectedHullExtent } from '../src/physics/hull.js';
+import { createRapierWorld } from '../src/physics/rapier-world.js';
 
 const track = {
   id: 'production-fixture',
@@ -96,6 +97,94 @@ test('production extraction retains route coordinates, shallow undersides and in
   assert.equal(world.sweepHull(pose(6, 300), pose(-1, 300)).shape.kind, 'deck');
   assert.equal(world.sweepHull(pose(6, 150), pose(-6, 150)), null);
   world.dispose();
+});
+
+test('full deck extraction keeps native support beyond jump corridors without adding distant scenery or filling gaps', async (t) => {
+  function road() {
+    const group = new T.Group();
+    const material = new T.MeshBasicMaterial();
+    for (const [start, end] of [
+      [0, 100],
+      [200, 1000],
+    ]) {
+      const mesh = new T.Mesh(
+        sweepGeometry(
+          track,
+          [
+            [-10, 0],
+            [10, 0],
+          ],
+          {
+            start,
+            end,
+            step: 4,
+            transverseStep: 2,
+          },
+        ),
+        material,
+      );
+      mesh.name = 'deck';
+      group.add(mesh);
+    }
+    const distant = new T.Mesh(new T.BoxGeometry(8, 8, 8), material);
+    distant.name = 'distant scenery';
+    distant.position.set(0, 8, 850);
+    group.add(distant);
+    return {
+      group,
+      dispose() {
+        group.traverse((object) => object.geometry?.dispose());
+        material.dispose();
+        group.clear();
+      },
+    };
+  }
+  const options = {
+    track,
+    id: 'full-deck-fixture',
+    geometryId: 'v1',
+    select: (object) => ({
+      kind: object.name === 'deck' ? 'deck' : 'structure',
+    }),
+  };
+  const bounded = collectProductionSolids({ ...options, road: road() });
+  const full = collectProductionSolids({
+    ...options,
+    road: road(),
+    fullDeck: true,
+  });
+  const native = await createRapierWorld({ collisionWorld: full });
+  t.after(() => {
+    native.dispose();
+    full.dispose();
+    bounded.dispose();
+  });
+  assert.notEqual(
+    full.rulesId,
+    bounded.rulesId,
+    'coverage changes replay identity',
+  );
+  assert.equal(
+    bounded.triangles.some((triangle) => triangle.distance > 800),
+    false,
+  );
+  assert.ok(full.triangles.some((triangle) => triangle.distance > 800));
+  assert.equal(
+    full.targets.some(({ name }) => name === 'distant scenery'),
+    false,
+  );
+  for (const distance of [0, 90, 200, 550, 600, 850, 999])
+    assert.ok(
+      native.sampleRoadSurface(distance, 4, track.sample(distance)),
+      `native deck missing at ${distance}m`,
+    );
+  assert.equal(
+    native.sampleRoadSurface(150, 0, track.sample(150)),
+    null,
+    'the actual jump stays open',
+  );
+  assert.equal(full.sweepHull(pose(6, 150), pose(-6, 150)), null);
+  assert.equal(full.sweepHull(pose(6, 850), pose(-1, 850)).shape.kind, 'deck');
 });
 
 test('forgiving magnetic support retains hull clearance under steering after landing settlement has ended', () => {

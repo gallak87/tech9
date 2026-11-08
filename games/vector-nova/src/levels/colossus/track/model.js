@@ -555,7 +555,7 @@ export function createColossusTrack() {
   return {
     id: 'colossus-circuit',
     name: 'Colossus Works',
-    geometryVersion: 'colossus-flat-circuit-v8',
+    geometryVersion: 'colossus-flat-circuit-v9-smooth-roll-skin',
     closed: true,
     width: 72,
     length,

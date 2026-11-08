@@ -48,7 +48,7 @@ export async function createLevelPresentation(definition, context) {
         const update = {
           ...frame,
           reset,
-          dt: frame.mode === 'racing' ? frame.dt : 0,
+          dt: ['racing', 'results'].includes(frame.mode) ? frame.dt : 0,
         };
         for (const part of parts) part.update?.(update);
         context.view.updatePresentation(update);

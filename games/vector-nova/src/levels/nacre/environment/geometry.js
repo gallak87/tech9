@@ -1,8 +1,12 @@
 import * as T from 'three';
 import { createRouteClearance } from '../../../environment/placement.js';
+import { createObservatoryPier, createObservatoryRoof } from './observatory.js';
 import {
   createBasaltSpire,
+  createBasaltShelf,
+  createReefRoot,
   createReefRock,
+  createReefSponge,
   createSeaFan,
   createFanEdge,
   createReefRibbon,
@@ -57,8 +61,15 @@ export function createBatches() {
   const geometries = {
     basaltA: createBasaltSpire(0),
     basaltB: createBasaltSpire(1.9),
+    shoreShelf: createBasaltShelf(0.7),
+    reefShelf: createBasaltShelf(2.1),
+    reefRoot: createReefRoot(),
     reefRockA: createReefRock(0),
     reefRockB: createReefRock(2.6),
+    reefSponge: createReefSponge(),
+    observatoryPier: createObservatoryPier(),
+    observatoryRoof: createObservatoryRoof(),
+    observatoryRim: new T.TorusGeometry(1, 0.018, 4, 48),
     fan: createSeaFan(),
     canopyFan: createSeaFan(24, 6),
     fanEdge: createFanEdge(),
@@ -110,6 +121,49 @@ export function createBatches() {
     );
     batches.get(key).entries.push({ matrix: matrix.clone(), color });
   }
+  // Highest actual triangle hit at world X/Z, used to seat growth on a shelf.
+  // Sampling is construction-only; no mesh, material or renderer is created.
+  function surface(shape, position, size, rotation, x, z) {
+    const geometry = geometries[shape];
+    if (!geometry)
+      throw new Error(`Unknown Nacre attachment geometry: ${shape}`);
+    geometry.computeBoundingBox();
+    matrix.compose(
+      new T.Vector3(...position),
+      quaternion.setFromEuler(new T.Euler(...rotation)),
+      scaleVector.set(...size),
+    );
+    const bounds = geometry.boundingBox.clone().applyMatrix4(matrix);
+    if (
+      x < bounds.min.x ||
+      x > bounds.max.x ||
+      z < bounds.min.z ||
+      z > bounds.max.z
+    )
+      return null;
+    const ray = new T.Ray(
+      new T.Vector3(x, bounds.max.y + 1, z),
+      new T.Vector3(0, -1, 0),
+    );
+    ray.applyMatrix4(matrix.clone().invert());
+    const vertices = geometry.getAttribute('position'),
+      index = geometry.index;
+    const a = new T.Vector3(),
+      b = new T.Vector3(),
+      c = new T.Vector3(),
+      hit = new T.Vector3();
+    const count = index?.count ?? vertices.count;
+    let highest = null;
+    for (let i = 0; i < count; i += 3) {
+      a.fromBufferAttribute(vertices, index ? index.getX(i) : i);
+      b.fromBufferAttribute(vertices, index ? index.getX(i + 1) : i + 1);
+      c.fromBufferAttribute(vertices, index ? index.getX(i + 2) : i + 2);
+      if (!ray.intersectTriangle(a, b, c, false, hit)) continue;
+      const y = hit.applyMatrix4(matrix).y;
+      if (highest === null || y > highest) highest = y;
+    }
+    return highest;
+  }
   function finish(name) {
     group.name = name;
     let triangles = 0;
@@ -143,5 +197,5 @@ export function createBatches() {
     };
     return group;
   }
-  return { add, beam, finish };
+  return { add, beam, surface, finish };
 }

@@ -1,0 +1,36 @@
+{
+  "id": "ravel-sail-foil-height-v1",
+  "tool": "Built-in image_gen.imagegen",
+  "mode": "generate",
+  "useCase": "stylized-concept",
+  "prompt": "Use case: stylized-concept\nAsset type: a seamless grayscale HEIGHT MAP for a physically shaded solar-sail foil material in a 3D racing game.\nPrimary request: generate one square, edge-to-edge repeatable texture of tensioned aluminized polymer sail cloth. This is technical elevation data, not a photograph or a lit material render: neutral gray mid-height, slightly lighter raised ridges, slightly darker shallow valleys.\nSurface structure: mostly long slender irregular strain creases running roughly vertically, with gentle changes of direction and unequal spacing; delicate cross-fiber micro wrinkles, and a few sparse broad shallow crumples. Suggest very thin flexible metallic film under tension rather than stone, leather, paper, hammered metal, or cloth weave. The large sailing bowls and walls will be supplied by 3D geometry; this map supplies only small surface relief.\nComposition: orthographic flat-on, full-frame continuous material, square at least 1024 by 1024. Seamless left/right and top/bottom repetition, fairly even midgray distribution and restrained height contrast.\nConstraints: grayscale height values only; no hue, no baked illumination, no directional shadows, no specular shine or white reflective glare, no perspective, no framed sample, no vignette, no square tiles, no panel seams, no stitching, no cables, no hardware, no logos, no text, no watermark.",
+  "originalGeneratedFile": "/Users/g/.codex/generated_images/01a1a0b6-231b-78b2-86b8-e32177a20a7b/exec-ffe1ec54-0905-4349-854c-9220b5757896.png",
+  "source": "assets/levels/ravel/materials/foil-height-source-v1.png",
+  "runtimeAsset": "public/assets/levels/ravel/sail-foil-height-v1.png",
+  "intendedUsage": "Height-only material relief for the physically shaded aluminized solar-sail membrane. Treat sampled pixel values as linear data, not a diffuse photograph or baked lighting. Large folds and all driving support remain real authored geometry.",
+  "rights": "Original image generated for VECTOR//NOVA using the built-in image generation tool. No downloaded artwork, external models, or third-party photographic texture supplied.",
+  "referencesReviewed": [
+    "assets/levels/ravel/reference/sail-basin-selected-crop.png",
+    "assets/levels/ravel/reference/ravel-anchor-narrows-concept.png"
+  ],
+  "inputImagesSuppliedToGeneration": [],
+  "processing": "Original PNG copied byte-for-byte to the source and runtime paths; no image edits, channel conversion, resampling, normal-map synthesis, or color grading.",
+  "dimensions": {
+    "width": 1254,
+    "height": 1254
+  },
+  "sha256": "92e5d7764ad347d60b171a42b878881535a9726e7e86a49cbffe7ade6505cb10",
+  "runtimeSha256": "92e5d7764ad347d60b171a42b878881535a9726e7e86a49cbffe7ade6505cb10",
+  "pixelInspection": {
+    "channelMean": [132.49573358872024, 132.1713146320928, 132.15994495445514],
+    "channelStandardDeviation": [
+      5.058854310466228, 5.099379907804545, 5.0965224399308475
+    ],
+    "maximumChannelDifference": 4,
+    "oppositeEdgeMeanAbsoluteDifference8bit": {
+      "leftRight": 4.464912280701754,
+      "topBottom": 2.4681020733652312
+    }
+  },
+  "samplingRecommendation": "Use linear-data sampling with MirroredRepeatWrapping on both axes to ensure continuous boundary heights, mipmaps, and bounded anisotropy. Keep bump amplitude subtle; exact gameplay displacement does not depend on this texture."
+}

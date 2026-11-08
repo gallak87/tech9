@@ -44,8 +44,8 @@ test('asphalt reuse keeps both road UV scales metric and Halcyon defaults intact
     assert.equal(maps[2].colorSpace, THREE.NoColorSpace);
     const shader = {
       uniforms: {},
-      vertexShader: '#include <uv_vertex>',
-      fragmentShader: '',
+      vertexShader: THREE.ShaderLib.standard.vertexShader,
+      fragmentShader: THREE.ShaderLib.standard.fragmentShader,
     };
     finish.material.onBeforeCompile(shader);
     assert.equal(

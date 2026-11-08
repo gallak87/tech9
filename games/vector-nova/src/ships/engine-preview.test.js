@@ -76,6 +76,17 @@ test('engine opt-in follows both preview buttons and shares the effects volume/m
   h.settings.volume = 0.2;
   h.preview.update();
   assert.equal(h.updates.at(-1)[1], 0.2);
+  h.settings.masterVolume = 0.5;
+  h.settings.musicVolume = 0;
+  h.preview.update();
+  assert.equal(
+    h.updates.at(-1)[1],
+    0.1,
+    'Tunes gain does not affect propulsion',
+  );
+  h.settings.masterVolume = 0;
+  h.preview.update();
+  assert.equal(h.updates.at(-1)[1], 0, 'Master silences an enabled engine');
   h.state.boost = false;
   h.preview.update();
   assert.equal(h.updates.at(-1)[2], false);

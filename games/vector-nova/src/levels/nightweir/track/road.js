@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import * as T from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { sweepGeometry } from '../../../track/geometry.js';
@@ -54,16 +55,17 @@ export function createNightweirRoad({
     const finish = deck.onBeforeCompile;
     deck.onBeforeCompile = (shader) => {
       finish(shader);
-      shader.fragmentShader = shader.fragmentShader
-        .replace(
-          'float asphaltWet = clamp(roadMoisture * (.38 + .85 * smoothstep(.25,.75,asphaltMacro)),0.,1.);',
-          `float edgeDistance=min(roadMetres.x,${track.width.toFixed(1)}-roadMetres.x);
+      shader.fragmentShader = replaceShader(
+        replaceShader(
+          replaceShader(
+            shader.fragmentShader,
+            'float asphaltWet = clamp(roadMoisture * (.38 + .85 * smoothstep(.25,.75,asphaltMacro)),0.,1.);',
+            `float edgeDistance=min(roadMetres.x,${track.width.toFixed(1)}-roadMetres.x);
          float drainage=(1.-smoothstep(1.2,4.8,edgeDistance))
            *smoothstep(.34,.72,asphaltNoise(roadMetres*vec2(.7,.045)));
          float asphaltWet=max(smoothstep(.62,.83,asphaltMacro)*.78,drainage*.94)
            *clamp(roadMoisture*2.5,0.,1.);`,
-        )
-        .replace(
+          ),
           '#include <color_fragment>',
           `#include <color_fragment>
         // Unequal resurfaced strips give metre-scale construction to the
@@ -87,11 +89,10 @@ export function createNightweirRoad({
         lanePaint*=step(2.+laneSpacing*.5,roadMetres.x)*step(roadMetres.x,${(track.width - 2).toFixed(1)}-laneSpacing*.5);
         lanePaint*=mix(.28,.62,smoothstep(.2,.7,asphaltMacro));
         diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.46,.47,.43),lanePaint);`,
-        )
-        .replace(
-          '#include <metalnessmap_fragment>',
-          '#include <metalnessmap_fragment>\nroughnessFactor=max(roughnessFactor,mix(.88,.30,asphaltWet));roughnessFactor=clamp(roughnessFactor+repair*.035-seal*.025,.28,.88);roughnessFactor=mix(roughnessFactor,.82,lanePaint);',
-        );
+        ),
+        '#include <metalnessmap_fragment>',
+        '#include <metalnessmap_fragment>\nroughnessFactor=max(roughnessFactor,mix(.88,.30,asphaltWet));roughnessFactor=clamp(roughnessFactor+repair*.035-seal*.025,.28,.88);roughnessFactor=mix(roughnessFactor,.82,lanePaint);',
+      );
     };
     deck.customProgramCacheKey = () => 'nightweir-damp-asphalt-v6';
   }
@@ -151,6 +152,9 @@ export function createNightweirRoad({
   for (const [i, run] of roadIntervals(track).entries()) {
     const range = { ...run, step: 4, uvScale: 12 },
       route = { start: Math.max(0, run.start), end: run.end };
+    const twisting = track.inversions.some(
+      (roll) => roll.start < run.end && roll.end > run.start,
+    );
     add(
       'Asphalt deck ' + i,
       sweepGeometry(
@@ -159,7 +163,13 @@ export function createNightweirRoad({
           [-half, 0],
           [half, 0],
         ],
-        range,
+        {
+          ...range,
+          // Twisting quads are not planar. Tighten both axes in roll-bearing
+          // spans so whole-hull support does not follow coarse diagonal ridges.
+          step: twisting ? 1.5 : range.step,
+          transverseStep: twisting ? 1 : 2,
+        },
       ),
       deck,
       { kind: 'deck', ...route },

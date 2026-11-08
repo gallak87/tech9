@@ -1,0 +1,50 @@
+{
+  "source": "build_collector_fold.py",
+  "blend": "ravel-ascent-collector-fold.blend",
+  "runtimeData": "src/levels/ravel/collector-fold-data.js",
+  "rights": "Original project-authored Blender control mesh and editable shape key/Bezier profiles; no external assets.",
+  "parameters": {
+    "s": 3430,
+    "length": 450,
+    "width": 600,
+    "side": 250,
+    "lift": 350,
+    "sag": 60,
+    "yaw": -0.15,
+    "lean": 250
+  },
+  "size": 31,
+  "layout": "Row-v/column-u,flatXYZ,native right/up/forward metres before existing yaw/frame transform.",
+  "perimeter": "All XYZ offsets exactly0; existing accepted hem and stay anchors retained.",
+  "design": "One broad asymmetric diagonal S-fold, opposite-handed horizontally reversing lip and unequal overlapping planes; camera-facing downward displacement.",
+  "deformation": {
+    "profileTransverseSign": -1,
+    "horizontalCurl": 0.95,
+    "verticalDisplacement": -0.75
+  },
+  "bounds": {
+    "min": [-11.37, -71.896, -49.658],
+    "max": [71.572, 2.333, 35.238]
+  },
+  "racingReferences": [
+    "Production Ascent approach below the transverse gallery with collector visible beyond the cutter.",
+    "Production Ascent mid-climb with collector underside and retained road opening.",
+    "Production Ascent climb/exit beneath collector edge, retaining its accepted fixed perimeter."
+  ],
+  "referenceImages": [
+    {
+      "file": "assets/levels/ravel/reference/sail-basin-selected-crop.png",
+      "sha256": "fffdfad048bddc81fea153f2c98b3394c214d7044dc75557b90730a47244aab0"
+    },
+    {
+      "file": "assets/levels/ravel/reference/ravel-crown-fold-concept.png",
+      "sha256": "5f98830aacd2235dd2f4b742cadf861a08ea9c271f11f6a6eeb220bc87c6b969"
+    }
+  ],
+  "hashes": {
+    "build_collector_fold.py": "304f9a0b83223a753d68e7522e42f7820f16219041938620abf7b7cd87bed06a",
+    "ravel-ascent-collector-fold.blend": "a1e6dfb59475074cf3fd21c219fddd87d567568d578acc91d3dbe615912463e8",
+    "collector-fold-data.js": "6192264cb2105743b6a85c4dc79dc2bb5049f7a8f22c01d23d6b6bb659e4ab66"
+  },
+  "processing": "Quantize cage offsets to1mm, emit Float32 module, then canonicalize with project-local Prettier under Node22 before provenance hashing; no geometry change."
+}

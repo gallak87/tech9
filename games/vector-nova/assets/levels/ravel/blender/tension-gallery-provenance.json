@@ -1,0 +1,102 @@
+{
+  "generator": "Original procedural Blender geometry authored for VECTOR//NOVA",
+  "coordinates": "Metres, +Y up, +Z forward; gallery segment longitudinal axis +X",
+  "rights": "Project-authored editable Blender meshes and scalar PBR materials; project-owned generated concepts used only as references. No external assets or textures.",
+  "source": "build_tension_gallery.py",
+  "blend": "ravel-tension-gallery.blend",
+  "runtimeAsset": "public/assets/levels/ravel/tension-gallery.glb",
+  "referenceImages": [
+    {
+      "file": "assets/levels/ravel/reference/sail-basin-selected-crop.png",
+      "sha256": "fffdfad048bddc81fea153f2c98b3394c214d7044dc75557b90730a47244aab0"
+    },
+    {
+      "file": "assets/levels/ravel/reference/ravel-anchor-narrows-concept.png",
+      "sha256": "9d10cfba850da22fb6a01a92df0624af25dec7329e36c340df34e20454c13ea5"
+    },
+    {
+      "file": "assets/levels/ravel/reference/ravel-crown-fold-concept.png",
+      "sha256": "5f98830aacd2235dd2f4b742cadf861a08ea9c271f11f6a6eeb220bc87c6b969"
+    }
+  ],
+  "prototypes": [
+    {
+      "name": "tension_gallery_segment",
+      "triangles": 1788,
+      "materialBatches": 5,
+      "bounds": {
+        "min": [-18.0, -6.900000095367432, -8.887499809265137],
+        "max": [18.000001907348633, 9.574999809265137, 8.887500762939453]
+      },
+      "dimensions": [36.00000190734863, 16.47499990463257, 17.77500057220459],
+      "anchors": [
+        {
+          "name": "joint_port",
+          "position": [-18, -0.5, 0],
+          "kind": "gallery"
+        },
+        {
+          "name": "joint_starboard",
+          "position": [18, -0.5, 0],
+          "kind": "gallery"
+        },
+        {
+          "name": "service_deck",
+          "position": [0, 3.1, 0],
+          "kind": "service"
+        }
+      ]
+    },
+    {
+      "name": "sail_load_crown",
+      "triangles": 9444,
+      "materialBatches": 6,
+      "bounds": {
+        "min": [-28.0, -25.5, -21.57499885559082],
+        "max": [28.0, 47.400001525878906, 20.5]
+      },
+      "dimensions": [56.0, 72.9000015258789, 42.07499885559082],
+      "anchors": [
+        {
+          "name": "gallery_port",
+          "position": [-26, -13, 0],
+          "kind": "gallery"
+        },
+        {
+          "name": "gallery_starboard",
+          "position": [26, -13, 0],
+          "kind": "gallery"
+        },
+        {
+          "name": "cable_eye",
+          "position": [0, 43, 0],
+          "kind": "cable"
+        },
+        {
+          "name": "reel_port",
+          "position": [-12, 9, -11],
+          "kind": "cable"
+        },
+        {
+          "name": "reel_starboard",
+          "position": [12, 9, -11],
+          "kind": "cable"
+        }
+      ]
+    }
+  ],
+  "totalTriangles": 11232,
+  "materials": [
+    "Ceramic / warm ivory",
+    "Graphite / structural carbon",
+    "Titanium / formed fittings",
+    "Copper / tension fittings",
+    "Interior / deep graphite",
+    "Power / seated service lights"
+  ],
+  "hashes": {
+    "build_tension_gallery.py": "d6ded3a310e4fd7d73dfe2225613d6eeb3dfbd2974522d58ca259fe070c42939",
+    "ravel-tension-gallery.blend": "393edc3c1a89e81fcbdd729741c3f6d8fb66f817e1db74cd70be91571f4037b1",
+    "tension-gallery.glb": "80f6db48248d567d06335ed03cd4da3916168393b48a357b3edda09ad4517759"
+  }
+}

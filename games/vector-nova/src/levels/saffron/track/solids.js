@@ -3,8 +3,10 @@ import { boxProfile } from '../../../track/geometry.js';
 
 // Shared authored dimensions and tessellation for rendering and physical contact.
 export const SAFFRON_SOLIDS = Object.freeze({
-  version: 'saffron-solids-v2-width40',
+  version: 'saffron-solids-v5-supported-bands',
   step: 3.2,
+  supportWidth: 3.2,
+  supportDepth: 4.4,
   top: [
     [-20, 0],
     [20, 0],
@@ -38,6 +40,16 @@ export function roadRuns(track) {
   runs.push([start, track.length]);
   return runs;
 }
+// A wide twisting quad lifts hull corners at its diagonal even on ordinary
+// banks. Preserve the opening bands and refine the later supported runs too.
+export function roadSweepOptions(start, end, runningSurface = false) {
+  return {
+    start,
+    end,
+    step: SAFFRON_SOLIDS.step,
+    ...(runningSurface ? { transverseStep: start === 0 ? 4 : 2 } : {}),
+  };
+}
 export const toeProfile = (side) => boxProfile(side * 20.48, 0.18, 0.68, 0.75);
 export function createBaffleGeometry() {
   const shape = new T.Shape();
@@ -47,7 +59,10 @@ export function createBaffleGeometry() {
   shape.closePath();
   return new T.ExtrudeGeometry(shape, {
     depth: 0.75,
-    bevelEnabled: false,
+    bevelEnabled: true,
+    bevelThickness: 0.06,
+    bevelSize: 0.08,
+    bevelSegments: 1,
     curveSegments: 1,
   })
     .rotateY(Math.PI / 2)

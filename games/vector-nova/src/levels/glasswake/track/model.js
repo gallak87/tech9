@@ -441,7 +441,7 @@ export function createGlasswakeTrack() {
   return {
     id: 'glasswake-comet-v2',
     name: 'Glasswake Comet',
-    geometryVersion: 'glasswake-crevice-corkscrew-v2',
+    geometryVersion: 'glasswake-crevice-corkscrew-v3-continuous-skin',
     length,
     width: WIDTH,
     groundY: -150,

@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 // Original procedural surface response. Authored geometry supplies seams/bevels;
 // world-space grain and wear keep merged and instanced assemblies consistent.
 export function finishThermalMaterial(material, kind = 'ceramic') {
@@ -9,23 +10,24 @@ export function finishThermalMaterial(material, kind = 'ceramic') {
   const previous = material.onBeforeCompile;
   material.onBeforeCompile = (shader, renderer) => {
     previous.call(material, shader, renderer);
-    shader.vertexShader =
-      `varying vec3 helionSurface;\n${shader.vertexShader}`.replace(
-        '#include <project_vertex>',
-        `#include <project_vertex>
+    shader.vertexShader = replaceShader(
+      `varying vec3 helionSurface;\n${shader.vertexShader}`,
+      '#include <project_vertex>',
+      `#include <project_vertex>
       vec4 helionWorld=vec4(transformed,1.);
       #ifdef USE_INSTANCING
       helionWorld=instanceMatrix*helionWorld;
       #endif
       helionSurface=(modelMatrix*helionWorld).xyz;`,
-      );
+    );
     shader.fragmentShader = `varying vec3 helionSurface;
       float helionHash(vec3 p){p=fract(p*.1031);p+=dot(p,p.yzx+33.33);return fract((p.x+p.y)*p.z);}
       float helionNoise(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(mix(helionHash(i),helionHash(i+vec3(1,0,0)),f.x),mix(helionHash(i+vec3(0,1,0)),helionHash(i+vec3(1,1,0)),f.x),f.y),mix(mix(helionHash(i+vec3(0,0,1)),helionHash(i+vec3(1,0,1)),f.x),mix(helionHash(i+vec3(0,1,1)),helionHash(i+vec3(1,1,1)),f.x),f.y),f.z);}
       ${shader.fragmentShader}`;
     const graphite = kind === 'graphite',
       copper = kind === 'copper';
-    shader.fragmentShader = shader.fragmentShader.replace(
+    shader.fragmentShader = replaceShader(
+      shader.fragmentShader,
       '#include <color_fragment>',
       `#include <color_fragment>
       float hLarge=helionNoise(helionSurface*.19);
@@ -37,12 +39,14 @@ export function finishThermalMaterial(material, kind = 'ceramic') {
       ${copper ? 'diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.08,.16,.14),smoothstep(.65,.82,hLarge)*.36);' : ''}
       ${graphite ? 'float hHeat=helionNoise(helionSurface*vec3(.027,.011,.019));float hStreak=helionNoise(helionSurface*vec3(.15,.006,.11)+vec3(23.));diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(1.22,.76,.54),smoothstep(.48,.73,hHeat)*(.18+hStreak*.48));' : ''}`,
     );
-    shader.fragmentShader = shader.fragmentShader.replace(
+    shader.fragmentShader = replaceShader(
+      shader.fragmentShader,
       '#include <roughnessmap_fragment>',
       `#include <roughnessmap_fragment>
       roughnessFactor=clamp(roughnessFactor+(hWear-.5)*.32,.18,.96);`,
     );
-    shader.fragmentShader = shader.fragmentShader.replace(
+    shader.fragmentShader = replaceShader(
+      shader.fragmentShader,
       '#include <normal_fragment_maps>',
       `#include <normal_fragment_maps>
       float hRelief=helionNoise(helionSurface*5.7)*${graphite ? '.006' : copper ? '.014' : '.017'};

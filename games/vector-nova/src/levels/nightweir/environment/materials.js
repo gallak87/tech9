@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import { DoubleSide, Vector4 } from 'three';
 import { zephyrNoiseGLSL } from '../../zephyr/environment/materials.js';
 // Broad cast-panel construction and rain staining supplement the licensed
@@ -14,15 +15,17 @@ export function finishNightweirConcrete(material, basins = []) {
     shader.uniforms.nwBasinLevels = { value: levels };
     shader.vertexShader =
       'varying vec3 castPosition;varying vec2 castUV;\n' +
-      shader.vertexShader.replace(
+      replaceShader(
+        shader.vertexShader,
         '#include <begin_vertex>',
         '#include <begin_vertex>\ncastPosition=(modelMatrix*vec4(position,1.)).xyz;castUV=uv;',
       );
     shader.fragmentShader =
       'varying vec3 castPosition;varying vec2 castUV;uniform vec4 nwBasinLevels[8];\n' +
       zephyrNoiseGLSL +
-      shader.fragmentShader
-        .replace(
+      replaceShader(
+        replaceShader(
+          shader.fragmentShader,
           '#include <color_fragment>',
           `#include <color_fragment>
    float column=castPosition.x*.13+castPosition.z*.17;
@@ -43,11 +46,10 @@ export function finishNightweirConcrete(material, basins = []) {
    diffuseColor.rgb*=mix(vec3(.91,.94,.91),vec3(1.08,1.055,1.),wash);
    diffuseColor.rgb*=1.-joint*${plaster ? '0.' : '.14'}-tie*${plaster ? '0.' : '.16'};
   `,
-        )
-        .replace(
-          '#include <roughnessmap_fragment>',
-          '#include <roughnessmap_fragment>\nroughnessFactor=clamp(roughnessFactor+.12*patina,.62,.96);',
-        );
+        ),
+        '#include <roughnessmap_fragment>',
+        '#include <roughnessmap_fragment>\nroughnessFactor=clamp(roughnessFactor+.12*patina,.62,.96);',
+      );
   };
   material.customProgramCacheKey = () => 'nightweir-cast-rain-v5-' + plaster;
 }
@@ -63,7 +65,8 @@ export function finishNightweirMetal(material) {
   material.onBeforeCompile = (shader) => {
     shader.vertexShader =
       'varying vec3 hydraulicLocal;varying vec3 hydraulicPoint;\n' +
-      shader.vertexShader.replace(
+      replaceShader(
+        shader.vertexShader,
         '#include <begin_vertex>',
         `#include <begin_vertex>
    vec4 hp=vec4(position,1.);
@@ -76,33 +79,33 @@ export function finishNightweirMetal(material) {
     shader.fragmentShader =
       'varying vec3 hydraulicLocal;varying vec3 hydraulicPoint;\n' +
       zephyrNoiseGLSL +
-      shader.fragmentShader
-        .replace(
-          '#include <color_fragment>',
-          `#include <color_fragment>
+      replaceShader(
+        replaceShader(
+          replaceShader(
+            shader.fragmentShader,
+            '#include <color_fragment>',
+            `#include <color_fragment>
     float age=zephyrNoise(hydraulicPoint*.055);
     float worn=zephyrNoise(hydraulicPoint*.4);
     diffuseColor.rgb*=.89+age*.15+worn*.06;
     float runoff=${leaf ? 'pow(max(0.,cos(hydraulicLocal.x*.523599)),18.)*(.35+.65*(1.-smoothstep(-8.,8.,hydraulicLocal.y)))' : '0.'};
     diffuseColor.rgb*=1.-runoff*.22;
    `,
-        )
-        .replace(
+          ),
           '#include <roughnessmap_fragment>',
           `#include <roughnessmap_fragment>
     roughnessFactor=clamp(roughnessFactor+(worn-.5)*.1-runoff*.08,.42,.82);
    `,
-        )
-        .replace(
-          '#include <normal_fragment_maps>',
-          `#include <normal_fragment_maps>
+        ),
+        '#include <normal_fragment_maps>',
+        `#include <normal_fragment_maps>
     float footprint=length(fwidth(hydraulicPoint));
     float relief=zephyrNoise(hydraulicPoint*1.4)*.018*(1.-smoothstep(.18,1.2,footprint));
     vec3 sx=dFdx(-vViewPosition),sy=dFdy(-vViewPosition),rx=cross(sy,normal),ry=cross(normal,sx);
     float det=dot(sx,rx);
     normal=normalize(normal-sign(det)*(dFdx(relief)*rx+dFdy(relief)*ry)/max(abs(det),.00001));
    `,
-        );
+      );
   };
   material.customProgramCacheKey = () => 'nightweir-hydraulic-metal-v2-' + leaf;
 }
@@ -121,14 +124,16 @@ export function finishNightweirDeposits(material) {
   material.onBeforeCompile = (shader) => {
     shader.vertexShader =
       'varying vec2 contactUV;varying vec3 contactPoint;\n' +
-      shader.vertexShader.replace(
+      replaceShader(
+        shader.vertexShader,
         '#include <begin_vertex>',
         '#include <begin_vertex>\ncontactUV=vec2(uv.x,1.-uv.y);contactPoint=(modelMatrix*vec4(position,1.)).xyz;',
       );
     shader.fragmentShader =
       'varying vec2 contactUV;varying vec3 contactPoint;\n' +
       zephyrNoiseGLSL +
-      shader.fragmentShader.replace(
+      replaceShader(
+        shader.fragmentShader,
         '#include <color_fragment>',
         `#include <color_fragment>
    float pier=abs(fract(contactUV.x+.5)-.5);
@@ -161,17 +166,20 @@ export function finishNightweirRock(
     shader.uniforms.nwGround = { value: groundTexture };
     shader.vertexShader =
       'varying vec3 nwStonePoint;varying vec3 nwStoneNormal;\n' +
-      shader.vertexShader.replace(
+      replaceShader(
+        shader.vertexShader,
         '#include <begin_vertex>',
         '#include <begin_vertex>\nnwStonePoint=(modelMatrix*vec4(position,1.)).xyz;nwStoneNormal=normalize(mat3(modelMatrix)*normal);',
       );
     shader.fragmentShader =
       'varying vec3 nwStonePoint;varying vec3 nwStoneNormal;uniform sampler2D nwRock;uniform sampler2D nwCliff;uniform sampler2D nwGround;\n' +
       zephyrNoiseGLSL +
-      shader.fragmentShader
-        .replace(
-          '#include <color_fragment>',
-          `#include <color_fragment>
+      replaceShader(
+        replaceShader(
+          replaceShader(
+            shader.fragmentShader,
+            '#include <color_fragment>',
+            `#include <color_fragment>
         vec3 rockNormal=normalize(cross(dFdx(nwStonePoint),dFdy(nwStonePoint)));
         vec3 rockWeight=pow(abs(rockNormal),vec3(4.));rockWeight/=max(dot(rockWeight,vec3(1.)),.0001);
         vec3 mineral=texture2D(nwRock,nwStonePoint.yz*.12).rgb*rockWeight.x
@@ -205,19 +213,17 @@ export function finishNightweirRock(
         diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(.72,.79,.75),smoothstep(.46,.73,damp)*.24);
         float rockRelief=((mineralValue-.5)*.08+(cliffValue-.3)*.7)*(1.-smoothstep(1100.,4500.,length(vViewPosition)));
       `,
-        )
-        .replace(
+          ),
           '#include <normal_fragment_maps>',
           `#include <normal_fragment_maps>
         vec3 sx=dFdx(-vViewPosition),sy=dFdy(-vViewPosition),rx=cross(sy,normal),ry=cross(normal,sx);
         float det=dot(sx,rx);
         normal=normalize(normal-sign(det)*(dFdx(rockRelief)*rx+dFdy(rockRelief)*ry)/max(abs(det),.00001));
       `,
-        )
-        .replace(
-          '#include <roughnessmap_fragment>',
-          '#include <roughnessmap_fragment>\nroughnessFactor=mix(.96,.86,smoothstep(.5,.8,damp));',
-        );
+        ),
+        '#include <roughnessmap_fragment>',
+        '#include <roughnessmap_fragment>\nroughnessFactor=mix(.96,.86,smoothstep(.5,.8,damp));',
+      );
   };
   material.customProgramCacheKey = () => 'nightweir-wet-gorge-stone-v6';
 }
@@ -232,15 +238,17 @@ export function finishNightweirBrick(material, texture) {
   material.onBeforeCompile = (shader) => {
     shader.vertexShader =
       'varying vec3 nwBrickPoint;\n' +
-      shader.vertexShader.replace(
+      replaceShader(
+        shader.vertexShader,
         '#include <begin_vertex>',
         '#include <begin_vertex>\nnwBrickPoint=(modelMatrix*vec4(position,1.)).xyz;',
       );
     shader.fragmentShader =
       'varying vec3 nwBrickPoint;\n' +
       zephyrNoiseGLSL +
-      shader.fragmentShader
-        .replace(
+      replaceShader(
+        replaceShader(
+          shader.fragmentShader,
           '#include <color_fragment>',
           `#include <color_fragment>
         float mortarValue=dot(texture2D(map,vMapUv).rgb,vec3(.2126,.7152,.0722));
@@ -250,15 +258,14 @@ export function finishNightweirBrick(material, texture) {
         diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(.71,.78,.70),smoothstep(.56,.81,mineral)*.38);
         float relief=mortarValue*.006*(1.-smoothstep(.04,.3,length(fwidth(nwBrickPoint))));
       `,
-        )
-        .replace(
-          '#include <normal_fragment_maps>',
-          `#include <normal_fragment_maps>
+        ),
+        '#include <normal_fragment_maps>',
+        `#include <normal_fragment_maps>
         vec3 sx=dFdx(-vViewPosition),sy=dFdy(-vViewPosition),rx=cross(sy,normal),ry=cross(normal,sx);
         float det=dot(sx,rx);
         normal=normalize(normal-sign(det)*(dFdx(relief)*rx+dFdy(relief)*ry)/max(abs(det),.00001));
       `,
-        );
+      );
   };
   material.customProgramCacheKey = () => 'nightweir-fired-clay-v1';
   material.needsUpdate = true;
@@ -273,35 +280,36 @@ export function finishNightweirRoof(material, texture) {
   material.onBeforeCompile = (shader) => {
     shader.vertexShader =
       'varying vec3 nwRoofPoint;\n' +
-      shader.vertexShader.replace(
+      replaceShader(
+        shader.vertexShader,
         '#include <begin_vertex>',
         '#include <begin_vertex>\nnwRoofPoint=(modelMatrix*vec4(position,1.)).xyz;',
       );
     shader.fragmentShader =
       'varying vec3 nwRoofPoint;\n' +
       zephyrNoiseGLSL +
-      shader.fragmentShader
-        .replace(
-          '#include <color_fragment>',
-          `#include <color_fragment>
+      replaceShader(
+        replaceShader(
+          replaceShader(
+            shader.fragmentShader,
+            '#include <color_fragment>',
+            `#include <color_fragment>
         float age=zephyrNoise(nwRoofPoint*vec3(.032,.08,.041));
         diffuseColor.rgb*=mix(.80,1.13,age);
         float zinc=dot(texture2D(map,vMapUv).rgb,vec3(.2126,.7152,.0722));
         float roofRelief=zinc*.014*(1.-smoothstep(.08,.7,length(fwidth(nwRoofPoint))));
       `,
-        )
-        .replace(
+          ),
           '#include <normal_fragment_maps>',
           `#include <normal_fragment_maps>
         vec3 sx=dFdx(-vViewPosition),sy=dFdy(-vViewPosition),rx=cross(sy,normal),ry=cross(normal,sx);
         float det=dot(sx,rx);
         normal=normalize(normal-sign(det)*(dFdx(roofRelief)*rx+dFdy(roofRelief)*ry)/max(abs(det),.00001));
       `,
-        )
-        .replace(
-          '#include <roughnessmap_fragment>',
-          '#include <roughnessmap_fragment>\nroughnessFactor=.56+.22*(1.-age);',
-        );
+        ),
+        '#include <roughnessmap_fragment>',
+        '#include <roughnessmap_fragment>\nroughnessFactor=.56+.22*(1.-age);',
+      );
   };
   material.customProgramCacheKey = () => 'nightweir-weathered-zinc-v1';
   material.needsUpdate = true;
@@ -315,24 +323,24 @@ export function finishNightweirSkyVisibility(material) {
   const previousKey = key();
   material.onBeforeCompile = (shader, renderer) => {
     finish(shader, renderer);
-    shader.fragmentShader = shader.fragmentShader
-      .replace(
+    shader.fragmentShader = replaceShader(
+      replaceShader(
+        shader.fragmentShader,
         '#include <color_fragment>',
         `
         #if defined(USE_COLOR) || defined(USE_COLOR_ALPHA)
           diffuseColor.rgb *= vColor.rgb;
         #endif
       `,
-      )
-      .replace(
-        '#include <aomap_fragment>',
-        `#include <aomap_fragment>
+      ),
+      '#include <aomap_fragment>',
+      `#include <aomap_fragment>
         #ifdef USE_COLOR_ALPHA
           reflectedLight.indirectDiffuse *= vColor.a;
           reflectedLight.indirectSpecular *= mix(.6,1.,vColor.a);
         #endif
       `,
-      );
+    );
   };
   material.customProgramCacheKey = () => previousKey + '-sky-visibility-v1';
   material.needsUpdate = true;

@@ -12,7 +12,6 @@ SRC=ROOT/'assets/levels/worldspire'; OUT=ROOT/'public/assets/levels/worldspire'
 OUT.mkdir(parents=True,exist_ok=True)
 route=json.loads((SRC/'route-source.json').read_text())
 HEIGHT=route['spireHeight']
-def spire_radius(y):return 90+1000*max(0,1-(y+300)/(HEIGHT+300))**1.25
 bpy.context.preferences.filepaths.save_version=0
 bpy.ops.object.select_all(action='SELECT');bpy.ops.object.delete(use_global=False)
 rng=random.Random(401)

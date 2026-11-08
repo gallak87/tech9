@@ -9,7 +9,10 @@ import {
   Vector3,
 } from 'three';
 import { createHitFeedback } from './hit-feedback.js';
-import { DEVICE_COLORS } from './theme.js';
+import { DEVICE_COLORS, LANCE_COLOR } from './theme.js';
+import { createPickupPreview } from '../ships/pickup-preview.js';
+import { PREVIEW_TARGET_DISTANCE } from '../ships/pickup-preview-sequence.js';
+import { ARC_TARGET_HALF_LENGTH, LANCE_SPEED } from './rules.js';
 
 test('Arc response follows the complete hull, with a blue halo and a soft bounded envelope', () => {
   const ship = new Group();
@@ -193,15 +196,41 @@ test('High and Low retain the incoming weapon identity until drive recovery ends
   }
 });
 
-test('Lance uses its localized armor burst without a Repulsor hull wash during hit or recovery', () => {
+test('Lance briefly highlights the hull in molten orange without a sustained Repulsor recovery wash', () => {
   for (const quality of ['high', 'low']) {
     const ship = new Group();
     const geometry = new BoxGeometry();
     const material = new MeshBasicMaterial();
+    const original = material.color.clone();
     ship.add(new Mesh(geometry, material));
     const feedback = createHitFeedback(ship, { quality });
     feedback.update(0.1, { quality }, 'repulsor', { equipment: 'lance' });
-    assert.equal(feedback.group.visible, false);
+    assert.equal(feedback.group.visible, true);
+    const response = feedback.group.children[0].material;
+    assert.equal(
+      (response.uniforms?.color.value ?? response.color).getHex(),
+      LANCE_COLOR,
+    );
+    const strength = () =>
+      response.uniforms?.strength.value ?? response.opacity;
+    const full = strength();
+    assert.ok(full > 0);
+    feedback.update(0.1, { quality, reducedMotion: true }, 'repulsor', {
+      equipment: 'lance',
+    });
+    assert.ok(strength() > 0 && strength() < full);
+    feedback.update(0.55, { quality }, 'repulsor', { equipment: 'lance' });
+    assert.equal(
+      feedback.group.visible,
+      false,
+      'the short hit envelope expires',
+    );
+    feedback.update(0.1, { quality }, 'aegis', { equipment: 'lance' });
+    assert.equal(
+      feedback.group.visible,
+      false,
+      'a shield blocks the hull response',
+    );
     feedback.update(undefined, { quality }, 'repulsor', {
       disruption: 1,
       disruptionEquipment: 'lance',
@@ -216,14 +245,121 @@ test('Lance uses its localized armor burst without a Repulsor hull wash during h
       true,
       'another ordinary hit retains its hull flash during Lance recovery',
     );
+    assert.equal(
+      (response.uniforms?.color.value ?? response.color).getHex(),
+      DEVICE_COLORS.repulsor,
+    );
     feedback.update(undefined, { quality }, 'repulsor', { disruption: 1 });
     assert.equal(
       feedback.group.visible,
       true,
       'ordinary Repulsor recovery retains its hull response',
     );
+    feedback.update();
+    assert.equal(feedback.group.visible, false);
+    assert.equal(ship.children[0].material, material);
+    assert.ok(
+      material.color.equals(original),
+      'borrowed hull materials stay intact',
+    );
     feedback.dispose();
     geometry.dispose();
     material.dispose();
   }
+});
+
+test('Lance inspector impacts highlight only an unshielded target and clear on Stop across quality changes', async () => {
+  const geometry = new BoxGeometry(4, 2, 8);
+  const material = new MeshBasicMaterial({ color: 0x777777 });
+  let hullDisposals = 0;
+  geometry.addEventListener('dispose', () => hullDisposals++);
+  for (const shielded of [false, true]) {
+    const frame = new Group(),
+      ship = new Group(),
+      target = new Group();
+    ship.add(new Mesh(geometry, material));
+    target.add(new Mesh(geometry, material));
+    frame.add(ship);
+    const settings = { quality: 'high' };
+    const preview = createPickupPreview({
+      ship,
+      target,
+      frame,
+      getSettings: () => settings,
+      createAudio: () => ({
+        prepare: async () => 0,
+        event() {},
+        update() {},
+        setEffects() {},
+        stop() {},
+        dispose() {},
+      }),
+    });
+    const impact =
+      (PREVIEW_TARGET_DISTANCE - ARC_TARGET_HALF_LENGTH) / LANCE_SPEED;
+    assert.equal(
+      await preview.trigger('lance', {
+        time: impact + 0.08,
+        paused: true,
+        shielded,
+      }),
+      true,
+    );
+    for (const quality of ['high', 'low', 'high']) {
+      settings.quality = quality;
+      settings.reducedMotion = quality === 'low';
+      preview.update(10);
+      const response = target.getObjectByName(
+        quality === 'low'
+          ? 'Low combat / hull response'
+          : 'Combat / hull hit outline',
+      );
+      assert.equal(response.visible, !shielded);
+      if (!shielded) {
+        const surface = response.children[0].material;
+        assert.equal(
+          (surface.uniforms?.color.value ?? surface.color).getHex(),
+          LANCE_COLOR,
+        );
+        const strength = surface.uniforms?.strength.value ?? surface.opacity;
+        assert.ok(strength > 0);
+        preview.update(10);
+        assert.equal(
+          surface.uniforms?.strength.value ?? surface.opacity,
+          strength,
+          'paused hit age keeps its brightness',
+        );
+      }
+      assert.equal(
+        ship.getObjectByName(
+          quality === 'low'
+            ? 'Low combat / hull response'
+            : 'Combat / hull hit outline',
+        ).visible,
+        false,
+        'the source ship never receives its target highlight',
+      );
+    }
+    preview.stop();
+    assert.equal(
+      target.getObjectByName('Combat / hull hit outline').visible,
+      false,
+    );
+    preview.dispose();
+    preview.dispose();
+    assert.equal(
+      target.children.length,
+      1,
+      'feedback resources detach cleanly',
+    );
+    assert.equal(target.children[0].material, material);
+  }
+  assert.equal(
+    hullDisposals,
+    0,
+    'quality switches and disposal preserve borrowed hull geometry',
+  );
+  assert.equal(material.color.getHex(), 0x777777);
+  geometry.dispose();
+  material.dispose();
 });

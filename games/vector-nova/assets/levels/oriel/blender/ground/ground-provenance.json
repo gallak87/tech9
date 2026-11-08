@@ -1,0 +1,43 @@
+{
+  "version": "oriel-terraced-inner-shell-v1",
+  "authoring": "Original Blender inner-shell landscape authored by build_ground.py; no external textures or scanned assets",
+  "guideVersion": "oriel-cylindrical-circuit-v3-weaves-garden-corkscrew",
+  "guideSHA256": "914bf5230c9b8c7e4759c578585e43ed28d1a0cec7c2b1b7a14b6ed2bd5ff1f0",
+  "grid": [288, 192],
+  "sectors": 12,
+  "triangles": 110592,
+  "heightRange": [1.0, 65.0],
+  "minimumConservativeRouteClearance": 35.23,
+  "routeEnvelope": {
+    "guideCount": 779,
+    "halfWidth": 30,
+    "cameraLift": 8,
+    "coreRadius": 95,
+    "bankFadeRadius": 230
+  },
+  "plateauRecipes": [
+    [980, -1470, 640, 500, -0.26, 54],
+    [1270, -1160, 430, 390, 0.18, 39],
+    [1640, 660, 680, 470, 0.62, 57],
+    [1480, 940, 440, 420, 0.24, 43],
+    [2350, 300, 750, 550, 0.42, 63],
+    [2550, -40, 480, 490, -0.18, 46],
+    [3150, -740, 820, 620, -0.48, 60],
+    [3590, -1070, 520, 460, 0.16, 46],
+    [3670, 1450, 620, 590, 0.2, 54],
+    [4290, -830, 750, 530, 0.66, 61],
+    [4560, -190, 550, 650, 0.24, 51],
+    [4950, -1380, 690, 610, -0.42, 63],
+    [5870, -2020, 610, 510, 0.2, 58],
+    [5110, 1330, 720, 670, -0.61, 56],
+    [5660, 510, 620, 510, 0.47, 47],
+    [150, 1910, 670, 620, -0.34, 57],
+    [-100, 1630, 430, 420, 0.17, 40]
+  ],
+  "hashes": {
+    "build_ground.py": "43144dc2c6b2c66e680ff8d54f1f7bc3563898c3de52b5644df8120f1b0ecafe",
+    "height-field.json": "24422dc3f4b2cd1c6425458a5470320459eabba1036f35d9bb02713eac87f1e3",
+    "oriel-ground.blend": "1979b6ba8dbd4665603142864756451ef302e41d42f82a4c0e6ee1dc2f519c75",
+    "oriel-ground.glb": "d40efed90e230c9948e2f1686367ee8b7a2c67cb7c8c798f2b85e8cda2951698"
+  }
+}

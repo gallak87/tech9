@@ -90,7 +90,6 @@ def bank(z,side):
  edge=(min(local)-310 if side<0 else max(local)+310) if local else (world_left if side<0 else world_right)
  # Keep reservoirs rectangular below, but vary the occupied inner gorge ledge.
  return max(world_left+75,edge) if side<0 else min(world_right-75,edge)
-def harbor_widen(z):return 350*min(1,max(0,(z-route_max_z+900)/900))
 # Placement uses the route exporter’s real flight envelope, including the
 # entire space between slow and boosted arcs. A guide curve through an absent
 # road is not a safe proxy for airborne craft or the trailing chase camera.

@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import { buildFossilPlacements } from './placements.js';
 export { skullPlacement, sandfallAnchors } from './placements.js';
 import { GRAZER_GROUND_SAMPLES } from './grazer-path.js';
@@ -20,7 +21,7 @@ export function createFossils(
   track,
   survey,
   resources,
-  { loadAsset, shape = false, weatheringTexture } = {},
+  { loadAsset, shape = false, weatheringTexture, mineralSurface } = {},
 ) {
   const group = new T.Group();
   group.name = 'Saffron / authored fossil anatomy and displaced dune families';
@@ -105,6 +106,7 @@ export function createFossils(
     gltf.scene.updateMatrixWorld(true);
     for (const name of [
       'skull',
+      'scapula',
       'rib',
       'rib_1',
       'rib_2',
@@ -140,15 +142,22 @@ export function createFossils(
             if (
               [
                 'skull',
+                'scapula',
                 'rib',
                 'rib_1',
                 'rib_2',
                 'vertebra',
                 'vertebra_1',
                 'vertebra_2',
-              ].includes(name)
+              ].includes(name) ||
+              (name === 'sandfall' &&
+                /fossil|chalk|marrow/i.test(material.name))
             )
-              applyFossilWeathering(material, weatheringTexture);
+              applyFossilWeathering(
+                material,
+                weatheringTexture,
+                mineralSurface,
+              );
             if (['dune', 'dune_1', 'outcrop', 'outcrop_1'].includes(name))
               applyGeologicalWeathering(material, weatheringTexture);
             if (
@@ -156,26 +165,38 @@ export function createFossils(
               material.name === 'Saffron_mineral_bands'
             ) {
               material.transparent = true;
-              material.opacity = 0.28;
+              material.opacity = 0.6;
               material.depthWrite = false;
               material.roughness = 1;
-              material.color.set('#aa8b56');
+              material.color.set('#b9965b');
               material.forceSinglePass = true;
               material.onBeforeCompile = (shader) => {
                 shader.uniforms.saffronFlowTime = poseUniforms.time;
-                shader.vertexShader =
-                  `uniform float saffronFlowTime; varying vec3 vFall;\n${shader.vertexShader}`.replace(
-                    '#include <begin_vertex>',
-                    '#include <begin_vertex>\nvFall=position;transformed.z+=sin(position.y*.16+saffronFlowTime*.7)*.35;',
-                  );
-                shader.fragmentShader =
-                  `varying vec3 vFall; uniform float saffronFlowTime; float fHash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}float fNoise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(fHash(i),fHash(i+vec2(1,0)),f.x),mix(fHash(i+vec2(0,1)),fHash(i+vec2(1,1)),f.x),f.y);}\n${shader.fragmentShader}`.replace(
-                    '#include <color_fragment>',
-                    '#include <color_fragment>\nfloat edge=abs(vFall.x)/(10.+17.*clamp(-vFall.y/80.,0.,1.));diffuseColor.a*=1.-smoothstep(.28,.5,edge);float flow=fNoise(vec2(vFall.x*.27,vFall.y*.13+saffronFlowTime*.8));diffuseColor.a*=smoothstep(.08,.76,flow);diffuseColor.rgb*=.8+flow*.2;',
-                  );
+                shader.vertexShader = replaceShader(
+                  `uniform float saffronFlowTime; varying vec3 vFall;\n${shader.vertexShader}`,
+                  '#include <begin_vertex>',
+                  '#include <begin_vertex>\nvFall=position;float fallProgress=clamp(-position.y/80.,0.,1.);transformed.x+=sin(position.y*.045+saffronFlowTime*.22)*.22*fallProgress;',
+                );
+                shader.fragmentShader = replaceShader(
+                  `varying vec3 vFall; uniform float saffronFlowTime; float fHash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}float fNoise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(fHash(i),fHash(i+vec2(1,0)),f.x),mix(fHash(i+vec2(0,1)),fHash(i+vec2(1,1)),f.x),f.y);}\n${shader.fragmentShader}`,
+                  '#include <color_fragment>',
+                  `#include <color_fragment>
+                    float fallDepth=clamp(-vFall.y/80.,0.,1.);
+                    float fallFlight=sqrt(max(.001,fallDepth));
+                    float edge=abs(vFall.x)/(10.+17.*fallDepth);
+                    float silhouette=1.-smoothstep(.31,.49,edge);
+                    // Constant phase speed in sqrt(depth) produces accelerating
+                    // features down the fall rather than a drifting flat veil.
+                    float granular=fNoise(vec2(vFall.x*.95,fallFlight*24.-saffronFlowTime*1.65));
+                    float channel=fNoise(vec2(vFall.x*.23+sin(vFall.y*.025)*.6,fallFlight*7.-saffronFlowTime*.48));
+                    float threads=.5+.5*sin(vFall.x*1.05+channel*3.);
+                    float density=(.54+.46*smoothstep(.12,.86,threads))*(.72+.28*granular);
+                    diffuseColor.a*=silhouette*density;
+                    diffuseColor.rgb*=.77+granular*.23;`,
+                );
               };
               material.customProgramCacheKey = () =>
-                'saffron-irregular-sand-volume-v5';
+                'saffron-accelerating-granular-volume-v7';
             }
             if (name === 'burrower') {
               applyCreatureWeathering(material, weatheringTexture);
@@ -201,20 +222,20 @@ export function createFossils(
                   float grazerY(float z) { return grazerHeight(grazer_travel+z)-grazer_headGround+grazerLift(z); }
                   float grazerX(float z) { float lag=max(0.,-z);return sin(lag*.007-grazer_age*.22)*smoothstep(50.,360.,lag)*3.*grazer_motion; }
                 `;
-                shader.vertexShader = `${declarations}\n${shader.vertexShader}`
-                  .replace(
+                shader.vertexShader = replaceShader(
+                  replaceShader(
+                    `${declarations}\n${shader.vertexShader}`,
                     '#include <beginnormal_vertex>',
                     `#include <beginnormal_vertex>
                     // Inverse transpose of the continuous longitudinal deformation.
                     objectNormal.z -= objectNormal.y*(grazerY(position.z+1.)-grazerY(position.z-1.))*.5
                       +objectNormal.x*(grazerX(position.z+1.)-grazerX(position.z-1.))*.5;`,
-                  )
-                  .replace(
-                    '#include <begin_vertex>',
-                    `#include <begin_vertex>
+                  ),
+                  '#include <begin_vertex>',
+                  `#include <begin_vertex>
                     transformed.y += grazerY(position.z);
                     transformed.x += grazerX(position.z);`,
-                  );
+                );
               };
               material.customProgramCacheKey = () =>
                 'saffron-baked-grazer-forward-breach-v4';
@@ -239,6 +260,7 @@ export function createFossils(
           if (mesh)
             mesh.castShadow = [
               'skull',
+              'scapula',
               'rib',
               'rib_1',
               'rib_2',

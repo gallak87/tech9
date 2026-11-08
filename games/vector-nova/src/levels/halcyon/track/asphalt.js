@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import * as THREE from 'three';
 import { SharedKTX2Loader } from '../../../assets/ktx2-loader.js';
 import { assetURL } from '../../../assets/url.js';
@@ -28,7 +29,8 @@ export function createAsphalt(
     shader.uniforms.roadMoisture = moisture;
     shader.vertexShader =
       'varying vec2 roadMetres;\n' +
-      shader.vertexShader.replace(
+      replaceShader(
+        shader.vertexShader,
         '#include <uv_vertex>',
         `#include <uv_vertex>\nroadMetres = uv * vec2(${width.toFixed(1)}, ${uvLength.toFixed(1)});`,
       );
@@ -46,7 +48,8 @@ export function createAsphalt(
           mix(asphaltHash(i+vec2(0,1)),asphaltHash(i+vec2(1,1)),f.x),f.y);
       }
       ` + shader.fragmentShader;
-    shader.fragmentShader = shader.fragmentShader.replace(
+    shader.fragmentShader = replaceShader(
+      shader.fragmentShader,
       '#include <map_fragment>',
       `#include <map_fragment>
       // Broad moisture is independent of the 2 m aggregate repeat. No large
@@ -56,7 +59,8 @@ export function createAsphalt(
       float asphaltWet = clamp(roadMoisture * (.38 + .85 * smoothstep(.25,.75,asphaltMacro)),0.,1.);
       diffuseColor.rgb *= mix(1., .68, asphaltWet) * (.94 + .12 * asphaltMacro);`,
     );
-    shader.fragmentShader = shader.fragmentShader.replace(
+    shader.fragmentShader = replaceShader(
+      shader.fragmentShader,
       '#include <roughnessmap_fragment>',
       `#include <roughnessmap_fragment>
       roughnessFactor = clamp(mix(.5,.035,asphaltWet) + (roughnessFactor-.8)*.5,.07,.85);`,

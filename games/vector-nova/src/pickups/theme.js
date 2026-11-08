@@ -6,5 +6,6 @@ export const DEVICE_COLORS = Object.freeze({
   arc: 0x58b7ff,
   ion: 0xb999ff,
 });
+export const LANCE_COLOR = 0xff5908;
 export const deviceCSSColor = (kind) =>
   '#' + DEVICE_COLORS[kind].toString(16).padStart(6, '0');

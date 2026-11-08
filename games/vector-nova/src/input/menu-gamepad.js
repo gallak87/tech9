@@ -7,6 +7,7 @@ export function menuIntent(pad, { stickNavigation = true } = {}) {
   return {
     accept: pressed(0),
     back: pressed(1),
+    secondary: pressed(3),
     pause: pressed(9),
     music: pressed(8),
     camera: pressed(11),
@@ -26,7 +27,10 @@ export function menuIntent(pad, { stickNavigation = true } = {}) {
           : 0,
   };
 }
-export function bindMenuGamepad(signal, { toggleMusic = () => {} } = {}) {
+export function bindMenuGamepad(
+  signal,
+  { toggleMusic = () => {}, onSecondaryAction = () => {} } = {},
+) {
   let previous = {},
     direction = '',
     nextRepeat = 0,
@@ -38,10 +42,8 @@ export function bindMenuGamepad(signal, { toggleMusic = () => {} } = {}) {
     element.getClientRects().length &&
     !element.closest('[hidden], .hidden, [inert]');
   const menuRoot = () => {
-    const progression = document.querySelector(
-      'dialog[data-progression-dialog][open]',
-    );
-    if (visible(progression)) return progression;
+    const completion = document.querySelector('.completion-cinematic');
+    if (visible(completion)) return completion;
     const music = document.querySelector(
       '[data-music-player][data-menu-active]',
     );
@@ -61,10 +63,16 @@ export function bindMenuGamepad(signal, { toggleMusic = () => {} } = {}) {
         ].filter((panel) => visible(panel) && !root.contains(panel))
       : [];
   function key(value, code = value) {
+    const root = menuRoot();
+    const focused = document.activeElement;
+    // Let nested editors and confirmation panels consume Back before the page.
+    // Keep focus outside the active navigation root from receiving its actions.
     const target =
       value === 'Escape'
-        ? (menuRoot() ?? document.body)
-        : (document.activeElement ?? document.body);
+        ? root?.contains(focused)
+          ? focused
+          : (root ?? document.body)
+        : (focused ?? document.body);
     return !target.dispatchEvent(
       new KeyboardEvent('keydown', {
         key: value,
@@ -82,7 +90,11 @@ export function bindMenuGamepad(signal, { toggleMusic = () => {} } = {}) {
       ]),
     ].filter(
       (el) =>
-        !el.disabled && el.tabIndex >= 0 && visible(el) && el.type !== 'hidden',
+        !el.disabled &&
+        el.tabIndex >= 0 &&
+        !el.hasAttribute('data-controller-skip') &&
+        visible(el) &&
+        el.type !== 'hidden',
     );
     let target = document.activeElement;
     if (!controls.includes(target)) {
@@ -151,10 +163,16 @@ export function bindMenuGamepad(signal, { toggleMusic = () => {} } = {}) {
       padIdentity = identity;
     }
     if (!document.hidden) {
-      if (intent.music && !previous.music) toggleMusic();
+      if (
+        intent.music &&
+        !previous.music &&
+        !root?.matches('.completion-cinematic')
+      )
+        toggleMusic();
       if (intent.pause && !previous.pause) key('Escape');
       else if (root) {
         if (intent.back && !previous.back) key('Escape');
+        if (intent.secondary && !previous.secondary) onSecondaryAction(root);
         if (intent.accept && !previous.accept) {
           const target = document.activeElement;
           if (

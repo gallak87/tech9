@@ -22,7 +22,7 @@ export function createVesperRuntime(context) {
   });
   let surface = { id: 'resin', zone: null, drag: 0 };
   function finishSurface(state, events) {
-    const motion = runtime.snapshot();
+    const motion = runtime.status();
     const next =
       motion.mode === 'magnetic'
         ? sampleVesperSurface(track, state)

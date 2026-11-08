@@ -1,4 +1,5 @@
 import { createAudio } from '../audio/index.js';
+import { effectsVolume } from '../progression/index.js';
 
 // Dev studio only. Reuse the race propulsion mix in a private audio owner.
 export function createEnginePreview({
@@ -25,7 +26,7 @@ export function createEnginePreview({
         steer: 0,
         time: state.time,
       },
-      settings.muted ? 0 : settings.volume,
+      effectsVolume(settings),
       ready && active(state),
     );
   }

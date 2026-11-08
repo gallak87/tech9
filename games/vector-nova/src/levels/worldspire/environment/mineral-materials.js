@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 const mineralNoise = `
 float mineralHash(vec3 p){p=fract(p*.1031);p+=dot(p,p.yzx+33.33);return fract((p.x+p.y)*p.z);}
 float mineralNoise(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(mix(mineralHash(i),mineralHash(i+vec3(1,0,0)),f.x),mix(mineralHash(i+vec3(0,1,0)),mineralHash(i+vec3(1,1,0)),f.x),f.y),mix(mix(mineralHash(i+vec3(0,0,1)),mineralHash(i+vec3(1,0,1)),f.x),mix(mineralHash(i+vec3(0,1,1)),mineralHash(i+vec3(1,1,1)),f.x),f.y),f.z);}
@@ -18,7 +19,8 @@ export function finishWorldspireMineral(material, texture, exposureTexture) {
     shader.uniforms.mineralExposure = { value: exposureTexture };
     shader.vertexShader =
       'varying vec3 mineralWorld;varying vec3 mineralWorldNormal;\n' +
-      shader.vertexShader.replace(
+      replaceShader(
+        shader.vertexShader,
         '#include <begin_vertex>',
         `#include <begin_vertex>
       vec4 mineralPosition=vec4(position,1.);
@@ -34,12 +36,18 @@ export function finishWorldspireMineral(material, texture, exposureTexture) {
     shader.fragmentShader =
       'varying vec3 mineralWorld;varying vec3 mineralWorldNormal;uniform sampler2D mineralExposure;\n' +
       mineralNoise +
-      shader.fragmentShader
-        // COLOR_0 is Blender's baked contact occlusion, not mineral pigment.
-        .replace('#include <color_fragment>', '')
-        .replace(
-          '#include <aomap_fragment>',
-          `#include <aomap_fragment>
+      replaceShader(
+        replaceShader(
+          replaceShader(
+            replaceShader(
+              replaceShader(
+                shader.fragmentShader,
+                // COLOR_0 is Blender's baked contact occlusion, not mineral pigment.
+                '#include <color_fragment>',
+                '',
+              ),
+              '#include <aomap_fragment>',
+              `#include <aomap_fragment>
         #if defined(USE_COLOR) || defined(USE_COLOR_ALPHA)
         float mineralOcclusion=clamp(vColor.r,.45,1.);
         reflectedLight.indirectDiffuse*=mineralOcclusion;
@@ -47,10 +55,9 @@ export function finishWorldspireMineral(material, texture, exposureTexture) {
         reflectedLight.indirectSpecular*=computeSpecularOcclusion(saturate(dot(geometryNormal,geometryViewDir)),mineralOcclusion,material.roughness);
         #endif
         #endif`,
-        )
-        .replace(
-          '#include <map_fragment>',
-          `#ifdef USE_MAP
+            ),
+            '#include <map_fragment>',
+            `#ifdef USE_MAP
         vec3 axis=pow(abs(mineralWorldNormal),vec3(4.));axis/=max(.0001,axis.x+axis.y+axis.z);
         vec3 p=mineralWorld/6.;
         vec3 grain=texture2D(map,p.zy).rgb*axis.x+texture2D(map,p.xz).rgb*axis.y+texture2D(map,p.xy).rgb*axis.z;
@@ -78,8 +85,7 @@ export function finishWorldspireMineral(material, texture, exposureTexture) {
         vec3 reliefExposure=texture2D(mineralExposure,q.zy,2.).rgb*axis.x+texture2D(mineralExposure,q.xz,2.).rgb*axis.y+texture2D(mineralExposure,q.xy,2.).rgb*axis.z;
         float mineralRelief=(face-.5)*(1.1+rindCoverage*.65)+dot(reliefExposure,vec3(.2126,.7152,.0722))*substrateExposure*2.+mineralGrain*.008*(1.-smoothstep(.3,2.2,length(fwidth(mineralWorld))));
         #endif`,
-        )
-        .replace(
+          ),
           '#include <roughnessmap_fragment>',
           `#include <roughnessmap_fragment>
         #ifdef USE_MAP
@@ -89,16 +95,15 @@ export function finishWorldspireMineral(material, texture, exposureTexture) {
         roughnessFactor=clamp(mix(.42,.82,rindCoverage)+wear*.35,.4,.9);
         roughnessFactor=max(roughnessFactor,mix(.4,.85,ledgeExposure));
         #endif`,
-        )
-        .replace(
-          '#include <normal_fragment_maps>',
-          `#include <normal_fragment_maps>
+        ),
+        '#include <normal_fragment_maps>',
+        `#include <normal_fragment_maps>
         #ifdef USE_MAP
         vec3 sx=dFdx(-vViewPosition),sy=dFdy(-vViewPosition),rx=cross(sy,normal),ry=cross(normal,sx);
         float det=dot(sx,rx);
         normal=normalize(normal-sign(det)*(dFdx(mineralRelief)*rx+dFdy(mineralRelief)*ry)/max(abs(det),.00001));
         #endif`,
-        );
+      );
   };
   // All mineral surfaces share this program and the same physical field.
   material.customProgramCacheKey = () => 'worldspire-mineral-v11';

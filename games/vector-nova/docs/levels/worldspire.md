@@ -1,6 +1,8 @@
 # Worldspire — Crown to Root Gate
 
-The [selected monolith concept](../../assets/levels/worldspire/reference/worldspire-v1.png) establishes scale and atmosphere; playable geometry is authored independently. The user approved the revised turning premise and authorized production completion and an independent art gauntlet.
+Implemented course reference; human driving review remains open in the [roadmap](../../ROADMAP.md). This is not an active production or critique assignment.
+
+The [selected monolith concept](../../assets/levels/worldspire/reference/worldspire-v1.png) establishes scale and atmosphere; playable geometry is authored independently. Preserve the accepted turning premise.
 
 The route races 14.01 km, drops 6.08 km and ends with a 650 m supported braking runout (14.66 km total). Seven physical jumps, three complete corkscrews and two twisting through-spire passages alternate with descending switchbacks and steep chutes. Heart and Root Gate span 440 m with roughly 4.8 seconds airborne; Echo spans 360 m with roughly four seconds airborne. Four medium jumps separate those flights. Broad curved receivers retain room for fast and off-center approaches. Launch and receiving windows supply the few straight reaches. The fractured mineral Heart contrasts with the taller amber Echo chamber; a fitted Root Gate marks the grounded destination.
 

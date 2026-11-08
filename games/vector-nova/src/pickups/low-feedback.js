@@ -1,5 +1,5 @@
 import * as T from 'three';
-import { DEVICE_COLORS } from './theme.js';
+import { DEVICE_COLORS, LANCE_COLOR } from './theme.js';
 import { AEGIS_BREAK_DURATION } from './rules.js';
 import { disposeGroup } from './geometry.js';
 import { lowMesh, lowRing } from './low-geometry.js';
@@ -165,14 +165,15 @@ export function createLowHitFeedback(ship, hull) {
       { ionContact = 0, disruption = 0, equipment, disruptionEquipment } = {},
     ) {
       const hit =
-        equipment !== 'lance' &&
-        ['arc', 'repulsor', 'ion'].includes(kind) &&
-        age >= 0 &&
-        age < 0.55;
+        ['arc', 'repulsor', 'ion'].includes(kind) && age >= 0 && age < 0.55;
       const contact = kind === 'ion' ? clamp(ionContact) : 0;
       const sustained = disruptionEquipment === 'lance' ? 0 : clamp(disruption);
       group.visible = hit || contact > 0 || sustained > 0;
-      outline.material.color.setHex(DEVICE_COLORS[kind] ?? DEVICE_COLORS.arc);
+      outline.material.color.setHex(
+        hit && equipment === 'lance'
+          ? LANCE_COLOR
+          : (DEVICE_COLORS[kind] ?? DEVICE_COLORS.arc),
+      );
       outline.material.opacity =
         (reducedMotion ? 0.45 : 0.9) *
         (hit

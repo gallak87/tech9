@@ -1,5 +1,7 @@
 # Nightweir — Blackstart
 
+Implemented course reference; human driving review remains open in the [roadmap](../../ROADMAP.md). This is not an active production or critique assignment.
+
 The [selected stormwater city concept](../../assets/levels/nightweir/reference/nightweir-v1.png) establishes an inhabited hydroelectric gorge descending toward a working harbor. Worldspire remains a separate level.
 
 The race descends 3.88 km over 13.58 km of municipal roads, followed by a 650 m supported braking quay: 14.23 km total. Eight physical jumps and three corkscrews interrupt sustained banked reversals. Great Spillway and Harbor Leap cross 440 m horizontal gaps with approximately 4.8 seconds of flight; Turbine Leap crosses 300 m in approximately 3.4 seconds. Long downhill receivers accommodate the fleet at cruise and boosted entry speeds. Shared steering and gravity are unchanged. The level-owned approach camera pulls back gently while preserving forward city views.

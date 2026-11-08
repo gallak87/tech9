@@ -1,4 +1,5 @@
 import { chromium } from 'playwright';
+import { levelAvailable } from '../src/levels/access.js';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { execFileSync } from 'node:child_process';
@@ -67,7 +68,10 @@ try {
       );
       const page = await context.newPage();
       await page.goto(
-        new URL(`?level=${route.id}&capture=1&music=0`, base).href,
+        new URL(
+          `?level=${route.id}&capture=1&music=0${levelAvailable(route.id) ? '' : '&dev=1'}`,
+          base,
+        ).href,
       );
       await page.waitForFunction(
         () => window.__VN?.ready || window.__VN_FRONTEND?.getState().error,
@@ -166,6 +170,42 @@ try {
             .addScaledVector(frame.up, 5);
           camera.up.copy(frame.up);
           camera.fov = 62;
+        }
+
+        if (id === 'ravel') {
+          const station = (track.braid.splitEnd + track.braid.mergeStart) / 2;
+          const frame = track.sample(station);
+          camera.position
+            .copy(frame.position)
+            .addScaledVector(frame.right, 780)
+            .addScaledVector(frame.up, 740)
+            .addScaledVector(frame.tangent, -850);
+          target
+            .copy(track.sample(station + 180).position)
+            .addScaledVector(frame.right, 100);
+          camera.fov = 62;
+        }
+        if (id === 'nomad') {
+          const transfer = track.jumps.find((jump) => jump.hero);
+          const departure = track.sample(transfer.takeoff).position;
+          const receiver = track.sample(transfer.landingStart + 180).position;
+          const centre = departure.clone().lerp(receiver, 0.45);
+          // View from the lower side, above the intervening salt shelves.
+          camera.position.copy(centre);
+          camera.position.x += 650;
+          camera.position.y += 440;
+          camera.position.z -= 700;
+          target.copy(centre);
+          target.y -= 35;
+          target.z += 140;
+          camera.fov = 58;
+        }
+        if (id === 'oriel') {
+          // Stay inside the habitat and show the inhabited ceiling, axial sun,
+          // lakes and circumferential route together.
+          camera.position.set(-140, 350, -1980);
+          target.set(0, 1100, 1200);
+          camera.fov = 74;
         }
         camera.lookAt(target);
         camera.updateProjectionMatrix();

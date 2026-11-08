@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cupView } from './cup.js';
-import { createCupStore } from '../race/cup.js';
+import { cupView, cupWaitingView } from './cup.js';
+import { createCupStore, availableCups } from '../race/cup.js';
+import { cupCabinet, cupCard, cupArt } from './cup-art.js';
 import { RACE_OPPONENTS } from '../race/roster.js';
 
 function resultAt(
@@ -39,6 +40,25 @@ function ranks(html) {
     (match) => Number(match[1]),
   );
 }
+test('the bonus cup only enters the picker and trophy cabinet after career completion', () => {
+  const options = { catalog: [], routes: [], collection: {} };
+  assert.doesNotMatch(cupView(options), /data-cup="encore"/);
+  assert.doesNotMatch(cupCabinet(), /Encore/);
+  const unlocked = availableCups({ complete: true });
+  const html = cupView({ ...options, cups: unlocked });
+  assert.match(html, /class="cup-card is-bonus[^>]*data-cup="encore"/);
+  assert.equal((html.match(/class="cup-bonus-badge"/g) ?? []).length, 1);
+  assert.match(cupCabinet({}, unlocked), /Encore Cup: not yet won/);
+  assert.match(cupArt('encore').trophy, /^data:image\/svg\+xml,/);
+  assert.notEqual(cupArt('encore').accent, cupArt('apex').accent);
+  const won = { encore: { earnedAt: 1, points: 75, difficulty: 'hard' } };
+  const encore = unlocked.at(-1);
+  assert.doesNotMatch(cupCard(encore, encore.id, won), /cup-bonus-badge/);
+  assert.match(
+    cupCabinet({ cups: won }, unlocked),
+    /Encore Cup: trophy earned/,
+  );
+});
 for (const [position, expected] of [
   [1, [1, 2, 3]],
   [2, [1, 2, 3, 4]],
@@ -55,6 +75,11 @@ test('final standings include the complete field', () => {
   assert.deepEqual(ranks(html), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
   assert.match(html, /Final cup standings/);
   assert.doesNotMatch(html, /Next grid:/);
+  assert.match(html, /data-action="cup-hub"[^>]*>Choose another cup/);
+  assert.doesNotMatch(
+    html,
+    /data-action="cup-(?:abandon|retry|restart|confirm)"/,
+  );
 });
 test('results explain the earned next grid instead of promising pole after a win', () => {
   assert.match(resultAt(1), /Next grid: P03 \/ 10/);
@@ -70,4 +95,27 @@ test('invalid finishes stay visible with zero points and storage warnings surviv
   assert.match(html, /<dd>Invalid<\/dd>/);
   assert.match(html, /<dd>\+0<\/dd>/);
   assert.match(html, /role="status">Could not save &lt;progress&gt;\.<\/p>/);
+});
+test('waiting classification keeps rival names as text', () => {
+  const html = cupWaitingView({
+    playerValid: true,
+    playerTotalTime: 120,
+    courseFormat: 'circuit',
+    remaining: 9,
+    standings: [
+      {
+        id: 'player',
+        position: 1,
+        finished: true,
+        valid: true,
+        totalTime: 120,
+      },
+      { id: 'rook', name: `Rook & <"Nova"> 'II'`, finished: false },
+    ],
+  });
+  assert.ok(
+    html.includes('<b>Rook &amp; &lt;&quot;Nova&quot;&gt; &#39;II&#39;</b>'),
+  );
+  assert.doesNotMatch(html, /<"Nova">/);
+  assert.match(html, /ON TRACK/);
 });

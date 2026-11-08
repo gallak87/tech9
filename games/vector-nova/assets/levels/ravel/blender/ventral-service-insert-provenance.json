@@ -1,0 +1,112 @@
+{
+  "generator": "Original project-authored editable Blender geometry; no external models/textures",
+  "coordinates": "Metres,+Yup,+Zbow; identity relative to retained loom_carrier",
+  "source": "build_ventral_service_insert.py",
+  "blend": "ravel-ventral-service-insert.blend",
+  "runtimeAsset": "public/assets/levels/ravel/ventral-service-insert.glb",
+  "attachmentPrototype": "loom_carrier",
+  "attachmentMatrix": [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+  "design": "Unequal recessed ventral service bays, open load ribs, formed skid shoes, stepped central keel vaults and open nozzle mounting cuffs, seated over original undersides.",
+  "originalAsset": {
+    "file": "public/assets/levels/ravel/anchor-fleet.glb",
+    "sha256": "6d7834a611cac29d1d87eb030521541e713b595077f802ebc467a87c2c644562"
+  },
+  "originalBuilder": {
+    "file": "assets/levels/ravel/blender/build_anchor_fleet.py",
+    "sha256": "77fb5fae598292aa25cffa12a0d4685eb95796b7acd5231da2873dd0e081868b"
+  },
+  "racingReferences": [
+    {
+      "view": "Sundiver approach",
+      "description": "Production chase camera during the grounded approach; the launch carrier ventral sponsons and keel occupy the left middle distance."
+    },
+    {
+      "view": "Sundiver lip",
+      "description": "Production chase camera immediately before launch; the carrier underside fills the left foreground and exposes the broad keel pads."
+    },
+    {
+      "view": "Sundiver takeoff",
+      "description": "Carried production flight camera just after actual ballistic release; the close ventral bays, central keel and receiving installation remain visible."
+    }
+  ],
+  "prototype": "loom_carrier_ventral_service_insert",
+  "triangles": 11536,
+  "materialBatches": 5,
+  "batches": [
+    {
+      "material": "Copper / heat and tension hardware",
+      "triangles": 2024
+    },
+    {
+      "material": "Titanium / formed fittings",
+      "triangles": 4392
+    },
+    {
+      "material": "Interior / deep graphite",
+      "triangles": 176
+    },
+    {
+      "material": "Graphite / structural carbon",
+      "triangles": 2640
+    },
+    {
+      "material": "Ceramic / warm ivory",
+      "triangles": 2304
+    }
+  ],
+  "bounds": {
+    "min": [-62.0, -45.099998474121094, -224.0],
+    "max": [62.000003814697266, 24.30000114440918, 196.712158203125]
+  },
+  "dimensions": [124.00000381469727, 69.39999961853027, 420.712158203125],
+  "maxDropBelowOriginalKeel": 8.099998474121094,
+  "anchors": [
+    {
+      "name": "aft_crosshead",
+      "position": [0, -17, -168],
+      "kind": "attachment"
+    },
+    {
+      "name": "forward_crosshead",
+      "position": [0, -17, 136],
+      "kind": "attachment"
+    },
+    {
+      "name": "central_keel_seat",
+      "position": [0, -37, -15],
+      "kind": "attachment"
+    },
+    {
+      "name": "port_hull_seat",
+      "position": [-42, -28, 0],
+      "kind": "attachment"
+    },
+    {
+      "name": "starboard_hull_seat",
+      "position": [42, -28, 0],
+      "kind": "attachment"
+    }
+  ],
+  "materials": [
+    "Ceramic / warm ivory",
+    "Graphite / structural carbon",
+    "Titanium / formed fittings",
+    "Copper / heat and tension hardware",
+    "Interior / deep graphite"
+  ],
+  "hashes": {
+    "build_ventral_service_insert.py": "9c2327c1963e7edfdca0956ba3f03142939ec3344d2a9253b8d057bb624d8b27",
+    "ravel-ventral-service-insert.blend": "378ed40fb0a27ab5f75b74df28daa1c6e8b483455128dcc63788db4f5c38e1b6",
+    "ventral-service-insert.glb": "504c4a0815556a0c94a81c31351a9a9540075c57e3ce0d7729d99fbf65c97dfa"
+  },
+  "referenceImages": [
+    {
+      "file": "assets/levels/ravel/reference/sail-basin-selected-crop.png",
+      "sha256": "fffdfad048bddc81fea153f2c98b3394c214d7044dc75557b90730a47244aab0"
+    },
+    {
+      "file": "assets/levels/ravel/reference/ravel-anchor-narrows-concept.png",
+      "sha256": "9d10cfba850da22fb6a01a92df0624af25dec7329e36c340df34e20454c13ea5"
+    }
+  ]
+}

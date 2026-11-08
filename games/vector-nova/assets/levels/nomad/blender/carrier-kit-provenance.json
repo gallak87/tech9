@@ -1,0 +1,525 @@
+{
+  "title": "Nomad Procession original wheeled land-carrier kit",
+  "generator": "Original Blender mesh authoring, with editable component source retained before runtime consolidation.",
+  "source": "build_nomad_carrier.py",
+  "blend": "nomad-carrier-kit.blend",
+  "runtimeAsset": "public/assets/levels/nomad/carrier-kit.glb",
+  "coordinates": "Metres; glTF +Y up, +Z bow, wheel axle +X; carrier root at nominal ground centre.",
+  "rights": "Project-authored original meshes and scalar PBR materials. No third-party models, maps or baked lighting.",
+  "reference": "Original Nomad Procession generated scene supplied in the task; source reference and exact prompt registered separately by the level owner.",
+  "reservedEnvelopes": {
+    "cargoHall": {
+      "min": [-56, 54, -380],
+      "max": [56, 124, 380]
+    },
+    "roofRoad": {
+      "min": [-75, 132, -380],
+      "max": [75, 155, 380]
+    },
+    "outerWallRide": {
+      "absoluteX": [90, 125],
+      "y": [80, 145]
+    }
+  },
+  "prototypes": [
+    {
+      "name": "nomad_carrier",
+      "triangles": 61012,
+      "materialBatches": 6,
+      "bounds": {
+        "min": [-157.89999389648438, 18.423892974853516, -376.7200012207031],
+        "max": [157.89999389648438, 179.19607543945312, 368.0]
+      },
+      "dimensions": [315.79998779296875, 160.7721824645996, 744.7200012207031],
+      "anchors": [
+        {
+          "name": "wheel_port_00",
+          "position": [-96, 30, -312],
+          "kind": "wheel",
+          "axis": [1, 0, 0],
+          "rollingRadius": 30
+        },
+        {
+          "name": "wheel_port_01",
+          "position": [-96, 30, -234],
+          "kind": "wheel",
+          "axis": [1, 0, 0],
+          "rollingRadius": 30
+        },
+        {
+          "name": "wheel_port_02",
+          "position": [-96, 30, -156],
+          "kind": "wheel",
+          "axis": [1, 0, 0],
+          "rollingRadius": 30
+        },
+        {
+          "name": "wheel_port_03",
+          "position": [-96, 30, -78],
+          "kind": "wheel",
+          "axis": [1, 0, 0],
+          "rollingRadius": 30
+        },
+        {
+          "name": "wheel_port_04",
+          "position": [-96, 30, 0],
+          "kind": "wheel",
+          "axis": [1, 0, 0],
+          "rollingRadius": 30
+        },
+        {
+          "name": "wheel_port_05",
+          "position": [-96, 30, 78],
+          "kind": "wheel",
+          "axis": [1, 0, 0],
+          "rollingRadius": 30
+        },
+        {
+          "name": "wheel_port_06",
+          "position": [-96, 30, 156],
+          "kind": "wheel",
+          "axis": [1, 0, 0],
+          "rollingRadius": 30
+        },
+        {
+          "name": "wheel_port_07",
+          "position": [-96, 30, 234],
+          "kind": "wheel",
+          "axis": [1, 0, 0],
+          "rollingRadius": 30
+        },
+        {
+          "name": "wheel_port_08",
+          "position": [-96, 30, 312],
+          "kind": "wheel",
+          "axis": [1, 0, 0],
+          "rollingRadius": 30
+        },
+        {
+          "name": "wheel_starboard_00",
+          "position": [96, 30, -312],
+          "kind": "wheel",
+          "axis": [1, 0, 0],
+          "rollingRadius": 30
+        },
+        {
+          "name": "wheel_starboard_01",
+          "position": [96, 30, -234],
+          "kind": "wheel",
+          "axis": [1, 0, 0],
+          "rollingRadius": 30
+        },
+        {
+          "name": "wheel_starboard_02",
+          "position": [96, 30, -156],
+          "kind": "wheel",
+          "axis": [1, 0, 0],
+          "rollingRadius": 30
+        },
+        {
+          "name": "wheel_starboard_03",
+          "position": [96, 30, -78],
+          "kind": "wheel",
+          "axis": [1, 0, 0],
+          "rollingRadius": 30
+        },
+        {
+          "name": "wheel_starboard_04",
+          "position": [96, 30, 0],
+          "kind": "wheel",
+          "axis": [1, 0, 0],
+          "rollingRadius": 30
+        },
+        {
+          "name": "wheel_starboard_05",
+          "position": [96, 30, 78],
+          "kind": "wheel",
+          "axis": [1, 0, 0],
+          "rollingRadius": 30
+        },
+        {
+          "name": "wheel_starboard_06",
+          "position": [96, 30, 156],
+          "kind": "wheel",
+          "axis": [1, 0, 0],
+          "rollingRadius": 30
+        },
+        {
+          "name": "wheel_starboard_07",
+          "position": [96, 30, 234],
+          "kind": "wheel",
+          "axis": [1, 0, 0],
+          "rollingRadius": 30
+        },
+        {
+          "name": "wheel_starboard_08",
+          "position": [96, 30, 312],
+          "kind": "wheel",
+          "axis": [1, 0, 0],
+          "rollingRadius": 30
+        },
+        {
+          "name": "freight_hook_port",
+          "position": [-154, 158, -289],
+          "kind": "freight-hook",
+          "safeLoadCentre": [-154, 118, -289]
+        },
+        {
+          "name": "crane_lamp_port",
+          "position": [-103, 170, -289],
+          "kind": "lamp"
+        },
+        {
+          "name": "freight_hook_starboard",
+          "position": [154, 158, 278],
+          "kind": "freight-hook",
+          "safeLoadCentre": [154, 118, 278]
+        },
+        {
+          "name": "crane_lamp_starboard",
+          "position": [103, 170, 278],
+          "kind": "lamp"
+        },
+        {
+          "name": "interior_lamp_-1_-304",
+          "position": [-60, 103, -304],
+          "kind": "lamp"
+        },
+        {
+          "name": "interior_lamp_-1_-144",
+          "position": [-60, 103, -144],
+          "kind": "lamp"
+        },
+        {
+          "name": "interior_lamp_-1_20",
+          "position": [-60, 103, 20],
+          "kind": "lamp"
+        },
+        {
+          "name": "interior_lamp_-1_145",
+          "position": [-60, 103, 145],
+          "kind": "lamp"
+        },
+        {
+          "name": "interior_lamp_-1_304",
+          "position": [-60, 103, 304],
+          "kind": "lamp"
+        },
+        {
+          "name": "outer_wall_mount_-1_-338",
+          "position": [-90, 95, -338],
+          "kind": "wall"
+        },
+        {
+          "name": "outer_wall_mount_-1_-95",
+          "position": [-90, 95, -95],
+          "kind": "wall"
+        },
+        {
+          "name": "outer_wall_mount_-1_88",
+          "position": [-90, 95, 88],
+          "kind": "wall"
+        },
+        {
+          "name": "outer_wall_mount_-1_337",
+          "position": [-90, 95, 337],
+          "kind": "wall"
+        },
+        {
+          "name": "interior_lamp_1_-304",
+          "position": [60, 103, -304],
+          "kind": "lamp"
+        },
+        {
+          "name": "interior_lamp_1_-144",
+          "position": [60, 103, -144],
+          "kind": "lamp"
+        },
+        {
+          "name": "interior_lamp_1_20",
+          "position": [60, 103, 20],
+          "kind": "lamp"
+        },
+        {
+          "name": "interior_lamp_1_145",
+          "position": [60, 103, 145],
+          "kind": "lamp"
+        },
+        {
+          "name": "interior_lamp_1_304",
+          "position": [60, 103, 304],
+          "kind": "lamp"
+        },
+        {
+          "name": "outer_wall_mount_1_-338",
+          "position": [90, 95, -338],
+          "kind": "wall"
+        },
+        {
+          "name": "outer_wall_mount_1_-95",
+          "position": [90, 95, -95],
+          "kind": "wall"
+        },
+        {
+          "name": "outer_wall_mount_1_88",
+          "position": [90, 95, 88],
+          "kind": "wall"
+        },
+        {
+          "name": "outer_wall_mount_1_337",
+          "position": [90, 95, 337],
+          "kind": "wall"
+        },
+        {
+          "name": "stern_deck",
+          "position": [0, 54, -380],
+          "kind": "road"
+        },
+        {
+          "name": "bow_deck",
+          "position": [0, 54, 380],
+          "kind": "road"
+        },
+        {
+          "name": "roof_centre",
+          "position": [0, 132, 0],
+          "kind": "road"
+        }
+      ]
+    },
+    {
+      "name": "nomad_wheel",
+      "triangles": 4896,
+      "materialBatches": 4,
+      "bounds": {
+        "min": [-11.899999618530273, -29.999879837036133, -29.980693817138672],
+        "max": [11.899999618530273, 29.999879837036133, 29.980693817138672]
+      },
+      "dimensions": [
+        23.799999237060547, 59.999759674072266, 59.961387634277344
+      ],
+      "anchors": [
+        {
+          "name": "axle_origin",
+          "position": [0, 0, 0],
+          "kind": "axis",
+          "axis": [1, 0, 0],
+          "rollingRadius": 30
+        }
+      ]
+    },
+    {
+      "name": "nomad_freight",
+      "triangles": 464,
+      "materialBatches": 3,
+      "bounds": {
+        "min": [-14.175000190734863, -10.65000057220459, -20.8799991607666],
+        "max": [14.175000190734863, 10.65000057220459, 20.649999618530273]
+      },
+      "dimensions": [28.350000381469727, 21.30000114440918, 41.529998779296875],
+      "anchors": [
+        {
+          "name": "lift_-10_-15",
+          "position": [-10, 10.5, -15],
+          "kind": "lift"
+        },
+        {
+          "name": "lift_-10_15",
+          "position": [-10, 10.5, 15],
+          "kind": "lift"
+        },
+        {
+          "name": "lift_10_-15",
+          "position": [10, 10.5, -15],
+          "kind": "lift"
+        },
+        {
+          "name": "lift_10_15",
+          "position": [10, 10.5, 15],
+          "kind": "lift"
+        }
+      ]
+    },
+    {
+      "name": "nomad_carrier_mid",
+      "triangles": 18858,
+      "materialBatches": 6,
+      "bounds": {
+        "min": [-157.9807891845703, 18.404335021972656, -376.7200622558594],
+        "max": [157.90701293945312, 179.06813049316406, 367.8907470703125]
+      },
+      "dimensions": [315.88780212402344, 160.6637954711914, 744.6108093261719],
+      "anchors": [],
+      "evaluatedSourceTriangles": 19134
+    },
+    {
+      "name": "nomad_carrier_far",
+      "triangles": 7591,
+      "materialBatches": 6,
+      "bounds": {
+        "min": [-158.29881286621094, 16.91421890258789, -376.7200622558594],
+        "max": [158.32003784179688, 179.02200317382812, 368.5762023925781]
+      },
+      "dimensions": [316.6188507080078, 162.10778427124023, 745.2962646484375],
+      "anchors": [],
+      "evaluatedSourceTriangles": 8710
+    },
+    {
+      "name": "nomad_wheel_mid",
+      "triangles": 1517,
+      "materialBatches": 4,
+      "bounds": {
+        "min": [-11.899999618530273, -29.999998092651367, -30.006271362304688],
+        "max": [11.899999618530273, 29.999998092651367, 30.006271362304688]
+      },
+      "dimensions": [
+        23.799999237060547, 59.999996185302734, 60.012542724609375
+      ],
+      "anchors": [],
+      "evaluatedSourceTriangles": 1590
+    },
+    {
+      "name": "nomad_wheel_far",
+      "triangles": 958,
+      "materialBatches": 4,
+      "bounds": {
+        "min": [-11.675509452819824, -29.999998092651367, -29.999998092651367],
+        "max": [11.675509452819824, 29.999998092651367, 29.999998092651367]
+      },
+      "dimensions": [23.35101890563965, 59.999996185302734, 59.999996185302734],
+      "anchors": [],
+      "evaluatedSourceTriangles": 960
+    }
+  ],
+  "materials": [
+    "Nomad / warm ivory armour",
+    "Nomad / navy structural steel",
+    "Nomad / oxide freight enamel",
+    "Nomad / rubbed warm alloy",
+    "Nomad / graphite rubber",
+    "Nomad / warm safety amber",
+    "Nomad / recessed blue glazing",
+    "Nomad / deep machinery"
+  ],
+  "wheelGeometry": {
+    "rollingRadius": 30,
+    "axleHeight": 30,
+    "axialScale": 1,
+    "radialScale": 1.25,
+    "wheelwellRadius": 32.5,
+    "construction": "True circle baked into near geometry; all distance tiers retain that rolling radius. Continuous inboard load keels with real outside wheelwell cuts, raised suspension, and bracket-seated partial portal fenders. All upperbody, cargo and crane coordinates remain fixed.",
+    "guards": [
+      {
+        "station": -312,
+        "innerRadius": 32.5,
+        "outerRadius": 35,
+        "anglesDegrees": [22, 158]
+      },
+      {
+        "station": -234,
+        "innerRadius": 31,
+        "outerRadius": 32,
+        "anglesDegrees": [110, 158]
+      },
+      {
+        "station": -156,
+        "innerRadius": 32.5,
+        "outerRadius": 35,
+        "anglesDegrees": [22, 115]
+      },
+      {
+        "station": -78,
+        "innerRadius": 32.5,
+        "outerRadius": 35,
+        "anglesDegrees": [22, 158]
+      },
+      {
+        "station": 0,
+        "innerRadius": 32.5,
+        "outerRadius": 35,
+        "anglesDegrees": [22, 158]
+      },
+      {
+        "station": 78,
+        "innerRadius": 32.5,
+        "outerRadius": 35,
+        "anglesDegrees": [22, 158]
+      },
+      {
+        "station": 156,
+        "innerRadius": 32.5,
+        "outerRadius": 35,
+        "anglesDegrees": [65, 158]
+      },
+      {
+        "station": 234,
+        "innerRadius": 31,
+        "outerRadius": 32,
+        "anglesDegrees": [22, 70]
+      },
+      {
+        "station": 312,
+        "innerRadius": 32.5,
+        "outerRadius": 35,
+        "anglesDegrees": [22, 158]
+      }
+    ]
+  },
+  "totalTriangles": 95296,
+  "collision": {
+    "file": "carrier-collision.json",
+    "prototypes": [
+      {
+        "name": "nomad_carrier",
+        "triangles": 32412
+      },
+      {
+        "name": "nomad_wheel",
+        "triangles": 1344
+      },
+      {
+        "name": "nomad_freight",
+        "triangles": 44
+      }
+    ]
+  },
+  "visualLOD": {
+    "policy": "Only the three near prototypes define physical contacts. Mid/far are real material-group meshes collapsed in Blender; apertures and wheel silhouettes remain geometry.",
+    "suggestedDistancesMetres": {
+      "mid": 1800,
+      "far": 4500
+    },
+    "sources": [
+      {
+        "name": "nomad_carrier_mid",
+        "source": "nomad_carrier",
+        "collapseRatio": 0.26,
+        "omittedFineParts": []
+      },
+      {
+        "name": "nomad_carrier_far",
+        "source": "nomad_carrier",
+        "collapseRatio": 0.075,
+        "omittedFineParts": []
+      },
+      {
+        "name": "nomad_wheel_mid",
+        "source": "nomad_wheel",
+        "collapseRatio": 0.2,
+        "omittedFineParts": []
+      },
+      {
+        "name": "nomad_wheel_far",
+        "source": "nomad_wheel",
+        "collapseRatio": 0.075,
+        "omittedFineParts": ["open-groove chevron tread", "hub seated stud"]
+      }
+    ]
+  },
+  "hashes": {
+    "build_nomad_carrier.py": "2990af68a5bb339c03ca790a90993350008fa628813500e4d4e9663b1943a815",
+    "nomad-carrier-kit.blend": "5e266bc8c0593e12c77e3e40d21159e07c436793070ef87b223be7d23cb6baf7",
+    "carrier-kit.glb": "96eedefb4027de9d594efcbcb54b6614970b181861ec45583a68e3c17b84b753",
+    "carrier-collision.json": "550021843249dcda8199c0727a058c80a59dbefe68d79cd77315484dc4281204"
+  }
+}

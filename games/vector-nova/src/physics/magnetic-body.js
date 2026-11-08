@@ -5,6 +5,8 @@ import {
   COLLISION_HULLS_ID,
   getCollisionHull,
 } from '../ships/contact-hulls.js';
+import { COLLISION_HULLS } from '../ships/collision-hulls.js';
+import { BOSS_HULLS } from '../ships/boss-hulls.js';
 import {
   getVehiclePace,
   STEERING_ASSIST,
@@ -28,8 +30,17 @@ const finite = (value, fallback = 0) =>
 const poseCopy = (p) =>
   p && { position: p.position.clone(), quaternion: p.quaternion.clone() };
 
-export function magneticFrame(track, distance, lateral, sampleRoad) {
-  let surface = track.sampleSurface?.(distance, lateral);
+export function magneticFrame(
+  track,
+  distance,
+  lateral,
+  sampleRoad,
+  geometryOnly = false,
+) {
+  // Projecting a point or clearing hull corners never reads route curvature.
+  // Levels may omit that derived field on this optional exact-geometry path;
+  // the normal frame query still supplies it for handling and force updates.
+  let surface = track.sampleSurface?.(distance, lateral, { geometryOnly });
   let reference = surface;
   if (sampleRoad && !surface?.period) {
     reference ??= track.sample(distance);
@@ -62,7 +73,7 @@ export function projectMagneticBody(
   sampleRoad,
 ) {
   for (let i = 0; i < 8; i++) {
-    const f = magneticFrame(track, distance, lateral, sampleRoad);
+    const f = magneticFrame(track, distance, lateral, sampleRoad, true);
     const residual = position.clone().sub(f.position);
     const along = residual.dot(f.tangent) / (f.longitudinalMetric ?? 1);
     const across =
@@ -82,6 +93,63 @@ export function projectMagneticBody(
   return { distance, lateral, frame: f };
 }
 
+// Minimum separation of actual inboard hull vertices from a sampled road.
+// Return a correction without changing the supplied pose or collision actor.
+export function sampledRoadHullSeparation(
+  track,
+  pose,
+  vertices,
+  distance,
+  lateral,
+  sampleRoad,
+) {
+  if (!vertices?.length) return new T.Vector3();
+  const projected = projectMagneticBody(
+    track,
+    pose.position,
+    distance,
+    lateral,
+    sampleRoad,
+  );
+  const frame = projected.frame;
+  const up = frame.up.clone(),
+    right = frame.right.clone(),
+    tangent = frame.tangent.clone();
+  const point = new T.Vector3();
+  let lift = 0;
+  for (let i = 0; i < vertices.length; i += 3) {
+    point.fromArray(vertices, i).applyQuaternion(pose.quaternion);
+    const along = point.dot(tangent) / (frame.longitudinalMetric ?? 1);
+    const at = projected.distance + along;
+    const across =
+      projected.lateral +
+      (point.dot(right) - (frame.longitudinalShear ?? 0) * along) /
+        (frame.lateralMetric ?? 1);
+    const station =
+      track.closed === false
+        ? at
+        : T.MathUtils.euclideanModulo(at, track.length);
+    // Outboard vertices and genuine gaps have no road to clear.
+    if (
+      Math.abs(across) > track.width / 2 ||
+      (track.surfaceCoverage?.(station, across) ?? 1) <= 0 ||
+      (track.jumps ?? []).some(
+        (jump) =>
+          !jump.optional &&
+          station > jump.takeoff &&
+          station < jump.landingStart,
+      )
+    )
+      continue;
+    const road = magneticFrame(track, at, across, sampleRoad, true);
+    const alignment = up.dot(road.up);
+    const height = point.add(pose.position).sub(road.position).dot(road.up);
+    if (height < -1e-8 && alignment > 0.5)
+      lift = Math.max(lift, (-height + 1e-5) / alignment);
+  }
+  return up.multiplyScalar(lift);
+}
+
 /** Handling proposes road movement; shared queries accept and resolve it. */
 export function createMagneticBody({
   track,
@@ -91,6 +159,7 @@ export function createMagneticBody({
   contactFeedback = createContactFeedback(),
   automaticRecovery = true,
   recoveryDelay = 1.5,
+  supportVelocity,
 }) {
   const sampleRoad = dynamics.sampleRoadSurface;
   let initialized = false,
@@ -109,6 +178,9 @@ export function createMagneticBody({
           .clone()
           .multiply(new T.Quaternion().setFromAxisAngle(axisY, state.heading))
       : quaternion;
+  // Repeated level/device/render reads share derived work within one pose.
+  // The bounded cache never participates in replay snapshots.
+  const captureCorrections = new Map();
   let edgeStall = 0,
     roadRecovery = null;
 
@@ -120,7 +192,25 @@ export function createMagneticBody({
     };
     return lateral < bounds.min - 0.15 || lateral > bounds.max + 0.15;
   }
-  function leaveRoad(state, distance, reason, events) {
+  function leaveRoad(state, distance, reason, events, body) {
+    // Guided road velocity is relative to its support. An ordinary edge fall
+    // releases through this path rather than the authored-jump adapter.
+    const materialVelocity = supportVelocity?.({
+      state,
+      position: body.position.clone(),
+      time: state.time,
+      phase: 'launch',
+    });
+    if (materialVelocity) {
+      if (
+        ![materialVelocity.x, materialVelocity.y, materialVelocity.z].every(
+          Number.isFinite,
+        )
+      )
+        throw new Error('Support velocity must be a finite world vector.');
+      body.velocity.add(materialVelocity);
+      actor.setVelocity(body.velocity, body.angularVelocity);
+    }
     roadRecovery = { elapsed: 0, distance, reason };
     edgeStall = 0;
     capture = null;
@@ -229,9 +319,39 @@ export function createMagneticBody({
       );
     return { position, quaternion };
   }
+  function clearCaptureInterpolation(pose, alpha) {
+    if (!capture?.sampledNativeClearance || capture.aligning) return;
+    let correction = captureCorrections.get(alpha);
+    if (!correction) {
+      const vertices = getCollisionHull(capture.chassisId).vertices;
+      correction = Object.freeze(
+        sampledRoadHullSeparation(
+          track,
+          pose,
+          vertices,
+          capture.distance,
+          capture.lateral,
+          sampleRoad,
+        ),
+      );
+      if (captureCorrections.size >= 8)
+        captureCorrections.delete(captureCorrections.keys().next().value);
+      captureCorrections.set(alpha, correction);
+    }
+    // Interpolating safe endpoint poses can still swing a canopy into the
+    // deck. Correct only that penetration, without restoring hover or moving
+    // the actor; clear endpoints retain their exact existing presentation.
+    pose.position.add(correction);
+  }
   function support(state, options = {}, dt = 0) {
     const supportHull = dynamics.supportHull ?? hull;
-    const f = magneticFrame(track, state.distance, state.lateral, sampleRoad);
+    const f = magneticFrame(
+      track,
+      state.distance,
+      state.lateral,
+      sampleRoad,
+      true,
+    );
     const solved = initialized ? actor.read() : null;
     const actual = solved?.quaternion ?? f.quaternion;
     const aligned = f.quaternion
@@ -280,7 +400,7 @@ export function createMagneticBody({
           state.lateral +
           (offset.dot(f.right) - (f.longitudinalShear ?? 0) * along) /
             (f.lateralMetric ?? 1);
-        const road = magneticFrame(track, distance, lateral, sampleRoad);
+        const road = magneticFrame(track, distance, lateral, sampleRoad, true);
         for (const owner of road.surface?.roadOwners ?? [])
           roadOwners.add(owner);
         height = Math.max(
@@ -388,6 +508,7 @@ export function createMagneticBody({
       lastSpeed = state.speed;
     },
     stage(state, input, dt, options = {}) {
+      captureCorrections.clear();
       options = {
         ...options,
         surface: mitigateHazardSurface(options.surface, state),
@@ -403,9 +524,9 @@ export function createMagneticBody({
       const events = [];
       if (!roadRecovery) {
         if (outsideRoad(f, state.lateral))
-          leaveRoad(state, state.distance, 'off-road', events);
+          leaveRoad(state, state.distance, 'off-road', events, body);
         else if (strandedAtEdge(state, input, dt, f, body))
-          leaveRoad(state, state.distance, 'stranded-edge', events);
+          leaveRoad(state, state.distance, 'stranded-edge', events, body);
       }
       if (roadRecovery) {
         roadRecovery.elapsed += dt;
@@ -632,6 +753,7 @@ export function createMagneticBody({
       });
     },
     finish(state) {
+      captureCorrections.clear();
       const body = actor.read();
       const events = pending?.events ?? [];
       const projected = roadRecovery
@@ -644,7 +766,7 @@ export function createMagneticBody({
             sampleRoad,
           );
       if (projected && outsideRoad(projected.frame, projected.lateral))
-        leaveRoad(state, pending.beforeDistance, 'off-road', events);
+        leaveRoad(state, pending.beforeDistance, 'off-road', events, body);
       const f = roadRecovery
         ? magneticFrame(track, state.distance, state.lateral, sampleRoad)
         : projected.frame;
@@ -668,6 +790,10 @@ export function createMagneticBody({
         : body.velocity.dot(forward);
       state.lateralSpeed = body.velocity.dot(f.right);
       lastSpeed = state.speed;
+      if (capture?.sampledNativeClearance) {
+        capture.distance = state.distance;
+        capture.lateral = state.lateral;
+      }
       if (
         capture?.aligning &&
         axisY.clone().applyQuaternion(body.quaternion).dot(f.up) > 1 - 1e-8
@@ -735,7 +861,11 @@ export function createMagneticBody({
       pending = null;
       return events;
     },
-    adopt(state, { duration, supportHeight = 0 }) {
+    adopt(
+      state,
+      { duration, supportHeight = 0, sampledNativeClearance = false },
+    ) {
+      captureCorrections.clear();
       initialized = true;
       edgeStall = 0;
       roadRecovery = null;
@@ -762,12 +892,21 @@ export function createMagneticBody({
         duration,
         aligning: true,
         supportHeight,
+        ...(sampledNativeClearance
+          ? {
+              sampledNativeClearance: true,
+              distance: state.distance,
+              lateral: state.lateral,
+              chassisId: state.chassisId ?? state.shipId,
+            }
+          : {}),
         heightResidual:
           body.position.clone().sub(f.position).dot(f.up) - height,
         orientation: upright.clone().invert().multiply(body.quaternion),
       };
     },
     reset(state, options = {}) {
+      captureCorrections.clear();
       if (state)
         actor.setContactShape(
           getCollisionHull(state.chassisId ?? state.shipId),
@@ -793,16 +932,13 @@ export function createMagneticBody({
     pose(alpha = 1) {
       if (!current) return null;
       const before = previous ?? current;
-      return {
+      const blend = clamp(alpha, 0, 1);
+      const pose = {
         grounded: !roadRecovery,
         recovering: Boolean(roadRecovery),
         steeringBank: !roadRecovery,
-        position: before.position
-          .clone()
-          .lerp(current.position, clamp(alpha, 0, 1)),
-        quaternion: before.quaternion
-          .clone()
-          .slerp(current.quaternion, clamp(alpha, 0, 1)),
+        position: before.position.clone().lerp(current.position, blend),
+        quaternion: before.quaternion.clone().slerp(current.quaternion, blend),
         ...(drivingFacing
           ? {
               velocity: actor.read().velocity,
@@ -810,6 +946,8 @@ export function createMagneticBody({
             }
           : {}),
       };
+      clearCaptureInterpolation(pose, blend);
+      return pose;
     },
     snapshot() {
       return {
@@ -842,6 +980,7 @@ export function createMagneticBody({
       };
     },
     restore(data) {
+      captureCorrections.clear();
       if (
         !data ||
         typeof data.initialized !== 'boolean' ||
@@ -863,6 +1002,15 @@ export function createMagneticBody({
             typeof data.capture.aligning !== 'boolean' ||
             !Number.isFinite(data.capture.heightResidual) ||
             !Number.isFinite(data.capture.supportHeight) ||
+            (data.capture.sampledNativeClearance !== undefined &&
+              (typeof data.capture.sampledNativeClearance !== 'boolean' ||
+                (data.capture.sampledNativeClearance &&
+                  (!Number.isFinite(data.capture.distance) ||
+                    !Number.isFinite(data.capture.lateral) ||
+                    !(
+                      Object.hasOwn(COLLISION_HULLS, data.capture.chassisId) ||
+                      Object.hasOwn(BOSS_HULLS, data.capture.chassisId)
+                    ))))) ||
             !Array.isArray(data.capture.orientation) ||
             data.capture.orientation.length !== 4 ||
             !data.capture.orientation.every(Number.isFinite) ||

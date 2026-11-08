@@ -27,7 +27,7 @@ blender --background --threads 6 --python-exit-code 1 --python assets/ships/riva
 node tools/rival-assets-verify.mjs
 ```
 
-Use `-- --ship additions` to rebuild only the six new chassis, or `-- --ship pike --preview` for a fast unbaked scalar-material export under `.experiments/rival-material-preview/` without changing the production assets. Add `-- --ship latch --render` to build one ship and produce optional stills under ignored `.experiments/rival-blender/`. Open the game, choose **Inspect Ships**, then **AI racers** to view all nine models. Returning to **Your ships** restores the current playable selection. Use the maintained `npm run verify` frontend harness for inspection/session flows. The historical `tools/rival-inspection-verify.mjs` harness requires migration; see [tools documentation](../../../tools/README.md).
+Use `-- --ship additions` to rebuild only the six new chassis, or `-- --ship pike --preview` for a fast unbaked scalar-material export under `.experiments/rival-material-preview/` without changing the production assets. Add `-- --ship latch --render` to build one ship and produce optional stills under ignored `.experiments/rival-blender/`. Open the game, choose **Inspect Ships**, then **AI racers** to view all nine models. Returning to **Your ships** restores the current playable selection. Use the maintained `npm run verify` frontend harness for inspection/session flows. See [tools documentation](../../../tools/README.md) for verification scopes.
 
 ## Runtime contract
 

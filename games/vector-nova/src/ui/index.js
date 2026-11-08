@@ -41,7 +41,7 @@ export function createUI(
   root.innerHTML = `<header class="masthead"><a class="wordmark" href="#" aria-label="Vector Nova home">VECTOR<span>//</span>NOVA</a><div class="edition"><i></i> <span></span></div><button class="quiet" id="pause-button" aria-label="Pause">Ⅱ</button></header>
  <section id="title-panel" class="panel"><h1><span class="circuit-name"></span><em></em></h1><p class="intro"></p><div class="track-facts"><div><b>${(track.length / 1000).toFixed(2)}</b><span>KM CIRCUIT</span></div><div><b>${SHIPS.length.toString().padStart(2, '0')}</b><span>SHIPS</span></div><div><b>∞</b><span>PRACTICE LAPS</span></div></div><div class="actions launch-actions"><button id="start" class="primary">ENTER PROVING LOOP <span>↗</span></button><button id="practice">PRACTICE LAP <span>↗</span></button></div><div class="actions inspection-actions"><button id="inspect">INSPECT SHIPS <span>↗</span></button>${!import.meta.env?.VN_DESKTOP ? '<button id="explore">FREE CAMERA <span>F</span></button>' : ''}</div></section>
  ${inspectionPanel}
- <section id="pause-panel" class="modal hidden"><h2>Paused</h2><button id="resume" class="primary">Resume <span aria-hidden="true">→</span></button><button id="pause-results" class="hidden">Results</button><section class="pause-quick-settings" aria-label="Quick settings">${import.meta.env?.VN_DESKTOP ? fullscreenSetting() : ''}<label>Graphics <select id="quality"><option value="high">High</option><option value="low">Low</option></select></label><label>Effects volume <input id="volume" type="range" min="0" max="1" step=".05" value="${settings.volume}"></label><label>Reduced motion <input id="motion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label></section><div class="pause-restart"><button id="restart">Restart race</button></div><nav class="pause-secondary" aria-label="Session options"><button id="home">Race setup</button><button id="pause-settings">Settings</button>${actions.openTunes ? '<button id="pause-tunes" aria-controls="music-panel">Tunes</button>' : ''}</nav></section>
+ <section id="pause-panel" class="modal hidden"><h2>Paused</h2><button id="resume" class="primary">Resume <span aria-hidden="true">→</span></button><button id="pause-results" class="hidden">Results</button><section class="pause-quick-settings" aria-label="Quick settings">${import.meta.env?.VN_DESKTOP ? fullscreenSetting() : ''}<label>Graphics <select id="quality"><option value="high">High</option><option value="low">Low</option></select></label><label>Game effects <input id="volume" type="range" min="0" max="1" step=".05" value="${settings.volume}"></label><label>Reduced motion <input id="motion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label></section><div class="pause-restart"><button id="restart">Restart race</button></div><nav class="pause-secondary" aria-label="Session options"><button id="home">Race setup</button><button id="pause-settings">Settings</button>${actions.openTunes ? '<button id="pause-tunes" aria-controls="music-panel">Tunes</button>' : ''}</nav></section>
  <section id="hud" class="hidden"><div class="top-telemetry"><div class="position hidden"><span>POSITION</span><b id="position">1 / ${RACE_FIELD_SIZE}</b><small id="position-state"></small></div><div class="lap"><span>PRACTICE LAP</span><b id="lap">01</b></div><div class="timing"><span>LAP TIME</span><b id="time">00:00.000</b><small id="last">LAST —</small><small id="best">SET YOUR FIRST CLEAN LAP</small></div></div><div class="telemetry"><div class="energy"><span>CORE RESERVE <b id="energy-label">100%</b></span><div class="energy-track"><i id="energy-fill"></i></div><small id="energy-state">BOOST DRAWS FROM IMPACT RESERVE</small></div><div class="speed"><strong id="speed">000</strong><span>KM/H</span><i id="boost-status">MAGNETIC DRIVE</i></div></div><canvas id="minimap" width="200" height="150" aria-label="Track map"></canvas></section>
  ${!import.meta.env?.VN_DESKTOP ? '<footer id="legend"><div class="legend-movement"><kbd>WASD</kbd><span class="legend-or" aria-hidden="true">/</span><kbd aria-label="Arrow keys">↑←↓→</kbd><span>MOVEMENT</span></div><div class="legend-direction"><kbd>W</kbd><kbd>↑</kbd><span>THROTTLE</span></div><div class="legend-direction"><kbd>A</kbd><kbd>D</kbd><span>STEER</span></div><div class="legend-direction"><kbd>S</kbd><span>BRAKE</span></div><div><kbd>SPACE</kbd><span>AIRBRAKE</span></div><div class="legend-boost"><kbd>SHIFT</kbd><span>BOOST</span></div><div><kbd>R</kbd><span>RESET</span></div><div><kbd>ESC</kbd><span>PAUSE</span></div></footer>' : ''}
  <div id="touch" class="hidden" role="group" aria-label="Touch driving controls">
@@ -544,8 +544,10 @@ export function createUI(
   for (let s = 0; s < track.length; s += track.length / 180)
     points.push(track.sample(s).position.clone());
   if (sprint) points.push(track.sample(track.length).position.clone());
-  const xs = points.map((p) => p.x),
-    zs = points.map((p) => p.z),
+  const mapPaths = track.mapPaths ?? [{ points, closed: !sprint }];
+  const allMapPoints = mapPaths.flatMap((path) => path.points);
+  const xs = allMapPoints.map((p) => p.x),
+    zs = allMapPoints.map((p) => p.z),
     minX = Math.min(...xs),
     minZ = Math.min(...zs),
     scale = Math.min(
@@ -864,13 +866,16 @@ export function createUI(
       ctx.clearRect(0, 0, 200, 150);
       ctx.lineWidth = 2.5;
       ctx.strokeStyle = '#dbe8e1cc';
-      ctx.beginPath();
-      points.forEach((p, i) => {
-        const [x, y] = coord(p);
-        i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
-      });
-      if (!sprint) ctx.closePath();
-      ctx.stroke();
+      for (const path of mapPaths) {
+        ctx.strokeStyle = path.color ?? '#dbe8e1cc';
+        ctx.beginPath();
+        path.points.forEach((p, i) => {
+          const [x, y] = coord(p);
+          i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+        });
+        if (path.closed) ctx.closePath();
+        ctx.stroke();
+      }
       const dot = (position, color, radius, player = false) => {
         const [x, y] = coord(position);
         ctx.fillStyle = color;
@@ -902,8 +907,14 @@ export function createUI(
           (entry) => entry.id !== 'player' && !entry.eliminated,
         )) {
           const frame = track.sample(rival.distance);
+          const surface = track.mapPaths
+            ? track.sampleSurface?.(rival.distance, rival.lateral)
+            : null;
           dot(
-            frame.position.clone().addScaledVector(frame.right, rival.lateral),
+            surface?.position ??
+              frame.position
+                .clone()
+                .addScaledVector(frame.right, rival.lateral),
             racerColors[rival.id],
             3.5,
           );
@@ -913,7 +924,9 @@ export function createUI(
       dot(
         world
           ? { x: world[0], z: world[2] }
-          : track.sample(s.distance).position,
+          : ((track.mapPaths
+              ? track.sampleSurface?.(s.distance, s.lateral)?.position
+              : null) ?? track.sample(s.distance).position),
         racerColors.player,
         4,
         true,

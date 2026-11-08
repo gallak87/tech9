@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 /** The selected generated ice image supplies colour, fracture and pore detail.
  * Triplanar metre coordinates require no UV unwrap; derivative relief and
  * luminance-driven roughness are artistic proxies, not scanned PBR measurements.
@@ -29,7 +30,8 @@ export function finishIceMaterial(
         ? 'attribute float iceRoughness; attribute float iceRole; varying float vIceRoughness; varying float vIceRole;\n'
         : '') +
       shader.vertexShader;
-    shader.vertexShader = shader.vertexShader.replace(
+    shader.vertexShader = replaceShader(
+      shader.vertexShader,
       '#include <begin_vertex>',
       `
       #include <begin_vertex>
@@ -57,7 +59,8 @@ export function finishIceMaterial(
         return mix(vec3(.3,.47,.55),a*w.x+b*w.y+c*w.z,hasGlasswakeIceMap);
       }
     ` + shader.fragmentShader;
-    shader.fragmentShader = shader.fragmentShader.replace(
+    shader.fragmentShader = replaceShader(
+      shader.fragmentShader,
       '#include <color_fragment>',
       `
       #include <color_fragment>
@@ -88,7 +91,8 @@ export function finishIceMaterial(
       }
     `,
     );
-    shader.fragmentShader = shader.fragmentShader.replace(
+    shader.fragmentShader = replaceShader(
+      shader.fragmentShader,
       '#include <roughnessmap_fragment>',
       `
       #include <roughnessmap_fragment>
@@ -96,7 +100,8 @@ export function finishIceMaterial(
       roughnessFactor=clamp(roughnessFactor+(cloud-.5)*.22+(iceLuma-.35)*.3+(grain-.5)*.065,.18,.96);
     `,
     );
-    shader.fragmentShader = shader.fragmentShader.replace(
+    shader.fragmentShader = replaceShader(
+      shader.fragmentShader,
       '#include <normal_fragment_maps>',
       `
       #include <normal_fragment_maps>
@@ -121,7 +126,8 @@ export function finishCrystalPane(material, texture) {
     shader.uniforms.paneIceMap = { value: texture };
     shader.vertexShader =
       'varying vec3 panePoint; varying vec3 paneAxis;\n' + shader.vertexShader;
-    shader.vertexShader = shader.vertexShader.replace(
+    shader.vertexShader = replaceShader(
+      shader.vertexShader,
       '#include <begin_vertex>',
       `
       #include <begin_vertex>
@@ -144,7 +150,8 @@ export function finishCrystalPane(material, texture) {
         return step(.78,seed)*max(ring,small*.7);
       }
     ` + shader.fragmentShader;
-    shader.fragmentShader = shader.fragmentShader.replace(
+    shader.fragmentShader = replaceShader(
+      shader.fragmentShader,
       '#include <color_fragment>',
       `
       #include <color_fragment>
@@ -167,14 +174,16 @@ export function finishCrystalPane(material, texture) {
       diffuseColor.a=min(.82,diffuseColor.a+.015+paneCloud*.10+paneVein*.065+paneAir*.075+grazing*.20);
     `,
     );
-    shader.fragmentShader = shader.fragmentShader.replace(
+    shader.fragmentShader = replaceShader(
+      shader.fragmentShader,
       '#include <roughnessmap_fragment>',
       `
       #include <roughnessmap_fragment>
       roughnessFactor=clamp(roughnessFactor+paneCloud*.14+paneVein*.17+paneAir*.08+(iceGrain-.35)*.06,.19,.68);
     `,
     );
-    shader.fragmentShader = shader.fragmentShader.replace(
+    shader.fragmentShader = replaceShader(
+      shader.fragmentShader,
       '#include <normal_fragment_maps>',
       `#include <normal_fragment_maps>
       float paneRelief = luma*.018 + paneVein*.008 + iceGrain*.002;

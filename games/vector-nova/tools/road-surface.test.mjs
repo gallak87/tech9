@@ -317,3 +317,18 @@ test('magnetic fallback reuses its route sample when no authored skin covers the
   assert.equal(frame.curvature, route.curvature);
   assert.equal(frame.surface, undefined);
 });
+
+test('lateral index retains barycentric shoulder tolerance across bucket boundaries', () => {
+  const sample = createRoadSurface(deck('edge-road', 0));
+  try {
+    for (const lateral of [-10.000001, -10.0001, 10.000001, 10.0001])
+      assert.ok(
+        sample(20, lateral, reference),
+        `supported shoulder at ${lateral}`,
+      );
+    assert.equal(sample(20, -10.001, reference), null);
+    assert.equal(sample(20, 10.001, reference), null);
+  } finally {
+    sample.dispose();
+  }
+});

@@ -26,12 +26,14 @@ export function activeCareerKey(registry, key) {
 
 // Earn the three hull rewards through normal CPU stores, then export a complete
 // current save for the public import flow. No developer flags or raw unlock keys.
-export function unlockedCareerSave() {
+export function unlockedCareerSave({ complete = false } = {}) {
   const storage = createMemoryStorage();
   const profileStore = createProfileStore(() => storage);
   const cupStore = createCupStore(() => storage);
   const cupCollection = createCupCollection(() => storage);
-  for (const id of ['founders', 'frontier', 'horizon']) {
+  for (const id of complete
+    ? ['founders', 'frontier', 'horizon', 'apex']
+    : ['founders', 'frontier', 'horizon']) {
     cupStore.start(id, 'shrike', 'easy');
     const field = cupStandings(cupStore.snapshot().state).map((row) => row.id);
     while (!cupComplete(cupStore.snapshot().state)) {
@@ -48,6 +50,12 @@ export function unlockedCareerSave() {
     cupCollection.award(cupStore.snapshot().state);
     profileStore.recordCup(id);
     cupStore.abandon();
+  }
+  if (complete) {
+    for (let i = 0; i < 24; i++)
+      profileStore.recordRace({ id: `release-check-${i}`, won: true });
+    profileStore.recordTrial('halcyon', true);
+    profileStore.recordTrial('orbital', true);
   }
   return createSaveTransfer({
     profileStore,

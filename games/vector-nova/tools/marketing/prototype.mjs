@@ -10,8 +10,6 @@ import {
 } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import { createServer } from 'node:net';
-import { assembleMontage } from './montage.mjs';
-import { assembleGameplay } from './gameplay.mjs';
 import { assembleTrailer } from './trailer.mjs';
 
 // Explicit capture of a dedicated game tab using an isolated developer profile.
@@ -42,7 +40,7 @@ if (outputIndex >= 0 && !args[outputIndex + 1])
   throw new Error('--output requires a directory.');
 const output = resolve(
   root,
-  outputIndex >= 0 ? args[outputIndex + 1] : '.experiments/marketing/montage',
+  outputIndex >= 0 ? args[outputIndex + 1] : '.experiments/marketing/trailer',
 );
 const captureOnly = args.includes('--capture-only');
 const option = (key) => {
@@ -54,11 +52,26 @@ const option = (key) => {
 };
 const config = JSON.parse(
   await readFile(
-    option('--shots') ?? join(root, 'marketing/montage.json'),
+    option('--shots') ?? join(root, 'marketing/edit-plan.json'),
     'utf8',
   ),
 );
-const movie = join(output, config.outputFile ?? 'vector-nova-montage-15s.mp4');
+if (config.kind !== 'trailer') throw new Error('Expected a trailer edit plan.');
+const captureMimeType = config.captureMimeType ?? 'video/webm;codecs=vp9,opus';
+if (
+  !['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus'].includes(
+    captureMimeType,
+  )
+)
+  throw new Error('Capture must use VP9 or VP8 with Opus audio.');
+const deviceScaleFactor = config.captureDeviceScaleFactor ?? 1;
+if (
+  !Number.isFinite(deviceScaleFactor) ||
+  deviceScaleFactor < 0.5 ||
+  deviceScaleFactor > 2
+)
+  throw new Error('Capture device scale must be between 0.5 and 2.');
+const movie = join(output, config.outputFile ?? 'vector-nova-trailer.mp4');
 const reuseDirectory = option('--reuse-from');
 const reuseManifest = reuseDirectory
   ? JSON.parse(await readFile(join(reuseDirectory, 'manifest.json'), 'utf8'))
@@ -125,7 +138,7 @@ const manifest = assembleOnly
         fps: config.fps,
         seconds: config.frames / config.fps,
       },
-      renderingViewport: { width: 1600, height: 900, deviceScaleFactor: 1 },
+      renderingViewport: { width: 1600, height: 900, deviceScaleFactor },
       music: { ...config.music, provisional: true },
       editId: config.id,
       note: 'Browser prototype; real-time AI steering through the standard controller input. No native desktop capture. No shipping game changes.',
@@ -185,7 +198,7 @@ try {
     });
     const context = await browser.newContext({
       viewport: { width: 1600, height: 900 },
-      deviceScaleFactor: 1,
+      deviceScaleFactor,
     });
     await context.addInitScript(() => {
       localStorage.setItem(
@@ -323,6 +336,7 @@ try {
           race,
           engineGain,
           driver,
+          captureMimeType,
         }) => {
           document.title = 'VN Marketing Capture';
           const game = window.__VN;
@@ -672,7 +686,7 @@ try {
               const audio = mixOutput.stream.getAudioTracks()[0];
               const mix = new MediaStream([video, audio]);
               const recorder = new MediaRecorder(mix, {
-                mimeType: 'video/webm;codecs=vp9,opus',
+                mimeType: captureMimeType,
                 videoBitsPerSecond: 24000000,
                 audioBitsPerSecond: 192000,
               });
@@ -738,6 +752,7 @@ try {
           race: shot.mode === 'race',
           engineGain: shot.engineGain ?? 1,
           driver: shot.driver ?? {},
+          captureMimeType,
         },
       );
       await page.bringToFront();
@@ -974,13 +989,7 @@ try {
     browser = null;
   }
   if (!captureOnly) {
-    manifest.result = await (
-      config.kind === 'trailer'
-        ? assembleTrailer
-        : config.kind === 'continuous'
-          ? assembleGameplay
-          : assembleMontage
-    )({
+    manifest.result = await assembleTrailer({
       root,
       output,
       manifest,

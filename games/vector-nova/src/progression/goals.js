@@ -11,7 +11,7 @@ const undiscovered = (reward) =>
       : reward.name;
 const category = (reward) =>
   reward.kind === 'enhancement'
-    ? 'Stat'
+    ? 'Fleet'
     : reward.kind === 'ship'
       ? 'Ship'
       : reward.kind === 'equipment'
@@ -137,6 +137,8 @@ export function rewardBadgesView(
   if (!goals.length) return '';
   return `<section class="reward-badges${results ? ' reward-badges-results' : ' reward-badges-compact'}" aria-label="${results ? 'Reward progress' : 'Next rewards'}"><span class="reward-badges-label">${results ? 'Reward progress' : 'Next rewards'}</span><div class="reward-badges-list">${goals
     .map((entry) => {
+      if (!results)
+        return `<div class="reward-chip-wrap rarity-${entry.rarity}" data-reward-goal="${entry.id}"><button type="button" class="reward-badge reward-chip" data-reward-info="${entry.id}" aria-expanded="false" aria-describedby="reward-detail-${entry.id}">${rewardIcon(entry.icon)}<span><small>${escapeHTML(entry.category)}:</small> ${escapeHTML(entry.label)}</span></button><div class="reward-tooltip" id="reward-detail-${entry.id}" role="tooltip" hidden><strong>${escapeHTML(entry.title)}${entry.benefit ? ` · ${entry.benefit}` : ''}</strong></div></div>`;
       const [current, total] = rewardProgress(profile, entry.requirement);
       const previous = before
         ? rewardProgress(before, entry.requirement)[0]
@@ -144,14 +146,13 @@ export function rewardBadgesView(
       const ready = entry.requirement.cup
         ? profile.cups.includes(entry.requirement.cup)
         : profile.claims.includes(entry.id);
-      const detail =
-        results && ready
-          ? 'Unlocked'
-          : results && entry.requirement.points
-            ? `${total - current} progress to go`
-            : entry.detail;
-      if (!results)
-        return `<div class="reward-chip-wrap rarity-${entry.rarity}" data-reward-goal="${entry.id}"><button type="button" class="reward-badge reward-chip" data-reward-info="${entry.id}" aria-expanded="false" aria-describedby="reward-detail-${entry.id}">${rewardIcon(entry.icon)}<span><small>${escapeHTML(entry.category)}:</small> ${escapeHTML(entry.label)}</span></button><div class="reward-tooltip" id="reward-detail-${entry.id}" role="tooltip" hidden><strong>${escapeHTML(entry.title)}${entry.benefit ? ` · ${entry.benefit}` : ''}</strong><span>${escapeHTML(detail)}</span><small>${current}/${total} ${unit(entry.requirement)}</small></div></div>`;
+      const detail = ready
+        ? entry.category === 'Fleet'
+          ? 'Fleet upgrade unlocked · Applies automatically to every ship.'
+          : 'Unlocked'
+        : entry.requirement.points
+          ? `${total - current} progress to go`
+          : entry.detail;
       return `<article class="reward-badge rarity-${entry.rarity}" data-reward-goal="${entry.id}"><span class="reward-badge-emblem">${rewardIcon(entry.icon)}</span><div class="reward-badge-copy"><strong>${escapeHTML(entry.title)}${entry.benefit ? `<span class="reward-badge-gain">${entry.benefit}</span>` : ''}</strong><small>${escapeHTML(detail)}</small><div class="reward-badge-progress"><span class="reward-badge-meter" role="progressbar" aria-label="${escapeHTML(entry.title)}" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${current}"><i style="--from:${(previous / total) * 100}%;--to:${(current / total) * 100}%"></i></span><span>${before && current !== previous ? `${previous} → ` : ''}${current}/${total} ${unit(entry.requirement)}</span></div></div></article>`;
     })
     .join('')}</div></section>`;
@@ -178,17 +179,5 @@ export function raceProgressView(before, after, context, result) {
           : valid
             ? 'Progress saved'
             : 'No progress · A valid finish is required';
-  const description =
-    context.mode === 'interceptor'
-      ? 'Mission success earns 5 progress; a valid failed pursuit earns 1. Issued equipment does not unlock it in your garage.'
-      : IS_DEMO && points
-        ? 'Every valid finish counts toward demo rewards, at any placing. Export your career to carry it into the full game.'
-        : points
-          ? `${player?.position ? `P${player.position} · ` : ''}Every valid finish counts. Wins +5 · 2nd +4 · 3rd +3 · 4th–5th +2 · 6th–10th +1`
-          : context.mode === 'time-trial'
-            ? 'Each distinct map counts once toward your boost rewards.'
-            : valid
-              ? 'This result has already been counted. Improve your cup placing to earn the difference.'
-              : 'Retry for a classified finish.';
-  return `<section class="race-reward-progress"><h3>${escapeHTML(label)}</h3><p>${escapeHTML(description)}</p>${rewardBadgesView(goals, after, { before, results: true })}</section>`;
+  return `<section class="race-reward-progress"><h3>${escapeHTML(label)}</h3>${rewardBadgesView(goals, after, { before, results: true })}</section>`;
 }

@@ -1,4 +1,5 @@
 import { createFlightModel } from '../../physics/flight.js';
+import { createScenarioDescriptors } from '../../core/scenarios.js';
 import {
   sampleCrossfeed,
   samplePress,
@@ -58,12 +59,7 @@ export function createColossusRuntime(context) {
     forgivingContacts: true,
     automaticRecovery: context.playtest?.automaticRecovery !== false,
     testLaunch: Boolean(context.playtest),
-    scenarios: Object.fromEntries(
-      Object.entries(track.scenarios).map(([id, state]) => [
-        id,
-        { label: id.replaceAll('-', ' '), state: { ...state } },
-      ]),
-    ),
+    scenarios: createScenarioDescriptors(track.scenarios),
   });
   // Read the solved grounded pose, so flying over a belt never shakes the
   // camera. The tread phase comes from the same clock as the moving plates.

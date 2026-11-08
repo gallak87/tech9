@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {
@@ -114,8 +115,12 @@ function ceramicPanels(track, runs) {
                 ? [-14.5, 0, 14.5]
                 : [-14.5, -4.84, 4.84, 14.5];
       for (let column = 0; column < bounds.length - 1; column += 1) {
-        const x0 = bounds[column] + 0.075;
-        const x1 = bounds[column + 1] - 0.075;
+        // Internal joins stay physically flush. A 150 mm opening made hull
+        // corners switch to the analytic road frame on banked panels; gasket
+        // lines and fitted relief belong to the existing surface shader.
+        const x0 = bounds[column] + (column === 0 ? 0.075 : 0);
+        const x1 =
+          bounds[column + 1] - (column === bounds.length - 2 ? 0.075 : 0);
         const glazed =
           dryGlass &&
           ((section.id === 'grid' && (column === 1 || column === 3)) ||
@@ -153,27 +158,31 @@ function ceramicPanels(track, runs) {
         for (let v = 0; v <= along; v += 1)
           for (let u = 0; u <= across; u += 1) {
             const x = THREE.MathUtils.lerp(x0, x1, u / across);
-            const distance = THREE.MathUtils.lerp(
-              a + 0.065 + scallopAt(a, u / across),
-              b - 0.065 + scallopAt(b, u / across),
-              v / along,
-            );
-            const clipped = THREE.MathUtils.clamp(
-              distance,
-              start + 0.04,
-              end - 0.04,
-            );
+            const distance = THREE.MathUtils.lerp(a, b, v / along);
+            const clipped = THREE.MathUtils.clamp(distance, start, end);
             const frame = track.sample(clipped);
             const fv = v / along;
-            const bevel = u === 0 || u === across ? 0.045 : 0;
-            const leadingLip =
-              channel === 'ceramic' ? Math.exp(-fv * 32) * 0.085 : 0;
             vertices.push({
-              position: point(frame, x, 0.018 + leadingLip - bevel),
+              // Keep the real running skin flush with the route, including at
+              // panel gaps. Fitted rims and seals retain their shader relief.
+              position: point(frame, x, 0),
               up: frame.up,
               x,
               distance: clipped,
-              panel: [(u / across) * (x1 - x0), fv * (b - a), x1 - x0, b - a],
+              // Scalloped joins remain a fitted surface finish. Moving the
+              // top rows themselves left holes when adjacent channels used
+              // different scallop depths or changed their column layout.
+              panel: [
+                (u / across) * (x1 - x0),
+                fv * (b - a) -
+                  THREE.MathUtils.lerp(
+                    scallopAt(a, u / across),
+                    scallopAt(b, u / across),
+                    fv,
+                  ),
+                x1 - x0,
+                b - a,
+              ],
             });
           }
         for (let v = 0; v < along; v += 1)
@@ -360,11 +369,12 @@ export function buildNacreTrack(track, renderer) {
       vertexColors: true,
       metalness: 0.06,
       specularIntensity: 1,
-      roughness: 0.48,
+      // Match the average mineral-map response before renderer maps arrive.
+      roughness: 0.34,
       clearcoat: 1,
       envMapIntensity: 1.3,
       // A continuous top coat avoids a second correlated near-mirror lobe.
-      clearcoatRoughness: 0.22,
+      clearcoatRoughness: 0.18,
       iridescence: 0.36,
       iridescenceIOR: 1.3,
       iridescenceThicknessRange: [240, 360],
@@ -379,13 +389,15 @@ export function buildNacreTrack(track, renderer) {
     // a normal map or modulate the physical lobe width.
     shader.vertexShader =
       'varying vec2 vNacreTintUv;\n' +
-      shader.vertexShader.replace(
+      replaceShader(
+        shader.vertexShader,
         '#include <uv_vertex>',
         '#include <uv_vertex>\nvNacreTintUv = uv;',
       );
     shader.fragmentShader =
       'varying vec2 vNacreTintUv;\n' +
-      shader.fragmentShader.replace(
+      replaceShader(
+        shader.fragmentShader,
         '#include <color_fragment>',
         `#include <color_fragment>
        vec2 nacreUV = vNacreTintUv;
@@ -466,7 +478,7 @@ export function buildNacreTrack(track, renderer) {
   group.userData.setReflection = (texture) => {
     for (const surface of [ceramic, pressureGlass]) {
       surface.envMap = texture;
-      surface.envMapIntensity = surface === ceramic ? 1.5 : 1.1;
+      surface.envMapIntensity = 1.5;
       surface.needsUpdate = true;
     }
   };
@@ -545,7 +557,7 @@ export function buildNacreTrack(track, renderer) {
   );
   group.userData.pressureBedDepth = 0.95;
   group.userData.surfaceTreatments = [
-    'Champagne / violet nacre lamellae and stepped lap joints',
+    'Champagne / violet nacre lamellae and flush fitted lap joints',
     'Twin six-metre smoked pressure bays across the grid',
     'Alternating dark-glazed breaker induction bays',
     'Broad eighteen-metre ascent pressure glazing',

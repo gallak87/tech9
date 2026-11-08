@@ -1,0 +1,153 @@
+{
+  "generator": "Original procedural Blender geometry authored for VECTOR//NOVA",
+  "stage": "all",
+  "coordinates": "Metres, +Z forward, +Y up, +X starboard in glTF",
+  "rights": "Project-authored meshes and scalar PBR materials; project-owned generated concepts used only as visual references. No external artwork or models.",
+  "source": "build_anchor_fleet.py",
+  "blend": "ravel-anchor-fleet.blend",
+  "runtimeAsset": "public/assets/levels/ravel/anchor-fleet.glb",
+  "referenceImages": [
+    {
+      "file": "assets/levels/ravel/reference/ravel-anchor-narrows-concept.png",
+      "sha256": "9d10cfba850da22fb6a01a92df0624af25dec7329e36c340df34e20454c13ea5"
+    },
+    {
+      "file": "assets/levels/ravel/reference/ravel-crown-fold-concept.png",
+      "sha256": "5f98830aacd2235dd2f4b742cadf861a08ea9c271f11f6a6eeb220bc87c6b969"
+    },
+    {
+      "file": "assets/levels/ravel/reference/sail-basin-selected-crop.png",
+      "sha256": "fffdfad048bddc81fea153f2c98b3394c214d7044dc75557b90730a47244aab0"
+    }
+  ],
+  "prototypes": [
+    {
+      "name": "loom_carrier",
+      "triangles": 46604,
+      "materialBatches": 9,
+      "bounds": {
+        "min": [-72.0, -37.0, -231.0],
+        "max": [72.0, 44.5, 230.0]
+      },
+      "dimensions": [144.0, 81.5, 461.0],
+      "anchors": [
+        {
+          "name": "engine_0",
+          "position": [-42, -11, -228],
+          "kind": "engine"
+        },
+        {
+          "name": "engine_1",
+          "position": [-42, 11, -228],
+          "kind": "engine"
+        },
+        {
+          "name": "engine_2",
+          "position": [42, -11, -228],
+          "kind": "engine"
+        },
+        {
+          "name": "engine_3",
+          "position": [42, 11, -228],
+          "kind": "engine"
+        },
+        {
+          "name": "cable_socket_port",
+          "position": [-72, 22, -148],
+          "kind": "cable"
+        },
+        {
+          "name": "cable_socket_starboard",
+          "position": [72, 22, 112],
+          "kind": "cable"
+        }
+      ]
+    },
+    {
+      "name": "anchor_cutter",
+      "triangles": 19452,
+      "materialBatches": 9,
+      "bounds": {
+        "min": [-32.5, -25.0, -92.0],
+        "max": [41.0, 30.0, 90.0]
+      },
+      "dimensions": [73.5, 55.0, 182.0],
+      "anchors": [
+        {
+          "name": "engine_0",
+          "position": [-15, -3, -89],
+          "kind": "engine"
+        },
+        {
+          "name": "engine_1",
+          "position": [15, -3, -89],
+          "kind": "engine"
+        },
+        {
+          "name": "cable_socket_starboard",
+          "position": [40, 4, 12],
+          "kind": "cable"
+        },
+        {
+          "name": "tow_eye",
+          "position": [0, -13, -90],
+          "kind": "tow"
+        }
+      ]
+    },
+    {
+      "name": "tension_spindle",
+      "triangles": 32984,
+      "materialBatches": 6,
+      "bounds": {
+        "min": [-162.0, -161.96144104003906, -23.31999969482422],
+        "max": [133.33758544921875, 161.96144104003906, 23.31999969482422]
+      },
+      "dimensions": [295.33758544921875, 323.9228820800781, 46.63999938964844],
+      "anchors": [
+        {
+          "name": "cable_socket_0",
+          "position": [73.50000000000001, 127.30573435631247, 25],
+          "kind": "cable"
+        },
+        {
+          "name": "cable_socket_1",
+          "position": [-127.30573435631248, 73.49999999999999, 25],
+          "kind": "cable"
+        },
+        {
+          "name": "cable_socket_2",
+          "position": [-69.01231972952594, -129.79329615026228, 25],
+          "kind": "cable"
+        },
+        {
+          "name": "jaw_0",
+          "position": [115.83758078018812, 90.50223687287176, 26],
+          "kind": "jaw"
+        },
+        {
+          "name": "jaw_1",
+          "position": [115.83758078018815, -90.50223687287175, 26],
+          "kind": "jaw"
+        }
+      ]
+    }
+  ],
+  "totalTriangles": 99040,
+  "materials": [
+    "Ceramic / warm ivory",
+    "Ceramic / cool service",
+    "Graphite / structural carbon",
+    "Titanium / formed fittings",
+    "Copper / heat and tension hardware",
+    "Interior / deep graphite",
+    "Bridge / recessed blue glazing",
+    "Power / warm service lights",
+    "Power / ion engine chambers"
+  ],
+  "hashes": {
+    "build_anchor_fleet.py": "77fb5fae598292aa25cffa12a0d4685eb95796b7acd5231da2873dd0e081868b",
+    "ravel-anchor-fleet.blend": "c26a6d4adde2635208656812ba7c0d330d20086aadcfc092830f3a94ca6112af",
+    "anchor-fleet.glb": "6d7834a611cac29d1d87eb030521541e713b595077f802ebc467a87c2c644562"
+  }
+}

@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import * as T from 'three';
 
 // Reuse Nacre's Tech9-derived normal texture for the falling surface. Falling
@@ -37,7 +38,8 @@ export function createFallingWaterMaterial(clock, opening, rippleTexture) {
       varying vec2 vSize;
       varying vec3 vFlowRight;
     ` +
-      shader.vertexShader.replace(
+      replaceShader(
+        shader.vertexShader,
         '#include <begin_vertex>',
         `
       #include <begin_vertex>
@@ -68,10 +70,13 @@ export function createFallingWaterMaterial(clock, opening, rippleTexture) {
           mix(fallHash(i+vec2(0,1)),fallHash(i+vec2(1,1)),f.x),f.y);
       }
     ` +
-      shader.fragmentShader
-        .replace(
-          '#include <map_fragment>',
-          `
+      replaceShader(
+        replaceShader(
+          replaceShader(
+            replaceShader(
+              shader.fragmentShader,
+              '#include <map_fragment>',
+              `
         #include <map_fragment>
         float down=max(0.,vFlow.y);
         float travel=(sqrt(144.+19.62*down)-12.)/9.81;
@@ -101,30 +106,27 @@ export function createFallingWaterMaterial(clock, opening, rippleTexture) {
         vec2 rippleB=texture2D(rippleTexture,vec2(vFlow.x/13.,falling*.093)+vec2(17.,31.)).rg*2.-1.;
         vec2 fallRipple=(rippleA*.32+rippleB*.13)*fineVisibility;
       `,
-        )
-        .replace(
-          '#include <emissivemap_fragment>',
-          `
+            ),
+            '#include <emissivemap_fragment>',
+            `
         #include <emissivemap_fragment>
         totalEmissiveRadiance+=vec3(.024,.037,.040)*foam;
       `,
-        )
-        .replace(
+          ),
           '#include <roughnessmap_fragment>',
           `
         #include <roughnessmap_fragment>
         roughnessFactor=mix(.13,.58,foam);
       `,
-        )
-        .replace(
-          '#include <normal_fragment_begin>',
-          `
+        ),
+        '#include <normal_fragment_begin>',
+        `
         #include <normal_fragment_begin>
         vec3 across=normalize(vFlowRight-normal*dot(vFlowRight,normal));
         vec3 along=normalize(cross(normal,across));
         normal=normalize(normal+across*fallRipple.x+along*fallRipple.y*.4);
       `,
-        );
+      );
   };
   material.customProgramCacheKey = () => 'nightweir-falling-water-v2';
   return material;

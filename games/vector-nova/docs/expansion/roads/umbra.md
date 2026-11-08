@@ -1,6 +1,6 @@
 # Umbra Fold — road finish
 
-Use the [road workflow](README.md). Target `umbra`. Preserve the 35 m roadway.
+**Deferred; requires a new assignment.** Use the [road workflow](README.md) when this pass is assigned. Target `umbra` and preserve the canonical 35 m roadway.
 
 ## Starting point
 

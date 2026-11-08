@@ -1,17 +1,19 @@
-// Metric finish on the existing ceramic/glazing panels. No displacement: the
-// approved collision triangles and gap lips remain exactly where they are.
+import { replaceShader } from '../../../renderer/shader-patch.js';
+// Metric finish on the flush ceramic/glazing panels. Fitted rim and seal relief
+// affects shading only, leaving the actual running skin smooth across seams.
 // A smooth top coat covers the ceramic PBR maps; fitted perimeter relief
 // follows the existing panel dimensions in metres. Glazing stays distinct.
 export function applyNacreSurfaceFinish(material, kind) {
+  const ceramic = kind === 'ceramic';
   const compile = material.onBeforeCompile;
   const key = material.customProgramCacheKey();
   material.onBeforeCompile = (shader, renderer) => {
     compile.call(material, shader, renderer);
-    shader.vertexShader =
-      `attribute vec4 nacrePanel; varying vec4 vNacrePanel;\n${shader.vertexShader}`.replace(
-        '#include <begin_vertex>',
-        '#include <begin_vertex>\n vNacrePanel = nacrePanel;',
-      );
+    shader.vertexShader = replaceShader(
+      `attribute vec4 nacrePanel; varying vec4 vNacrePanel;\n${shader.vertexShader}`,
+      '#include <begin_vertex>',
+      '#include <begin_vertex>\n vNacrePanel = nacrePanel;',
+    );
     shader.fragmentShader = `
       varying vec4 vNacrePanel;
       vec3 nacreFinishNormal(vec3 surfaceNormal, vec3 surfacePosition, float height, float faceSign) {
@@ -22,10 +24,12 @@ export function applyNacreSurfaceFinish(material, kind) {
           - sign(det) * (dFdx(height) * rx + dFdy(height) * ry));
       }
       ${shader.fragmentShader}`;
-    shader.fragmentShader = shader.fragmentShader.replace(
+    shader.fragmentShader = replaceShader(
+      shader.fragmentShader,
       '#include <color_fragment>',
       `#include <color_fragment>
-      vec2 panelEdges = min(vNacrePanel.xy, vNacrePanel.zw - vNacrePanel.xy);
+      vec2 panelPoint = vec2(vNacrePanel.x, mod(vNacrePanel.y, vNacrePanel.w));
+      vec2 panelEdges = min(panelPoint, vNacrePanel.zw - panelPoint);
       float panelEdge = max(0., min(panelEdges.x, panelEdges.y));
       float edgePixel = max(fwidth(panelEdge), .001);
       float panelRim = 1. - smoothstep(.018, .095 + edgePixel, panelEdge);
@@ -33,20 +37,22 @@ export function applyNacreSurfaceFinish(material, kind) {
       // Local rim relief stays separate from the ceramic PBR normal map.
       // Evaluate continuously per fragment, never at triangle vertices.
       float rimHeight = .012 * smoothstep(0., .07 + edgePixel, panelEdge);
-      diffuseColor.rgb *= (1. - .24 * panelRim - .14 * registerLine);`,
+      diffuseColor.rgb *= (1. - ${ceramic ? '.32' : '.24'} * panelRim - ${ceramic ? '.18' : '.14'} * registerLine);`,
     );
-    shader.fragmentShader = shader.fragmentShader.replace(
+    shader.fragmentShader = replaceShader(
+      shader.fragmentShader,
       '#include <roughnessmap_fragment>',
       `#include <roughnessmap_fragment>
-      roughnessFactor = mix(roughnessFactor, .27, panelRim);`,
+      roughnessFactor = mix(roughnessFactor, ${ceramic ? '.38' : '.27'}, panelRim);`,
     );
-    shader.fragmentShader = shader.fragmentShader.replace(
+    shader.fragmentShader = replaceShader(
+      shader.fragmentShader,
       '#include <normal_fragment_maps>',
       `#include <normal_fragment_maps>
       normal = nacreFinishNormal(normal, -vViewPosition,
         rimHeight, faceDirection);
       ${
-        kind === 'ceramic'
+        ceramic
           ? ''
           : `
       // Clear centres retain visible under-ribs; compression seals stay denser.
@@ -56,11 +62,13 @@ export function applyNacreSurfaceFinish(material, kind) {
       }`,
     );
     if (material.isMeshPhysicalMaterial)
-      shader.fragmentShader = shader.fragmentShader.replace(
+      shader.fragmentShader = replaceShader(
+        shader.fragmentShader,
         '#include <clearcoat_normal_fragment_maps>',
         `#include <clearcoat_normal_fragment_maps>
         clearcoatNormal = nacreFinishNormal(clearcoatNormal, -vViewPosition, rimHeight, faceDirection);`,
       );
   };
-  material.customProgramCacheKey = () => `${key}-nacre-fitted-${kind}-v1`;
+  material.customProgramCacheKey = () =>
+    `${key}-nacre-fitted-${kind}-v${ceramic ? 3 : 2}`;
 }

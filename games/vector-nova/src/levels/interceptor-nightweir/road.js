@@ -146,19 +146,18 @@ export function createLockdownCollision({ track }) {
     shape: true,
     collectSolid({ name, geometry, matrix, ...info }) {
       const id = `lockdown-${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
-      triangles.push(
-        ...indexedTriangles(
-          geometry.attributes.position.array,
-          geometry.index?.array ??
-            Array.from(
-              { length: geometry.attributes.position.count },
-              (_, i) => i,
-            ),
-          { id, ...info },
-          matrix,
-          geometry.attributes.roadCoord,
-        ),
-      );
+      for (const triangle of indexedTriangles(
+        geometry.attributes.position.array,
+        geometry.index?.array ??
+          Array.from(
+            { length: geometry.attributes.position.count },
+            (_, i) => i,
+          ),
+        { id, ...info },
+        matrix,
+        geometry.attributes.roadCoord,
+      ))
+        triangles.push(triangle);
       geometry.computeBoundingBox();
       targets.push({
         id,

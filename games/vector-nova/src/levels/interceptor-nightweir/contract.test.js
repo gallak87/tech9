@@ -23,6 +23,11 @@ test('Lockdown is a continuous wide two-lap circuit independent of the Nightweir
   assert.ok(original.length > 13000);
   assert.ok(original.jumps.length >= 8);
   assert.deepEqual(track.jumps, []);
+  assert.deepEqual(
+    track.inversions.map(({ id }) => id),
+    ['generating-corkscrew'],
+    'borrowed Nightweir road receives the authored twisting spans',
+  );
   assert.ok(track.id !== original.id);
   for (const distance of [
     -0.001,

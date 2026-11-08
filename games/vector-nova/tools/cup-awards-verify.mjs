@@ -1,8 +1,13 @@
 import assert from 'node:assert/strict';
-import { chromium } from 'playwright';
+import {
+  launchVerificationBrowser,
+  collectPageErrors,
+} from './verification-browser.mjs';
+import { routeRuntimeProbe } from './runtime-probe.mjs';
 import { createCupStore, CUP_STORAGE_KEY } from '../src/race/cup.js';
 import { RACE_OPPONENTS } from '../src/race/roster.js';
 import { CUP_COLLECTION_KEY } from '../src/progression/cup-collection.js';
+import { careerKey, seedVerificationCareer } from './verification-career.mjs';
 
 const base = process.env.VN_URL;
 if (!base) throw Error('Set VN_URL to this checkout’s dev server');
@@ -38,7 +43,7 @@ function savedFinal(position = 1, complete = false) {
     getItem: (k) => values.get(k),
     setItem: (k, v) => values.set(k, v),
   }));
-  store.start('founders', 'kestrel', 'easy');
+  store.start('founders', 'shrike', 'easy');
   store.finish(result(position));
   store.next();
   store.finish(result(position));
@@ -46,12 +51,13 @@ function savedFinal(position = 1, complete = false) {
   if (complete) store.finish(result(position));
   return store.snapshot().state;
 }
-const browser = await chromium.launch({ channel: 'chrome', headless: true });
+const browser = await launchVerificationBrowser();
 const context = await browser.newContext({
   viewport: { width, height },
   hasTouch: width < 900,
 });
 try {
+  await seedVerificationCareer(context);
   await context.addInitScript(() => {
     if (!localStorage.getItem('vector-nova.settings'))
       localStorage.setItem(
@@ -71,21 +77,13 @@ try {
     });
   });
   // Inject at the browser boundary; production code has no result-writing hook.
-  await context.route('**/src/core/game.js*', async (route) => {
-    const response = await route.fetch();
-    const source = await response.text();
-    assert.ok(source.includes('      getSnapshot() {'));
-    await route.fulfill({
-      response,
-      body: source.replace(
-        '      getSnapshot() {',
-        '      verifyCupResults(data) { mode = "results"; onResults?.(data); },\n      getSnapshot() {',
-      ),
-    });
-  });
+  await routeRuntimeProbe(
+    context,
+    '      verifyCupResults(data) { mode = "results"; onResults?.(data); },',
+  );
   const page = await context.newPage();
   const faults = [];
-  page.on('pageerror', (error) => faults.push(error.message));
+  collectPageErrors(page, faults);
   const settle = () =>
     page.evaluate(
       () =>
@@ -140,7 +138,7 @@ try {
         path: `${process.env.VN_CUP_CAPTURE}/${name}.png`,
       });
   };
-  await page.goto(base + '?music=0');
+  await page.goto(base + '?intro=0&music=0');
   await openCup();
   await page.locator('[data-cup="founders"]').focus();
   await settle();
@@ -167,9 +165,72 @@ try {
   await fits();
   await capture('unearned-menu');
 
+  // Retained cup sessions have their own return policy. A standalone-race
+  // completion check must not hide an active cup or skip its next event.
+  const freshValues = new Map();
+  const freshCup = createCupStore(() => ({
+    getItem: (key) => freshValues.get(key),
+    setItem: (key, value) => freshValues.set(key, value),
+  }));
+  freshCup.start('founders', 'shrike', 'easy');
   await page.evaluate(
     ({ key, saved }) => localStorage.setItem(key, JSON.stringify(saved)),
-    { key: CUP_STORAGE_KEY, saved: savedFinal() },
+    { key: careerKey(CUP_STORAGE_KEY), saved: freshCup.snapshot().state },
+  );
+  await page.reload();
+  await openCup();
+  await page.locator('[data-action="cup-resume"]').focus();
+  await settle();
+  await pad(0);
+  await page.waitForFunction(
+    () =>
+      window.__VN?.ready && window.__VN_FRONTEND.getState().screen === 'race',
+    null,
+    { timeout: 120000 },
+  );
+  await page.evaluate(() => window.__VN.pause());
+  await page.locator('#home').click();
+  assert.equal(
+    await page.locator('.race-actions [data-action="cup-resume"]').isVisible(),
+    true,
+  );
+  await page.locator('.menu-top-tabs [data-action="settings"]').click();
+  assert.match(
+    await page.locator('[data-action="resume-session"]').innerText(),
+    /Resume Cup Race/,
+  );
+  await page.locator('[data-action="resume-session"]').focus();
+  await settle();
+  await pad(0);
+  await page.waitForFunction(
+    () => window.__VN_FRONTEND.getState().screen === 'race',
+  );
+  assert.equal(
+    await page.evaluate(() => window.__VN.getSnapshot().mode),
+    'paused',
+  );
+  await page.evaluate((data) => window.__VN.verifyCupResults(data), result(2));
+  await page.locator('.cup-result-actions [data-action="cup-next"]').waitFor();
+  const nonfinalCup = (await state()).cup.state;
+  assert.equal(nonfinalCup.results.length, 1);
+  await page.locator('.cup-result-actions [data-action="home"]').click();
+  assert.equal(
+    await page.locator('.race-actions [data-action="cup-next"]').isVisible(),
+    true,
+  );
+  assert.match(
+    await page.locator('.race-actions [data-action="cup-next"]').innerText(),
+    /Next race/i,
+  );
+  assert.equal(
+    await page.locator('.race-actions [data-action="cup-resume"]').count(),
+    0,
+  );
+  assert.deepEqual((await state()).cup.state, nonfinalCup);
+
+  await page.evaluate(
+    ({ key, saved }) => localStorage.setItem(key, JSON.stringify(saved)),
+    { key: careerKey(CUP_STORAGE_KEY), saved: savedFinal() },
   );
   await page.reload();
   await openCup();
@@ -236,7 +297,28 @@ try {
     'controller B skips to standings',
   );
   assert.equal(await page.locator('.cup-standings tbody tr').count(), 10);
-  await page.locator('[data-action="cup-retry"]').click();
+  const earnedCareer = (await state()).career.state;
+  await page.locator('[data-action="cup-hub"]').focus();
+  await settle();
+  await pad(0);
+  assert.equal((await state()).cup.state, null);
+  assert.equal(
+    await page
+      .locator('[data-action="resume-session"], [data-action="cup-resume"]')
+      .count(),
+    0,
+  );
+  assert.equal(await page.locator('.cup-confirm').count(), 0);
+  assert.deepEqual((await state()).career.state, earnedCareer);
+  assert.equal((await state()).cupCollection.cups.founders.points, 75);
+  // A new completed run can defend the trophy without retrying a finished cup.
+  await page.evaluate(
+    ({ key, saved }) => localStorage.setItem(key, JSON.stringify(saved)),
+    { key: careerKey(CUP_STORAGE_KEY), saved: savedFinal() },
+  );
+  await page.reload();
+  await openCup();
+  await page.locator('[data-action="cup-resume"]').click();
   await page.waitForFunction(
     () => window.__VN_FRONTEND.getState().screen === 'race',
   );
@@ -253,19 +335,14 @@ try {
     0,
     'controller A opens standings immediately',
   );
-  await page.locator('[data-action="cup-abandon"]').focus();
-  await settle();
-  await pad(0);
-  assert.equal(
-    await page.evaluate(() => document.activeElement.dataset.action),
-    'cup-cancel',
-  );
-  await pad(1);
+  await page.locator('[data-action="cup-hub"]').focus();
+  await page.keyboard.press('Enter');
   assert.equal(await page.locator('.cup-confirm').count(), 0);
-  await page.keyboard.press('Enter');
-  await page.keyboard.press('Tab');
-  await page.keyboard.press('Enter');
   assert.equal((await state()).cup.state, null);
+  if (width < 900) {
+    await page.locator('[data-action="circuits"]').focus();
+    await page.keyboard.press('Enter');
+  }
   assert.equal(
     await page.locator('[data-cup="founders"].is-earned').count(),
     1,
@@ -286,42 +363,45 @@ try {
   await fits();
   await capture('earned-menu');
   await page.reload();
+  await page.locator('.cup-cabinet').waitFor();
   assert.equal(await page.locator('.cup-cabinet .is-earned').count(), 1);
   assert.equal((await state()).cupCelebration, false);
 
-  // Old championship wins backfill once, without requiring another race or replaying fanfare.
+  // Completed saved wins keep their trophy while the active cup is cleared.
   await page.evaluate(
     ({ key, collection, saved }) => {
       localStorage.removeItem(collection);
       localStorage.setItem(key, JSON.stringify(saved));
     },
     {
-      key: CUP_STORAGE_KEY,
-      collection: CUP_COLLECTION_KEY,
+      key: careerKey(CUP_STORAGE_KEY),
+      collection: careerKey(CUP_COLLECTION_KEY),
       saved: savedFinal(1, true),
     },
   );
   await page.reload();
+  await page.locator('.cup-cabinet').waitFor();
   assert.equal((await state()).cupCollection.cups.founders.points, 75);
   assert.equal((await state()).cupCelebration, false);
-  // A complete P2 championship is still unearned, even on migration.
+  // A completed P2 championship clears without earning a trophy.
   await page.evaluate(
     ({ key, collection, saved }) => {
       localStorage.removeItem(collection);
       localStorage.setItem(key, JSON.stringify(saved));
     },
     {
-      key: CUP_STORAGE_KEY,
-      collection: CUP_COLLECTION_KEY,
+      key: careerKey(CUP_STORAGE_KEY),
+      collection: careerKey(CUP_COLLECTION_KEY),
       saved: savedFinal(2, true),
     },
   );
   await page.reload();
+  await page.locator('.cup-cabinet').waitFor();
   assert.deepEqual((await state()).cupCollection.cups, {});
   assert.equal(await page.locator('.cup-cabinet .is-earned').count(), 0);
   assert.deepEqual(faults, []);
   console.log(
-    `PASS cup awards ${width}x${height}: art, controller/keyboard, first-place collection, reveal, reduced motion, persistence and old-save migration`,
+    `PASS cup awards ${width}x${height}: active/between-event/completed returns, controller/keyboard, first-place collection, reveal, reduced motion, persistence and completed-save cleanup`,
   );
 } finally {
   await context.close();

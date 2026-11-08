@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import * as T from 'three';
 import {
   mergeVertices,
@@ -39,20 +40,22 @@ export function createQuarry(track, renderer = null) {
         })
     : Promise.resolve();
   material.onBeforeCompile = (shader) => {
-    shader.vertexShader = shader.vertexShader
-      .replace(
+    shader.vertexShader = replaceShader(
+      replaceShader(
+        shader.vertexShader,
         '#include <common>',
         '#include <common>\nvarying vec3 quarryPoint;',
-      )
-      .replace(
-        '#include <project_vertex>',
-        '#include <project_vertex>\nvec4 quarryWorld=vec4(transformed,1.);\n#ifdef USE_INSTANCING\nquarryWorld=instanceMatrix*quarryWorld;\n#endif\nquarryPoint=(modelMatrix*quarryWorld).xyz;',
-      );
-    shader.fragmentShader = shader.fragmentShader.replace(
+      ),
+      '#include <project_vertex>',
+      '#include <project_vertex>\nvec4 quarryWorld=vec4(transformed,1.);\n#ifdef USE_INSTANCING\nquarryWorld=instanceMatrix*quarryWorld;\n#endif\nquarryPoint=(modelMatrix*quarryWorld).xyz;',
+    );
+    shader.fragmentShader = replaceShader(
+      shader.fragmentShader,
       '#include <common>',
       '#include <common>\nvarying vec3 quarryPoint;\nfloat quarryHash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}\nfloat quarryNoise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(quarryHash(i),quarryHash(i+vec2(1.,0.)),f.x),mix(quarryHash(i+vec2(0.,1.)),quarryHash(i+vec2(1.)),f.x),f.y);}',
     );
-    shader.fragmentShader = shader.fragmentShader.replace(
+    shader.fragmentShader = replaceShader(
+      shader.fragmentShader,
       '#include <map_fragment>',
       `float quarryRelief=0.;
       #ifdef USE_MAP
@@ -86,14 +89,16 @@ export function createQuarry(track, renderer = null) {
       diffuseColor.rgb*=.82+.18*quarryNoise(plan*.018+quarryPoint.y*.002);
       quarryRelief+=quarryNoise(quarryPoint.xy*.08)*.32+resolved*(seam*.24+joint*.3);`,
     );
-    shader.fragmentShader = shader.fragmentShader.replace(
+    shader.fragmentShader = replaceShader(
+      shader.fragmentShader,
       '#include <normal_fragment_maps>',
       `#include <normal_fragment_maps>
       vec3 qx=dFdx(-vViewPosition),qy=dFdy(-vViewPosition),qrX=cross(qy,normal),qrY=cross(normal,qx);
       float qdet=dot(qx,qrX); vec2 qSlope=vec2(dFdx(quarryRelief),dFdy(quarryRelief))*.11;
       normal=normalize(abs(qdet)*normal-sign(qdet)*(qSlope.x*qrX+qSlope.y*qrY));`,
     );
-    shader.fragmentShader = shader.fragmentShader.replace(
+    shader.fragmentShader = replaceShader(
+      shader.fragmentShader,
       '#include <opaque_fragment>',
       `float terrainHaze=1.-exp(-max(0.,distance(cameraPosition,quarryPoint)-650.)*.000095);
       outgoingLight=mix(outgoingLight,vec3(.36,.43,.49),min(.78,terrainHaze));

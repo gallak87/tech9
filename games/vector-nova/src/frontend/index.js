@@ -1,4 +1,9 @@
-import { garageView, toggleGarageEquipment, navigateGarage } from './garage.js';
+import {
+  garageView,
+  toggleGarageEquipment,
+  navigateGarage,
+  showGarageEquipment,
+} from './garage.js';
 import { TRICKS } from '../freestyle/rules.js';
 import { eliminatorResultsView } from '../events/eliminator-view.js';
 import { interceptorResultsView } from '../events/interceptor-view.js';
@@ -18,18 +23,29 @@ import {
 } from '../progression/goals.js';
 import { createSaveTransfer } from '../progression/save-transfer.js';
 import { createProgressionMenu } from '../progression/menu.js';
+import {
+  isCareerComplete,
+  endgameModesUnlocked,
+  remainingModeUnlocks,
+} from '../progression/completion.js';
+import {
+  settleRaceResult,
+  settleTrialRecord,
+} from '../progression/result-coordinator.js';
 import { bindDesktopControls } from '../ui/desktop-controls.js';
 import { controllerLayout } from '../input/gamepad.js';
+import { escapeHTML as escape } from '../ui/html.js';
 import { settingsView, bindSettingsPanel } from './settings-panel.js';
 import {
   CUPS,
+  availableCups,
   createCupStore,
   cupDefinition,
   cupGridOrder,
-  cupChampion,
+  cupComplete,
 } from '../race/cup.js';
 import { createCupCollection } from '../progression/cup-collection.js';
-import { cupCabinet, cupHero, cupVictoryView } from './cup-art.js';
+import { cupArt, cupCabinet, cupHero, cupVictoryView } from './cup-art.js';
 import {
   cupView,
   cupWaitingView,
@@ -41,6 +57,7 @@ import { readTrialRecords } from '../race/time-trial.js';
 import { formatTime, formatDelta } from '../race/timing.js';
 import { discoverLevels } from '../levels/catalog.js';
 import { canonicalLevelId } from '../levels/aliases.js';
+import { filterAvailableLevels, levelAvailable } from '../levels/access.js';
 import routes from 'virtual:menu-catalog';
 import { RACE_FIELD_SIZE, RACE_OPPONENTS } from '../race/roster.js';
 import {
@@ -64,17 +81,10 @@ import {
 } from '../core/art-pass.js';
 import '../ui/style.css';
 import './style.css';
+import '../freestyle/style.css';
 import './menu.css';
 import './cup-art.css';
 
-const escape = (text) =>
-  String(text).replace(
-    /[&<>"']/g,
-    (c) =>
-      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[
-        c
-      ],
-  );
 const stamp = formatTime;
 const button = (action, label, primary = false) =>
   `<button data-action="${action}" class="${primary ? 'primary' : ''}">${label}</button>`;
@@ -96,7 +106,8 @@ export async function createFrontend(
     storage,
     music: sharedMusic = null,
     career = null,
-    onSwitchCareer = () => {},
+    onSwitchCareer = null,
+    onRenameCareer = null,
     configureMusicNavigation = () => {},
   } = {},
 ) {
@@ -104,7 +115,6 @@ export async function createFrontend(
     throw new TypeError('A selected career storage adapter is required.');
   let disposed = false;
   const catalog = discoverLevels().list;
-  const circuits = catalog;
   const parameters = new URLSearchParams(
     !import.meta.env?.VN_DESKTOP ? location.search : '',
   );
@@ -118,12 +128,30 @@ export async function createFrontend(
   const careerStorage = () => developer?.storage?.() ?? storage;
   const profileStore = createProfileStore(careerStorage);
   const profile = () => profileStore.snapshot().state;
+  const contentAccess = () => ({
+    complete: isCareerComplete(profile()),
+    postCareer: endgameModesUnlocked(profile()),
+    developer: !!developer,
+  });
+  const circuits = () => filterAvailableLevels(catalog, contentAccess());
+  const cups = () => availableCups(contentAccess());
+  const circuitAvailable = (id) =>
+    catalog.some((level) => level.id === id) &&
+    levelAvailable(id, contentAccess());
+  const cupAvailable = (id) => cups().some((cup) => cup.id === id);
   const cupStore = createCupStore(careerStorage);
   const cupCollection = createCupCollection(careerStorage);
+  const resultStores = { profileStore, cupStore, cupCollection };
+  if (
+    cupStore.snapshot().state &&
+    !cupAvailable(cupStore.snapshot().state.cupId)
+  )
+    cupStore.abandon();
   cupCollection.award(cupStore.snapshot().state);
   for (const id of Object.keys(cupCollection.snapshot().cups))
     profileStore.recordCup(id);
-  let cupCelebration = null;
+  let cupCelebration = null,
+    pendingCupCelebration = null;
   let selectedCup = cupStore.snapshot().state?.cupId ?? CUPS[0].id;
   const currentCup = () =>
     cupDefinition(cupStore.snapshot().state?.cupId ?? selectedCup);
@@ -153,8 +181,7 @@ export async function createFrontend(
     url.searchParams.set('level', requested);
     history.replaceState(history.state, '', url);
   }
-  let invalidLevel =
-    requested && !catalog.some((level) => level.id === requested);
+  let invalidLevel = requested && !circuitAvailable(requested);
   let selected =
     requested || (parameters.get('test') === 'jump' ? 'saffron' : null);
   if (!selected) {
@@ -166,7 +193,7 @@ export async function createFrontend(
       /* Optional storage. */
     }
   }
-  if (!catalog.some((level) => level.id === selected)) selected = catalog[0].id;
+  if (!circuitAvailable(selected)) selected = circuits()[0].id;
   const eventTypeFor = (id) => {
     const entry = catalog.find((item) => item.id === id);
     return entry?.freestyle ? 'freestyle' : entry?.eventType;
@@ -204,14 +231,18 @@ export async function createFrontend(
     earnedRewards = [],
     rewardStart = null,
     rewardContext = null;
-  const goalContext = (trackId = selected) => ({
+  const goalContext = (trackId = selected, cupId) => ({
     mode: intent,
     trackId,
-    cupId: intent === 'cup' ? currentCup().id : null,
+    cupId: intent === 'cup' ? (cupId ?? currentCup().id) : null,
   });
-  const goalBadges = (trackId = selected) =>
-    rewardBadgesView(rewardGoals(profile(), goalContext(trackId)), profile());
+  const goalBadges = (trackId = selected, cupId) =>
+    rewardBadgesView(
+      rewardGoals(profile(), goalContext(trackId, cupId)),
+      profile(),
+    );
   function beginRewardAttempt() {
+    pendingCupCelebration = null;
     sessionRewardId = crypto.randomUUID();
     earnedRewards = [];
     rewardStart = profile();
@@ -242,6 +273,10 @@ export async function createFrontend(
   let inspector = null,
     inspectorController = null,
     inspectorPending = null;
+  let completion = null,
+    completionPending = null,
+    completionController = null,
+    completionGeneration = 0;
   let cacheModule,
     unsubscribeCache,
     unsubscribeSettings,
@@ -271,6 +306,10 @@ export async function createFrontend(
     if (!life.signal.aborted)
       bindMenuGamepad(life.signal, {
         toggleMusic: () => music?.togglePlayback(),
+        onSecondaryAction(root) {
+          if (root === shell && screen === 'career')
+            progressionMenu.renameCareer();
+        },
       });
   });
   // Match CSS: one picker at a time beside the menu, separate pages below.
@@ -278,7 +317,8 @@ export async function createFrontend(
   const choosingSession = () =>
     ['home', 'circuits', 'setup', 'cup', 'records'].includes(screen);
   const utilityPage = () => ['settings', 'career'].includes(screen);
-  const menuVisible = () => choosingSession() || utilityPage();
+  const menuVisible = () =>
+    choosingSession() || utilityPage() || screen === 'loading';
   const showingShip = () => screen === 'setup';
   const lockedCup = () => (intent === 'cup' ? cupStore.snapshot().state : null);
   host.innerHTML =
@@ -314,7 +354,6 @@ export async function createFrontend(
         sounds.mount(inspectorHost.querySelector('#inspection-tools'));
     });
   const progressionMenu = createProgressionMenu({
-    host,
     store: createSaveTransfer({
       profileStore,
       cupStore,
@@ -324,13 +363,20 @@ export async function createFrontend(
     signal: life.signal,
     sandbox: !!developer,
     careerName: career?.name,
-    onSwitchCareer: () => {
-      if (!disposed) onSwitchCareer();
-    },
+    onRenameCareer:
+      career && onRenameCareer
+        ? (name) => {
+            if (disposed) throw new Error('This career is closed.');
+            career = onRenameCareer(name);
+            return career.name;
+          }
+        : null,
     onCareerBack: () => actions['settings-back'](),
     onChange({ imported = false } = {}) {
       if (disposed) return;
+      garageNotice = '';
       if (imported) {
+        stopCompletion();
         generation++;
         launchGeneration++;
         controller?.abort();
@@ -338,12 +384,17 @@ export async function createFrontend(
         game = null;
         loadedId = null;
         sessionCup = false;
+        pendingCupCelebration = null;
         lastResults = null;
         if (['race', 'results'].includes(settingsBack)) {
           settingsBack = 'home';
           settingsFocus = null;
         }
         selectedCup = cupStore.snapshot().state?.cupId ?? CUPS[0].id;
+        if (!cupAvailable(selectedCup)) {
+          cupStore.abandon();
+          selectedCup = CUPS[0].id;
+        }
         if (intent === 'cup' && cupStore.snapshot().state) {
           shipId = cupStore.snapshot().state.shipId;
           selected = currentCup().tracks[cupStore.snapshot().state.eventIndex];
@@ -351,8 +402,15 @@ export async function createFrontend(
       }
       if (!shipUnlocked(profile(), shipId) && !lockedCup())
         shipId = starterShip();
+      if (!circuitAvailable(selected)) {
+        selected = circuits()[0].id;
+        intent = 'race';
+        racingTrack = selected;
+        previewLevelId = selected;
+      }
       inspector?.refreshProgression?.();
       render();
+      void showCompletion();
     },
   });
   const level = () => catalog.find((l) => l.id === selected);
@@ -471,6 +529,8 @@ export async function createFrontend(
   }
   function setScreen(next) {
     if (disposed) return;
+    if (['home', 'cup', 'circuits', 'setup', 'loading'].includes(next))
+      clearCompletedCup();
     const navigating = screen !== next;
     if (navigating) music?.close();
     if (screen === 'career' && next !== 'career')
@@ -522,6 +582,132 @@ export async function createFrontend(
       shell.querySelector(focus)?.scrollIntoView({ block: 'nearest' });
     updateStatus();
   }
+  function stopCompletion() {
+    completionGeneration++;
+    completionController?.abort();
+    completionController = null;
+    completion?.dispose();
+    completion = null;
+    completionPending = null;
+    host.querySelector('.completion-boot')?.remove();
+    shell.inert = false;
+    music?.setSuspended(false);
+  }
+  function closeCompletion() {
+    if (disposed) return;
+    profileStore.acknowledgeCompletion();
+    stopCompletion();
+    clearCompletedCup();
+    if (!cupStore.snapshot().state) {
+      selectedCup = 'encore';
+      intent = 'cup';
+    }
+    setScreen(wideMenu.matches && intent === 'cup' ? 'cup' : 'home');
+    focusMenu('[data-cup="encore"], [data-action="cup-hub"]');
+  }
+  function showCompletion() {
+    // Keep the full-edition finale and its fleet models out of demo bundles.
+    if (import.meta.env?.VN_EDITION === 'demo') return;
+    if (
+      disposed ||
+      special ||
+      (developer && parameters.get('showcase') !== '1') ||
+      completion ||
+      completionPending ||
+      !isCareerComplete(profile()) ||
+      !profile().completion ||
+      profile().completion.acknowledged
+    )
+      return completionPending;
+    const token = ++completionGeneration;
+    completionController = new AbortController();
+    const signal = completionController.signal;
+    const loading = document.createElement('section');
+    loading.className = 'completion-cinematic completion-boot';
+    loading.setAttribute('aria-label', 'Career complete');
+    loading.innerHTML =
+      '<div class="completion-boot-content"><span class="kicker">28 / 28 · CAREER COMPLETE</span><h1 role="status">Loading…</h1><progress max="1" value="0.02" aria-label="Loading"></progress></div>';
+    host.append(loading);
+    menuBackdrop.mount(loading);
+    menuBackdrop.configure({
+      active: true,
+      reducedMotion: settings.reducedMotion,
+    });
+    game?.clearInput();
+    game?.setSuspended(true);
+    gameHost.inert = true;
+    shell.inert = true;
+    music?.close();
+    music?.setSuspended(true);
+    music?.setDriving(false);
+    desktopControls?.mount(null);
+    completionPending = import('./completion-cinematic.js')
+      .then(({ createCompletionCinematic }) => {
+        if (disposed || signal.aborted || token !== completionGeneration)
+          return;
+        loading.remove();
+        menuBackdrop.configure({
+          active: false,
+          reducedMotion: settings.reducedMotion,
+        });
+        completion = createCompletionCinematic({
+          host,
+          shipId: profile().completion.shipId,
+          settings: () => settings,
+          signal,
+          onClose: closeCompletion,
+        });
+        return completion.ready;
+      })
+      .catch((failure) => {
+        if (disposed || signal.aborted || token !== completionGeneration)
+          return;
+        completion?.dispose();
+        // A failed chunk download must still leave a keyboard/controller exit and
+        // the earned unlocks. Pending completion is acknowledged only by Close.
+        completion = {
+          dispose: () => loading.remove(),
+          snapshot: () => ({ phase: 'credits', error: failure.message }),
+        };
+        loading.innerHTML =
+          '<div class="completion-boot-content" role="dialog" aria-modal="true" aria-labelledby="completion-fallback-title"><span class="kicker">28 / 28 · CAREER COMPLETE</span><h1 id="completion-fallback-title">Thx for playing, 3 new courses unlocked!</h1><p>Eliminator · Interceptor · Freestyle (Pilot)</p><p class="completion-error" role="alert">The cinematic couldn’t load. Your unlocks are still available.</p><p>Dev: George Allakhverdyan<br>Studio name TBD</p><p>Homies who helped test the game:<br>Noyan Gunday</p><button type="button" class="completion-retry" data-completion-retry>Reload and retry</button><button type="button" class="primary" data-completion-close>Close</button></div>';
+        host.append(loading);
+        menuBackdrop.mount(loading);
+        menuBackdrop.configure({
+          active: true,
+          reducedMotion: settings.reducedMotion,
+        });
+        loading
+          .querySelector('[data-completion-close]')
+          .addEventListener('click', closeCompletion, { signal });
+        loading
+          .querySelector('[data-completion-retry]')
+          .addEventListener('click', () => location.reload(), { signal });
+        loading.addEventListener(
+          'keydown',
+          (event) => {
+            if (event.code === 'Escape') {
+              event.preventDefault();
+              closeCompletion();
+            } else if (event.code === 'Tab') {
+              event.preventDefault();
+              const controls = [...loading.querySelectorAll('button')];
+              const index = controls.indexOf(document.activeElement);
+              controls[
+                (index + (event.shiftKey ? -1 : 1) + controls.length) %
+                  controls.length
+              ].focus();
+            }
+          },
+          { signal },
+        );
+        loading.querySelector('[data-completion-close]').focus();
+      })
+      .finally(() => {
+        if (token === completionGeneration) completionPending = null;
+      });
+    return completionPending;
+  }
   function heading(kicker, title) {
     return `<div class="front-heading"><span class="kicker">${kicker}</span><h1 tabindex="-1">${title}</h1></div>`;
   }
@@ -538,7 +724,7 @@ export async function createFrontend(
   };
   const circuitPanel = () => {
     const groups = new Map();
-    for (const track of circuits
+    for (const track of circuits()
       .filter(
         (entry) =>
           (eventTypeFor(entry.id) ?? 'race') ===
@@ -584,41 +770,37 @@ export async function createFrontend(
       craft: ship(),
       selectedShip: shipId,
       lockedShip: lockedCup()?.shipId,
-      mode: modeName(),
-      track: level().name,
       notice: garageNotice,
     });
-  const modeName = () =>
-    ({
-      race: 'Quick Race',
-      practice: 'Practice',
-      'time-trial': 'Time Trial',
-      cup: 'Championships',
-      freestyle: 'Freestyle',
-      eliminator: 'Eliminator',
-      interceptor: 'Interceptor',
-    })[intent];
-  const modePicker = () =>
-    `<nav class="mode-picker" aria-label="Game mode">${[
+  const modePicker = () => {
+    const remaining = remainingModeUnlocks(profile());
+    const saved = cupStore.snapshot().state;
+    const activeCup =
+      saved && !cupComplete(saved) ? cupDefinition(saved.cupId) : null;
+    const cupStatus = activeCup ? `${escape(activeCup.name)} in progress` : '';
+    return `<nav class="mode-picker" aria-label="Game mode">${[
       ['quick-race', 'race', 'Quick Race'],
       ['cup-hub', 'cup', 'Championships'],
       ['time-trial', 'time-trial', 'Time Trial'],
       ['practice', 'practice', 'Practice'],
-      ...(catalog.some((entry) => entry.freestyle)
+      ...(circuits().some((entry) => entry.freestyle)
         ? [['freestyle', 'freestyle', 'Freestyle · Pilot']]
         : []),
-      ...(catalog.some((entry) => entry.eventType === 'eliminator')
+      ...(circuits().some((entry) => entry.eventType === 'eliminator')
         ? [['eliminator', 'eliminator', 'Eliminator']]
         : []),
-      ...(catalog.some((entry) => entry.eventType === 'interceptor')
+      ...(circuits().some((entry) => entry.eventType === 'interceptor')
         ? [['interceptor', 'interceptor', 'Interceptor']]
         : []),
     ]
       .map(
         ([action, mode, label]) =>
-          `<button data-action="${action}" aria-pressed="${intent === mode}">${label}</button>`,
+          `<button data-action="${action}" aria-pressed="${intent === mode}" aria-label="${label}${remaining[mode] ? `, ${remaining[mode]} unlocks remaining` : ''}"${mode === 'cup' && activeCup ? ` aria-describedby="active-cup-description" title="${cupStatus}"` : ''}><span>${label}</span><span class="mode-status">${mode === 'cup' && activeCup ? `<img class="mode-cup-trophy" src="${cupArt(activeCup.id).trophy}" alt="" aria-hidden="true">` : ''}${remaining[mode] ? `<span class="mode-unlock-badge" aria-hidden="true">${remaining[mode]}</span>` : ''}</span></button>`,
       )
-      .join('')}</nav>`;
+      .join(
+        '',
+      )}${activeCup ? `<span id="active-cup-description" class="sr-only">${cupStatus}</span>` : ''}</nav>`;
+  };
   const launchLabel = () =>
     intent === 'freestyle'
       ? 'Start Freestyle →'
@@ -647,8 +829,20 @@ export async function createFrontend(
       intent === 'time-trial' ? 'Manual boost · No road devices' : '';
     return `<div class="race-actions"><button class="primary" data-action="launch"><strong>${launchLabel()}</strong><small>${intent === 'freestyle' ? '5 transfers · solo' : intent === 'interceptor' ? '3 allies · one target' : intent === 'eliminator' ? '10 racers · last survivor' : intent === 'race' ? `${isSprint() ? '1 descent' : '2 laps'} · ${RACE_OPPONENTS.length} rivals` : isSprint() ? '1 descent' : intent === 'practice' ? 'Open laps' : 'Unlimited laps'}</small></button>${['race', 'eliminator', 'interceptor'].includes(intent) ? difficultyControls() : ''}${description ? `<p class="mode-description">${description}</p>` : ''}</div>`;
   };
+  const hasResumableSession = () => {
+    if (!game?.hasSession()) return false;
+    if (sessionCup) return !cupComplete(cupStore.snapshot().state);
+    const session = game.getSnapshot();
+    return (
+      !session.competition?.playerFinished &&
+      !session.timeTrial?.result &&
+      !session.eliminator?.result &&
+      !session.interceptor?.result &&
+      !(sessionIntent === 'freestyle' && session.mode === 'results')
+    );
+  };
   const sessionReturn = (includeCup = false) => {
-    if (!game?.hasSession() || (sessionCup && !includeCup)) return '';
+    if (!hasResumableSession() || (sessionCup && !includeCup)) return '';
     const name = sessionCup
       ? 'Cup Race'
       : sessionIntent === 'freestyle'
@@ -670,7 +864,7 @@ export async function createFrontend(
     const selectedCraft = lockedCup()
       ? SHIPS.find((entry) => entry.id === savedCup.shipId)
       : selectedShip();
-    return `<section class="race-menu" aria-label="Session setup">${import.meta.env?.VN_EDITION === 'demo' ? '<p class="demo-edition">DEMO · Kestrel · 2 courses · Unlimited play</p>' : ''}${sessionReturn()}${modePicker()}<button class="menu-selection" data-action="circuits"><span>${cup ? 'Cup' : 'Track'}</span><div><strong>${escape(cup ? cup.name : level().name)}</strong><small>${cup ? `${cup.tracks.length} races · ${savedCup ? `${savedCup.results.length} scored` : 'Championship'}` : intent === 'interceptor' ? `${escape(encounterBoss().name)} · Interceptor` : `${trackChallenge(selected)} · ${intent === 'freestyle' ? 'Freestyle · stock build' : isSprint() ? 'Downhill sprint' : 'Circuit'}`}</small></div><b aria-hidden="true">›</b></button><button class="menu-selection" data-action="ship-step"><span>Ship</span><div><strong>${selectedCraft.name}</strong><small>${lockedCup() ? 'Locked for this cup' : selectedCraft.role}</small></div><b aria-hidden="true">${lockedCup() ? '—' : '›'}</b></button>${raceActions()}<div class="menu-extras"><button data-action="records" aria-pressed="${screen === 'records'}">Time Trial records</button>${developer ? button('inspect', 'Ship inspector') : ''}</div>${careerProgressView(profile())}${cupCabinet(cupCollection.snapshot())}${import.meta.env?.VN_DESKTOP === true ? `<nav class="menu-links" aria-label="Application">${button('desktop-quit', 'Quit game')}</nav>` : ''}<div class="transfer-slot menu-transfer"></div>${savedCup && !cup ? `<aside class="saved-cup">${button('saved-cup', `${cupDefinition(savedCup.cupId).name} · ${savedCup.results.length}/${cupDefinition(savedCup.cupId).tracks.length} scored →`)}</aside>` : ''}</section>`;
+    return `<section class="race-menu" aria-label="Session setup">${import.meta.env?.VN_EDITION === 'demo' ? '<p class="demo-edition">DEMO · Kestrel · 2 courses · Unlimited play</p>' : ''}${sessionReturn()}${modePicker()}<button class="menu-selection" data-action="circuits"><span>${cup ? 'Cup' : 'Track'}</span><div><strong>${escape(cup ? cup.name : level().name)}</strong><small>${cup ? `${cup.tracks.length} races · ${savedCup ? `${savedCup.results.length} scored` : 'Championship'}` : intent === 'interceptor' ? `${escape(encounterBoss().name)} · Interceptor` : `${trackChallenge(selected)} · ${intent === 'freestyle' ? 'Freestyle · stock build' : isSprint() ? 'Downhill sprint' : 'Circuit'}`}</small></div><b aria-hidden="true">›</b></button><button class="menu-selection" data-action="ship-step"><span>Ship</span><div><strong>${selectedCraft.name}</strong><small>${lockedCup() ? 'Locked for this cup' : selectedCraft.role}</small></div><b aria-hidden="true">${lockedCup() ? '—' : '›'}</b></button>${raceActions()}<div class="menu-extras"><button data-action="records" aria-pressed="${screen === 'records'}">Time Trial records</button>${developer ? button('inspect', 'Ship inspector') : ''}</div>${careerProgressView(profile())}${cupCabinet(cupCollection.snapshot(), cups())}${import.meta.env?.VN_DESKTOP === true ? `<nav class="menu-links" aria-label="Application">${button('desktop-quit', 'Quit game')}</nav>` : ''}<div class="transfer-slot menu-transfer"></div>${savedCup && !cup ? `<aside class="saved-cup">${button('saved-cup', `${cupDefinition(savedCup.cupId).name} · ${savedCup.results.length}/${cupDefinition(savedCup.cupId).tracks.length} scored →`)}</aside>` : ''}</section>`;
   };
   function cupPanel(withActions) {
     const cup = currentCup();
@@ -678,7 +872,8 @@ export async function createFrontend(
       ...cupStore.snapshot(),
       collection: cupCollection.snapshot().cups,
       routes,
-      catalog,
+      catalog: circuits(),
+      cups: cups(),
       cupId: selectedCup,
       shipId,
       difficulty: settings.difficulty,
@@ -705,7 +900,11 @@ export async function createFrontend(
       ['career', 'Career'],
       ...(music ? [['tunes', 'Tunes']] : []),
     ];
-    return `<header class="menu-topbar"><span class="menu-wordmark">VECTOR<span>//</span>NOVA</span><nav class="menu-top-tabs" aria-label="Main navigation">${tabs.map(([action, label]) => `<button data-action="${action}" ${action === 'tunes' ? 'aria-expanded="false" aria-controls="music-panel"' : `aria-pressed="${active === action}"`}>${label}</button>`).join('')}</nav></header>`;
+    const switchCareer =
+      career && onSwitchCareer
+        ? '<button class="menu-switch-career" data-action="switch-career">Switch career <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 14-5-5 5-5M4 9h10a6 6 0 0 1 6 6v5"/></svg></button>'
+        : '';
+    return `<header class="menu-topbar"><span class="menu-wordmark">VECTOR<span>//</span>NOVA</span><nav class="menu-top-tabs" aria-label="Main navigation">${tabs.map(([action, label]) => `<button data-action="${action}" ${action === 'tunes' ? 'aria-expanded="false" aria-controls="music-panel"' : `aria-pressed="${active === action}"`}>${label}</button>`).join('')}${switchCareer}</nav></header>`;
   };
   const headerObserver = new ResizeObserver(updateHeaderClearance);
   life.signal.addEventListener('abort', () => headerObserver.disconnect(), {
@@ -741,7 +940,6 @@ export async function createFrontend(
     }
     const wide = wideMenu.matches;
     const picking = wide || screen !== 'home';
-    const setup = showingShip();
     const cup = intent === 'cup';
     const records = screen === 'records';
     const backAction = records ? 'records-back' : 'home';
@@ -759,28 +957,23 @@ export async function createFrontend(
       : records
         ? recordsView({
             records: readTrialRecords(careerStorage()),
-            catalog,
+            catalog: circuits(),
             routes,
             shipId: recordShip,
             trackId: recordTrack,
             heading: !wide,
             trackArt: (id) => picture(route(id)) + routeArt(route(id)),
           })
-        : setup
-          ? shipPanel(!wide)
-          : cup
-            ? cupPanel(!wide)
-            : circuitPanel();
+        : cup
+          ? cupPanel(!wide)
+          : circuitPanel();
     shell.className = 'cinematic-menu';
-    shell.innerHTML = `${topNavigation()}<main class="front-content menu-layout ${wide ? 'menu-wide' : 'menu-narrow'}" data-page="${screen}">${wide || !picking ? homeMenu() : ''}${picking ? `<section class="menu-picker ${records ? 'menu-records-picker' : setup ? 'menu-ship-picker' : cup ? 'menu-cup-picker' : 'menu-track-picker'}" aria-label="${records ? 'Time Trial records' : setup ? 'Ship selection' : cup ? 'Championship selection' : 'Track selection'}">${pickerHeader}${pickerContent}</section>` : ''}</main>`;
+    shell.innerHTML = `${topNavigation()}<main class="front-content menu-layout ${wide ? 'menu-wide' : 'menu-narrow'}" data-page="${screen}">${wide || !picking ? homeMenu() : ''}${picking ? `<section class="menu-picker ${records ? 'menu-records-picker' : cup ? 'menu-cup-picker' : 'menu-track-picker'}" aria-label="${records ? 'Time Trial records' : cup ? 'Championship selection' : 'Track selection'}">${pickerHeader}${pickerContent}</section>` : ''}</main>`;
     menuBackdrop.mount(shell);
     mountMenuHeader();
-    if (!setup && !cup && !records && picking) showDetail(selected);
-    if (showingShip()) mountShipPreview();
+    if (!cup && !records && picking) showDetail(selected);
     shell
-      .querySelector(
-        '.ship-transfer, .menu-transfer, .track-transfer, .records-transfer',
-      )
+      .querySelector('.menu-transfer, .track-transfer, .records-transfer')
       ?.append(transfer);
     updateLaunchSummary();
     updateStatus();
@@ -811,7 +1004,11 @@ export async function createFrontend(
       return;
     }
     shell.className =
-      screen === 'settings' ? 'cinematic-menu utility-shell settings-page' : '';
+      screen === 'settings'
+        ? 'cinematic-menu utility-shell settings-page'
+        : screen === 'loading'
+          ? 'loading-page'
+          : '';
     const title = {
       circuits: wideMenu.matches ? 'RACE SETUP' : 'SELECT CIRCUIT',
       setup: wideMenu.matches ? 'RACE SETUP' : 'CHOOSE SHIP',
@@ -835,6 +1032,7 @@ export async function createFrontend(
     shell.innerHTML = `<header class="front-header"><button class="front-brand" data-action="home" aria-label="Vector Nova setup">VECTOR<span>//</span>NOVA</button>${headerLabel}${headerAction}</header><main class="front-content" data-page="${screen}"></main><footer class="front-footer"><span>${screen === 'circuits' ? 'ARROWS · BROWSE <i>/</i> ENTER · SELECT <i>/</i> TAB · CONTROLS' : `${sessionName(screen === 'results' ? loadedId : selected, screen !== 'results' && intent === 'practice').toUpperCase()} <i>/</i> ${escape((screen === 'results' ? loadedLevel() : level()).name.toUpperCase())}`}</span></footer>`;
     if (screen === 'loading' && launchTarget === 'inspection')
       shell.querySelector('.front-footer span').textContent = 'SHIP INSPECTOR';
+    if (screen === 'loading') menuBackdrop.mount(shell);
     if (screen === 'settings') {
       shell.innerHTML = `${topNavigation()}<main class="front-content utility-page" data-page="settings"><header class="utility-heading"><div><span class="kicker">PREFERENCES</span><h1>Settings</h1></div>${button('settings-back', '← Back')}</header><section class="utility-content"></section></main>`;
       menuBackdrop.mount(shell);
@@ -908,7 +1106,7 @@ export async function createFrontend(
           : player?.position === 1
             ? 'Winner.'
             : 'Race finished.';
-      content.innerHTML = `<section class="result-panel">${heading('FINISH / ' + escape(loadedLevel().name.toUpperCase()), title)}<div class="results-layout"><section class="result-personal"><span class="kicker">${lastResults?.playerValid ? 'RACE TIME' : 'UNRANKED RUN'}</span><strong>${stamp(lastResults?.playerTotalTime)}</strong><p>${lastResults?.playerValid ? `${sprint ? 'One descent' : `${lastResults.laps ?? 2} laps`} · ${escape(lastResults.difficulty ?? settings.difficulty)}` : `${sprint ? 'This descent' : 'A lap'} was invalidated. This run does not count toward classification.`}</p><div class="lap-splits">${(lastResults?.playerLapTimes ?? []).map((t, i) => `<span>${sprint ? 'DESCENT' : `LAP ${i + 1}`}<b>${stamp(t)}</b></span>`).join('')}</div></section><section><ol class="results-list" aria-label="Race classification" tabindex="0"></ol><p class="results-note" role="status"></p></section></div><div class="front-actions results-actions">${button('retry-race', 'Retry Quick Race →', true)}${button('continue', 'Continue driving')}${button('change', 'Back to setup')}</div></section>`;
+      content.innerHTML = `<section class="result-panel">${heading('FINISH / ' + escape(loadedLevel().name.toUpperCase()), title)}<div class="front-actions results-actions">${button('retry-race', 'Retry Quick Race →', true)}${button('continue', 'Continue driving')}${button('change', 'Back to setup')}</div><div class="results-layout"><section class="result-personal"><span class="kicker">${lastResults?.playerValid ? 'RACE TIME' : 'UNRANKED RUN'}</span><strong>${stamp(lastResults?.playerTotalTime)}</strong><p>${lastResults?.playerValid ? `${sprint ? 'One descent' : `${lastResults.laps ?? 2} laps`} · ${escape(lastResults.difficulty ?? settings.difficulty)}` : `${sprint ? 'This descent' : 'A lap'} was invalidated. This run does not count toward classification.`}</p><div class="lap-splits">${(lastResults?.playerLapTimes ?? []).map((t, i) => `<span>${sprint ? 'DESCENT' : `LAP ${i + 1}`}<b>${stamp(t)}</b></span>`).join('')}</div></section><section><ol class="results-list" aria-label="Race classification" tabindex="0"></ol><p class="results-note" role="status"></p></section></div></section>`;
       if (trial) {
         const r = lastResults;
         const signed = formatDelta;
@@ -943,13 +1141,29 @@ export async function createFrontend(
           rewardContext ?? {},
           lastResults,
         ) + rewardsView(earnedRewards);
-      if (actions) actions.insertAdjacentHTML('beforebegin', progression);
-      else panel?.insertAdjacentHTML('beforeend', progression);
-      if (lastResults?.mode === 'cup')
-        panel?.insertAdjacentHTML(
+      if (panel && progression) {
+        const heading = panel.firstElementChild;
+        const main = document.createElement('div');
+        main.className = 'results-main';
+        main.append(...panel.childNodes);
+        const rewards = document.createElement('aside');
+        rewards.className = 'result-rewards';
+        rewards.setAttribute('aria-label', 'Rewards');
+        rewards.innerHTML = progression;
+        panel.classList.add('results-with-rewards');
+        panel.append(heading);
+        if (actions) panel.append(actions);
+        panel.append(rewards, main);
+      }
+      if (lastResults?.mode === 'cup') {
+        const equipmentActions = actions?.matches('.front-actions')
+          ? actions
+          : actions?.querySelector('.front-actions');
+        equipmentActions?.insertAdjacentHTML(
           'beforeend',
-          `<div class="front-actions">${button('equipment', 'Change equipment')}</div>`,
+          button('equipment', 'Change equipment'),
         );
+      }
     }
     const statusSlot = shell.querySelector('.transfer-slot');
     if (statusSlot) statusSlot.append(transfer);
@@ -1008,9 +1222,6 @@ export async function createFrontend(
         .querySelector(selector)
         ?.replaceWith(template.content.querySelector(selector));
     }
-    shell.querySelector('.garage-exotic')?.remove();
-    const exotic = template.content.querySelector('.garage-exotic');
-    if (exotic) shell.querySelector('.garage-footer').before(exotic);
     for (const item of shell.querySelectorAll('button[data-ship]'))
       item.dataset.preview = String(item.dataset.ship === ship().id);
     mountShipPreview();
@@ -1018,6 +1229,7 @@ export async function createFrontend(
     updateStatus();
   }
   function showDetail(id) {
+    if (!circuitAvailable(id)) return;
     const l = catalog.find((l) => l.id === id),
       r = route(id),
       node = shell.querySelector('.circuit-hero');
@@ -1028,15 +1240,16 @@ export async function createFrontend(
   function showCupDetail(id) {
     const cup = cupDefinition(id),
       node = shell.querySelector('.cup-menu-panel .cup-hero');
-    if (!cup || !node || cupStore.snapshot().state) return;
+    if (!cup || !cupAvailable(id) || !node || cupStore.snapshot().state) return;
     node.outerHTML = cupHero(
       cup,
       escape(cup.name),
       cupCollection.snapshot().cups,
-      goalBadges(),
+      goalBadges(selected, cup.id),
     );
   }
   function selectCircuit(id) {
+    if (!circuitAvailable(id)) return;
     invalidLevel = false;
     selected = id;
     remember();
@@ -1167,6 +1380,10 @@ export async function createFrontend(
   // before the next renderer can acquire GPU resources; music is never disposed here.
   async function prepare() {
     if (disposed) throw new DOMException('Disposed', 'AbortError');
+    if (!circuitAvailable(selected))
+      throw new Error(
+        'Complete all career rewards and close the completion credits to unlock this event.',
+      );
     if (game && loadedId === selected) return game;
     if (pending?.id === selected && !pending.signal.aborted)
       return pending.promise;
@@ -1202,6 +1419,7 @@ export async function createFrontend(
         for (const flag of runtimeEntryParameters) params.delete(flag);
       const gameOptions = {
         host: gameHost,
+        contentAccess: contentAccess(),
         parameters: params,
         trialStorage: careerStorage(),
         onAttempt() {
@@ -1210,9 +1428,14 @@ export async function createFrontend(
         },
         onTrialRecord(data) {
           if (disposed || signal.aborted || token !== generation) return;
-          earnedRewards.push(
-            ...profileStore.recordTrial(id, data.playerValid && data.improved),
-          );
+          const outcome = settleTrialRecord(profileStore, data, {
+            trackId: id,
+            getShipId: () => game?.getSnapshot().vehicle?.shipId ?? shipId,
+          });
+          earnedRewards.push(...outcome.rewards);
+          // Circuit trials continue into the next lap and never enter results.
+          // Their clean personal best is the completion event in its own right.
+          if (outcome.completionEligible) void showCompletion();
         },
         signal,
         onProgress(stage) {
@@ -1261,6 +1484,7 @@ export async function createFrontend(
         },
         onCircuit(next) {
           if (disposed || signal.aborted || token !== generation) return;
+          if (!circuitAvailable(next)) return;
           leaveReview();
           selected = next;
           const eventType = eventTypeFor(next);
@@ -1305,58 +1529,41 @@ export async function createFrontend(
           if (disposed || signal.aborted || token !== generation) return;
           if (sessionCup) cupStore.retry();
         },
-        onResults(data) {
+        onResults(data, { present = true } = {}) {
           if (disposed || signal.aborted || token !== generation) return;
-          if (data.mode === 'interceptor' && sessionIntent === 'interceptor') {
-            // The existing ledger awards five progress for mission success and
-            // one for a valid failed attempt; the UI never invents race places.
-            earnedRewards.push(
-              ...profileStore.recordRace({
-                id: sessionRewardId,
-                position: data.won ? 1 : 10,
-                valid: !!data.playerValid,
-                finished: true,
-              }),
-            );
-          } else if (
-            data.mode === 'cup' &&
-            sessionCup &&
-            data.final &&
-            cupStore.finish(data)
-          ) {
-            const saved = cupStore.snapshot().state;
-            const player = data.standings.find((row) => row.id === 'player');
-            earnedRewards.push(
-              ...profileStore.recordRace({
-                id: `${saved.runId}:${saved.eventIndex}`,
-                position: player?.position,
-                valid: !!player?.valid,
-                finished: !!player?.finished,
-              }),
-            );
-            if (cupChampion(saved)) {
-              earnedRewards.push(...profileStore.recordCup(saved.cupId));
-              const fresh = cupCollection.award(saved);
-              cupCelebration = { fresh, delay: game?.celebrateCup() ?? 0.6 };
-            }
-          } else if (
-            data.mode !== 'cup' &&
-            data.mode !== 'time-trial' &&
-            ['race', 'eliminator'].includes(sessionIntent)
-          ) {
-            const player = data.standings?.find((row) => row.id === 'player');
-            earnedRewards.push(
-              ...profileStore.recordRace({
-                id: sessionRewardId,
-                position: player?.position,
-                valid: !!data.playerValid && !!player?.valid,
-                finished: !!player?.finished,
-              }),
-            );
-          }
+          const outcome = settleRaceResult(resultStores, data, {
+            sessionIntent,
+            sessionCup,
+            attemptId: sessionRewardId,
+            getShipId: () => game?.getSnapshot().vehicle?.shipId ?? shipId,
+          });
+          earnedRewards.push(...outcome.rewards);
+          if (outcome.celebration) pendingCupCelebration = outcome.celebration;
           lastResults = data;
+          if (!present) {
+            // Classification may finish while the race is paused in a menu.
+            // Save its rewards immediately without replacing the current view.
+            if (screen === 'home' || screen === 'cup') {
+              const focused = focusSelector();
+              render();
+              focusMenu(focused);
+            }
+            return;
+          }
+          if (
+            pendingCupCelebration &&
+            sessionCup &&
+            cupStore.snapshot().state?.runId === pendingCupCelebration.runId
+          ) {
+            cupCelebration = {
+              fresh: pendingCupCelebration.fresh,
+              delay: game?.celebrateCup() ?? 0.6,
+            };
+            pendingCupCelebration = null;
+          }
           if (screen === 'race' || screen === 'review') setScreen('results');
           else if (screen === 'results') updateResults(data);
+          if (outcome.completionEligible) void showCompletion();
         },
       };
       let created;
@@ -1652,18 +1859,36 @@ export async function createFrontend(
   function clearCupSession() {
     if (sessionCup) {
       sessionCup = false;
+      pendingCupCelebration = null;
       game?.prepareSession();
     }
+  }
+  function clearCompletedCup() {
+    const state = cupStore.snapshot().state;
+    if (!cupComplete(state)) return;
+    selectedCup = state.cupId;
+    cupStore.abandon();
+    clearCupSession();
+    lastResults = null;
+    cupConfirm = null;
   }
   function chooseMode(mode) {
     if (eventTypeFor(selected))
       eventSelections.set(eventTypeFor(selected), selected);
     if (['freestyle', 'eliminator', 'interceptor'].includes(mode)) {
+      const available = circuits().filter(
+        (entry) => eventTypeFor(entry.id) === mode,
+      );
+      if (!available.length) return;
       if (!eventTypeFor(selected)) racingTrack = selected;
-      selected =
-        eventSelections.get(mode) ??
-        catalog.find((entry) => eventTypeFor(entry.id) === mode).id;
-    } else if (eventTypeFor(selected)) selected = racingTrack;
+      const remembered = eventSelections.get(mode);
+      selected = available.some((entry) => entry.id === remembered)
+        ? remembered
+        : available[0].id;
+    } else if (eventTypeFor(selected))
+      selected = circuitAvailable(racingTrack)
+        ? racingTrack
+        : circuits().find((entry) => !eventTypeFor(entry.id)).id;
     previewLevelId = selected;
     intent = mode;
     remember();
@@ -1699,12 +1924,29 @@ export async function createFrontend(
       openGarage();
       focusMenu('[data-action="garage-tab"]');
     },
-    'fit-exotic'() {
-      progressionMenu.openExotic(ship().id);
+    'toggle-exotic'() {
+      if (lockedCup() && lockedCup().shipId !== ship().id) return;
+      const id = ship().id;
+      const fitted = profile().exoticShip === id;
+      const changed = fitted
+        ? profileStore.removeExotic()
+        : profileStore.chooseExotic(id);
+      if (!changed) return;
+      garageNotice = fitted
+        ? 'Quad Core removed. Extra equipment slots unequipped.'
+        : `Quad Core equipped on ${ship().name}.`;
+      render();
+      focusMenu('[data-action="toggle-exotic"]');
     },
     career() {
       earnedRewards = [];
       openUtility('career');
+    },
+    'switch-career'() {
+      if (!disposed && career) {
+        clearCompletedCup();
+        void onSwitchCareer?.();
+      }
     },
     'quick-race'() {
       chooseMode('race');
@@ -1722,7 +1964,8 @@ export async function createFrontend(
       setScreen('records');
     },
     'record-trial'() {
-      if (recordTrack !== 'all') selected = recordTrack;
+      if (recordTrack !== 'all' && circuitAvailable(recordTrack))
+        selected = recordTrack;
       if (recordShip !== 'all' && shipUnlocked(profile(), recordShip))
         shipId = recordShip;
       saveShipSelection(shipId, careerStorage());
@@ -1744,7 +1987,7 @@ export async function createFrontend(
     },
     'saved-cup': openCup,
     'cup-start'() {
-      if (cupStore.snapshot().state) return;
+      if (cupStore.snapshot().state || !cupAvailable(selectedCup)) return;
       cupStore.start(selectedCup, shipId, settings.difficulty);
       launchCup();
     },
@@ -1770,6 +2013,10 @@ export async function createFrontend(
       focusMenu('[data-action="cup-cancel"]');
     },
     'cup-abandon'() {
+      if (cupComplete(cupStore.snapshot().state)) {
+        openCup();
+        return;
+      }
       cupConfirm = 'abandon';
       render();
       focusMenu('[data-action="cup-cancel"]');
@@ -1797,7 +2044,7 @@ export async function createFrontend(
       }
     },
     'resume-session'() {
-      if (!game?.hasSession()) return;
+      if (!hasResumableSession()) return;
       intent = sessionIntent;
       setScreen('race');
       game.resumeSession();
@@ -1876,6 +2123,7 @@ export async function createFrontend(
       const el = e.target.closest('button');
       if (!el || el.disabled) return;
       if (el.dataset.recordTrack) {
+        if (!circuitAvailable(el.dataset.recordTrack)) return;
         selected = el.dataset.recordTrack;
         shipId = shipUnlocked(profile(), el.dataset.recordShip)
           ? el.dataset.recordShip
@@ -1885,7 +2133,7 @@ export async function createFrontend(
         chooseMode('time-trial');
         focusMenu('[data-action="launch"]');
       } else if (el.dataset.cup) {
-        if (cupStore.snapshot().state || !cupDefinition(el.dataset.cup)) return;
+        if (cupStore.snapshot().state || !cupAvailable(el.dataset.cup)) return;
         selectedCup = el.dataset.cup;
         render();
         focusMenu(`[data-cup="${selectedCup}"]`);
@@ -1932,6 +2180,8 @@ export async function createFrontend(
   shell.addEventListener(
     'pointerover',
     (e) => {
+      if (e.pointerType !== 'touch')
+        showGarageEquipment(shell, e.target.closest('[data-equip]'));
       const card = e.target.closest('[data-level]');
       if (card && e.pointerType !== 'touch') showDetail(card.dataset.level);
       const cup = e.target.closest('button[data-cup]');
@@ -1944,6 +2194,7 @@ export async function createFrontend(
   shell.addEventListener(
     'focusin',
     (e) => {
+      showGarageEquipment(shell, e.target.closest('[data-equip]'));
       const cup = e.target.closest('button[data-cup]');
       if (cup) {
         showCupDetail(cup.dataset.cup);
@@ -1978,9 +2229,6 @@ export async function createFrontend(
       !e.relatedTarget?.closest?.('.reward-badges')
     )
       showCupDetail(currentCup().id);
-    const shipList = e.target.closest('.ship-list');
-    if (shipList && !showingShip() && !shipList.contains(e.relatedTarget))
-      showShip(shipId);
   }
   shell.addEventListener('focusout', restoreSelection, { signal: life.signal });
   shell.addEventListener('pointerout', restoreSelection, {
@@ -2026,6 +2274,7 @@ export async function createFrontend(
               controls.find(
                 (control) =>
                   !control.disabled &&
+                  !control.hasAttribute('data-controller-skip') &&
                   control.getClientRects().length &&
                   !control.closest('[hidden], [inert]'),
               ),
@@ -2134,9 +2383,7 @@ export async function createFrontend(
         focusMenu(items[index]);
         return;
       }
-      const menu = control.closest(
-        '.race-menu, .picker-race-actions, .front-actions',
-      );
+      const menu = control.closest('.race-menu, .front-actions');
       if (menu && (vertical || (edge && !control.dataset.difficulty))) {
         e.preventDefault();
         const items = [...menu.querySelectorAll('button')].filter(
@@ -2240,13 +2487,27 @@ export async function createFrontend(
       let next = items[index];
       if (card.dataset.cup) {
         const current = items.indexOf(card);
-        if (e.code === 'ArrowUp' && current < columns) {
+        const bounds = card.getBoundingClientRect();
+        if (vertical) {
+          const direction = e.code === 'ArrowDown' ? 1 : -1;
+          const candidates = items
+            .map((item) => ({ item, bounds: item.getBoundingClientRect() }))
+            .filter((entry) => (entry.bounds.top - bounds.top) * direction > 1)
+            .sort(
+              (a, b) =>
+                (a.bounds.top - b.bounds.top) * direction ||
+                Math.abs(a.bounds.left - bounds.left) -
+                  Math.abs(b.bounds.left - bounds.left),
+            );
+          next = candidates[0]?.item ?? card;
+        }
+        if (e.code === 'ArrowUp' && next === card) {
           const reward = shell.querySelector('.cup-hero .reward-chip');
           if (reward) focusMenu(reward);
           else focusPickerHeader();
           return;
         }
-        if (e.code === 'ArrowDown' && current + columns >= items.length) {
+        if (e.code === 'ArrowDown' && next === card) {
           focusMenu('[data-action="cup-start"]');
           return;
         }
@@ -2314,6 +2575,8 @@ export async function createFrontend(
     (e) => {
       if (
         shell.hidden ||
+        completion ||
+        completionPending ||
         e.defaultPrevented ||
         e.target.closest('[data-music-player]') ||
         e.target.closest('[data-sound-panel]') ||
@@ -2384,6 +2647,7 @@ export async function createFrontend(
     previewGeneration++;
     controller?.abort();
     inspectorController?.abort();
+    stopCompletion();
     life.abort();
     game?.dispose();
     game = null;
@@ -2399,7 +2663,8 @@ export async function createFrontend(
     progressionMenu.unmountCareer();
     disposal = Promise.allSettled([pending?.promise, inspectorPending]).then(
       () => {
-        cacheModule?.disposeShipCache();
+        // Parsed fleet sources and their decoder belong to the page session.
+        // Career switches dispose instances above; pagehide releases the cache.
         if (!import.meta.env?.VN_DESKTOP) delete window.__VN_FRONTEND;
         host.replaceChildren();
       },
@@ -2453,6 +2718,9 @@ export async function createFrontend(
         cup: cupStore.snapshot(),
         cupCollection: cupCollection.snapshot(),
         cupCelebration: !!cupCelebration,
+        completion:
+          completion?.snapshot() ??
+          (completionPending ? { phase: 'loading' } : null),
         selectedCup,
         sessionCup,
         shipId,
@@ -2465,12 +2733,17 @@ export async function createFrontend(
       routes,
     };
   if (invalidLevel) {
-    error = `Unknown circuit: ${requested}. Choose another circuit to continue.`;
+    error = eventTypeFor(requested)
+      ? 'Complete all 28 career rewards and close the completion credits to unlock this event.'
+      : catalog.some((level) => level.id === requested)
+        ? 'This circuit unlocks after all 28 career rewards. Choose another circuit to continue.'
+        : `Unknown circuit: ${requested}. Choose another circuit to continue.`;
     setScreen('loading');
   } else if (special) {
     void launchSpecial();
   } else {
     setScreen('home');
+    void showCompletion();
   }
   if (!special) {
     // Let the lightweight circuit picker paint before parsing the first model.

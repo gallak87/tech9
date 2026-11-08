@@ -137,5 +137,8 @@ export function createNightweirLockdownTrack() {
     ...track,
     id: 'nightweir-lockdown-pursuit-v2',
     geometryVersion: 'nightweir-basin-corkscrew-plunge-v2',
+    inversions: track.routeMoments.filter(
+      (moment) => moment.type === 'corkscrew',
+    ),
   };
 }

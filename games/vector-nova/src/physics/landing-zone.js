@@ -9,6 +9,8 @@ export function landingZoneEnd(track, jump) {
   return Math.min(
     jump.landingEnd + LANDING_RUNOUT,
     nextTakeoff ?? Infinity,
-    track.finishDistance ?? track.length,
+    track.closed !== false && jump.id === 'equipment-jump'
+      ? Infinity
+      : (track.finishDistance ?? track.length),
   );
 }

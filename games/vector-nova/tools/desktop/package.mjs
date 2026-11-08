@@ -26,6 +26,7 @@ const outputs = await packager({
   appVersion: manifest.version,
   buildVersion: manifest.version,
   electronVersion: manifest.electron,
+  electronZipDir: option('--electron-zip-dir'),
   platform,
   arch,
   asar: true,

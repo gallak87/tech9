@@ -7,6 +7,7 @@ import {
 } from '../../../environment/placement.js';
 import { beamTransform } from '../../../track/geometry.js';
 import { finishZephyrMaterial } from './materials.js';
+import { zephyrAqueductBay } from './geometry/aqueduct-bay.js';
 
 // Outer cloister causeways connect the skyline to a built, inhabited archipelago.
 // Every bay is tested against all banked decks, not just its nearest route point.
@@ -40,6 +41,27 @@ export function createZephyrInfrastructure(track, stoneTexture) {
     bronzeParts = [],
     trimParts = [],
     unit = new T.BoxGeometry();
+  const masonryBay = Object.fromEntries(
+    Object.entries(zephyrAqueductBay).map(([role, attributes]) => {
+      const geometry = new T.BufferGeometry();
+      geometry.setAttribute(
+        'position',
+        new T.Float32BufferAttribute(attributes.position, 3),
+      );
+      geometry.setAttribute(
+        'normal',
+        new T.Float32BufferAttribute(attributes.normal, 3),
+      );
+      geometry.setAttribute(
+        'uv',
+        new T.Float32BufferAttribute(
+          new Float32Array((attributes.position.length / 3) * 2),
+          2,
+        ),
+      );
+      return [role, geometry];
+    }),
+  );
   const box = (p, scale, yaw, parts = stoneParts) => {
     const radius = Math.min(0.32, Math.min(scale.x, scale.y, scale.z) * 0.12);
     const g = new RoundedBoxGeometry(scale.x, scale.y, scale.z, 2, radius);
@@ -78,7 +100,18 @@ export function createZephyrInfrastructure(track, stoneTexture) {
     for (let i = 0; i < count; i++) {
       const c = a.clone().lerp(b, (i + 0.5) / count),
         top = c.y;
-      if (!clearance.clears(c.x, c.z, 26, step + 8, top + 15, yaw, top - 123))
+      // The seated capitals extend beyond each nominal 78 m masonry bay.
+      if (
+        !clearance.clears(
+          c.x,
+          c.z,
+          26,
+          step * (99 / 78) + 4,
+          top + 15,
+          yaw,
+          top - 123,
+        )
+      )
         continue;
       box(c.clone(), new T.Vector3(22, 7, step + 1), yaw);
       for (const side of [-1, 1]) {
@@ -117,35 +150,15 @@ export function createZephyrInfrastructure(track, stoneTexture) {
         new T.Vector3(24, 10, step + 2),
         yaw,
       );
-      for (const level of [-9, -64]) {
-        const pts = [];
-        for (let k = 0; k <= 24; k++) {
-          const t = k / 24,
-            p = start.clone().addScaledVector(direction, step * t);
-          p.y = top + level - 37 + 34 * Math.sin(Math.PI * t);
-          pts.push(p);
-        }
-        const arch = new T.TubeGeometry(
-          new T.CatmullRomCurve3(pts),
-          24,
-          3.5,
-          7,
-          false,
-        );
-        stoneParts.push(arch);
-        for (const side of [-1, 1])
-          trimParts.push(
-            new T.TubeGeometry(
-              new T.CatmullRomCurve3(
-                pts.map((p) => p.clone().addScaledVector(right, side * 3.4)),
-              ),
-              24,
-              0.8,
-              6,
-              false,
-            ),
-          );
-      }
+      // Blender-authored webs and radial masonry carry the load between the
+      // piers. Preserve quiet broad faces and open, deeply recessed arches.
+      const transform = new T.Matrix4().compose(
+        c,
+        new T.Quaternion().setFromAxisAngle(new T.Vector3(0, 1, 0), yaw),
+        new T.Vector3(1, 1, step / 78),
+      );
+      stoneParts.push(masonryBay.stone.clone().applyMatrix4(transform));
+      trimParts.push(masonryBay.trim.clone().applyMatrix4(transform));
       const brace = beamTransform(
         start.clone().add(new T.Vector3(0, -35, 0)),
         c.clone().add(new T.Vector3(0, -5, 0)),
@@ -165,6 +178,7 @@ export function createZephyrInfrastructure(track, stoneTexture) {
       );
     }
   }
+  Object.values(masonryBay).forEach((geometry) => geometry.dispose());
   // The descending return passes a real deep loggia, with separate side aisles,
   // three pointed ribs and a high clerestory. All solid parts are independently
   // checked against the full three-dimensional route, including upper decks.

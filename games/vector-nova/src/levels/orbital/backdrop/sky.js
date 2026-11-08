@@ -1,12 +1,10 @@
 import * as T from 'three';
+import { createLcgRandom } from '../../../environment/random.js';
 
 const GALACTIC_NORMAL = new T.Vector3(0.42, 0.88, -0.2).normalize();
 
 function randomGenerator(seed) {
-  return () => {
-    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
-    return seed / 4294967296;
-  };
+  return createLcgRandom(seed);
 }
 
 function createStars() {

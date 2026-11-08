@@ -1,10 +1,15 @@
 import assert from 'node:assert/strict';
-import { chromium } from 'playwright';
+import {
+  launchVerificationBrowser,
+  collectPageErrors,
+} from './verification-browser.mjs';
 import {
   createCareerSlots,
   CAREER_SLOTS_KEY,
 } from '../src/progression/careers.js';
-import { PROFILE_KEY } from '../src/progression/profile.js';
+import { createProfileStore, PROFILE_KEY } from '../src/progression/profile.js';
+import { saveShipSelection } from '../src/ships/catalog.js';
+import { filterAvailableLevels } from '../src/levels/access.js';
 import createHalcyonLevel from '../src/levels/halcyon/index.js';
 import { createVehicleState } from '../src/physics/index.js';
 import {
@@ -37,8 +42,26 @@ const seedStorage = {
   setItem: (key, value) => careerValues.set(key, String(value)),
   removeItem: (key) => careerValues.delete(key),
 };
-createCareerSlots({ storage: () => seedStorage, now: () => 1 }).create(1);
+const careers = createCareerSlots({ storage: () => seedStorage, now: () => 1 });
+careers.create(1);
 const careerSeed = [...careerValues];
+const careerStorage = careers.storageFor(1);
+const fleetProfile = createProfileStore(() => careerStorage);
+// The generic fleet flow uses earned chassis without handling upgrades or gear.
+for (const cup of ['founders', 'frontier', 'horizon'])
+  fleetProfile.recordCup(cup);
+saveShipSelection('kestrel', careerStorage);
+const fleetSeed = [...careerValues];
+// A distinct complete career exercises the post-credits event controls.
+for (let i = 0; i < 24; i++)
+  fleetProfile.recordRace({ id: `endgame-fixture-${i}`, position: 1 });
+fleetProfile.recordCup('apex');
+fleetProfile.recordTrial('halcyon', true);
+fleetProfile.recordTrial('nacre', true);
+fleetProfile.queueCompletion('shrike');
+const pendingEndgameSeed = [...careerValues];
+fleetProfile.acknowledgeCompletion();
+const endgameSeed = [...careerValues];
 const careerPrefix = careerSeed
   .find(([key]) => key.endsWith(PROFILE_KEY))[0]
   .slice(0, -PROFILE_KEY.length);
@@ -51,13 +74,7 @@ assert.ok(
     flags.length <= 1,
   'Use --desktop or --responsive, or neither for both.',
 );
-const browser = await chromium.launch({
-  args: ['--mute-audio'],
-  headless: true,
-  ...(process.env.VN_BROWSER_PATH
-    ? { executablePath: process.env.VN_BROWSER_PATH }
-    : { channel: process.env.VN_BROWSER_CHANNEL ?? 'chrome' }),
-});
+const browser = await launchVerificationBrowser();
 const url = (query = '') => {
   const target = new URL(`?${query}`, base);
   target.searchParams.set('intro', '0');
@@ -92,6 +109,7 @@ async function check(
   viewport = { width: 1440, height: 900 },
   settings = {},
   deviceScaleFactor = 1,
+  seed = careerSeed,
 ) {
   if (process.env.VN_CHECK && !new RegExp(process.env.VN_CHECK).test(name))
     return;
@@ -117,11 +135,11 @@ async function check(
           }),
         );
       },
-      { settings, careerSeed, registryKey: CAREER_SLOTS_KEY },
+      { settings, careerSeed: seed, registryKey: CAREER_SLOTS_KEY },
     );
     const page = await context.newPage();
     const faults = [];
-    page.on('pageerror', (error) => faults.push(error.message));
+    collectPageErrors(page, faults);
     await fn(page);
     assert.deepEqual(faults, [], 'uncaught browser errors');
     console.log(`PASS ${name}`);
@@ -131,11 +149,15 @@ async function check(
     await context.close();
   }
 }
-async function menuFits(page) {
+const fleetCheck = (name, fn, viewport, settings, deviceScaleFactor) =>
+  check(name, fn, viewport, settings, deviceScaleFactor, fleetSeed);
+const endgameCheck = (name, fn, viewport, settings, deviceScaleFactor) =>
+  check(name, fn, viewport, settings, deviceScaleFactor, endgameSeed);
+async function menuFits(page, maxOuterScroll = 0) {
   const layout = await page.evaluate(() => {
     const shell = document.querySelector('#front-shell');
     const visible = [
-      ...shell.querySelectorAll('button, .performance-stat'),
+      ...shell.querySelectorAll('button, .performance-grid > div'),
     ].filter((el) => el.getBoundingClientRect().height > 0);
     return {
       vertical: shell.scrollHeight - shell.clientHeight,
@@ -154,14 +176,54 @@ async function menuFits(page) {
     };
   });
   assert.ok(
-    layout.vertical <= 1,
-    `menu overflows vertically by ${layout.vertical}px`,
+    layout.vertical <= maxOuterScroll + 1,
+    `menu overflows vertically by ${layout.vertical}px; outside controls: ${JSON.stringify(layout.outside)}`,
   );
   assert.ok(
     layout.horizontal <= 1,
     `menu overflows horizontally by ${layout.horizontal}px`,
   );
-  assert.deepEqual(layout.outside, [], 'menu controls must remain in view');
+  if (!maxOuterScroll) {
+    assert.deepEqual(layout.outside, [], 'menu controls must remain in view');
+    return;
+  }
+  assert.deepEqual(
+    await page
+      .locator('#front-shell *')
+      .evaluateAll((elements) =>
+        elements
+          .filter(
+            (element) =>
+              /^(auto|scroll)$/.test(getComputedStyle(element).overflowY) &&
+              element.scrollHeight > element.clientHeight + 1 &&
+              element.getBoundingClientRect().height > 0,
+          )
+          .map((element) => element.className),
+      ),
+    [],
+    'compact menus use the outer page without independently scrolling panes',
+  );
+  const controls = page.locator(
+    '#front-shell button:visible, #front-shell .performance-grid > div',
+  );
+  for (const control of await controls.all()) {
+    const outside = await control.evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      return rect.top < 0 || rect.bottom > innerHeight + 1;
+    });
+    if (!outside) continue;
+    await control.scrollIntoViewIfNeeded();
+    assert.ok(
+      await control.evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        return rect.top >= 0 && rect.bottom <= innerHeight + 1;
+      }),
+      'every control remains reachable through bounded outer scrolling',
+    );
+  }
+  await page.locator('#front-shell').evaluate((element) => {
+    element.scrollTop = 0;
+  });
 }
 async function finishInputs(difficulty, initial) {
   const definition = createHalcyonLevel({ shape: false });
@@ -190,8 +252,8 @@ async function finishInputs(difficulty, initial) {
         track,
         collisionWorld,
         dynamics,
-        presentation: false,
         equipment: specification.id === 'player',
+        presentation: false,
       }),
     });
   const vehicle = {
@@ -255,10 +317,10 @@ async function finishInputs(difficulty, initial) {
       }
     };
     compareInitial(actualInitial, initial);
-    assert.deepEqual(
-      differences,
-      [],
-      'physical input fixture must match browser body state within numeric roundoff',
+    assert.equal(
+      differences.length,
+      0,
+      `physical input fixture must match browser body state within numeric roundoff: ${JSON.stringify(differences.slice(0, 12))}`,
     );
     // Generate real inputs against the same ten dynamic bodies as the browser.
     // Legacy ghost-racer trajectories no longer predict contact or finish time.
@@ -305,7 +367,503 @@ async function finishInputs(difficulty, initial) {
   }
 }
 try {
+  const summaryViewports = [
+    ...(!flags.includes('--responsive')
+      ? [
+          { width: 1440, height: 900 },
+          { width: 1100, height: 700 },
+        ]
+      : []),
+    ...(!flags.includes('--desktop')
+      ? [
+          { width: 390, height: 844 },
+          { width: 320, height: 700 },
+          { width: 844, height: 390 },
+        ]
+      : []),
+  ];
+  for (const viewport of summaryViewports)
+    await check(
+      `summary button accents and compact Garage entry ${viewport.width}×${viewport.height}`,
+      async (page) => {
+        await page.addInitScript(() => {
+          window.__summaryPad = {
+            id: 'Synthetic summary controller',
+            index: 0,
+            connected: true,
+            mapping: 'standard',
+            axes: [0, 0],
+            buttons: Array.from({ length: 17 }, () => ({
+              pressed: false,
+              value: 0,
+            })),
+          };
+          Object.defineProperty(navigator, 'getGamepads', {
+            configurable: true,
+            value: () => [window.__summaryPad],
+          });
+        });
+        const frame = () =>
+          page.evaluate(
+            () => new Promise((resolve) => requestAnimationFrame(resolve)),
+          );
+        const tap = async (index) => {
+          for (const pressed of [true, false]) {
+            await page.evaluate(
+              ({ index, pressed }) => {
+                window.__summaryPad.buttons[index] = {
+                  pressed,
+                  value: Number(pressed),
+                };
+              },
+              { index, pressed },
+            );
+            await frame();
+            await frame();
+          }
+        };
+        const layout = async () => {
+          const result = await page.evaluate(() => {
+            const shell = document.querySelector('#front-shell');
+            return {
+              horizontal: shell.scrollWidth - shell.clientWidth,
+              document: document.documentElement.scrollWidth - innerWidth,
+              tabRows: new Set(
+                [...shell.querySelectorAll('.menu-top-tabs button')].map(
+                  (tab) => tab.getBoundingClientRect().top,
+                ),
+              ).size,
+            };
+          });
+          assert.ok(
+            result.horizontal <= 1 && result.document <= 1,
+            'summary and Garage layouts do not overflow horizontally',
+          );
+          assert.equal(
+            result.tabRows,
+            1,
+            'top-level navigation stays on one row',
+          );
+        };
+        const garage = async () => {
+          await page.locator('.ship-preview[data-state="ready"]').waitFor();
+          assert.equal(
+            await page.locator('.garage-top').count(),
+            0,
+            'the removed chooser heading does not retain a spacing band',
+          );
+          assert.equal(
+            await page
+              .locator('.dedicated-garage')
+              .getByText(/^Choose (?:your )?ship$/)
+              .count(),
+            0,
+          );
+          const gap = await page
+            .locator('.dedicated-garage')
+            .evaluate((main) => {
+              const content = main.querySelector('.garage-layout');
+              return (
+                content.getBoundingClientRect().top -
+                main.getBoundingClientRect().top -
+                Number.parseFloat(getComputedStyle(main).paddingTop)
+              );
+            });
+          assert.ok(
+            gap >= -1 && gap <= 8,
+            `Garage begins directly below its normal header clearance (${gap}px extra)`,
+          );
+          assert.ok(
+            (await page.locator('.ship-details h1').textContent()).trim()
+              .length > 0,
+            'the selected ship name remains visible',
+          );
+          await layout();
+        };
+        await page.goto(url('level=halcyon&music=0'));
+        await page.locator('.mode-picker').waitFor();
+        for (const action of ['circuits', 'ship-step']) {
+          const summarySelector = `.menu-selection[data-action="${action}"]`;
+          const summary = page.locator(summarySelector);
+          const accentSettled = () =>
+            page.waitForFunction(
+              (selector) =>
+                getComputedStyle(document.querySelector(selector))
+                  .borderLeftColor === 'rgb(208, 24, 24)',
+              summarySelector,
+            );
+          await page.mouse.move(0, 0);
+          await page.evaluate(() => document.activeElement?.blur());
+          const before = await summary.evaluate((button) => {
+            const style = getComputedStyle(button),
+              rect = button.getBoundingClientRect();
+            return {
+              left: rect.left,
+              right: rect.right,
+              width: rect.width,
+              padding: Number.parseFloat(style.paddingLeft),
+              border: Number.parseFloat(style.borderLeftWidth),
+              color: style.borderLeftColor,
+            };
+          });
+          assert.equal(
+            before.padding,
+            viewport.width <= 760 ? 12 : 14,
+            'summary uses the career row left padding',
+          );
+          assert.equal(
+            before.border,
+            2,
+            'summary reserves its left accent width',
+          );
+          assert.ok(
+            before.left >= 0 && before.right <= viewport.width + 1,
+            'padded summary remains inside the viewport',
+          );
+          await summary.hover();
+          await accentSettled();
+          assert.equal(
+            await summary.evaluate(
+              (button) => getComputedStyle(button).borderLeftColor,
+            ),
+            'rgb(208, 24, 24)',
+            'hover lights the red left accent',
+          );
+          await page.mouse.move(0, 0);
+          await page.keyboard.press('Tab');
+          await summary.focus();
+          await accentSettled();
+          const focused = await summary.evaluate((button) => ({
+            color: getComputedStyle(button).borderLeftColor,
+            width: button.getBoundingClientRect().width,
+          }));
+          assert.equal(
+            focused.color,
+            'rgb(208, 24, 24)',
+            'keyboard focus lights the same accent',
+          );
+          assert.equal(
+            focused.width,
+            before.width,
+            'hover/focus do not shift the summary',
+          );
+          if (viewport.width < 760 || viewport.height < 500)
+            await summary.tap();
+          else await page.keyboard.press('Enter');
+          assert.equal(
+            (await front(page)).screen,
+            action === 'ship-step' ? 'setup' : 'circuits',
+          );
+          if (action === 'ship-step') await garage();
+          await layout();
+          await page.keyboard.press('Escape');
+          assert.equal((await front(page)).screen, 'home');
+          assert.equal(
+            await summary.evaluate(
+              (button) => button === document.activeElement,
+            ),
+            true,
+            'keyboard Back restores the summary launcher',
+          );
+          await tap(0);
+          assert.equal(
+            (await front(page)).screen,
+            action === 'ship-step' ? 'setup' : 'circuits',
+          );
+          if (action === 'ship-step') await garage();
+          await tap(1);
+          assert.equal((await front(page)).screen, 'home');
+          assert.equal(
+            await summary.evaluate(
+              (button) => button === document.activeElement,
+            ),
+            true,
+            'controller Back restores the summary launcher',
+          );
+          assert.equal(await page.locator('canvas#world').count(), 0);
+          assert.equal(
+            await page.evaluate(() => !!window.__VN),
+            false,
+            'summary selection never constructs a level',
+          );
+          await layout();
+        }
+      },
+      viewport,
+    );
+  const loadingViewports = [
+    ...(!flags.includes('--responsive') ? [{ width: 1440, height: 900 }] : []),
+    ...(!flags.includes('--desktop')
+      ? [
+          { width: 390, height: 844 },
+          { width: 844, height: 390 },
+        ]
+      : []),
+  ];
+  for (const viewport of loadingViewports)
+    await check(
+      `loading waves retain the menu backdrop and cancellation focus ${viewport.width}×${viewport.height}`,
+      async (page) => {
+        await page.goto(url('level=halcyon&music=0'));
+        await page.locator('.menu-backdrop canvas').waitFor();
+        await page.evaluate(() => {
+          window.loadingBackdropCanvas = document.querySelector(
+            '.menu-backdrop canvas',
+          );
+        });
+        let release;
+        const gate = new Promise((resolve) => {
+          release = resolve;
+        });
+        await page.route(
+          /\/(?:src\/core\/game\.js|assets\/game-[^/]+\.js)(?:\?|$)/,
+          async (route) => {
+            await gate;
+            await route.continue().catch(() => {});
+          },
+        );
+        try {
+          const launch = page.locator('[data-action="launch"]');
+          await launch.focus();
+          if (viewport.width < 760 || viewport.height < 500) await launch.tap();
+          else await page.keyboard.press('Enter');
+          assert.equal((await front(page)).screen, 'loading');
+          const presentation = await page.evaluate(() => {
+            const shell = document.querySelector('#front-shell');
+            const canvas = shell.querySelector('.menu-backdrop canvas');
+            const backdrop = canvas?.parentElement;
+            const box = canvas?.getBoundingClientRect();
+            return {
+              retained: canvas === window.loadingBackdropCanvas,
+              isolation: getComputedStyle(shell).isolation,
+              layout: getComputedStyle(shell).display,
+              depth: getComputedStyle(backdrop).zIndex,
+              box: box?.toJSON(),
+            };
+          });
+          assert.equal(
+            presentation.retained,
+            true,
+            'loading reuses the exact menu canvas',
+          );
+          assert.equal(
+            presentation.isolation,
+            'isolate',
+            'negative backdrop stays inside its shell',
+          );
+          assert.equal(
+            presentation.layout,
+            'flex',
+            'loading keeps its existing flex layout',
+          );
+          assert.equal(
+            presentation.depth,
+            '-1',
+            'backdrop stays behind loading controls',
+          );
+          assert.equal(presentation.box.x, 0);
+          assert.equal(presentation.box.y, 0);
+          assert.equal(presentation.box.width, viewport.width);
+          assert.equal(presentation.box.height, viewport.height);
+          assert.ok(await page.locator('.menu-backdrop canvas').isVisible());
+          const frame = () =>
+            page.evaluate(() => window.loadingBackdropCanvas.toDataURL());
+          const first = await frame();
+          await page.waitForTimeout(250);
+          assert.ok(
+            (await frame()) !== first,
+            'the red waves continue while the runtime import waits',
+          );
+          await page.emulateMedia({ reducedMotion: 'reduce' });
+          await page.evaluate(
+            () =>
+              new Promise((resolve) =>
+                requestAnimationFrame(() => requestAnimationFrame(resolve)),
+              ),
+          );
+          const still = await frame();
+          await page.waitForTimeout(180);
+          assert.ok(
+            (await frame()) === still,
+            'loading continues to respect reduced motion',
+          );
+          if (viewport.width < 760 || viewport.height < 500)
+            await page.locator('[data-action="cancel"]').tap();
+          else await page.keyboard.press('Escape');
+          assert.equal((await front(page)).screen, 'home');
+          assert.equal(
+            await launch.evaluate(
+              (control) => control === document.activeElement,
+            ),
+            true,
+            'cancel restores the launching control',
+          );
+          assert.equal(
+            await page.evaluate(
+              () =>
+                document.querySelector('.menu-backdrop canvas') ===
+                window.loadingBackdropCanvas,
+            ),
+            true,
+          );
+        } finally {
+          release();
+          await page.unrouteAll({ behavior: 'wait' });
+        }
+        await page.waitForFunction(
+          () => !window.__VN_FRONTEND.getState().loading,
+        );
+        assert.equal(
+          await page.locator('canvas#world').count(),
+          0,
+          'cancelled loading never constructs a race',
+        );
+      },
+      viewport,
+      { reducedMotion: false },
+    );
   if (!flags.includes('--responsive')) {
+    await check(
+      'endgame mode gate waits for the completion credits and survives reload',
+      async (page) => {
+        const events = ['freestyle', 'eliminator', 'interceptor'];
+        const ready = () => page.waitForFunction(() => !!window.__VN_FRONTEND);
+        const hiddenEvents = async () => {
+          for (const action of events)
+            assert.equal(
+              await page.locator(`[data-action="${action}"]`).count(),
+              0,
+              `${action} is unavailable before closing the credits`,
+            );
+        };
+        await page.goto(url('level=halcyon&music=0'));
+        await ready();
+        assert.equal(await page.locator('.mode-picker button').count(), 4);
+        await hiddenEvents();
+        for (const id of [
+          'launchworks',
+          'crucible',
+          'interceptor',
+          'interceptor-helion',
+          'interceptor-nightweir',
+        ]) {
+          await page.goto(url(`level=${id}&music=0`));
+          await ready();
+          const state = await front(page);
+          assert.equal(
+            state.screen,
+            'loading',
+            `${id} direct entry is blocked`,
+          );
+          assert.notEqual(state.selected, id);
+          assert.equal(state.loadedId, null);
+          assert.match(state.error, /28 career rewards.*completion credits/i);
+          assert.equal(await page.evaluate(() => !!window.__VN), false);
+          await hiddenEvents();
+        }
+        // Seed a valid earned career with its real completion still pending.
+        // The remaining transition uses only the production Skip and Close UI.
+        await page.evaluate((entries) => {
+          for (const [key, value] of entries) localStorage.setItem(key, value);
+        }, pendingEndgameSeed);
+        await page.goto(url('level=halcyon&music=0'));
+        await ready();
+        await page.locator('[data-completion-skip]').waitFor();
+        const pending = await front(page);
+        assert.equal(pending.career.state.claims.length, 28);
+        assert.deepEqual(pending.career.state.completion, {
+          shipId: 'shrike',
+          acknowledged: false,
+        });
+        assert.equal(pending.developer, false);
+        await hiddenEvents();
+        await page.locator('[data-completion-skip]').click();
+        await page.locator('.completion-credits').waitFor();
+        assert.equal((await front(page)).completion.phase, 'credits');
+        assert.equal(
+          (await front(page)).career.state.completion.acknowledged,
+          false,
+        );
+        await hiddenEvents();
+        await page.locator('[data-completion-close]').click();
+        await page
+          .locator('.completion-cinematic')
+          .waitFor({ state: 'detached' });
+        assert.equal(
+          (await front(page)).career.state.completion.acknowledged,
+          true,
+        );
+        for (const action of events)
+          assert.equal(
+            await page.locator(`[data-action="${action}"]`).isVisible(),
+            true,
+            `${action} is revealed after closing the credits`,
+          );
+        assert.match(
+          await page.locator('[data-action="freestyle"]').textContent(),
+          /Freestyle.*Pilot/,
+        );
+        await page.reload();
+        await ready();
+        assert.equal(
+          (await front(page)).career.state.completion.acknowledged,
+          true,
+        );
+        assert.equal(await page.locator('.completion-cinematic').count(), 0);
+        assert.equal(await page.locator('.mode-picker button').count(), 7);
+        for (const action of events)
+          assert.equal(
+            await page.locator(`[data-action="${action}"]`).isVisible(),
+            true,
+          );
+      },
+      { width: 1440, height: 900 },
+      { reducedMotion: false },
+    );
+    for (const [id, mode, racers] of [
+      ['halcyon', 'race', 10],
+      ['launchworks', 'freestyle', 0],
+      ['crucible', 'eliminator', 10],
+      ['interceptor', 'interceptor', 5],
+      ['interceptor-helion', 'interceptor', 5],
+      ['interceptor-nightweir', 'interceptor', 5],
+    ]) {
+      await endgameCheck(`post-credits launch smoke ${id}`, async (page) => {
+        await page.goto(url(`level=${id}&music=0`));
+        await page.locator('[data-action="launch"]').click();
+        await page.waitForFunction(
+          () =>
+            window.__VN_FRONTEND?.getState().error ||
+            (window.__VN?.ready && window.__VN.getSnapshot().mode === 'racing'),
+          null,
+          { timeout: 90000 },
+        );
+        assert.equal(
+          (await front(page)).error,
+          '',
+          `${id} starts without a load error`,
+        );
+        const before = await snapshot(page);
+        assert.equal((await front(page)).loadedId, id);
+        assert.ok(before.track.length > 0);
+        assert.equal((await front(page)).intent, mode);
+        if (racers) assert.equal(before.competition.standings.length, racers);
+        await page.keyboard.down('KeyW');
+        await page.waitForTimeout(400);
+        await page.keyboard.up('KeyW');
+        if (mode === 'interceptor') {
+          assert.ok((await snapshot(page)).interceptor.health > 0);
+          await page.keyboard.down('KeyQ');
+          await page.waitForTimeout(400);
+          await page.keyboard.up('KeyQ');
+        }
+        assert.ok((await snapshot(page)).tick > before.tick);
+        await page.keyboard.press('Escape');
+        await page.locator('#home').click();
+        assert.equal((await front(page)).screen, 'home');
+        assert.equal((await front(page)).intent, mode);
+      });
+    }
     await check(
       'menu waves animate independently of tracks and respect reduced motion',
       async (page) => {
@@ -346,12 +904,12 @@ try {
           );
         }
         await page.locator('[data-action="settings"]').click();
-        const hidden = await frame();
+        const settingsFrame = await frame();
         await page.waitForTimeout(150);
-        assert.equal(
+        assert.notEqual(
           await frame(),
-          hidden,
-          'the inactive background stops drawing',
+          settingsFrame,
+          'Settings retains the animated menu background',
         );
         await page.locator('[data-setting="reducedMotion"]').check();
         await page.keyboard.press('Escape');
@@ -382,8 +940,8 @@ try {
       { width: 1440, height: 900 },
       { reducedMotion: false },
     );
-    await check(
-      'explicit modes, records and setup without loading worlds',
+    await endgameCheck(
+      'post-credits event modes, records and setup without loading worlds',
       async (page) => {
         await page.addInitScript(() => {
           window.__modeTestPad = {
@@ -512,7 +1070,7 @@ try {
         assert.equal((await front(page)).selected, 'orbital');
         await page.locator('[data-action="cup-hub"]').click();
         assert.equal((await front(page)).intent, 'cup');
-        assert.equal(await page.locator('[data-cup]').count(), 4);
+        assert.equal(await page.locator('[data-cup]').count(), 5);
         await page.locator('[data-action="cup-hub"]').focus();
         await key('ArrowDown', 'practice');
         await key('ArrowDown', 'interceptor');
@@ -535,10 +1093,11 @@ try {
       { width: 1280, height: 720 },
       { width: 1024, height: 768 },
     ]) {
-      await check(
-        `mode switches preserve the cinematic menu at ${viewport.width}×${viewport.height}`,
+      await endgameCheck(
+        `post-credits mode switches preserve the cinematic menu at ${viewport.width}×${viewport.height}`,
         async (page) => {
           await page.goto(url('level=halcyon&music=0'));
+          await page.locator('.race-actions > .primary').waitFor();
           const anchors = () =>
             page.evaluate(() => ({
               backdrop: !!document.querySelector('.menu-backdrop canvas'),
@@ -573,7 +1132,7 @@ try {
               original,
               `${action} moved the shared menu`,
             );
-            await menuFits(page);
+            await menuFits(page, 180);
             const { screen: origin, intent: originMode } = await front(page);
             await page.locator('[data-action="records"]').click();
             assert.deepEqual(
@@ -581,7 +1140,7 @@ try {
               original,
               'records moved the shared menu',
             );
-            await menuFits(page);
+            await menuFits(page, 180);
             // Reopening the active view must not overwrite its Back destination.
             await page.locator('[data-action="records"]').click();
             await page
@@ -610,7 +1169,7 @@ try {
             cupDefinition('apex').tracks.length,
           );
           await page.locator('.race-menu [data-action="ship-step"]').click();
-          await page.locator('[data-ship="shrike"]').click();
+          await page.locator('button[data-ship="shrike"]').click();
           assert.equal((await front(page)).intent, 'cup');
           await page.locator('[data-action="race-tab"]').click();
           assert.deepEqual(
@@ -633,17 +1192,199 @@ try {
       );
     }
 
-    await check(
-      'keyboard-only menu navigation and focus return',
+    await fleetCheck(
+      'explicit modes, records and setup without loading worlds',
       async (page) => {
-        const focused = async (selector) =>
+        await page.goto(url('level=halcyon&music=0'));
+        assert.equal(await page.locator('.mode-picker button').count(), 4);
+        for (const action of ['freestyle', 'eliminator', 'interceptor'])
+          assert.equal(
+            await page.locator(`[data-action="${action}"]`).count(),
+            0,
+            `${action} waits for the acknowledged completion credits`,
+          );
+        await page.locator('[data-action="quick-race"]').focus();
+        await page.keyboard.press('ArrowDown');
+        assert.equal(
+          await page.evaluate(() => document.activeElement.dataset.action),
+          'time-trial',
+        );
+        await page.keyboard.press('ArrowDown');
+        assert.equal(
+          await page.evaluate(() => document.activeElement.dataset.action),
+          'circuits',
+        );
+        await page.locator('[data-action="time-trial"]').click();
+        assert.equal((await front(page)).intent, 'time-trial');
+        assert.equal(await page.locator('[data-difficulty]').count(), 0);
+        assert.match(
+          await page.locator('[data-action="launch"]').textContent(),
+          /Time Trial/,
+        );
+        await page.locator('[data-action="records"]').click();
+        assert.match(
+          await page.locator('.records-empty').textContent(),
+          /No personal bests yet/,
+        );
+        await page
+          .locator('[data-record-filter="ship"]')
+          .selectOption('needle');
+        await page.keyboard.press('Escape');
+        assert.equal((await front(page)).intent, 'time-trial');
+        assert.equal(
+          await page.evaluate(() => document.activeElement.dataset.action),
+          'records',
+        );
+        await page.locator('[data-action="records"]').click();
+        await page
+          .locator('[data-record-filter="track"]')
+          .selectOption('orbital');
+        await page.locator('[data-action="record-trial"]').click();
+        assert.equal((await front(page)).selected, 'orbital');
+        assert.equal((await front(page)).shipId, 'needle');
+        assert.equal((await front(page)).intent, 'time-trial');
+        await page.locator('[data-action="practice"]').click();
+        assert.match(
+          await page.locator('[data-action="launch"]').textContent(),
+          /Practice/,
+        );
+        assert.equal(await page.locator('[data-difficulty]').count(), 0);
+        await page.locator('[data-action="cup-hub"]').click();
+        assert.equal((await front(page)).intent, 'cup');
+        assert.equal(await page.locator('[data-cup]').count(), 4);
+        await page.locator('[data-action="cup-hub"]').focus();
+        await page.keyboard.press('ArrowDown');
+        await page.keyboard.press('ArrowDown');
+        assert.equal(
+          await page.evaluate(() => document.activeElement.dataset.action),
+          'circuits',
+        );
+        await page.keyboard.press('ArrowRight');
+        assert.equal(
+          await page.evaluate(() => document.activeElement.dataset.cup),
+          'founders',
+        );
+        await page.locator('[data-action="quick-race"]').click();
+        assert.equal((await front(page)).intent, 'race');
+        assert.equal(await page.locator('[data-difficulty]').count(), 3);
+        assert.equal((await front(page)).loadedId, null);
+        assert.equal(await page.evaluate(() => !!window.__VN), false);
+      },
+    );
+
+    for (const viewport of [
+      { width: 1440, height: 900 },
+      { width: 1280, height: 720 },
+      { width: 1024, height: 768 },
+    ]) {
+      await check(
+        `mode switches preserve the cinematic menu at ${viewport.width}×${viewport.height}`,
+        async (page) => {
+          await page.goto(url('level=halcyon&music=0'));
+          await page.locator('.race-actions > .primary').waitFor();
+          const anchors = () =>
+            page.evaluate(() => ({
+              backdrop: !!document.querySelector('.menu-backdrop canvas'),
+              bounds: [
+                '.menu-wordmark',
+                '.mode-picker',
+                '.menu-selection[data-action="circuits"]',
+                '.menu-selection[data-action="ship-step"]',
+                '.race-actions > .primary',
+                '.menu-top-tabs',
+              ].map((selector) => {
+                const { x, y, width, height } = document
+                  .querySelector(selector)
+                  .getBoundingClientRect();
+                return { selector, x, y, width, height };
+              }),
+            }));
+          const original = await anchors();
+          for (const action of [
+            'cup-hub',
+            'time-trial',
+            'practice',
+            'quick-race',
+            'cup-hub',
+          ]) {
+            await page.locator(`[data-action="${action}"]`).click();
+            assert.deepEqual(
+              await anchors(),
+              original,
+              `${action} moved the shared menu`,
+            );
+            await menuFits(page);
+            const origin = (await front(page)).screen;
+            await page.locator('[data-action="records"]').click();
+            assert.deepEqual(
+              await anchors(),
+              original,
+              'records moved the shared menu',
+            );
+            await menuFits(page);
+            // Reopening the active view must not overwrite its Back destination.
+            await page.locator('[data-action="records"]').click();
+            await page
+              .locator('[data-record-filter="ship"]')
+              .selectOption('needle');
+            await page.locator('[data-action="settings"]').click();
+            await page.keyboard.press('Escape');
+            assert.equal((await front(page)).screen, 'records');
+            await page.locator('[data-action="records-back"]').click();
+            assert.equal((await front(page)).screen, origin);
+            assert.deepEqual(
+              await anchors(),
+              original,
+              'returning from records moved the menu',
+            );
+          }
+          await page.locator('[data-cup="apex"]').click();
+          assert.deepEqual(
+            await anchors(),
+            original,
+            'cup selection moved the shared menu',
+          );
+          assert.equal(
+            await page.locator('.cup-route li').count(),
+            cupDefinition('apex').tracks.length,
+          );
+          await page.locator('.race-menu [data-action="ship-step"]').click();
+          await page.locator('button[data-ship="shrike"]').click();
+          assert.equal((await front(page)).intent, 'cup');
+          await page.locator('[data-action="race-tab"]').click();
+          assert.deepEqual(
+            await anchors(),
+            original,
+            'cup ship selection moved the shared menu',
+          );
+          await page.locator('.menu-selection[data-action="circuits"]').click();
           assert.equal(
             await page
-              .locator(selector)
-              .evaluate((el) => el === document.activeElement),
-            true,
-            `focus should be on ${selector}`,
+              .locator('[data-cup="apex"]')
+              .getAttribute('aria-pressed'),
+            'true',
           );
+          assert.equal((await front(page)).shipId, 'shrike');
+          assert.equal((await front(page)).loadedId, null);
+          assert.equal(await page.evaluate(() => !!window.__VN), false);
+        },
+        viewport,
+      );
+    }
+
+    await fleetCheck(
+      'keyboard-only menu navigation and focus return',
+      async (page) => {
+        const focused = async (selector) => {
+          const matches = await page
+            .locator(selector)
+            .evaluate((element) => element === document.activeElement);
+          assert.equal(
+            matches,
+            true,
+            `focus should be on ${selector}${matches ? '' : `; actual ${await page.evaluate(() => document.activeElement.outerHTML.slice(0, 300))}`}`,
+          );
+        };
         const press = async (key, selector) => {
           await page.keyboard.press(key);
           if (selector) await focused(selector);
@@ -666,14 +1407,15 @@ try {
         await press('Home', '[data-level="halcyon"]');
         await press('Escape', '.menu-selection[data-action="circuits"]');
         await press('ArrowDown', '.menu-selection[data-action="ship-step"]');
-        await press('Enter', 'button[data-ship="shrike"]');
-        assert.equal(await page.locator('.garage-fleet button').count(), 1);
-        assert.equal(await page.locator('.performance-stat').count(), 6);
+        await press('Enter', 'button[data-ship="kestrel"]');
+        await press('Home', 'button[data-ship="shrike"]');
+        assert.equal((await front(page)).shipId, 'kestrel');
         await press('Space', 'button[data-ship="shrike"]');
         assert.equal((await front(page)).shipId, 'shrike');
         await page.waitForFunction(
           () => window.__VN_FRONTEND.getState().preview?.selected === 'shrike',
         );
+        await press('End', 'button[data-ship="kestrel"]');
         await press('Tab', '.ship-preview canvas');
         await press('ArrowLeft', '.ship-preview canvas');
         await press('Escape', '.menu-selection[data-action="ship-step"]');
@@ -693,8 +1435,10 @@ try {
           ))
           assert.equal(align, 'center');
         await press('ArrowDown', '[data-action="records"]');
-        assert.equal(await page.locator('[data-action="inspect"]').count(), 0);
-        await press('ArrowDown', '[data-action="settings"]');
+        await press('Home', '[data-action="quick-race"]');
+        await press('ArrowUp', '[data-action="race-tab"]');
+        await press('ArrowRight', '[data-action="garage-tab"]');
+        await press('ArrowRight', '[data-action="settings"]');
         await press('Enter', '[data-action="settings-back"]');
         await press('Tab', '[data-setting="quality"]');
         // Native select typeahead also works in headless macOS Chrome.
@@ -703,11 +1447,23 @@ try {
           await page.locator('[data-setting="quality"]').inputValue(),
           'high',
         );
+        await press('Tab', '[data-setting="masterVolume"]');
+        await press('ArrowLeft');
+        assert.equal(
+          await page.locator('[data-setting="masterVolume"]').inputValue(),
+          '0.99',
+        );
         await press('Tab', '[data-setting="volume"]');
         await press('ArrowRight');
         assert.equal(
           await page.locator('[data-setting="volume"]').inputValue(),
-          '0.05',
+          '0.01',
+        );
+        await press('Tab', '[data-setting="musicVolume"]');
+        await press('ArrowLeft');
+        assert.equal(
+          await page.locator('[data-setting="musicVolume"]').inputValue(),
+          '0.39',
         );
         await press('Tab', '[data-setting="reducedMotion"]');
         await press('Space');
@@ -725,7 +1481,8 @@ try {
         await press('Tab', '.music-previous');
         await press('Tab', '.music-play');
         await press('Shift+Tab', '.music-previous');
-        await press('Shift+Tab', '[data-level="colossus"]');
+        await press('Shift+Tab', '.music-expand');
+        await press('Escape', '[data-level="colossus"]');
         await press('Escape', '.menu-selection[data-action="circuits"]');
         await press('ArrowDown', '.menu-selection[data-action="ship-step"]');
         await press('ArrowDown', '[data-action="launch"]');
@@ -755,12 +1512,10 @@ try {
         }
       },
     );
-    await check(
-      'earned fleet previews, committed Garage selection, settings and fleet cache',
+    await fleetCheck(
+      'setup, hover/keyboard selection, settings and fleet cache',
       async (page) => {
-        // The earned-fleet sandbox supplies owned hulls for preview/selection.
-        // Fresh-career navigation and launch cases retain only starter Shrike.
-        await page.goto(url('level=halcyon&dev=2&ship=kestrel'));
+        await page.goto(url('level=halcyon'));
         await fleetReady(page);
         assert.match(
           await page.locator('[data-action="launch"]').textContent(),
@@ -780,11 +1535,7 @@ try {
           window.retainedPlayer = document.querySelector('[data-music-player]');
         });
         const routes = await page.evaluate(() => window.__VN_FRONTEND.routes);
-        const raceIds = await page
-          .locator('.circuit-card')
-          .evaluateAll((cards) => cards.map((card) => card.dataset.level));
-        assert.equal(raceIds.length, 14, 'ordinary racing course catalogue');
-        const circuits = routes.filter((route) => raceIds.includes(route.id));
+        const circuits = filterAvailableLevels(routes);
         assert.equal(
           await page.locator('.circuit-card').count(),
           circuits.length,
@@ -833,8 +1584,8 @@ try {
             .textContent(),
           /Vesper Forest/,
         );
-        await page.locator('.menu-selection[data-action="ship-step"]').click();
-        assert.equal(await page.locator('.performance-stat').count(), 6);
+        await page.locator('.menu-top-tabs [data-action="garage-tab"]').click();
+        assert.equal(await page.locator('.performance-grid > div').count(), 6);
         assert.equal(
           await page.evaluate(() => !!window.__VN),
           false,
@@ -848,7 +1599,7 @@ try {
         await page.locator('button[data-ship="bastion"]').focus();
         await page.keyboard.press('Enter');
         assert.equal((await front(page)).shipId, 'bastion');
-        await page.keyboard.press('Escape');
+        await page.locator('[data-action="race-tab"]').click();
         await page.locator('[data-difficulty="hard"]').click();
         assert.equal(
           await page
@@ -857,36 +1608,29 @@ try {
           'hard',
         );
         await page.locator('[data-action="garage-tab"]').click();
-        await page.keyboard.press('s');
+        await page.locator('[data-action="settings"]').click();
         assert.equal(await page.locator('.front-heading').count(), 0);
         const headerGroup = await page
-          .locator('.front-header')
+          .locator('.utility-heading')
           .evaluate((el) => {
-            const label = el
-              .querySelector('.header-label')
-              .getBoundingClientRect();
+            const label = el.querySelector('h1').getBoundingClientRect();
             const back = el
               .querySelector('[data-action="settings-back"]')
               .getBoundingClientRect();
             return back.left - label.right;
           });
-        assert.ok(headerGroup >= 0 && headerGroup <= 24);
+        assert.ok(headerGroup >= 0);
         assert.match(
           await page.locator('.front-content').textContent(),
           /Keyboard/,
         );
-        assert.equal(await page.locator('[data-action="settings"]').count(), 0);
-        await page.locator('#front-shell').evaluate((el) => {
-          el.scrollTop = el.scrollHeight;
-        });
-        const back = page.locator(
-          '.front-header [data-action="settings-back"]',
-        );
+        assert.equal(await page.locator('[data-action="settings"]').count(), 1);
+        const back = page.locator('[data-action="settings-back"]');
         const backBounds = await back.boundingBox();
-        assert.ok(backBounds.y >= 0 && backBounds.y + backBounds.height <= 78);
+        assert.ok(backBounds.y >= 0 && backBounds.y + backBounds.height <= 900);
         await back.click();
         assert.equal((await front(page)).screen, 'setup');
-        await page.keyboard.press('s');
+        await page.locator('[data-action="settings"]').click();
         await page.keyboard.press('Escape');
         assert.equal((await front(page)).screen, 'setup');
         assert.equal((await front(page)).shipId, 'bastion');
@@ -899,8 +1643,7 @@ try {
           ),
           true,
         );
-        await page.locator('[data-action="race-tab"]').click();
-        await page.locator('.menu-selection[data-action="circuits"]').click();
+        await page.locator('.menu-top-tabs [data-action="race-tab"]').click();
         assert.equal(await page.locator('.circuit-card').count(), 14);
         assert.equal(
           await page.locator('.circuit-card [data-type="sprint"]').count(),
@@ -931,7 +1674,7 @@ try {
           'Sprint',
         );
         await page.locator('[data-level="shatterline"]').click();
-        assert.equal((await front(page)).screen, 'circuits');
+        assert.equal((await front(page)).screen, 'home');
         assert.equal(
           await page
             .locator('[data-level="shatterline"]')
@@ -959,7 +1702,7 @@ try {
       { width: 900, height: 700 },
       { width: 1100, height: 575 },
     ]) {
-      await check(
+      await fleetCheck(
         `compact desktop menu ${viewport.width}×${viewport.height}`,
         async (page) => {
           await page.goto(url('level=zephyr'));
@@ -976,16 +1719,21 @@ try {
               .evaluate((el) => getComputedStyle(el).fontSize),
             '26px',
           );
-          await menuFits(page);
+          await menuFits(page, 180);
           await page.locator('[data-level="worldspire"]').click();
           assert.equal((await front(page)).screen, 'home');
-          await page.locator('[data-action="garage-tab"]').click();
+          await page
+            .locator('.menu-top-tabs [data-action="garage-tab"]')
+            .click();
           await page.waitForFunction(
             () =>
-              window.__VN_FRONTEND.getState().preview?.selected === 'shrike',
+              window.__VN_FRONTEND.getState().preview?.selected === 'kestrel',
           );
-          assert.equal(await page.locator('.performance-stat').count(), 6);
-          await menuFits(page);
+          assert.equal(
+            await page.locator('.performance-grid > div').count(),
+            6,
+          );
+          await menuFits(page, 180);
           await page.locator('[data-action="race-tab"]').click();
           await page.locator('[data-difficulty="hard"]').click();
           assert.match(
@@ -994,21 +1742,19 @@ try {
               .getAttribute('aria-label'),
             /hard opponents/,
           );
-          await menuFits(page);
+          await menuFits(page, 180);
         },
         viewport,
       );
     }
-    await check(
+    await fleetCheck(
       'menu race/practice launch, retained session and music transport',
       async (page) => {
         await page.goto(url('level=halcyon'));
         await fleetReady(page);
-        await page.locator('.menu-selection[data-action="ship-step"]').click();
-        assert.equal(await page.locator('.garage-fleet button').count(), 1);
-        assert.equal(await page.locator('[data-ship="needle"]').count(), 0);
-        await page.locator('[data-ship="shrike"]').click();
-        await page.keyboard.press('Escape');
+        await page.locator('.menu-top-tabs [data-action="garage-tab"]').click();
+        await page.locator('button[data-ship="needle"]').click();
+        await page.locator('[data-action="race-tab"]').click();
         await page.evaluate(() => {
           window.retainedAudio = document.querySelector('audio');
           window.retainedPlayer = document.querySelector('[data-music-player]');
@@ -1021,7 +1767,7 @@ try {
           { timeout: 20000 },
         );
         assert.equal(await page.locator('#front-shell').isVisible(), false);
-        assert.equal((await snapshot(page)).ship.id, 'shrike');
+        assert.equal((await snapshot(page)).ship.id, 'needle');
         assert.equal(
           (await snapshot(page)).competition.standings.length,
           RACE_FIELD_SIZE,
@@ -1111,7 +1857,7 @@ try {
           () => window.__VN_FRONTEND.getState().screen === 'race',
         );
         assert.equal((await front(page)).intent, 'practice');
-        assert.equal((await snapshot(page)).ship.id, 'shrike');
+        assert.equal((await snapshot(page)).ship.id, 'needle');
         assert.equal(
           await page.evaluate(
             () =>
@@ -1362,6 +2108,13 @@ try {
         assert.equal((await snapshot(page)).mode, 'inspection');
         await page.keyboard.press('Escape');
         assert.equal((await snapshot(page)).mode, 'racing');
+        const nativeStart = (await snapshot(page)).tick;
+        await page.keyboard.down('w');
+        await page.waitForFunction(
+          (tick) => window.__VN.getSnapshot().tick >= tick + 24,
+          nativeStart,
+        );
+        await page.keyboard.up('w');
         const replay = await page.evaluate(() => {
           window.__VN.pause();
           return window.__VN.getReplay();
@@ -1395,6 +2148,41 @@ try {
           assert.match(rejection.message, /Replay version mismatch/);
           assert.equal(rejection.unchanged, true);
         }
+        const invalidInitial = structuredClone(replay);
+        invalidInitial.initial.vehicle.distance += 1;
+        const rollback = await page.evaluate((recording) => {
+          const retained = () => {
+            const { mode, tick, vehicle, runtime, competition, lap } =
+              window.__VN.getSnapshot();
+            return { mode, tick, vehicle, runtime, competition, lap };
+          };
+          const before = retained();
+          let message;
+          try {
+            window.__VN.playReplay(recording);
+          } catch (error) {
+            message = error.message;
+          }
+          return { message, before, after: retained() };
+        }, invalidInitial);
+        assert.match(rollback.message, /Replay initial state mismatch/);
+        assert.deepEqual(
+          rollback.after,
+          rollback.before,
+          'rejection after replay reset restores the retained simulation',
+        );
+        await page.evaluate(() => window.__VN.resume());
+        await page.keyboard.down('w');
+        await page.waitForFunction(
+          (tick) => window.__VN.getSnapshot().tick >= tick + 12,
+          rollback.after.tick,
+        );
+        await page.keyboard.up('w');
+        await page.evaluate(() => window.__VN.pause());
+        assert.ok(
+          (await snapshot(page)).vehicle.time > rollback.after.vehicle.time,
+          'the restored simulation continues ordinary native ticks',
+        );
         const finished = await page.evaluate(
           (recording) => window.__VN.playReplay(recording),
           {
@@ -1424,9 +2212,37 @@ try {
         await page.keyboard.press('Escape');
         assert.equal((await front(page)).screen, 'race');
         assert.equal((await snapshot(page)).mode, 'paused');
+        await page.locator('#home').click();
+        assert.equal((await front(page)).screen, 'home');
+        assert.equal(
+          await page.locator('[data-action="resume-session"]').count(),
+          0,
+          'a finished race stays complete after Continue driving and returning to setup',
+        );
+        await page.locator('[data-action="launch"]').focus();
+        await page.keyboard.press('Enter');
+        await page.waitForFunction(
+          () =>
+            window.__VN_FRONTEND.getState().screen === 'race' &&
+            ['countdown', 'racing'].includes(window.__VN.getSnapshot().mode),
+        );
+        await page.keyboard.press('Escape');
+        await page.locator('#home').click();
+        assert.equal(
+          await page.locator('[data-action="resume-session"]').count(),
+          1,
+          'a fresh unfinished race remains resumable after a previous finish',
+        );
+        await page.locator('[data-action="resume-session"]').focus();
+        await page.keyboard.press('Enter');
+        assert.equal((await snapshot(page)).mode, 'paused');
+        assert.equal(
+          await page.evaluate(() => document.activeElement.id),
+          'resume',
+        );
       },
     );
-    await check(
+    await fleetCheck(
       'ten-pilot HUD and full AI inspector stay clear on desktop',
       async (page) => {
         await page.goto(url('level=halcyon&music=0'));
@@ -1463,7 +2279,7 @@ try {
         );
         await page.keyboard.press('Escape');
         await page.locator('#home').click();
-        await page.goto(url('inspect=1&ship=shrike&level=halcyon&dev=1'));
+        await page.goto(url('inspect=1&ship=kestrel&level=halcyon&dev=1'));
         await booted(page);
         await page.getByRole('tab', { name: 'AI racers' }).click();
         assert.equal(
@@ -1489,13 +2305,13 @@ try {
         const back = await page.locator('#inspect-back').boundingBox();
         assert.ok(picker.y + picker.height < back.y);
         assert.ok(back.y + back.height <= 720);
-        assert.equal((await snapshot(page)).ship.id, 'shrike');
+        assert.equal((await snapshot(page)).ship.id, 'kestrel');
       },
       { width: 1280, height: 720 },
     );
     await check('AI inspector tab requires dev=1 or dev=2', async (page) => {
       for (const query of ['', '&dev=0', '&dev=true', '&dev=1', '&dev=2']) {
-        await page.goto(url(`inspect=1&ship=shrike${query}`));
+        await page.goto(url(`inspect=1&ship=kestrel${query}`));
         await inspectorReady(page);
         const enabled = ['&dev=1', '&dev=2'].includes(query);
         assert.equal(
@@ -1516,13 +2332,100 @@ try {
         assert.equal(await page.evaluate(() => !!window.__VN), false);
       }
     });
+    await fleetCheck(
+      'AI inspector preserves selection through failed and cancelled rival replacements',
+      async (page) => {
+        await page.goto(url('inspect=1&ship=kestrel&level=shatterline&dev=1'));
+        await inspectorReady(page);
+        await page.getByRole('tab', { name: 'AI racers' }).click();
+        const selected = (id) =>
+          page.waitForFunction((id) => {
+            const state = window.__VN_INSPECTOR.getSnapshot();
+            return (
+              !state.inspection.rivalLoading && state.inspection.rivalId === id
+            );
+          }, id);
+        await selected('rook');
+        const replacement = '**/assets/ships/rivals/latch/latch.glb';
+        await page.route(replacement, (route) => route.abort());
+        await page.locator('[data-rival="latch"]').click();
+        await page
+          .locator('.ship-load-status')
+          .filter({ hasText: 'Could not load Latch' })
+          .waitFor();
+        await selected('rook');
+        assert.equal(
+          await page
+            .locator('[data-rival="rook"]')
+            .getAttribute('aria-checked'),
+          'true',
+        );
+        assert.equal((await snapshot(page)).ship.id, 'kestrel');
+        await page.unroute(replacement);
+        await page.locator('[data-rival="latch"]').click();
+        await selected('latch');
+        assert.equal(await page.locator('.ship-load-status').textContent(), '');
+
+        const pending = '**/assets/ships/rivals/pike/pike.glb';
+        let release;
+        const held = new Promise((resolve) => {
+          release = resolve;
+        });
+        await page.route(pending, async (route) => {
+          await held;
+          await route.continue();
+        });
+        try {
+          const requested = page.waitForRequest(pending);
+          await page.locator('[data-rival="pike"]').click();
+          await requested;
+          await page.waitForFunction(
+            () => window.__VN_INSPECTOR.getSnapshot().inspection.rivalLoading,
+          );
+          await page.evaluate(() => {
+            window.retiredInspector = window.__VN_INSPECTOR;
+          });
+          await page.locator('#inspect-back').click();
+          assert.equal((await front(page)).screen, 'home');
+          assert.equal(
+            await page.evaluate(() => window.retiredInspector.ready),
+            false,
+          );
+          const response = page.waitForResponse(pending);
+          release();
+          await (await response).finished();
+          await page.waitForLoadState('networkidle');
+          assert.equal((await front(page)).screen, 'home');
+          assert.equal((await front(page)).shipId, 'kestrel');
+          assert.equal((await front(page)).selected, 'shatterline');
+          assert.equal(
+            await page.evaluate(() => !!window.__VN_INSPECTOR || !!window.__VN),
+            false,
+          );
+          assert.equal(await page.locator('canvas#world').count(), 0);
+          assert.equal(
+            await page.evaluate(
+              () => window.retiredInspector.getSnapshot().inspection.rivalId,
+            ),
+            'latch',
+          );
+          await page.locator('[data-action="inspect"]').click();
+          await inspectorReady(page);
+          assert.equal((await snapshot(page)).inspection.tab, 'fleet');
+          assert.equal((await snapshot(page)).ship.id, 'kestrel');
+        } finally {
+          release();
+          await page.unroute(pending);
+        }
+      },
+    );
     await check(
       'ship selectors after track selection never launch a session',
       async (page) => {
         await page.goto(url('level=halcyon'));
         for (const selector of [
           '.menu-selection[data-action="ship-step"]',
-          '[data-action="garage-tab"]',
+          '.menu-top-tabs [data-action="garage-tab"]',
         ]) {
           await page.locator('[data-level="vesper-forest"]').click();
           await page.locator(selector).click();
@@ -1532,15 +2435,7 @@ try {
             () => window.__VN_FRONTEND.getState().preview?.selected,
           );
           assert.equal(await page.evaluate(() => !!window.__VN), false);
-          await page.keyboard.press('Escape');
-          assert.equal((await front(page)).screen, 'home');
-          assert.equal(
-            await page
-              .locator(selector)
-              .evaluate((el) => el === document.activeElement),
-            true,
-            'Garage returns focus to its opener',
-          );
+          await page.locator('.menu-top-tabs [data-action="race-tab"]').click();
         }
         await page.locator('[data-level="halcyon"]').click();
         await page.locator('[data-action="practice"]').click();
@@ -1555,7 +2450,7 @@ try {
         const paused = await snapshot(page);
         for (const selector of [
           '.menu-selection[data-action="ship-step"]',
-          '[data-action="garage-tab"]',
+          '.menu-top-tabs [data-action="garage-tab"]',
         ]) {
           await page.locator('[data-level="worldspire"]').click();
           await page.locator(selector).focus();
@@ -1569,15 +2464,7 @@ try {
           assert.equal(after.mode, 'paused');
           assert.equal(after.tick, paused.tick);
           assert.deepEqual(after.vehicle, paused.vehicle);
-          await page.keyboard.press('Escape');
-          assert.equal((await front(page)).screen, 'home');
-          assert.equal(
-            await page
-              .locator(selector)
-              .evaluate((el) => el === document.activeElement),
-            true,
-            'Garage restores the retained-session opener',
-          );
+          await page.locator('.menu-top-tabs [data-action="race-tab"]').click();
         }
       },
     );
@@ -1670,10 +2557,10 @@ try {
       { width: 1440, height: 900 },
       { quality: 'high', reducedMotion: false },
     );
-    await check(
+    await fleetCheck(
       'menu inspector preserves selections, music and a paused session',
       async (page) => {
-        await page.goto(url('level=vesper-forest&dev=2'));
+        await page.goto(url('level=vesper-forest&dev=1'));
         await page.locator('[data-level="halcyon"]').click();
         await page.evaluate(() => {
           window.retainedPlayer = document.querySelector('[data-music-player]');
@@ -1711,6 +2598,17 @@ try {
         await page.locator('#inspect-back').click();
         assert.equal((await front(page)).screen, 'home');
         assert.equal((await front(page)).shipId, 'shrike');
+        assert.equal(
+          await page.locator('#inspector-host').count(),
+          0,
+          'Back detaches inspector controls from native keyboard navigation',
+        );
+        assert.ok(
+          await page
+            .locator('[data-sound-panel]:not([data-docked])')
+            .isVisible(),
+          'the visible global developer sound panel remains available outside inspection',
+        );
         assert.equal(
           await page
             .locator('[data-action="inspect"]')
@@ -1761,13 +2659,13 @@ try {
         assert.equal((await snapshot(page)).mode, 'racing');
       },
     );
-    await check(
+    await fleetCheck(
       'standalone inspector retries failed ship loading',
       async (page) => {
-        await page.route('**/assets/ships/shrike/shrike.glb', (route) =>
+        await page.route('**/assets/ships/needle/needle.glb', (route) =>
           route.abort(),
         );
-        await page.goto(url('inspect=1&ship=shrike'));
+        await page.goto(url('inspect=1&ship=needle'));
         await page.locator('.transfer-status.failed').waitFor();
         assert.equal(await page.evaluate(() => !!window.__VN), false);
         assert.equal(await page.locator('canvas#world').count(), 0);
@@ -1779,7 +2677,7 @@ try {
         await page.unrouteAll({ behavior: 'wait' });
         await page.locator('[data-action="retry"]').click();
         await inspectorReady(page);
-        assert.equal((await snapshot(page)).ship.id, 'shrike');
+        assert.equal((await snapshot(page)).ship.id, 'needle');
         await page.locator('#inspect-back').click();
         assert.equal((await front(page)).screen, 'home');
         assert.equal(await page.locator('canvas#world').count(), 0);
@@ -1938,7 +2836,7 @@ try {
       2,
     );
     await check('unknown circuit recovery and cancelled load', async (page) => {
-      await page.goto(url('level=does-not-exist'));
+      await page.goto(url('level=does-not-exist&dev=1'));
       await page.locator('.transfer-status.failed').waitFor();
       await page.locator('[data-action="cancel"]').click();
       assert.equal((await front(page)).screen, 'home');
@@ -1956,51 +2854,40 @@ try {
         },
       );
       try {
-        for (const developer of [false, true]) {
-          if (developer) {
-            await page.goto(url('level=halcyon&dev=1'));
-            await page.waitForFunction(() => window.__VN_FRONTEND);
-          }
-          const origins = developer
-            ? [
-                ['home', 'inspect', false],
-                ['circuits', 'inspect', true],
-                ['records', 'inspect', false],
-              ]
-            : [
-                ['home', 'quick-race', false],
-                ['circuits', 'quick-race', true],
-                ['home', 'practice', true],
-                ['circuits', 'practice', false],
-              ];
-          for (const [view, action, escape] of origins) {
-            if (!developer)
-              await page.locator(`[data-action="${action}"]`).click();
-            else if ((await front(page)).screen === 'records')
-              await page.locator('[data-action="records-back"]').click();
-            if (view === 'circuits')
-              await page
-                .locator('.menu-selection[data-action="circuits"]')
-                .click();
-            else if (view === 'records')
-              await page.locator('[data-action="records"]').click();
-            else if ((await front(page)).screen !== 'home')
-              await page.keyboard.press('Escape');
-            const opener = `[data-action="${developer ? 'inspect' : 'launch'}"]`;
-            await page.locator(opener).click();
-            assert.equal((await front(page)).screen, 'loading');
-            if (escape) await page.keyboard.press('Escape');
-            else await page.locator('[data-action="cancel"]').click();
-            assert.equal((await front(page)).screen, view);
-            assert.equal((await front(page)).selected, 'halcyon');
-            assert.equal(
-              await page
-                .locator(opener)
-                .evaluate((el) => el === document.activeElement),
-              true,
-              'Cancelled loading restores its initiating control',
-            );
-          }
+        for (const [view, action, escape] of [
+          ['home', 'launch', false],
+          ['circuits', 'launch', true],
+          ['home', 'practice', false],
+          ['circuits', 'practice', true],
+          ['circuits', 'inspect', false],
+          ['home', 'inspect', true],
+        ]) {
+          await page.locator('[data-action="race-tab"]').click();
+          await page
+            .locator(
+              `[data-action="${action === 'practice' ? 'practice' : 'quick-race'}"]`,
+            )
+            .click();
+          if (view !== 'home')
+            await page
+              .locator('.menu-selection[data-action="circuits"]')
+              .click();
+          await page
+            .locator(
+              `[data-action="${action === 'practice' ? 'launch' : action}"]`,
+            )
+            .click();
+          assert.equal((await front(page)).screen, 'loading');
+          if (escape) await page.keyboard.press('Escape');
+          else await page.locator('[data-action="cancel"]').click();
+          assert.equal((await front(page)).screen, view);
+          assert.equal((await front(page)).selected, 'halcyon');
+          assert.equal(
+            await page
+              .locator('.menu-top-tabs [data-action="race-tab"]')
+              .getAttribute('aria-pressed'),
+            'true',
+          );
         }
       } finally {
         release();
@@ -2128,8 +3015,6 @@ try {
         );
         assert.equal((await front(page)).loadedId, null);
         assert.equal(await page.evaluate(() => !!window.__VN), false);
-        await page.locator('[data-action="garage-tab"]').click();
-        assert.equal(await page.locator('[data-ship="needle"]').count(), 0);
       },
       viewport,
     );
@@ -2281,57 +3166,6 @@ try {
       );
     }
     for (const viewport of [
-      { width: 390, height: 844 },
-      { width: 768, height: 768 },
-    ]) {
-      await check(
-        `standalone inspector touch ${viewport.width}×${viewport.height}`,
-        async (page) => {
-          const loads = [];
-          page.on('request', (request) => {
-            const path = new URL(request.url()).pathname;
-            if (
-              /\/src\/core\/game\.js|\/assets\/game-[^/]+\.js|\/assets\/levels\/(?!halcyon\/audio\/)/.test(
-                path,
-              )
-            )
-              loads.push(path);
-          });
-          await page.goto(url('level=shatterline&dev=1'));
-          const entry = page.locator('[data-action="inspect"]');
-          if (viewport.width < 760) await entry.tap();
-          else await entry.click();
-          await inspectorReady(page);
-          assert.equal(await page.evaluate(() => !!window.__VN), false);
-          assert.equal((await front(page)).loadedId, null);
-          assert.deepEqual(loads, []);
-          await page.locator('[data-ship="bastion"]').click();
-          await page.waitForFunction(
-            () => window.__VN_INSPECTOR.getSnapshot().ship.id === 'bastion',
-          );
-          await page.getByRole('tab', { name: 'AI racers' }).click();
-          await page.locator('[data-rival="kite"]').click();
-          await page.waitForFunction(
-            () =>
-              window.__VN_INSPECTOR.getSnapshot().inspection.rivalId === 'kite',
-          );
-          const back = await page.locator('#inspect-back').boundingBox();
-          assert.ok(back.y >= 0 && back.y + back.height <= viewport.height);
-          assert.equal(
-            await page.evaluate(
-              () => document.documentElement.scrollWidth > innerWidth,
-            ),
-            false,
-          );
-          await page.locator('#inspect-back').click();
-          assert.equal((await front(page)).shipId, 'bastion');
-          assert.equal((await front(page)).selected, 'shatterline');
-          assert.equal(await page.locator('canvas#world').count(), 0);
-        },
-        viewport,
-      );
-    }
-    for (const viewport of [
       { width: 768, height: 768 },
       { width: 390, height: 844 },
       { width: 320, height: 700 },
@@ -2352,8 +3186,10 @@ try {
             );
           });
           assert.deepEqual(
-            await page.locator('.menu-top-tabs button').allTextContents(),
-            ['Race', 'Garage', 'Settings', 'Career', 'Tunes'],
+            (await page.locator('.menu-top-tabs button').allTextContents()).map(
+              (text) => text.trim(),
+            ),
+            ['Race', 'Garage', 'Settings', 'Career', 'Tunes', 'Switch career'],
           );
           assert.equal(
             await page
@@ -2500,14 +3336,19 @@ try {
               const tabs = [
                 ...document.querySelectorAll('.menu-top-tabs button'),
               ];
+              const nav = document
+                .querySelector('.menu-top-tabs')
+                .getBoundingClientRect();
               return (
                 document.documentElement.scrollWidth <= innerWidth &&
                 shell.scrollWidth <= shell.clientWidth + 1 &&
+                nav.left >= 0 &&
+                nav.right <= innerWidth + 1 &&
                 tabs.every((tab) => {
                   const r = tab.getBoundingClientRect();
                   return (
-                    r.left >= 0 &&
-                    r.right <= innerWidth + 1 &&
+                    Math.abs(r.top - nav.top) < 1 &&
+                    r.bottom <= nav.bottom + 1 &&
                     r.top >= 0 &&
                     r.bottom <= innerHeight
                   );
@@ -2515,7 +3356,7 @@ try {
               );
             }),
             true,
-            'all top-level tabs must remain visible and fit the viewport',
+            'top-level tabs stay on one row inside a viewport-width strip',
           );
         };
         const samePlayer = async () => {
@@ -2532,8 +3373,10 @@ try {
           );
         };
         assert.deepEqual(
-          await page.locator('.menu-top-tabs button').allTextContents(),
-          ['Race', 'Garage', 'Settings', 'Career', 'Tunes'],
+          (await page.locator('.menu-top-tabs button').allTextContents()).map(
+            (text) => text.trim(),
+          ),
+          ['Race', 'Garage', 'Settings', 'Career', 'Tunes', 'Switch career'],
         );
         await page.evaluate(() => {
           window.retainedMusic = document.querySelector('[data-music-player]');
@@ -2544,6 +3387,7 @@ try {
         assert.equal((await front(page)).screen, 'settings');
         await page.locator('[data-setting="quality"]').selectOption('low');
         await fits();
+        await activate('race-tab');
         await activate('career');
         assert.equal((await front(page)).screen, 'career');
         assert.equal(
@@ -2557,8 +3401,99 @@ try {
           0,
           'Career is page content, not an open dialog',
         );
-        assert.equal(await page.locator('.career-transfer button').count(), 4);
+        assert.equal(await page.locator('.career-transfer button').count(), 3);
+        assert.equal(
+          await page.locator('[data-backup]').textContent(),
+          'Export backup',
+        );
+        assert.equal(
+          await page.locator('[data-backup]').getAttribute('aria-label'),
+          'Export previous backup',
+        );
         assert.equal((await front(page)).careerSlot.id, 1);
+        const demo = await page.evaluate(
+          async () => (await import('/src/progression/edition.js')).IS_DEMO,
+        );
+        const groups = page.locator('.career-reward-group');
+        assert.deepEqual(
+          await groups.locator('header h2').allTextContents(),
+          demo
+            ? ['Fleet upgrades', 'Equipment']
+            : ['Fleet upgrades', 'Ships', 'Equipment'],
+        );
+        assert.deepEqual(
+          await groups.evaluateAll((sections) =>
+            sections.map(
+              (section) => section.querySelectorAll('.reward-milestone').length,
+            ),
+          ),
+          demo ? [2, 2] : [18, 3, 7],
+        );
+        const rewardNames = await page
+          .locator('.career-page .reward-milestone strong')
+          .allTextContents();
+        assert.equal(rewardNames.length, demo ? 4 : 28);
+        assert.equal(new Set(rewardNames).size, rewardNames.length);
+        assert.ok(
+          await page
+            .locator('.career-page .reward-milestone')
+            .evaluateAll((rewards) =>
+              rewards.every((reward) => {
+                const box = reward.getBoundingClientRect();
+                return (
+                  box.left >= 0 &&
+                  box.right <= innerWidth + 1 &&
+                  reward.scrollWidth <= reward.clientWidth + 1
+                );
+              }),
+            ),
+          'all reward rows wrap within the visible page width',
+        );
+        const rules = page.locator('details.career-rules');
+        const explanation = rules.locator('.career-intro');
+        const rulesAction = rules.locator('summary');
+        assert.equal(await rules.getAttribute('open'), null);
+        assert.equal(await explanation.isVisible(), false);
+        if (
+          await page.evaluate(() => matchMedia('(pointer: coarse)').matches)
+        ) {
+          assert.ok(
+            (await rulesAction.boundingBox()).height >= 44,
+            'reward explanation keeps a 44px touch target',
+          );
+          assert.ok(
+            await page
+              .locator('.career-page button:visible')
+              .evaluateAll((buttons) =>
+                buttons.every(
+                  (button) => button.getBoundingClientRect().height >= 44,
+                ),
+              ),
+            'Career actions keep 44px touch targets',
+          );
+        }
+        await rulesAction.focus();
+        await page.keyboard.press('Enter');
+        assert.ok(await explanation.isVisible());
+        await page.keyboard.press('Space');
+        assert.equal(await explanation.isVisible(), false);
+        assert.ok(
+          await rulesAction.evaluate(
+            (element) => element === document.activeElement,
+          ),
+          'native reward explanation retains keyboard focus',
+        );
+        await page.keyboard.press('Enter');
+        await page.keyboard.press('Escape');
+        assert.equal((await front(page)).screen, 'home');
+        assert.ok(
+          await tab('career').evaluate(
+            (element) => element === document.activeElement,
+          ),
+          'Back from the reward explanation restores the Career tab',
+        );
+        await activate('career');
+        assert.equal(await rules.getAttribute('open'), null);
         assert.equal(
           await page.evaluate(() => {
             const actions = document.querySelector('.career-transfer');
@@ -2575,6 +3510,16 @@ try {
           true,
           'save controls must appear above career progress',
         );
+        if (viewport.width >= 390 && viewport.height >= 700)
+          assert.ok(
+            await page
+              .locator('.career-page .reward-milestone')
+              .first()
+              .evaluate(
+                (element) => element.getBoundingClientRect().top < innerHeight,
+              ),
+            'compact career content reveals rewards without introductory scrolling',
+          );
         await fits();
         await activate('tunes');
         await floatingTunes('career');
@@ -2613,6 +3558,13 @@ try {
         );
         await tab('race-tab').focus();
         await page.keyboard.press('End');
+        assert.equal(
+          await tab('switch-career').evaluate(
+            (el) => el === document.activeElement,
+          ),
+          true,
+        );
+        await page.keyboard.press('ArrowLeft');
         assert.equal(
           await tab('tunes').evaluate((el) => el === document.activeElement),
           true,

@@ -7,7 +7,7 @@ import {
   Mesh,
   ShaderMaterial,
 } from 'three';
-import { DEVICE_COLORS } from './theme.js';
+import { DEVICE_COLORS, LANCE_COLOR } from './theme.js';
 import { createQualityPresentation } from './quality.js';
 import { createLowHitFeedback } from './low-feedback.js';
 
@@ -126,7 +126,6 @@ function createDetailedHitFeedback(ship, hull) {
     ) {
       if (disposed) return;
       const hit =
-        equipment !== 'lance' &&
         ['arc', 'repulsor', 'ion'].includes(kind) &&
         Number.isFinite(age) &&
         age >= 0 &&
@@ -145,13 +144,15 @@ function createDetailedHitFeedback(ship, hull) {
         return;
       }
       if (!hit && !sustained) kind = 'ion';
+      const color =
+        hit && equipment === 'lance' ? LANCE_COLOR : DEVICE_COLORS[kind];
       for (const surface of [material, glow]) {
         surface.uniforms.interference.value = hit ? 0 : 1;
         surface.uniforms.time.value = reducedMotion ? 0 : time;
       }
-      material.uniforms.color.value.setHex(DEVICE_COLORS[kind]);
+      material.uniforms.color.value.setHex(color);
       glow.uniforms.color.value
-        .setHex(DEVICE_COLORS[kind])
+        .setHex(color)
         .multiplyScalar(kind === 'arc' ? 1.8 : 2);
       glow.uniforms.expansion.value =
         kind === 'repulsor' ? 0.28 : kind === 'ion' ? 0.24 : 0.2;

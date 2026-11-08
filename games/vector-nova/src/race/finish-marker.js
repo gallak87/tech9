@@ -14,6 +14,15 @@ export function createFinishMarker(
     dark = 0x181818,
   } = {},
 ) {
+  const moving = typeof track.deviceMotionAt === 'function';
+  if (moving && typeof track.nominalSample !== 'function')
+    throw new Error('Moving finish paint requires a nominal sampler.');
+  const sample = moving
+    ? track.nominalSample.bind(track)
+    : track.sample.bind(track);
+  const sampleSurface = moving
+    ? track.nominalSurface?.bind(track)
+    : track.sampleSurface?.bind(track);
   const distance =
     track.closed === false
       ? (track.finishDistance ?? track.length)
@@ -65,9 +74,9 @@ export function createFinishMarker(
         const x = -width / 2 + (column + side) * tileWidth;
         const surface =
           track.deviceProjection === 'rendered-surface'
-            ? track.sampleSurface?.(s, x)
+            ? sampleSurface?.(s, x)
             : null;
-        const frame = surface ?? track.sample(s);
+        const frame = surface ?? sample(s);
         // Sample every corner so banking and curvature conform across both
         // rows, including implementations which reuse one scratch frame.
         const point = frame.position
@@ -111,8 +120,20 @@ export function createFinishMarker(
   };
   group.add(mesh);
   let disposed = false;
+  const update = () => {
+    if (!moving || disposed) return;
+    const translation = track.deviceMotionAt(distance);
+    if (
+      !translation?.isVector3 ||
+      !translation.toArray().every(Number.isFinite)
+    )
+      throw new Error('Moving finish paint requires a finite translation.');
+    group.position.copy(translation);
+  };
+  update();
   return {
     group,
+    update,
     dispose() {
       if (disposed) return;
       disposed = true;

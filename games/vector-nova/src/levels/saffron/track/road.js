@@ -1,6 +1,8 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import {
   SAFFRON_SOLIDS,
   roadRuns,
+  roadSweepOptions,
   toeProfile,
   createBaffleGeometry,
   bafflePlacements,
@@ -8,6 +10,9 @@ import {
   deckEndGeometry,
 } from './solids.js';
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { deckSkinGeometry } from './skins.js';
+import baffleKit from '../../../../assets/levels/saffron/baffles-meshes.json' with { type: 'json' };
 import {
   sweepGeometry,
   boxProfile,
@@ -23,7 +28,7 @@ const SIDES = [-1, 1];
 // Raceway geometry follows the same sampled frames in production and review.
 // Only the two structural breaks remove deck; the dune skip is a chosen line.
 export function createSaffronRoad(
-  { track, settings = {}, collisionWorld = null },
+  { track, collisionWorld = null },
   { shape = false } = {},
 ) {
   const group = new THREE.Group();
@@ -40,13 +45,14 @@ export function createSaffronRoad(
     materials.add(m);
     return m;
   };
-  const lens = (color, transmission, thickness) => {
+  const lens = (color) => {
     const m = new THREE.MeshPhysicalMaterial({
       color: shape ? 0xb5b3a4 : color,
       roughness: shape ? 0.75 : 0.29,
       metalness: shape ? 0.04 : 0.02,
-      transmission: !shape && settings.quality !== 'low' ? transmission : 0,
-      thickness,
+      // Alpha and the existing environment probe retain optical depth without
+      // rendering the whole scene again for a barely visible refraction lobe.
+      transmission: 0,
       ior: 1.46,
       transparent: !shape,
       opacity: shape ? 1 : 0.58,
@@ -55,10 +61,9 @@ export function createSaffronRoad(
       forceSinglePass: true,
       specularIntensity: 0.28,
       specularColor: 0xd8b762,
-      attenuationColor: 0x80501b,
-      attenuationDistance: 6,
-      clearcoat: shape ? 0 : 0.15,
-      clearcoatRoughness: 0.34,
+      envMapIntensity: 1.3,
+      clearcoat: shape ? 0 : 0.26,
+      clearcoatRoughness: 0.22,
     });
     materials.add(m);
     return m;
@@ -66,36 +71,39 @@ export function createSaffronRoad(
   const solidGlass = (color) => {
     const m = new THREE.MeshPhysicalMaterial({
       color: shape ? 0xb5b3a4 : color,
-      roughness: shape ? 0.75 : 0.22,
+      roughness: shape ? 0.75 : 0.28,
       metalness: shape ? 0.04 : 0.02,
-      clearcoat: shape ? 0 : 0.42,
+      clearcoat: shape ? 0 : 0.32,
       clearcoatRoughness: 0.2,
       ior: 1.46,
+      specularIntensity: 0.38,
+      envMapIntensity: 1.3,
     });
     materials.add(m);
     return m;
   };
   const smoke = solidGlass(0x967026);
-  const amber = lens(0xd6ad4e, 0.14, 2.8);
-  const glass = lens(0xe8bd61, 0.12, 3.8);
+  const amber = lens(0xd6ad4e);
+  const glass = lens(0xe8bd61);
   const honey = solidGlass(0xc39d55);
   if (!shape) {
     for (const mat of [smoke, amber, glass, honey]) {
       mat.onBeforeCompile = (shader) => {
-        shader.vertexShader =
-          `varying vec3 vGlassPoint;\n${shader.vertexShader}`.replace(
-            '#include <begin_vertex>',
-            `#include <begin_vertex>
+        shader.vertexShader = replaceShader(
+          `varying vec3 vGlassPoint;\n${shader.vertexShader}`,
+          '#include <begin_vertex>',
+          `#include <begin_vertex>
 vGlassPoint=position;
 #ifdef USE_INSTANCING
 vGlassPoint=(instanceMatrix*vec4(position,1.)).xyz;
 #endif`,
-          );
-        shader.fragmentShader = `varying vec3 vGlassPoint;
+        );
+        shader.fragmentShader = replaceShader(
+          replaceShader(
+            `varying vec3 vGlassPoint;
           float gHash(vec3 p){p=fract(p*.1031);p+=dot(p,p.yzx+33.33);return fract((p.x+p.y)*p.z);}
           float gNoise(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(mix(gHash(i),gHash(i+vec3(1,0,0)),f.x),mix(gHash(i+vec3(0,1,0)),gHash(i+vec3(1,1,0)),f.x),f.y),mix(mix(gHash(i+vec3(0,0,1)),gHash(i+vec3(1,0,1)),f.x),mix(gHash(i+vec3(0,1,1)),gHash(i+vec3(1,1,1)),f.x),f.y),f.z);}
-          ${shader.fragmentShader}`
-          .replace(
+          ${shader.fragmentShader}`,
             '#include <color_fragment>',
             `#include <color_fragment>
           float mineral=gNoise(vGlassPoint*vec3(.13,.015,.018));
@@ -107,32 +115,61 @@ vGlassPoint=(instanceMatrix*vec4(position,1.)).xyz;
           float grainVisible=1.-smoothstep(.018,.11,footprint);
           float etching=gNoise(vGlassPoint*34.);
           float haze=smoothstep(.42,.76,folded);
+          float polish=1.-smoothstep(.34,.70,folded);
           diffuseColor.rgb*=.76+mineral*.34;
           diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.61,.40,.13),vein*.22);
           diffuseColor.rgb*=1.-haze*.075;`,
-          )
-          .replace(
-            '#include <roughnessmap_fragment>',
-            `#include <roughnessmap_fragment>
-roughnessFactor=clamp(roughnessFactor+haze*.22+skin*.045+vein*.025,.18,.64);`,
-          );
-        shader.fragmentShader = shader.fragmentShader.replace(
+          ),
+          '#include <roughnessmap_fragment>',
+          `#include <roughnessmap_fragment>
+roughnessFactor=clamp(roughnessFactor+haze*.18+skin*.03+vein*.025-polish*.055,.19,.64);`,
+        );
+        shader.fragmentShader = replaceShader(
+          shader.fragmentShader,
           '#include <normal_fragment_maps>',
           `#include <normal_fragment_maps>
-          float glassRelief=folded*.018+skin*.005+etching*.0018*grainVisible;
+          float glassRelief=folded*.014+skin*.003+etching*.0012*grainVisible;
           vec3 dx=dFdx(-vViewPosition),dy=dFdy(-vViewPosition);
           vec3 rx=cross(dy,normal),ry=cross(normal,dx);
           float det=dot(dx,rx)*faceDirection;
           normal=normalize(abs(det)*normal-sign(det)*(dFdx(glassRelief)*rx+dFdy(glassRelief)*ry));`,
         );
+        // The sealed coat reflects broad sky shapes above the cast mineral
+        // relief. Reuse the existing haze rather than sampling another layer.
+        shader.fragmentShader = replaceShader(
+          shader.fragmentShader,
+          '#include <lights_physical_fragment>',
+          `#include <lights_physical_fragment>
+          #ifdef USE_CLEARCOAT
+          material.clearcoatRoughness=clamp(material.clearcoatRoughness+haze*.11-polish*.025,.14,.4);
+          #endif`,
+        );
+        // The etched skin scatters the directional sun's idealized peak. Keep
+        // low/medium highlights and all environmental reflections unchanged;
+        // only the combined direct base/coat lobe receives this soft shoulder.
+        shader.fragmentShader = replaceShader(
+          shader.fragmentShader,
+          '#include <opaque_fragment>',
+          `vec3 glassDirectHighlight=reflectedLight.directSpecular;
+          #ifdef USE_CLEARCOAT
+          glassDirectHighlight=glassDirectHighlight*(1.-material.clearcoat*Fcc)
+            +clearcoatSpecularDirect*material.clearcoat;
+          #endif
+          float glassPeak=max(glassDirectHighlight.r,max(glassDirectHighlight.g,glassDirectHighlight.b));
+          float glassExcess=max(0.,glassPeak-.45);
+          float glassShoulder=.45+glassExcess/(1.+glassExcess/.40);
+          float glassHighlightScale=glassPeak>.45?glassShoulder/max(glassPeak,.0001):1.;
+          outgoingLight+=glassDirectHighlight*(glassHighlightScale-1.);
+          #include <opaque_fragment>`,
+        );
       };
-      mat.customProgramCacheKey = () => 'saffron-fused-glass-v6';
+      mat.customProgramCacheKey = () => 'saffron-sealed-glass-v8';
     }
   }
   const support = material({
     color: shape ? 0xc1bbad : 0xac7835,
-    roughness: 0.43,
-    metalness: 0.18,
+    roughness: 0.53,
+    metalness: 0.3,
   });
   const bone = material({
     color: shape ? 0xe3e0d4 : 0xe6d5a5,
@@ -153,16 +190,17 @@ roughnessFactor=clamp(roughnessFactor+haze*.22+skin*.045+vein*.025,.18,.64);`,
   });
   if (!shape) {
     sand.onBeforeCompile = (shader) => {
-      shader.vertexShader =
-        `varying vec3 vSandPoint;\n${shader.vertexShader}`.replace(
-          '#include <begin_vertex>',
-          '#include <begin_vertex>\nvSandPoint=position;',
-        );
-      shader.fragmentShader = `varying vec3 vSandPoint;
+      shader.vertexShader = replaceShader(
+        `varying vec3 vSandPoint;\n${shader.vertexShader}`,
+        '#include <begin_vertex>',
+        '#include <begin_vertex>\nvSandPoint=position;',
+      );
+      shader.fragmentShader = replaceShader(
+        replaceShader(
+          `varying vec3 vSandPoint;
         float sandHash(vec3 p){p=fract(p*.1031);p+=dot(p,p.yzx+33.33);return fract((p.x+p.y)*p.z);}
         float sandNoise(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(mix(sandHash(i),sandHash(i+vec3(1,0,0)),f.x),mix(sandHash(i+vec3(0,1,0)),sandHash(i+vec3(1,1,0)),f.x),f.y),mix(mix(sandHash(i+vec3(0,0,1)),sandHash(i+vec3(1,0,1)),f.x),mix(sandHash(i+vec3(0,1,1)),sandHash(i+vec3(1,1,1)),f.x),f.y),f.z);}
-        ${shader.fragmentShader}`
-        .replace(
+        ${shader.fragmentShader}`,
           '#include <color_fragment>',
           `#include <color_fragment>
           float ripplePhase=vSandPoint.x*5.2+vSandPoint.z*2.8+sin(vSandPoint.z*.18)*1.2;
@@ -173,17 +211,16 @@ roughnessFactor=clamp(roughnessFactor+haze*.22+skin*.045+vein*.025,.18,.64);`,
           float grainVisible=1.-smoothstep(.018,.09,max(length(dFdx(vSandPoint)),length(dFdy(vSandPoint))));
           diffuseColor.rgb*=.82+depositPatch*.19+(ripples-.5)*.10*rippleVisible+(grain-.5)*.22*grainVisible;
         `,
-        )
-        .replace(
-          '#include <normal_fragment_maps>',
-          `#include <normal_fragment_maps>
+        ),
+        '#include <normal_fragment_maps>',
+        `#include <normal_fragment_maps>
           float relief=ripples*.027*rippleVisible+depositPatch*.007+grain*.0025*grainVisible;
           vec3 dx=dFdx(-vViewPosition),dy=dFdy(-vViewPosition);
           vec3 rx=cross(dy,normal),ry=cross(normal,dx);
           float det=dot(dx,rx)*faceDirection;
           normal=normalize(abs(det)*normal-sign(det)*(dFdx(relief)*rx+dFdy(relief)*ry));
         `,
-        );
+      );
     };
     sand.customProgramCacheKey = () => 'saffron-deposit-grain-v2';
   }
@@ -195,6 +232,7 @@ roughnessFactor=clamp(roughnessFactor+haze*.22+skin*.045+vein*.025,.18,.64);`,
     return mesh;
   };
   const runs = roadRuns(track);
+  const deckSurfaces = [];
   const profile = (points, start, end, mat, name) =>
     add(
       name,
@@ -205,7 +243,7 @@ roughnessFactor=clamp(roughnessFactor+haze*.22+skin*.045+vein*.025,.18,.64);`,
           points[0][0] > points[1][0]
           ? [...points].reverse()
           : points,
-        { start, end, step: SAFFRON_SOLIDS.step },
+        roadSweepOptions(start, end, points === SAFFRON_SOLIDS.top),
       ),
       mat,
     );
@@ -220,6 +258,7 @@ roughnessFactor=clamp(roughnessFactor+haze*.22+skin*.045+vein*.025,.18,.64);`,
     top.renderOrder = 2;
     top.userData.drivingSurface = true;
     top.userData.roadSurface = true;
+    deckSurfaces.push({ start, end, geometry: top.geometry });
     top.userData.interval = [start, end];
     profile(
       SAFFRON_SOLIDS.underside,
@@ -283,17 +322,20 @@ roughnessFactor=clamp(roughnessFactor+haze*.22+skin*.045+vein*.025,.18,.64);`,
   ends.material.side = THREE.DoubleSide;
   for (const section of track.sections.filter((s) =>
     ['sandfall', 'return'].includes(s.id),
-  ))
-    profile(
-      [
-        [-16.5, 0.045],
-        [16.5, 0.045],
-      ],
-      section.start,
-      section.end,
-      honey,
+  )) {
+    add(
       'Honey-opaque reinforced turn panels',
+      deckSkinGeometry(
+        deckSurfaces,
+        track,
+        section.start,
+        section.end,
+        16.5,
+        0.045,
+      ),
+      honey,
     );
+  }
   const box = ownGeometry(new THREE.BoxGeometry(1, 1, 1));
   const instanced = (name, geometry, mat, entries) => {
     const mesh = new THREE.InstancedMesh(geometry, mat, entries.length);
@@ -382,7 +424,12 @@ roughnessFactor=clamp(roughnessFactor+haze*.22+skin*.045+vein*.025,.18,.64);`,
       const from = framePoint(f, side * 12, -3.5),
         to = foot.clone().addScaledVector(f.right, side * 4.8);
       to.y = survey.heightAt(to.x, to.z) + 1.2;
-      const beam = beamTransform(from, to, 2.1, 3.1),
+      const beam = beamTransform(
+          from,
+          to,
+          SAFFRON_SOLIDS.supportWidth,
+          SAFFRON_SOLIDS.supportDepth,
+        ),
         o = new THREE.Object3D();
       o.position.copy(beam.position);
       o.quaternion.copy(beam.quaternion);
@@ -405,9 +452,58 @@ roughnessFactor=clamp(roughnessFactor+haze*.22+skin*.045+vein*.025,.18,.64);`,
     for (let x = begin; x < end; x += 3)
       warning.push({ s: j.takeoff - 3, x, y: 0.09, scale: [1.6, 0.12, 1.5] });
   }
-  instanced('Split tapered baffle vanes', vaneGeometry(), bone, vanes);
-  instanced('Baffle ceramic anchors', box, honey, clamps);
-  instanced('Glass lens section seams', box, seam, panelRims);
+  const formedVanes = shape ? [] : vanes;
+  instanced(
+    'Split tapered baffle vanes',
+    vaneGeometry(),
+    bone,
+    shape ? vanes : [],
+  );
+  const baffleMaterials = {
+    ceramic: material({ color: 0xd8c9ac, roughness: 0.43, metalness: 0.12 }),
+    graphite: material({ color: 0x3c3932, roughness: 0.48, metalness: 0.6 }),
+    bronze: material({ color: 0x9b7139, roughness: 0.38, metalness: 0.65 }),
+  };
+  for (const [name, source] of Object.entries(baffleKit.groups)) {
+    const geometry = ownGeometry(new THREE.BufferGeometry());
+    geometry.setAttribute(
+      'position',
+      new THREE.Float32BufferAttribute(source.positions, 3),
+    );
+    geometry.setAttribute(
+      'normal',
+      new THREE.Float32BufferAttribute(source.normals, 3),
+    );
+    geometry.setIndex(source.indices);
+    instanced(
+      `Formed baffle ${name}`,
+      geometry,
+      baffleMaterials[name],
+      formedVanes,
+    );
+  }
+  const bearingPosts = shape
+    ? clamps
+    : clamps.flatMap((entry) => [
+        { ...entry, y: 1.12, scale: [0.48, 1.86, 0.9] },
+        { ...entry, s: entry.s + 7.6, y: 1.12, scale: [0.48, 1.86, 0.9] },
+      ]);
+  instanced('Baffle bronze bearing anchors', box, support, bearingPosts);
+  instanced(
+    'Seated baffle bearing saddles',
+    box,
+    seam,
+    bearingPosts.map((entry) => ({
+      ...entry,
+      y: 0.24,
+      scale: [0.76, 0.3, 1.65],
+    })),
+  );
+  const joints = panelRims.map(({ s }) =>
+    deckSkinGeometry(deckSurfaces, track, s - 0.0375, s + 0.0375, 16.8, 0.065),
+  );
+  add('Glass lens section seams', mergeGeometries(joints), seam);
+  joints.forEach((geometry) => geometry.dispose());
   instanced('Deep lens compression sills', box, support, lensSills);
   instanced('Subsurface mineral laminae', box, amber, laminae);
   if (!shape)
@@ -435,9 +531,41 @@ roughnessFactor=clamp(roughnessFactor+haze*.22+skin*.045+vein*.025,.18,.64);`,
     seam,
     feet,
   );
+  const webProfile = new THREE.Shape();
+  const webOutline = [
+    [-0.47, -0.47],
+    [0.47, -0.47],
+    [0.47, -0.3],
+    [0.13, -0.3],
+    [0.13, 0.3],
+    [0.47, 0.3],
+    [0.47, 0.47],
+    [-0.47, 0.47],
+    [-0.47, 0.3],
+    [-0.13, 0.3],
+    [-0.13, -0.3],
+    [-0.47, -0.3],
+  ];
+  webOutline.forEach(([x, z], i) =>
+    i ? webProfile.lineTo(x, z) : webProfile.moveTo(x, z),
+  );
+  webProfile.closePath();
+  const supportGeometry = ownGeometry(
+    new THREE.ExtrudeGeometry(webProfile, {
+      depth: 0.96,
+      steps: 1,
+      bevelEnabled: true,
+      bevelThickness: 0.02,
+      bevelSize: 0.015,
+      bevelSegments: 1,
+      curveSegments: 1,
+    })
+      .rotateX(-Math.PI / 2)
+      .translate(0, -0.48, 0),
+  );
   const legMesh = instanced(
     'Forked gold ceramic support legs',
-    box,
+    supportGeometry,
     support,
     footBeams,
   );
@@ -481,24 +609,10 @@ roughnessFactor=clamp(roughnessFactor+haze*.22+skin*.045+vein*.025,.18,.64);`,
     mesh.frustumCulled = false;
     sands.push({ mesh, rows, cols });
   }
-  const opticalMaterials = [amber, glass];
-  const opticalTransmission = [0.14, 0.12];
-  let currentQuality = settings.quality ?? 'high';
   let lastTime = null,
     disposed = false;
-  function update({ time = 0, settings: nextSettings = settings } = {}) {
+  function update({ time = 0 } = {}) {
     if (disposed) return;
-    if (
-      !shape &&
-      nextSettings.quality &&
-      nextSettings.quality !== currentQuality
-    ) {
-      currentQuality = nextSettings.quality;
-      opticalMaterials.forEach((m, i) => {
-        m.transmission = currentQuality === 'low' ? 0 : opticalTransmission[i];
-        m.needsUpdate = true;
-      });
-    }
     if (time === lastTime) return;
     lastTime = time;
     const zones = sampleSaffronDeposits(track, time);
@@ -589,7 +703,12 @@ roughnessFactor=clamp(roughnessFactor+haze*.22+skin*.045+vein*.025,.18,.64);`,
         .applyNormalMatrix(new THREE.Matrix3().getNormalMatrix(world));
       if (normal.dot(direction) > 0) normal.negate();
       const endpoint = hit.point.clone().addScaledVector(normal, 1.2);
-      const beam = beamTransform(from, endpoint, 2.1, 3.1),
+      const beam = beamTransform(
+          from,
+          endpoint,
+          SAFFRON_SOLIDS.supportWidth,
+          SAFFRON_SOLIDS.supportDepth,
+        ),
         leg = new THREE.Object3D();
       leg.position.copy(beam.position);
       leg.quaternion.copy(beam.quaternion);

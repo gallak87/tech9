@@ -8,6 +8,7 @@ import {
 import { createNacreEnvironment as createShapeEnvironment } from './shape.js';
 import { createNacreClearance, seededRandom } from './geometry.js';
 import { createNacreMaterials } from './materials.js';
+import { createNacreMineralSurface } from './mineral-surface.js';
 import {
   nacreSeabedBaseY,
   nacreSeabedHeight,
@@ -20,9 +21,37 @@ import { createNacreWaterCrossingEffects } from './water-crossings.js';
 import { createNacreLeviathan } from './leviathan/index.js';
 import { createNacreMarineWeather } from './marine-weather.js';
 
+function selectReefLightAnchors(anchors, cameraPosition) {
+  return anchors
+    .map((anchor) => {
+      const distance = cameraPosition.distanceTo(anchor.position);
+      const priority = T.MathUtils.clamp(anchor.priority ?? 1, 0, 3);
+      const intensity = T.MathUtils.clamp(anchor.intensity ?? 1500, 0, 8000);
+      // Outboard hero terraces need camera visibility beyond the old gardens.
+      // This extends selection only: each physical light still reaches 165m.
+      const visibility =
+        1 -
+        T.MathUtils.smoothstep(
+          distance,
+          priority > 1 ? 300 : 180,
+          priority > 1 ? 560 : 320,
+        );
+      return {
+        anchor,
+        distance,
+        visibility,
+        intensity,
+        score: priority * visibility,
+      };
+    })
+    .filter((candidate) => candidate.score > 0 && candidate.intensity > 0)
+    .sort((a, b) => b.score - a.score || a.distance - b.distance)
+    .slice(0, 3);
+}
+
 export function createNacreEnvironment(
   track,
-  { blockout = false, skyTexture = null } = {},
+  { blockout = false, skyTexture = null, loadMineralTexture } = {},
 ) {
   if (blockout) return createShapeEnvironment(track);
   const group = new T.Group();
@@ -35,7 +64,12 @@ export function createNacreEnvironment(
   const seabedY = nacreSeabedBaseY(track);
   const random = seededRandom();
   const timeUniform = { value: 0 };
-  const materials = createNacreMaterials(timeUniform, waterY);
+  const mineralSurface = createNacreMineralSurface({
+    loadTexture: loadMineralTexture,
+  });
+  const materials = createNacreMaterials(timeUniform, waterY, {
+    mineralSurface,
+  });
   const clearance = createNacreClearance(track);
   const water = createNacreWater(oceanSize, waterY, { skyTexture, track });
   water.position.x = center.x;
@@ -131,7 +165,6 @@ export function createNacreEnvironment(
       leviathan.updateVehicle(vehicle);
     }
   };
-  group.userData.ready = leviathan.ready;
   group.userData.getLeviathanPresentation = () => leviathan.getPresentation();
   group.userData.getWaterPresentation = () => waterCrossings.getPresentation();
   group.userData.getOceanPresentation = () => water.userData.getPresentation();
@@ -152,23 +185,19 @@ export function createNacreEnvironment(
     );
     particles.material.uniforms.time.value = motionTime;
     particles.material.uniforms.wetness.value = state.submerged;
-    const nearest = world.lightAnchors
-      .map((anchor) => ({
-        ...anchor,
-        distance: cameraPosition.distanceTo(anchor.position),
-      }))
-      .sort((a, b) => a.distance - b.distance);
+    const selectedLights = selectReefLightAnchors(
+      world.lightAnchors,
+      cameraPosition,
+    );
     for (const [index, light] of reefLights.entries()) {
-      const anchor = nearest[index];
+      const candidate = selectedLights[index];
       light.intensity =
-        anchor && !overview
-          ? 620 *
-            (1 - T.MathUtils.smoothstep(anchor.distance, 180, 320)) *
-            state.submerged
+        candidate && !overview
+          ? candidate.intensity * candidate.visibility * state.submerged
           : 0;
-      if (anchor) {
-        light.position.copy(anchor.position);
-        light.color.set(anchor.color);
+      if (candidate) {
+        light.position.copy(candidate.anchor.position);
+        light.color.set(candidate.anchor.color);
       }
     }
     group.userData.waterState = state;
@@ -251,6 +280,7 @@ export function createNacreEnvironment(
     disposed = true;
     waterCrossings.clear();
     weather.clear();
+    mineralSurface.dispose();
     water.userData.dispose?.();
     leviathan.dispose();
     if (ownedScene?.fog === fog) ownedScene.fog = previousFog;
@@ -266,5 +296,13 @@ export function createNacreEnvironment(
     for (const material of ownedMaterials) material.dispose();
     group.clear();
   };
+  group.userData.ready = Promise.all([leviathan.ready, mineralSurface.ready])
+    .then(([, mineralReady]) => {
+      if (!disposed) group.userData.metrics.textures = mineralReady ? 3 : 1;
+    })
+    .catch((error) => {
+      group.userData.dispose();
+      throw error;
+    });
   return group;
 }

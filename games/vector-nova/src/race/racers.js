@@ -6,6 +6,11 @@ import {
 import { getShip } from '../ships/catalog.js';
 import { createRace } from './index.js';
 import {
+  REQUIRED_RACE_PROGRESS_FIELDS,
+  captureRaceProgress,
+  restoreRaceProgress,
+} from './checkpoint.js';
+import {
   courseIdentity,
   distanceAhead,
   presentationDistance,
@@ -55,21 +60,6 @@ const REORIENT = Object.freeze({ belowSpeed: 14, heading: Math.PI / 3 });
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const copy = (value) => JSON.parse(JSON.stringify(value));
-const raceFields = [
-  'lap',
-  'checkpoint',
-  'elapsed',
-  'lastLap',
-  'best',
-  'valid',
-  'complete',
-  'startDistance',
-  'history',
-  'completedTransfers',
-];
-const captureRace = (race) =>
-  Object.fromEntries(raceFields.map((key) => [key, copy(race[key])]));
-
 function finishFrom(race) {
   const lapsRequired = race.course.format === 'sprint' ? 1 : RACE_LAPS;
   if (race.history.length < lapsRequired) return null;
@@ -95,23 +85,32 @@ function controlsFor(opponent, track, devices, nearby, difficulty = 'easy') {
     const jump = track.jumps?.find(
       (entry) => Math.abs(entry.takeoff - state.distance) < 1,
     );
-    const boost =
+    let boost =
       profile.flightBoost === true &&
       track.closed === false &&
       jump?.landingEnd - jump?.landingStart >= 600 &&
       state.energy >
         (state.boosting ? profile.boostFloor : profile.boostReserve);
+    const flightBoost = track.aiFlightBoost?.(state, jump, {
+      runtime: opponent.runtime,
+      defaultBoost: boost,
+      allowBoost: profile.flightBoost === true,
+    });
+    if (typeof flightBoost === 'boolean') boost = flightBoost;
     return { throttle: 1, brake: 0, steer: 0, boost, airbrake: false };
   }
   const handling = getShip(state.shipId).handling;
   const coursePace = getVehiclePace(state.shipId, track.pace);
   const speedProfile = coursePace ?? handling;
-  const surface = track.sampleSurface?.(state.distance, state.lateral);
+  const sampleSurface = (distance, lateral) =>
+    track.movingSurfaces === true && track.surfaceAtTime
+      ? track.surfaceAtTime(distance, lateral, state.time)
+      : track.sampleSurface?.(distance, lateral);
+  const surface = sampleSurface(state.distance, state.lateral);
   const frame = surface ?? track.sample(state.distance);
   const aheadDistance = state.distance + Math.max(45, state.speed * 0.65);
   const lookahead =
-    track.sampleSurface?.(aheadDistance, state.lateral) ??
-    track.sample(aheadDistance);
+    sampleSurface(aheadDistance, state.lateral) ?? track.sample(aheadDistance);
   const laneDelta = (from, to) =>
     surface?.period > 0
       ? ((((to - from + surface.period / 2) % surface.period) +
@@ -137,7 +136,10 @@ function controlsFor(opponent, track, devices, nearby, difficulty = 'easy') {
     const preview = Math.max(65, state.speed * profile.brakingPreview);
     for (const fraction of [1 / 3, 2 / 3, 1]) {
       const distance = preview * fraction;
-      const future = track.sample(state.distance + distance);
+      const future =
+        (track.aiSurfacePreview
+          ? sampleSurface(state.distance + distance, state.lateral)
+          : null) ?? track.sample(state.distance + distance);
       const safeSpeed = Math.max(63, cornerLimit(future.curvature));
       cornerSpeed = Math.min(
         cornerSpeed,
@@ -245,10 +247,13 @@ function controlsFor(opponent, track, devices, nearby, difficulty = 'easy') {
   const speed = Math.max(18, state.speed);
   const sidewaysLoad =
     -frame.curvature * speed * speed * 0.75 - 9.81 * frame.right.y;
+  const laneSpeedLimit = Number.isFinite(track.aiLaneSpeedLimit)
+    ? clamp(track.aiLaneSpeedLimit, 4, 30)
+    : 9;
   const targetSideways = clamp(
     laneDelta(state.lateral, targetLane) * 1.5,
-    -9,
-    9,
+    -laneSpeedLimit,
+    laneSpeedLimit,
   );
   let desiredHeading = clamp(
     Math.asin(
@@ -276,6 +281,26 @@ function controlsFor(opponent, track, devices, nearby, difficulty = 'easy') {
       clamp((-state.lateralSpeed * 0.15) / speed, -0.2, 0.2),
     );
     desiredHeading += (aligned - desiredHeading) * weight;
+  }
+  const launchTarget =
+    jump &&
+    track.aiLaunchTarget?.(state, jump, {
+      runtime: opponent.runtime,
+      allowBoost: profile.flightBoost === true,
+    });
+  if (
+    launchTarget &&
+    ['x', 'y', 'z'].every((axis) => Number.isFinite(launchTarget[axis]))
+  ) {
+    const x = launchTarget.x - frame.position.x,
+      y = launchTarget.y - frame.position.y,
+      z = launchTarget.z - frame.position.z;
+    const along =
+      x * frame.tangent.x + y * frame.tangent.y + z * frame.tangent.z;
+    const across = x * frame.right.x + y * frame.right.y + z * frame.right.z;
+    // A moving receiver may need a deliberate intercept heading at the lip.
+    // This is ordinary steering through the same driver and magnetic solver.
+    if (along > 1) desiredHeading = clamp(Math.atan2(across, along), -0.5, 0.5);
   }
   const authority = (1 - STEERING_ASSIST) * 1.5 * handling.turn;
   const feedforward = (-frame.curvature * state.speed) / (1.5 * handling.turn);
@@ -477,6 +502,7 @@ export function createRacers({
     enabled: nextEnabled = true,
     difficulty: nextDifficulty = 'easy',
     gridOrder = initialOrder,
+    presentation = true,
   } = {}) {
     if (!RACE_DIFFICULTIES.includes(nextDifficulty))
       throw new Error('Unknown race difficulty');
@@ -524,14 +550,24 @@ export function createRacers({
         opponent.eliminated = false;
         opponent.runtime.setEnabled?.(enabled);
       }
-      opponent.runtime.reset({ reason: 'restart', state: opponent.state });
+      opponent.runtime.reset({
+        reason: 'restart',
+        state: opponent.state,
+        presentation,
+      });
     }
   }
   reset({ enabled: false });
 
   function prepareTick(
     step,
-    { playerState, playerRace, playerPrevious, playerPose } = {},
+    {
+      playerState,
+      playerRace,
+      playerPrevious,
+      playerPose,
+      presentation = true,
+    } = {},
   ) {
     elapsed += step;
     // All controls are sampled before anyone advances, so this one bounded
@@ -576,11 +612,18 @@ export function createRacers({
     opponents.forEach((opponent) => {
       if (!opponent.eliminated) opponent.prev = { ...opponent.state };
     });
-    return { step, controls, playerState, playerRace, playerPose };
+    return {
+      step,
+      controls,
+      playerState,
+      playerRace,
+      playerPose,
+      presentation,
+    };
   }
 
   function finishTick(
-    { step, controls, playerState, playerPose },
+    { step, controls, playerState, playerPose, presentation },
     shared = false,
   ) {
     const events = [];
@@ -600,7 +643,7 @@ export function createRacers({
       );
       // Deliver decorative events to attached observers, then drain them even
       // in CPU-only races so feedback never accumulates between simulation ticks.
-      opponent.runtime.update({});
+      opponent.runtime.update(presentation ? {} : { presentation: false });
       relativeTiming.update(
         opponent.specification.id,
         presentationDistance(track, opponent.state, opponent.runtime.pose(1)),
@@ -840,7 +883,7 @@ export function createRacers({
         id: opponent.specification.id,
         state: copy(opponent.state),
         prev: copy(opponent.prev),
-        race: captureRace(opponent.race),
+        race: captureRaceProgress(opponent.race),
         runtime: opponent.runtime.snapshot(),
         finish: copy(opponent.finish),
         boostSeconds: opponent.boostSeconds,
@@ -849,100 +892,117 @@ export function createRacers({
     };
   }
 
-  function restore(data) {
-    if (
-      !data ||
-      JSON.stringify(data.field) !== identityJSON ||
-      JSON.stringify(data.course) !== JSON.stringify(course) ||
-      data.trackId !== track.id ||
-      typeof data.enabled !== 'boolean' ||
-      !RACE_DIFFICULTIES.includes(data.difficulty) ||
-      !Number.isFinite(data.elapsed) ||
-      data.elapsed < 0 ||
-      data.opponents?.length !== opponents.length
-    )
-      throw new Error('Racer state mismatch');
-    const finiteTree = (value) =>
-      typeof value === 'number'
-        ? Number.isFinite(value)
-        : !value ||
-          typeof value !== 'object' ||
-          Object.values(value).every(finiteTree);
-    if (!finiteTree(data)) throw new Error('Racer state must remain finite');
-    const validFinish = (finish) =>
-      finish === null ||
-      (!!finish &&
-        Array.isArray(finish.lapTimes) &&
-        finish.lapTimes.length === lapsRequired &&
-        finish.lapTimes.every(
-          (duration) => Number.isFinite(duration) && duration > 0,
-        ) &&
-        Array.isArray(finish.lapValidity) &&
-        finish.lapValidity.length === lapsRequired &&
-        finish.lapValidity.every((valid) => typeof valid === 'boolean') &&
-        Number.isFinite(finish.totalTime) &&
-        finish.totalTime > 0 &&
-        typeof finish.valid === 'boolean');
-    if (!validFinish(data.playerFinish))
-      throw new Error('Player race finish mismatch');
-    for (const [index, saved] of data.opponents.entries()) {
-      const opponent = opponents[index];
+  function restore(
+    data,
+    { trusted = false, presentation = true, bindState = false } = {},
+  ) {
+    // Trusted checkpoints belong to this live field. Public replay restores
+    // retain full identity, value and isolated-runtime validation below.
+    if (!trusted) {
       if (
-        saved.id !== opponent.specification.id ||
-        (continuous && typeof saved.eliminated !== 'boolean') ||
-        saved.state?.shipId !== opponent.specification.shipId ||
-        !saved.prev ||
-        !saved.race ||
-        !Array.isArray(saved.race.history) ||
-        !Array.isArray(saved.race.completedTransfers) ||
-        !saved.race.completedTransfers.every(
-          (key) => typeof key === 'string' && /^-?\d+:.+$/.test(key),
-        ) ||
-        typeof saved.race.complete !== 'boolean' ||
-        !raceFields.every((key) => key in saved.race) ||
-        !Number.isFinite(saved.boostSeconds) ||
-        saved.boostSeconds < 0
+        !data ||
+        JSON.stringify(data.field) !== identityJSON ||
+        JSON.stringify(data.course) !== JSON.stringify(course) ||
+        data.trackId !== track.id ||
+        typeof data.enabled !== 'boolean' ||
+        !RACE_DIFFICULTIES.includes(data.difficulty) ||
+        !Number.isFinite(data.elapsed) ||
+        data.elapsed < 0 ||
+        data.opponents?.length !== opponents.length
       )
-        throw new Error('Racer identity mismatch');
-      const defaults = createVehicleState(opponent.specification.shipId);
-      for (const state of [saved.state, saved.prev])
+        throw new Error('Racer state mismatch');
+      const finiteTree = (value) =>
+        typeof value === 'number'
+          ? Number.isFinite(value)
+          : !value ||
+            typeof value !== 'object' ||
+            Object.values(value).every(finiteTree);
+      if (!finiteTree(data)) throw new Error('Racer state must remain finite');
+      const validFinish = (finish) =>
+        finish === null ||
+        (!!finish &&
+          Array.isArray(finish.lapTimes) &&
+          finish.lapTimes.length === lapsRequired &&
+          finish.lapTimes.every(
+            (duration) => Number.isFinite(duration) && duration > 0,
+          ) &&
+          Array.isArray(finish.lapValidity) &&
+          finish.lapValidity.length === lapsRequired &&
+          finish.lapValidity.every((valid) => typeof valid === 'boolean') &&
+          Number.isFinite(finish.totalTime) &&
+          finish.totalTime > 0 &&
+          typeof finish.valid === 'boolean');
+      if (!validFinish(data.playerFinish))
+        throw new Error('Player race finish mismatch');
+      for (const [index, saved] of data.opponents.entries()) {
+        const opponent = opponents[index];
         if (
-          !Object.entries(defaults).every(
-            ([key, value]) => typeof state[key] === typeof value,
+          saved.id !== opponent.specification.id ||
+          (continuous && typeof saved.eliminated !== 'boolean') ||
+          saved.state?.shipId !== opponent.specification.shipId ||
+          !saved.prev ||
+          !saved.race ||
+          !Array.isArray(saved.race.history) ||
+          !Array.isArray(saved.race.completedTransfers) ||
+          !saved.race.completedTransfers.every(
+            (key) => typeof key === 'string' && /^-?\d+:.+$/.test(key),
           ) ||
-          state.shipId !== opponent.specification.shipId ||
-          state.chassisId !==
-            (opponent.specification.chassisId ?? opponent.specification.id)
+          typeof saved.race.complete !== 'boolean' ||
+          !REQUIRED_RACE_PROGRESS_FIELDS.every((key) => key in saved.race) ||
+          !Number.isFinite(saved.boostSeconds) ||
+          saved.boostSeconds < 0
         )
-          throw new Error('Racer vehicle state mismatch');
-      if (
-        !Number.isSafeInteger(saved.race.lap) ||
-        saved.race.lap < 1 ||
-        !Number.isSafeInteger(saved.race.checkpoint) ||
-        saved.race.checkpoint < 0 ||
-        saved.race.checkpoint >= track.checkpoints.length ||
-        !Number.isFinite(saved.race.elapsed) ||
-        saved.race.elapsed < 0 ||
-        typeof saved.race.valid !== 'boolean' ||
-        !validFinish(saved.finish) ||
-        !saved.race.history.every(
-          (lap) =>
-            Number.isFinite(lap.duration) &&
-            lap.duration > 0 &&
-            typeof lap.valid === 'boolean' &&
-            typeof lap.rulesId === 'string',
+          throw new Error('Racer identity mismatch');
+        const defaults = createVehicleState(opponent.specification.shipId);
+        for (const state of [saved.state, saved.prev])
+          if (
+            !Object.entries(defaults).every(
+              ([key, value]) => typeof state[key] === typeof value,
+            ) ||
+            state.shipId !== opponent.specification.shipId ||
+            state.chassisId !==
+              (opponent.specification.chassisId ?? opponent.specification.id)
+          )
+            throw new Error('Racer vehicle state mismatch');
+        if (
+          !Number.isSafeInteger(saved.race.lap) ||
+          saved.race.lap < 1 ||
+          !Number.isSafeInteger(saved.race.checkpoint) ||
+          saved.race.checkpoint < 0 ||
+          saved.race.checkpoint >= track.checkpoints.length ||
+          !Number.isFinite(saved.race.elapsed) ||
+          saved.race.elapsed < 0 ||
+          typeof saved.race.valid !== 'boolean' ||
+          (saved.race.splits !== undefined &&
+            (!Array.isArray(saved.race.splits) ||
+              !saved.race.splits.every(
+                (time) => Number.isFinite(time) && time >= 0,
+              ))) ||
+          (saved.race.completedTime !== undefined &&
+            (!Number.isFinite(saved.race.completedTime) ||
+              saved.race.completedTime < 0)) ||
+          !validFinish(saved.finish) ||
+          !saved.race.history.every(
+            (lap) =>
+              Number.isFinite(lap.duration) &&
+              lap.duration > 0 &&
+              typeof lap.valid === 'boolean' &&
+              typeof lap.rulesId === 'string',
+          )
         )
-      )
-        throw new Error('Racer checkpoint state mismatch');
-      // Validate pickup state before changing the live model.
-      const engine = dynamics?.snapshot();
-      let validation;
-      try {
-        validation = createRuntime(opponent.specification);
-        validation.restore(saved.runtime);
-      } finally {
-        validation?.dispose();
-        if (dynamics) dynamics.restore(engine);
+          throw new Error('Racer checkpoint state mismatch');
+        // Validate pickup state before changing the live model.
+        const engine = dynamics?.snapshot();
+        let validation;
+        try {
+          validation = createRuntime(opponent.specification, {
+            validation: true,
+          });
+          validation.restore(saved.runtime, { presentation });
+        } finally {
+          validation?.dispose();
+          if (dynamics) dynamics.restore(engine);
+        }
       }
     }
     relativeTiming.restore(data.relativeTiming);
@@ -953,9 +1013,11 @@ export function createRacers({
     playerFinish = copy(data.playerFinish);
     opponents.forEach((opponent, index) => {
       const saved = data.opponents[index];
-      opponent.state = copy(saved.state);
+      const restoredState = copy(saved.state);
+      for (const key of Object.keys(opponent.state)) delete opponent.state[key];
+      Object.assign(opponent.state, restoredState);
       opponent.prev = copy(saved.prev);
-      Object.assign(opponent.race, copy(saved.race));
+      restoreRaceProgress(opponent.race, saved.race);
       if (continuous) {
         opponent.eliminated = saved.eliminated;
         opponent.runtime.setEnabled?.(enabled && !opponent.eliminated);
@@ -965,9 +1027,13 @@ export function createRacers({
           opponent.runtime.reset({
             reason: 'eliminated',
             state: opponent.state,
+            presentation,
           });
       }
-      opponent.runtime.restore(copy(saved.runtime));
+      opponent.runtime.restore(copy(saved.runtime), {
+        presentation,
+        ...(bindState ? { state: opponent.state } : {}),
+      });
       opponent.finish = copy(saved.finish);
       opponent.boostSeconds = saved.boostSeconds;
     });

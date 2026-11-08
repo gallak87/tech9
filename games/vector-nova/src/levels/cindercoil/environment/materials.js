@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import * as T from 'three';
 
 const GEOLOGY_NOISE = `
@@ -16,36 +17,42 @@ function geologyMaterial(
   material.onBeforeCompile = (shader) => {
     shader.uniforms.ccTime = time;
     if (rockTexture) shader.uniforms.ccRock = rockTexture;
-    shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 ccWorld;')
-      .replace(
-        '#include <worldpos_vertex>',
-        `#include <worldpos_vertex>
+    shader.vertexShader = replaceShader(
+      replaceShader(
+        shader.vertexShader,
+        '#include <common>',
+        '#include <common>\nvarying vec3 ccWorld;',
+      ),
+      '#include <worldpos_vertex>',
+      `#include <worldpos_vertex>
       vec4 ccPosition=vec4(transformed,1.);
       #ifdef USE_INSTANCING
       ccPosition=instanceMatrix*ccPosition;
       #endif
       ccWorld=(modelMatrix*ccPosition).xyz;`,
-      );
-    shader.fragmentShader = shader.fragmentShader
-      .replace(
-        '#include <common>',
-        `#include <common>\nvarying vec3 ccWorld;uniform float ccTime;${GEOLOGY_NOISE}\n${rockTexture && !molten ? 'uniform sampler2D ccRock;' : ''}`,
-      )
-      .replace(
-        '#include <map_fragment>',
-        rockTexture && !molten
-          ? `
+    );
+    shader.fragmentShader = replaceShader(
+      replaceShader(
+        replaceShader(
+          replaceShader(
+            replaceShader(
+              replaceShader(
+                shader.fragmentShader,
+                '#include <common>',
+                `#include <common>\nvarying vec3 ccWorld;uniform float ccTime;${GEOLOGY_NOISE}\n${rockTexture && !molten ? 'uniform sampler2D ccRock;' : ''}`,
+              ),
+              '#include <map_fragment>',
+              rockTexture && !molten
+                ? `
         vec3 ccWeights=pow(abs(normalize(cross(dFdx(ccWorld),dFdy(ccWorld)))),vec3(4.));ccWeights/=max(.0001,ccWeights.x+ccWeights.y+ccWeights.z);
         vec3 ccDetail=texture2D(ccRock,ccWorld.yz*.065).rgb*ccWeights.x+texture2D(ccRock,ccWorld.xz*.065).rgb*ccWeights.y+texture2D(ccRock,ccWorld.xy*.065).rgb*ccWeights.z;
         float ccDetailHeight=dot(ccDetail,vec3(.21,.72,.07));
         diffuseColor.rgb*=clamp(ccDetail/.17,vec3(.28),vec3(1.75));
         `
-          : '#include <map_fragment>',
-      )
-      .replace(
-        '#include <color_fragment>',
-        `#include <color_fragment>
+                : '#include <map_fragment>',
+            ),
+            '#include <color_fragment>',
+            `#include <color_fragment>
         vec3 cp=ccWorld*${molten ? '.18' : terrain ? '.047' : '.12'};
         ${molten ? 'cp.y+=ccTime*1.4;' : ''}
         float macro=ccFbm(cp*.41);
@@ -60,21 +67,18 @@ function geologyMaterial(
         ${terrain ? 'diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.13,.15,.17)*mix(.72,1.15,macro),ccAshCoverage*.60);' : ''}
         ${molten ? `float ccLiquid=smoothstep(${fragmented ? '.38,.68,ccFbm(cp*1.9)' : '.26,.50,ccFbm(cp*vec3(.85,.10,.85))'}); diffuseColor.rgb=mix(vec3(.026,.032,.04),diffuseColor.rgb,ccLiquid);` : 'diffuseColor.rgb+=vec3(.018,.022,.026)*smoothstep(.64,.82,relief)*.22;'}
       `,
-      )
-      .replace(
-        '#include <roughnessmap_fragment>',
-        `#include <roughnessmap_fragment>\n${terrain ? 'roughnessFactor=mix(.67,.98,ccAshCoverage);' : ''}`,
-      )
-      .replace(
+          ),
+          '#include <roughnessmap_fragment>',
+          `#include <roughnessmap_fragment>\n${terrain ? 'roughnessFactor=mix(.67,.98,ccAshCoverage);' : ''}`,
+        ),
         '#include <normal_fragment_begin>',
         `#include <normal_fragment_begin>
         float stoneHeight=(relief*.45+grit*.18+fracture*.25+grain*.12)*${molten ? '.32' : terrain ? '.52' : '.32'};
         normal=ccBump(normal,stoneHeight${rockTexture && !molten ? '+ccDetailHeight*.18' : ''});
       `,
-      )
-      .replace(
-        '#include <emissivemap_fragment>',
-        `#include <emissivemap_fragment>
+      ),
+      '#include <emissivemap_fragment>',
+      `#include <emissivemap_fragment>
         ${
           molten
             ? `float rippled=ccFbm(cp*vec3(1.8,.45,1.8));
@@ -84,7 +88,7 @@ function geologyMaterial(
             : ''
         }
       `,
-      );
+    );
   };
   material.customProgramCacheKey = () =>
     `cindercoil-geology-8-${molten}-${terrain}-${fragmented}`;

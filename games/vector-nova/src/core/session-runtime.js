@@ -1,4 +1,4 @@
-import { createFlightModel } from '../physics/flight.js';
+import { createFlightModel, EQUIPMENT_JUMP_RULES } from '../physics/flight.js';
 import { stepVehicle } from '../physics/index.js';
 import {
   createMagneticBody,
@@ -30,7 +30,7 @@ export function createMagneticRuntime({
     );
     // The ground controller is unchanged. Equipment builds carry their own
     // identity; stock Time Trials retain their existing namespace.
-    runtime.rulesId = `${BASELINE_RULES}:${MAGNETIC_BODY_RULES}:${dynamics.rulesId}`;
+    runtime.rulesId = `${BASELINE_RULES}:${MAGNETIC_BODY_RULES}:${dynamics.rulesId}:equipment-jump-v2-${JSON.stringify(EQUIPMENT_JUMP_RULES)}`;
     return runtime;
   }
   if (dynamics) {
@@ -66,6 +66,8 @@ export function createMagneticRuntime({
         body.reset(state);
       },
       snapshot: () => body.snapshot(),
+      status: () => ({ mode: 'magnetic' }),
+      readFrame: () => ({}),
       restore: (data) => body.restore(data),
       pose: (alpha) => body.pose(alpha),
       update() {},
@@ -83,6 +85,8 @@ export function createMagneticRuntime({
       stepVehicle(state, input, track, dt, modifiers),
     reset() {},
     snapshot: () => null,
+    status: () => ({ mode: 'magnetic' }),
+    readFrame: () => null,
     restore() {},
     pose: () => null,
     update() {},
@@ -91,6 +95,13 @@ export function createMagneticRuntime({
 }
 export function runtimeIdentity(runtime) {
   return { id: runtime.id, version: runtime.version, rulesId: runtime.rulesId };
+}
+// Presentation reads never need an owned replay checkpoint. Older adapters can
+// retain their snapshot contract until they supply a dedicated frame reader.
+export function readRuntimeFrame(runtime) {
+  return typeof runtime.readFrame === 'function'
+    ? runtime.readFrame()
+    : runtime.snapshot();
 }
 export function compatibleRuntime(runtime, identity) {
   const expected = runtimeIdentity(runtime);
@@ -110,6 +121,7 @@ export function advanceSession({
   emit,
   dynamics = null,
   racers = null,
+  presentation = true,
 }) {
   if (dynamics && runtime.beginAdvance && runtime.finishAdvance) {
     if (!Number.isFinite(dt) || dt <= 0) return [];
@@ -128,6 +140,7 @@ export function advanceSession({
         playerInput: controls,
         playerPose: runtime.pose(1),
         playerPrevious,
+        ...(presentation ? {} : { presentation: false }),
       };
       runtime.beginAdvance(state, controls, step);
       racers?.beginAdvance?.(step, context);
@@ -144,6 +157,7 @@ export function advanceSession({
       const interactions = runtime.advanceInteractions?.(step) ?? [];
       interactions.forEach(emit);
       events.push(...completed, ...interactions);
+      if (!presentation) runtime.update?.({ presentation: false });
     }
     return events;
   }
@@ -162,11 +176,13 @@ export function advanceSession({
       playerRace: race,
       playerInput: controls,
       playerPose: runtime.pose(1),
+      ...(presentation ? {} : { presentation: false }),
     })
     ?.forEach(emit);
   const interactions = runtime.advanceInteractions?.(dt) ?? [];
   interactions.forEach(emit);
   events.push(...interactions);
+  if (!presentation) runtime.update?.({ presentation: false });
   return events;
 }
 
@@ -179,6 +195,48 @@ export function captureInitial(state, runtime, dynamics = null) {
     }),
   );
 }
+
+/** A level may choose a supported manual reset and supply an authored transfer.
+ * Race validation still owns checkpoint credit; manual recovery invalidates the
+ * attempt exactly as it does on ordinary circuits. */
+export function recoverSession({ state, runtime, race }) {
+  const target = runtime.manualRecoveryTarget?.(state);
+  if (
+    target &&
+    (!Number.isFinite(target.distance) ||
+      !Number.isFinite(target.speed) ||
+      target.speed < 0)
+  )
+    throw new Error('Manual recovery requires a finite supported target.');
+  const fallback = race.recover();
+  const events = target?.transfer ? [target.transfer] : [];
+  if (events.length)
+    events.push(...race.step(state.distance, target.distance, 0, events));
+  Object.assign(state, {
+    distance: target?.distance ?? fallback,
+    lateral: 0,
+    heading: 0,
+    steeringHeading: 0,
+    lateralSpeed: 0,
+    speed: target?.speed ?? 0,
+    steer: 0,
+    boosting: false,
+  });
+  return events;
+}
+
+// A moving grid can play a pre-roll into its deterministic start phase while
+// the race, input log, reserve and simulation time remain untouched.
+export function stageSessionCountdown(
+  { state, runtime, racers = null },
+  phase,
+) {
+  if (typeof runtime.stageCountdown !== 'function') return;
+  runtime.stageCountdown(state, phase);
+  for (const opponent of racers?.opponents ?? [])
+    opponent.runtime.stageCountdown?.(opponent.state, phase);
+}
+
 export function restoreReplayInitial(
   initial,
   expected,

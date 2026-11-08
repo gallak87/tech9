@@ -15,18 +15,22 @@ import { RACE_OPPONENTS } from '../race/roster.js';
 import { SHIPS } from '../ships/catalog.js';
 export function createDeveloperSession(parameters, sourceStorage = null) {
   const storage = createMemoryStorage();
-  if (parameters.get('dev') !== '2' && sourceStorage)
+  const completionShowcase =
+    !IS_DEMO &&
+    ['1', '2'].includes(parameters.get('dev')) &&
+    parameters.get('showcase') === '1';
+  const fullCollection = parameters.get('dev') === '2' || completionShowcase;
+  if (!fullCollection && sourceStorage)
     for (let i = 0; i < sourceStorage.length; i++) {
       const key = sourceStorage.key(i);
       if (key !== null) storage.setItem(key, sourceStorage.getItem(key));
     }
-  const state =
-    parameters.get('dev') === '2'
-      ? freshProfile()
-      : sourceStorage
-        ? createProfileStore(() => sourceStorage).snapshot().state
-        : freshProfile();
-  if (parameters.get('dev') === '2') {
+  const state = fullCollection
+    ? freshProfile()
+    : sourceStorage
+      ? createProfileStore(() => sourceStorage).snapshot().state
+      : freshProfile();
+  if (fullCollection) {
     state.wins = 24;
     state.finishes = 24;
     state.points = 120;
@@ -103,26 +107,35 @@ export function createDeveloperSession(parameters, sourceStorage = null) {
     );
     storage.setItem(CUP_STORAGE_KEY, JSON.stringify(saved));
   }
-  const trophies =
-    parameters.get('dev') === '2'
-      ? Object.fromEntries(
-          CUPS.map((cup) => [
-            cup.id,
-            {
-              earnedAt: Date.now(),
-              difficulty: 'hard',
-              points: cup.tracks.length * 25,
-            },
-          ]),
-        )
-      : sourceStorage
-        ? createCupCollection(() => sourceStorage).snapshot().cups
-        : {};
+  const trophies = fullCollection
+    ? Object.fromEntries(
+        CUPS.map((cup) => [
+          cup.id,
+          {
+            earnedAt: Date.now(),
+            difficulty: 'hard',
+            points: cup.tracks.length * 25,
+          },
+        ]),
+      )
+    : sourceStorage
+      ? createCupCollection(() => sourceStorage).snapshot().cups
+      : {};
+  if (completionShowcase) {
+    state.cups = state.cups.filter((id) => id !== 'encore');
+    delete trophies.encore;
+  }
   storage.setItem(
     CUP_COLLECTION_KEY,
     JSON.stringify({ version: 1, cups: trophies }),
   );
   storage.setItem(PROFILE_KEY, JSON.stringify(state));
+  if (completionShowcase) {
+    const shipId =
+      SHIPS.find((ship) => ship.id === parameters.get('ship'))?.id ??
+      starterShip();
+    createProfileStore(() => storage).queueCompletion(shipId);
+  }
   return {
     storage: () => storage,
     parameters: new URLSearchParams(parameters),

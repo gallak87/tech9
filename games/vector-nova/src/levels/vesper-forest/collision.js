@@ -6,6 +6,7 @@ export function createVesperCollisionWorld({ track }) {
     track,
     id: 'vesper-forest-jump-solids',
     geometryId: 'cast-ribbon-v2-road-only',
+    fullDeck: true,
     road: createVesperRoad({ track }),
     select(object) {
       if (object.userData.drivingSurface) return { kind: 'deck' };

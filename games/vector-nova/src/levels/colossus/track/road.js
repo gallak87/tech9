@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import * as T from 'three';
 import { createIndustrialFinish } from '@worldkit/environment/industrial';
 import { sheetGeometry, rimGeometry } from './surface.js';
@@ -50,29 +51,31 @@ function workingSteel(shape, track) {
     for (const [name, value] of Object.entries(zones))
       shader.uniforms[name] = { value };
     shader.uniforms.coolingStations = { value: coolingStations };
-    shader.vertexShader = shader.vertexShader
-      .replace(
+    shader.vertexShader = replaceShader(
+      replaceShader(
+        shader.vertexShader,
         '#include <common>',
         '#include <common>\nattribute vec2 roadCoord; varying vec2 steelCoord;',
-      )
-      .replace(
-        '#include <begin_vertex>',
-        '#include <begin_vertex>\nsteelCoord=roadCoord;',
-      );
-    shader.fragmentShader = shader.fragmentShader
-      .replace(
-        '#include <common>',
-        `#include <common>
+      ),
+      '#include <begin_vertex>',
+      '#include <begin_vertex>\nsteelCoord=roadCoord;',
+    );
+    shader.fragmentShader = replaceShader(
+      replaceShader(
+        replaceShader(
+          replaceShader(
+            shader.fragmentShader,
+            '#include <common>',
+            `#include <common>
 varying vec2 steelCoord;
 uniform vec2 millZone,augerZone,forgeZone,returnZone,coolingZone,headZone;
 uniform vec3 coolingStations[${coolingStations.length}];
 float workRange(float d,vec2 z){return smoothstep(z.x,z.x+36.,d)*(1.-smoothstep(z.y-36.,z.y,d));}
 float steelHash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float steelNoise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(steelHash(i),steelHash(i+vec2(1,0)),f.x),mix(steelHash(i+vec2(0,1)),steelHash(i+vec2(1,1)),f.x),f.y);}`,
-      )
-      .replace(
-        '#include <map_fragment>',
-        `#include <map_fragment>
+          ),
+          '#include <map_fragment>',
+          `#include <map_fragment>
           vec2 p=steelCoord;
           // Retained fabrication joints. Process finish is independent of plates.
           float row=floor((p.y+36.)/18.);
@@ -122,19 +125,17 @@ float steelNoise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(m
           diffuseColor.rgb*=.965+steelHash(floor(plate/vec2(48.,18.)))*.055;
           diffuseColor.rgb*=1.-seams*.48-longitudinal*.3-fastener*.32;
       `,
-      )
-      .replace(
+        ),
         '#include <roughnessmap_fragment>',
         `#include <roughnessmap_fragment>
           // Applied after the shared finish's restrained substrate texture.
           // Keep broad reflections legible, with no mirror-like signal glare.
           roughnessFactor=clamp(roughnessFactor+oxide*.22-polish*.25-wash*.20,.32+head*.18,.84);`,
-      )
-      .replace(
-        '#include <metalnessmap_fragment>',
-        `#include <metalnessmap_fragment>
+      ),
+      '#include <metalnessmap_fragment>',
+      `#include <metalnessmap_fragment>
           metalnessFactor=clamp(metalnessFactor-oxide*.42+polish*.16-wash*.10,.28,.90);`,
-      );
+    );
   };
   material.customProgramCacheKey = () =>
     'colossus-working-steel-process-v1-' + coolingCount;

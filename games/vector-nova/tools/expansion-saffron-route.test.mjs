@@ -390,7 +390,9 @@ test('production and shape expose real open spans, finite meshes and terrain-gro
           );
     });
     assert.ok(draws < 80);
-    assert.ok(triangles < 220000);
+    // Continuous later-bank support also subdivides the fitted honey skins:
+    // 254,166 shape / 463,050 production triangles, with no additional draws.
+    assert.ok(triangles < (shape ? 260000 : 470000));
     const shoes = road.group.getObjectByName('Broad fossil shelf shoes'),
       matrix = new THREE.Matrix4(),
       position = new THREE.Vector3();

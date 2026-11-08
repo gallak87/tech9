@@ -9,20 +9,24 @@ import { createDesertEffects } from './effects.js';
 
 export function createSaffronEnvironment(
   { track, settings = {}, view, road },
-  { shape = false, loadAsset, loadNoise } = {},
+  { shape = false, loadAsset, loadNoise, loadSurface } = {},
 ) {
   const group = new T.Group();
   group.name = shape
     ? 'Saffron / route-clearance terrain study'
     : 'Saffron / archaeological fossil desert';
   const resources = createResources();
-  const materials = createSaffronMaterials(resources, shape, { loadNoise });
+  const materials = createSaffronMaterials(resources, shape, {
+    loadNoise,
+    loadSurface,
+  });
   const survey = createLandformSurvey(track);
   const terrain = createTerrain(track, survey, materials, resources, shape);
   const fossils = createFossils(track, survey, resources, {
     shape,
     loadAsset,
     weatheringTexture: materials.weatheringTexture,
+    mineralSurface: materials.mineralSurface,
   });
   const station = createSurveyStation(track, survey, materials, resources);
   const effects = createDesertEffects(
@@ -37,10 +41,10 @@ export function createSaffronEnvironment(
   station.visible = !shape;
   effects.group.visible = !shape;
   const lightAnchors = [
-    [track.landmarks.skullStart + 44, -22, 18, '#f7cb80', 1750],
-    [track.landmarks.skullCenter, 25, 24, '#ffe0a4', 2100],
-    [track.landmarks.skullEnd - 28, -20, 20, '#edbe73', 1800],
-    [track.landmarks.sandfall + 22, -32, 18, '#f4c779', 1250],
+    [track.landmarks.skullStart + 44, -40, 10, '#f7cb80', 2300],
+    [track.landmarks.skullCenter, 42, 12, '#ffe0a4', 2800],
+    [track.landmarks.skullEnd - 28, -36, 10, '#edbe73', 2400],
+    [track.landmarks.sandfall + 22, -42, 14, '#f4c779', 1250],
   ];
   const lights = lightAnchors.map(([s, lateral, height, color, intensity]) => {
     const light = new T.PointLight(color, shape ? 0 : intensity, 140, 2);
@@ -90,7 +94,12 @@ export function createSaffronEnvironment(
     .then(([loaded]) => {
       if (disposed) return false;
       road?.anchorToFossils?.(fossils.group);
-      Object.assign(metrics, countResources(group), { modelLoaded: loaded });
+      Object.assign(metrics, countResources(group), {
+        modelLoaded: loaded,
+        ownedTextures:
+          Number(Boolean(materials.weatheringTexture)) +
+          Number(Boolean(materials.mineralSurface.texture)),
+      });
       return loaded;
     })
     .catch((error) => {

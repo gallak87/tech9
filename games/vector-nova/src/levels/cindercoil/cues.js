@@ -1,3 +1,4 @@
+import { replaceShader } from '../../renderer/shader-patch.js';
 import * as T from 'three';
 import { sweepGeometry } from '../../track/geometry.js';
 import { sampleSurge, sampleSpill } from './mechanics.js';
@@ -19,26 +20,27 @@ export function createCindercoilCues(track, shape = false) {
     material.onBeforeCompile = (shader) => {
       shader.uniforms.cinderFlowTime = flowTime;
       if (directed) shader.uniforms.cinderPulse = flowPulse;
-      shader.vertexShader = shader.vertexShader
-        .replace(
+      shader.vertexShader = replaceShader(
+        replaceShader(
+          shader.vertexShader,
           '#include <common>',
           `#include <common>
         varying vec3 vCinderWorld; varying float vCinderEdge; attribute float cinderEdge; ${directed ? 'varying float vCinderAlong; attribute float cinderAlong;' : ''}`,
-        )
-        .replace(
-          '#include <begin_vertex>',
-          `#include <begin_vertex>
+        ),
+        '#include <begin_vertex>',
+        `#include <begin_vertex>
         vCinderWorld=(modelMatrix*vec4(transformed,1.)).xyz;vCinderEdge=cinderEdge; ${directed ? 'vCinderAlong=cinderAlong;' : ''}`,
-        );
-      shader.fragmentShader = shader.fragmentShader
-        .replace(
-          '#include <common>',
-          `#include <common>
+      );
+      shader.fragmentShader = replaceShader(
+        replaceShader(
+          replaceShader(
+            shader.fragmentShader,
+            '#include <common>',
+            `#include <common>
         uniform float cinderFlowTime; ${directed ? 'uniform float cinderPulse;' : ''} varying vec3 vCinderWorld; varying float vCinderEdge; ${directed ? 'varying float vCinderAlong;' : ''}
         float cinderHash(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
         float cinderNoise(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(mix(cinderHash(i),cinderHash(i+vec3(1,0,0)),f.x),mix(cinderHash(i+vec3(0,1,0)),cinderHash(i+vec3(1,1,0)),f.x),f.y),mix(mix(cinderHash(i+vec3(0,0,1)),cinderHash(i+vec3(1,0,1)),f.x),mix(cinderHash(i+vec3(0,1,1)),cinderHash(i+vec3(1,1,1)),f.x),f.y),f.z);}`,
-        )
-        .replace(
+          ),
           '#include <color_fragment>',
           `#include <color_fragment>
         vec3 lavaP=${directed ? 'vec3(vCinderAlong*.085-cinderFlowTime*.45,vCinderEdge*3.5,0.)' : 'vCinderWorld*.24+vec3(cinderFlowTime*.1,0.,cinderFlowTime*.025)'};
@@ -47,12 +49,11 @@ export function createCindercoilCues(track, shape = false) {
         float rim=smoothstep(.91,1.,vCinderEdge);
         ${directed ? 'float skin=smoothstep(.18,.66,cinderNoise(vec3(vCinderAlong*.30-cinderFlowTime*1.6,vCinderEdge*10.,11.))); diffuseColor.rgb=mix(vec3(.04,.032,.023),mix(vec3(.78,.12,.008),vec3(1.,.48,.08),molten),.35+.65*skin);' : 'diffuseColor.rgb=mix(vec3(.14,.035,.012),vec3(.92,.30,.055),molten);'}
         diffuseColor.rgb=mix(diffuseColor.rgb,${directed ? 'vec3(.026,.034,.04)' : 'vec3(1.,.46,.08)'},rim*.8);`,
-        )
-        .replace(
-          '#include <emissivemap_fragment>',
-          `#include <emissivemap_fragment>
+        ),
+        '#include <emissivemap_fragment>',
+        `#include <emissivemap_fragment>
         totalEmissiveRadiance=${directed ? 'mix(vec3(.48,.025,.001),vec3(1.75,.33,.016),molten*.65+skin*.35)*(1.-rim*.70)*(.4+.6*skin)*cinderPulse' : 'mix(vec3(.12,.015,.001),vec3(1.05,.24,.018),molten*molten)+rim*vec3(.42,.16,.014)'};`,
-        );
+      );
     };
     material.customProgramCacheKey = () =>
       `cindercoil-visible-lava-v3-${directed}`;

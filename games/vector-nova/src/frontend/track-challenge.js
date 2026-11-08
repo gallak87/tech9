@@ -19,6 +19,9 @@ const challenges = {
   launchworks: 'Medium',
   crucible: 'Medium',
   interceptor: 'Medium',
+  ravel: 'Hard',
+  nomad: 'Hard',
+  oriel: 'Medium',
 };
 
 export const trackChallenge = (id) =>

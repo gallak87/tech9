@@ -75,7 +75,7 @@ test('Blender GLB has one continuous 280m animal, five materials and no texture 
   });
   assert.equal(meshes, 5);
   assert.equal(materials.size, 5);
-  assert.equal(triangles, 35772);
+  assert.equal(triangles, 36238);
   assert.ok(bounds.min.x >= -0.2 && bounds.max.x > 280 && bounds.max.x < 286);
   assert.ok(radius < NACRE_LEVIATHAN.envelopeRadius);
   const blend = await fs.stat(

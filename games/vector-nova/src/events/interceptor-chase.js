@@ -190,14 +190,14 @@ export function createInterceptorChaseMotion(
         },
       };
     },
-    restore(data) {
+    restore(data, options) {
       if (
         data?.chase?.rulesId !== RULES ||
         !validCoordinates(data.chase.player) ||
         !validCoordinates(data.chase.target)
       )
         throw new Error('Invalid pursuit-spacing snapshot.');
-      motion.restore(data);
+      motion.restore(data, options);
       player = coordinates(data.chase.player);
       target = coordinates(data.chase.target);
       staging = null;

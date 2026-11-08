@@ -384,7 +384,9 @@ test('production and neutral roads keep gaps, outside-camera sails, bounded geom
         }
       }
     }
-    assert.ok(count < 150000);
+    // Metre-wide running cells retain the 3 m row phase while keeping native
+    // whole-hull support continuous through the banked choir and jump roads.
+    assert.ok(count < 190000);
     for (const sail of road.group.userData.sailEnvelope)
       assert.ok(
         sail.cameraHeightLateral > ZEPHYR_ROAD_CLEARANCE.cameraHalfWidth + 2,

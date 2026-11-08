@@ -1,15 +1,30 @@
-import { CAREER_VERSION } from '../src/progression/profile.js';
+import {
+  CAREER_VERSION,
+  PROFILE_KEY,
+  createProfileStore,
+} from '../src/progression/profile.js';
+import {
+  createCareerSlots,
+  createMemoryStorage,
+  CAREER_SLOTS_KEY,
+} from '../src/progression/careers.js';
 import { DEVICE_PREVIEWS } from '../src/ships/pickup-preview-sequence.js';
 import assert from 'node:assert/strict';
-import { chromium } from 'playwright';
+import {
+  launchVerificationBrowser,
+  collectPageErrors,
+} from './verification-browser.mjs';
 const base = process.env.VN_URL;
 if (!base) throw new Error('Set VN_URL to a running browser build.');
 const responsive = process.argv.includes('--responsive');
-const browser = await chromium.launch({
-  args: ['--mute-audio'],
-  channel: process.env.VN_BROWSER_CHANNEL ?? 'chrome',
-  headless: true,
+const careerStorage = createMemoryStorage();
+createCareerSlots({ storage: () => careerStorage, now: () => 1 }).create(1);
+const careerSeed = Array.from({ length: careerStorage.length }, (_, index) => {
+  const key = careerStorage.key(index);
+  return [key, careerStorage.getItem(key)];
 });
+const scopedProfileKey = `${CAREER_SLOTS_KEY}.slot.1.${PROFILE_KEY}`;
+const browser = await launchVerificationBrowser();
 async function check(name, fn) {
   if (responsive !== name.startsWith('responsive ')) return;
   if (process.env.VN_CHECK && !new RegExp(process.env.VN_CHECK).test(name))
@@ -19,29 +34,35 @@ async function check(name, fn) {
     hasTouch: responsive,
   });
   try {
-    await context.addInitScript(() => {
-      localStorage.setItem(
-        'vector-nova.settings',
-        JSON.stringify({ quality: 'low', volume: 0, reducedMotion: true }),
-      );
-      window.testPad = {
-        id: 'verification',
-        index: 0,
-        mapping: 'standard',
-        connected: true,
-        axes: [0, 0, 0, 0],
-        buttons: Array.from({ length: 17 }, () => ({
-          value: 0,
-          pressed: false,
-        })),
-      };
-      Object.defineProperty(navigator, 'getGamepads', {
-        value: () => [window.testPad],
-      });
-    });
+    await context.addInitScript(
+      ({ careerSeed, registryKey }) => {
+        if (localStorage.getItem(registryKey) === null)
+          for (const [key, value] of careerSeed)
+            localStorage.setItem(key, value);
+        localStorage.setItem(
+          'vector-nova.settings',
+          JSON.stringify({ quality: 'low', volume: 0, reducedMotion: true }),
+        );
+        window.testPad = {
+          id: 'verification',
+          index: 0,
+          mapping: 'standard',
+          connected: true,
+          axes: [0, 0, 0, 0],
+          buttons: Array.from({ length: 17 }, () => ({
+            value: 0,
+            pressed: false,
+          })),
+        };
+        Object.defineProperty(navigator, 'getGamepads', {
+          value: () => [window.testPad],
+        });
+      },
+      { careerSeed, registryKey: CAREER_SLOTS_KEY },
+    );
     const page = await context.newPage(),
       errors = [];
-    page.on('pageerror', (error) => errors.push(error.message));
+    collectPageErrors(page, errors);
     await fn(page);
     assert.deepEqual(errors, [], 'no browser exceptions');
     console.log(`PASS ${name}`);
@@ -50,7 +71,9 @@ async function check(name, fn) {
   }
 }
 const open = async (page, query) => {
-  await page.goto(new URL(`?${query}`, base).href);
+  const target = new URL(`?${query}`, base);
+  target.searchParams.set('intro', '0');
+  await page.goto(target.href);
   await page.waitForFunction(() => window.__VN_FRONTEND);
 };
 const action = (page, name) =>
@@ -84,7 +107,346 @@ async function pad(page, index) {
   }
 }
 
+async function seedFleetUpgrades(page, full = false) {
+  const storage = createMemoryStorage();
+  const slots = createCareerSlots({ storage: () => storage, now: () => 1 });
+  slots.create(1);
+  const profile = createProfileStore(() => slots.storageFor(1));
+  for (let index = 0; index < (full ? 24 : 2); index++)
+    profile.recordRace({ id: `fleet-upgrade-${index}`, position: 1 });
+  for (const cup of full
+    ? ['founders', 'frontier', 'horizon', 'apex']
+    : ['founders'])
+    profile.recordCup(cup);
+  if (full) {
+    profile.recordTrial('halcyon', true);
+    profile.recordTrial('nacre', true);
+    profile.chooseExotic('kestrel');
+  }
+  const entries = Array.from({ length: storage.length }, (_, index) => {
+    const name = storage.key(index);
+    return [name, storage.getItem(name)];
+  });
+  await page.addInitScript((values) => {
+    for (const [name, value] of values) localStorage.setItem(name, value);
+  }, entries);
+  return profile.snapshot().state;
+}
+
+const fleetUpgradeIds = (page) =>
+  page
+    .locator('[data-fleet-upgrade]')
+    .evaluateAll((items) => items.map((item) => item.dataset.fleetUpgrade));
+
 try {
+  await check(
+    'fleet upgrades show shared earned tiers with keyboard and controller details',
+    async (page) => {
+      await open(page, '');
+      await action(page, 'garage-tab');
+      assert.deepEqual(await fleetUpgradeIds(page), [
+        'speed-1',
+        'acceleration-1',
+        'handling-1',
+        'braking-1',
+        'boost-1',
+        'toughness-1',
+      ]);
+      assert.equal(
+        await page.locator('[data-fleet-state="locked"]').count(),
+        6,
+      );
+      assert.deepEqual(
+        await page.locator('[data-fleet-upgrade]').allTextContents(),
+        Array(6).fill(''),
+        'unearned stat categories have no earned tier numeral',
+      );
+      const detail = page.locator(
+        '.garage-upgrades .reward-tooltip:not([hidden])',
+      );
+      const freshProfile = (await state(page)).career.state;
+      await page.locator('[data-fleet-upgrade="speed-1"]').hover();
+      assert.match(await detail.innerText(), /Top speed I/);
+      assert.match(await detail.innerText(), /Finish your first valid race/i);
+      await page.mouse.move(10, 10);
+      assert.equal(await detail.count(), 0);
+      assert.deepEqual((await state(page)).career.state, freshProfile);
+
+      const profile = await seedFleetUpgrades(page);
+      await open(page, '');
+      await action(page, 'garage-tab');
+      await page.waitForFunction(
+        () =>
+          document.querySelector('.ship-preview')?.dataset.state === 'ready',
+      );
+      const expected = [
+        'speed-2',
+        'acceleration-1',
+        'handling-1',
+        'braking-1',
+        'boost-1',
+        'toughness-1',
+      ];
+      assert.deepEqual(await fleetUpgradeIds(page), expected);
+      assert.deepEqual(
+        await page
+          .locator('[data-fleet-state="unlocked"]')
+          .evaluateAll((items) =>
+            items.map((item) => item.dataset.fleetUpgrade),
+          ),
+        ['speed-2', 'acceleration-1', 'boost-1'],
+      );
+      assert.equal(
+        await page.locator('[data-fleet-state="locked"]').count(),
+        3,
+      );
+      assert.deepEqual(
+        await page.locator('[data-fleet-state="locked"]').allTextContents(),
+        ['', '', ''],
+      );
+      assert.match(
+        await page.locator('.garage-upgrades').innerText(),
+        /All ships/,
+      );
+      assert.match(
+        await page.locator('.garage-legend').innerText(),
+        /Fleet upgrades/,
+      );
+      assert.equal(await page.locator('.stat-notch').count(), 4);
+      await page.waitForFunction(() =>
+        [...document.querySelectorAll('.garage-upgrade img')].every(
+          (image) => image.complete && image.naturalWidth === 128,
+        ),
+      );
+      const speed = page.locator('[data-fleet-upgrade="speed-2"]');
+      assert.match(await speed.getAttribute('aria-label'), /Top speed II/i);
+      assert.match(await speed.getAttribute('aria-label'), /unlocked/i);
+      await speed.hover();
+      assert.match(await detail.innerText(), /Top speed II/);
+      assert.match(await detail.innerText(), /\+10%/);
+      assert.match(await detail.innerText(), /every ship|all ships|fleet/i);
+      await page.mouse.move(10, 10);
+      assert.equal(await detail.count(), 0);
+
+      for (const controller of [false, true]) {
+        await page.locator('.garage-fleet [aria-pressed="true"]').focus();
+        if (controller) await pad(page, 13);
+        else await key(page, 'ArrowDown');
+        assert.equal(
+          await page.evaluate(
+            () => document.activeElement.dataset.fleetUpgrade,
+          ),
+          'speed-2',
+        );
+        if (controller) await pad(page, 0);
+        else await key(page, 'Enter');
+        assert.equal(await detail.count(), 1);
+        if (controller) await pad(page, 1);
+        else await key(page, 'Escape');
+        assert.equal(await detail.count(), 0);
+        assert.equal(
+          await page.locator('.dedicated-garage:visible').count(),
+          1,
+        );
+        assert.equal(
+          await page.evaluate(
+            () => document.activeElement.dataset.fleetUpgrade,
+          ),
+          'speed-2',
+        );
+        if (controller) await pad(page, 15);
+        else await key(page, 'ArrowRight');
+        assert.equal(
+          await page.evaluate(
+            () => document.activeElement.dataset.fleetUpgrade,
+          ),
+          'acceleration-1',
+        );
+        if (controller) await pad(page, 15);
+        else await key(page, 'ArrowRight');
+        assert.equal(
+          await page.evaluate(
+            () => document.activeElement.dataset.fleetUpgrade,
+          ),
+          'handling-1',
+        );
+        assert.match(
+          await page
+            .locator('[data-fleet-upgrade="handling-1"]')
+            .getAttribute('aria-label'),
+          /\blocked\b/i,
+        );
+        if (controller) await pad(page, 0);
+        else await key(page, 'Enter');
+        assert.match(await detail.innerText(), /Handling I/);
+        assert.match(await detail.innerText(), /Earn 20 race progress/i);
+        if (controller) await pad(page, 1);
+        else await key(page, 'Escape');
+        assert.equal(await detail.count(), 0);
+        assert.equal(
+          await page.evaluate(
+            () => document.activeElement.dataset.fleetUpgrade,
+          ),
+          'handling-1',
+          'dismissing a locked upgrade keeps focus in its category',
+        );
+        if (controller) await pad(page, 13);
+        else await key(page, 'ArrowDown');
+        assert.equal(
+          await page.evaluate(() => document.activeElement.dataset.equip),
+          'jump',
+        );
+      }
+
+      await speed.focus();
+      await key(page, 'End');
+      assert.equal(
+        await page.evaluate(() => document.activeElement.dataset.fleetUpgrade),
+        'toughness-1',
+      );
+      await key(page, 'Home');
+      assert.equal(
+        await page.evaluate(() => document.activeElement.dataset.fleetUpgrade),
+        'speed-2',
+      );
+      await key(page, 'ArrowUp');
+      assert.equal(
+        await page.evaluate(() => document.activeElement.dataset.ship),
+        'shrike',
+      );
+
+      await page.locator('.garage-fleet [data-ship="bastion"]').click();
+      assert.deepEqual(await fleetUpgradeIds(page), expected);
+      assert.equal(await page.locator('.stat-notch').count(), 4);
+      assert.deepEqual((await state(page)).career.state, profile);
+
+      await action(page, 'race-tab');
+      await action(page, 'time-trial');
+      await action(page, 'garage-tab');
+      await page.waitForFunction(
+        () =>
+          document.querySelector('.ship-preview')?.dataset.state === 'ready',
+      );
+      assert.deepEqual(await fleetUpgradeIds(page), expected);
+      assert.match(
+        await page.locator('.garage-upgrades').innerText(),
+        /Inactive · Stock rules/,
+      );
+      assert.equal(await page.locator('.stat-notch').count(), 0);
+      assert.equal(
+        await page.locator('.garage-equipment-card:enabled').count(),
+        0,
+      );
+      await speed.focus();
+      assert.match(
+        await speed.getAttribute('aria-label'),
+        /Inactive in stock Time Trial/i,
+      );
+      await key(page, 'ArrowDown');
+      assert.equal(
+        await page
+          .locator('.ship-preview canvas')
+          .evaluate((canvas) => canvas === document.activeElement),
+        true,
+      );
+      assert.deepEqual((await state(page)).career.state, profile);
+    },
+  );
+
+  for (const [width, height] of [
+    [390, 844],
+    [320, 700],
+    [844, 390],
+  ])
+    for (const full of [false, true])
+      await check(
+        `responsive fleet upgrades stay compact and touch accessible ${width}x${height} ${full ? 'complete' : 'partial'}`,
+        async (page) => {
+          await page.setViewportSize({ width, height });
+          const profile = await seedFleetUpgrades(page, full);
+          await open(page, '');
+          await action(page, 'garage-tab');
+          const expected = full
+            ? [
+                'speed-3',
+                'acceleration-3',
+                'handling-3',
+                'braking-3',
+                'boost-3',
+                'toughness-3',
+              ]
+            : [
+                'speed-2',
+                'acceleration-1',
+                'handling-1',
+                'braking-1',
+                'boost-1',
+                'toughness-1',
+              ];
+          assert.deepEqual(await fleetUpgradeIds(page), expected);
+          assert.equal(
+            await page.locator('[data-fleet-state="locked"]').count(),
+            full ? 0 : 3,
+          );
+          assert.equal(
+            await page.locator('.stat-notch').count(),
+            full ? 18 : 4,
+          );
+          assert.ok(
+            await page
+              .locator('.garage-upgrade-list')
+              .evaluate((strip) => strip.scrollWidth <= strip.clientWidth + 1),
+          );
+          for (const id of [expected[0], expected.at(-1)]) {
+            const chip = page.locator(`[data-fleet-upgrade="${id}"]`);
+            await chip.tap();
+            const tooltip = page.locator(
+              '.garage-upgrades .reward-tooltip:not([hidden])',
+            );
+            assert.equal(await tooltip.count(), 1);
+            if (!full && id === expected.at(-1)) {
+              assert.match(await tooltip.innerText(), /Toughness I/);
+              assert.match(await tooltip.innerText(), /Earn 20 race progress/i);
+              assert.equal(await chip.innerText(), '');
+            }
+            const tooltipBox = await tooltip.boundingBox();
+            assert.ok(
+              await tooltip.evaluate((element) => {
+                const box = element.getBoundingClientRect();
+                return (
+                  box.left >= 0 &&
+                  box.right <= innerWidth &&
+                  box.top >= 0 &&
+                  box.bottom <= innerHeight
+                );
+              }),
+              `${id} tooltip must fit ${width}x${height}: ${JSON.stringify(tooltipBox)}`,
+            );
+            await key(page, 'Escape');
+            assert.equal(await tooltip.count(), 0);
+            assert.equal(
+              await page.locator('.dedicated-garage:visible').count(),
+              1,
+            );
+          }
+          await action(page, 'race-tab');
+          await action(page, 'time-trial');
+          await action(page, 'garage-tab');
+          assert.deepEqual(await fleetUpgradeIds(page), expected);
+          assert.match(
+            await page.locator('.garage-upgrades').innerText(),
+            /Inactive · Stock rules/,
+          );
+          assert.equal(await page.locator('.stat-notch').count(), 0);
+          assert.deepEqual((await state(page)).career.state, profile);
+          assert.ok(
+            await page
+              .locator('#front-shell')
+              .evaluate((shell) => shell.scrollWidth <= innerWidth),
+          );
+        },
+      );
+
   await check(
     'developer inspector shortcut restores AI racers and sound/effect auditions in both modes',
     async (page) => {
@@ -469,7 +831,7 @@ try {
         else await key(page, 'Enter');
         assert.match(
           await page.locator('.reward-tooltip:not([hidden])').innerText(),
-          /Complete your first valid race/,
+          /Top speed I · \+5% total/,
         );
         const screen = (await state(page)).screen;
         if (controller) await pad(page, 1);
@@ -507,19 +869,73 @@ try {
         0,
       );
       await action(page, 'cup-hub');
+      for (const [id, name, label, icon] of [
+        ['frontier', 'Frontier Cup', /Cup: Ship \+ equipment/, 'ship-needle'],
+        ['horizon', 'Horizon Cup', /Ship: New hull/, 'ship-kestrel'],
+        ['apex', 'Apex Cup', /Weapon: Lance/, 'equipment-lance'],
+      ]) {
+        await page.locator(`[data-cup="${id}"]`).hover();
+        assert.equal(
+          await page.locator('.cup-hero .cup-title').innerText(),
+          name,
+        );
+        assert.equal(
+          await page
+            .locator('.cup-hero .reward-chip')
+            .first()
+            .getAttribute('data-reward-info'),
+          `cup-${id}`,
+        );
+        assert.match(
+          await page.locator('.cup-hero .reward-badges').innerText(),
+          label,
+        );
+        assert.ok(
+          (
+            await page
+              .locator('.cup-hero .reward-chip img')
+              .first()
+              .getAttribute('src')
+          ).endsWith(`/${icon}.png`),
+          `${id}: preview the matching reward icon`,
+        );
+        assert.equal((await state(page)).selectedCup, 'founders');
+        assert.equal(
+          await page
+            .locator('[data-cup="founders"]')
+            .getAttribute('aria-pressed'),
+          'true',
+        );
+      }
+      await page.mouse.move(10, 10);
+      assert.equal(
+        await page
+          .locator('.cup-hero .reward-chip')
+          .first()
+          .getAttribute('data-reward-info'),
+        'cup-founders',
+      );
       for (const controller of [false, true]) {
-        await page.locator('[data-cup="founders"]').focus();
+        await page.locator('[data-cup="frontier"]').focus();
         if (controller) await pad(page, 12);
         else await key(page, 'ArrowUp');
         assert.equal(
           await page.evaluate(() => document.activeElement.dataset.rewardInfo),
-          'cup-founders',
+          'cup-frontier',
         );
+        assert.equal((await state(page)).selectedCup, 'founders');
         if (controller) await pad(page, 13);
         else await key(page, 'ArrowDown');
         assert.equal(
           await page.evaluate(() => document.activeElement.dataset.cup),
           'founders',
+        );
+        assert.equal(
+          await page
+            .locator('.cup-hero .reward-chip')
+            .first()
+            .getAttribute('data-reward-info'),
+          'cup-founders',
         );
       }
       const art = await page.evaluate(async () => {
@@ -576,7 +992,7 @@ try {
       );
       assert.match(
         await page.locator('.detail-image .reward-badges').innerText(),
-        /Stat: Speed I/,
+        /Fleet: Speed I/,
       );
       await page.locator('[data-action="cup-hub"]').focus();
       await key(page, 'Enter');
@@ -596,7 +1012,7 @@ try {
         await page
           .locator('.detail-image .reward-tooltip:not([hidden])')
           .innerText(),
-        /Set a clean record here/,
+        /Boost duration II · \+12% total/,
       );
       await action(page, 'practice');
       assert.equal(
@@ -611,7 +1027,7 @@ try {
       );
       assert.match(
         await page.locator('.loading-rewards').textContent(),
-        /Complete your first valid race/,
+        /Fleet:\s*Speed I/,
       );
       await page.waitForFunction(
         () => window.__VN_FRONTEND.getState().screen === 'results',
@@ -677,6 +1093,20 @@ try {
     await page.evaluate(() => window.__VN.showResults());
     assert.equal((await state(page)).career.state.wins, 1);
     await action(page, 'retry-race');
+    await page.evaluate(() => window.__VN.devSetup({ distance: 20, speed: 0 }));
+    await key(page, 'Escape');
+    await page.locator('#home').click();
+    assert.equal(
+      await page.locator('[data-action="resume-session"]').count(),
+      1,
+      'an unfinished retry remains resumable after completed standings',
+    );
+    await action(page, 'resume-session');
+    assert.equal(
+      await page.evaluate(() => window.__VN.getSnapshot().mode),
+      'paused',
+    );
+    await page.evaluate(() => window.__VN.devSetup({ finish: true }));
     await page.waitForFunction(
       () => window.__VN_FRONTEND.getState().career.state.wins === 2,
       null,
@@ -693,6 +1123,13 @@ try {
       await page.evaluate(() => localStorage.getItem('vector-nova.career.v1')),
       null,
       'developer wins stay isolated',
+    );
+    await action(page, 'change');
+    assert.equal((await state(page)).screen, 'home');
+    assert.equal(
+      await page.locator('[data-action="resume-session"]').count(),
+      0,
+      'Back to setup does not offer a completed Quick Race',
     );
   });
   await check(
@@ -719,13 +1156,51 @@ try {
       await pad(page, 0);
       assert.equal(await page.locator('.cup-victory').count(), 0);
       assert.ok(await page.locator('.earned-rewards').count());
-      await page.locator('[data-action="equipment"]').focus();
+      const rewards = page.locator('.result-rewards');
+      const placement = await rewards.evaluate((node) => {
+        const main = document
+          .querySelector('.results-main')
+          .getBoundingClientRect();
+        const bounds = node.getBoundingClientRect();
+        const cards = [
+          ...node.querySelectorAll('.reward-badge, .earned-reward'),
+        ];
+        return {
+          beside: bounds.left >= main.right,
+          visible: cards.every((card) => {
+            const r = card.getBoundingClientRect();
+            return r.top >= 0 && r.bottom <= innerHeight;
+          }),
+          explanation: node.querySelector('.race-reward-progress > p') !== null,
+        };
+      });
+      assert.equal(
+        placement.beside && placement.visible,
+        true,
+        'cup rewards are visible at the upper-right',
+      );
+      assert.equal(placement.explanation, false);
+      await page.locator('.cup-race-details > summary').click();
+      await page.locator('#front-shell').evaluate((node) => {
+        node.scrollTop = 300;
+      });
+      assert.equal(
+        await rewards.evaluate((node) => {
+          const r = node.getBoundingClientRect();
+          return r.top >= 0 && r.bottom <= innerHeight;
+        }),
+        true,
+        'cup rewards stay visible while scrolling the standings',
+      );
+      await page.locator('.cup-result-actions [data-action="home"]').focus();
       await pad(page, 0);
       assert.equal(
         (await state(page)).screen,
-        'setup',
-        'controller opens the between-race garage',
+        'home',
+        'controller returns from completed-cup standings to setup',
       );
+      await page.locator('[data-action="garage-tab"]').focus();
+      await pad(page, 0);
       await page.locator('[data-equip="deflector"]').focus();
       await pad(page, 0);
       assert.equal(
@@ -770,6 +1245,50 @@ try {
       await page.locator('#home').click();
       await action(page, 'records');
       assert.equal(await page.locator('.records-list > li').count(), 2);
+    },
+  );
+  await check(
+    'finished sprint Time Trials leave setup without Resume and fresh trials remain resumable',
+    async (page) => {
+      await open(page, 'dev=1&level=nightweir&finish=1');
+      await action(page, 'time-trial');
+      await launch(page);
+      await page.waitForFunction(
+        () => window.__VN_FRONTEND.getState().screen === 'results',
+        null,
+        { timeout: 15000 },
+      );
+      assert.ok(
+        await page.evaluate(() => window.__VN.getSnapshot().timeTrial.result),
+        'the sprint Time Trial actually finished',
+      );
+      await action(page, 'change');
+      assert.equal((await state(page)).screen, 'home');
+      assert.equal(
+        await page.locator('[data-action="resume-session"]').count(),
+        0,
+        'Back to setup does not offer a completed sprint Time Trial',
+      );
+      await launch(page);
+      await page.evaluate(() =>
+        window.__VN.devSetup({ distance: 20, speed: 0 }),
+      );
+      assert.equal(
+        await page.evaluate(() => window.__VN.getSnapshot().timeTrial.result),
+        null,
+        'a fresh Time Trial clears the previous terminal result',
+      );
+      await key(page, 'Escape');
+      await page.locator('#home').click();
+      assert.equal(
+        await page.locator('[data-action="resume-session"]').count(),
+        1,
+      );
+      await action(page, 'resume-session');
+      assert.equal(
+        await page.evaluate(() => window.__VN.getSnapshot().mode),
+        'paused',
+      );
     },
   );
   await check(
@@ -907,7 +1426,7 @@ try {
       assert.equal(await page.locator('.garage-fleet img').count(), 4);
       assert.equal(await page.locator('.garage-equipment-card').count(), 6);
       assert.equal(await page.locator('dialog[open]').count(), 0);
-      await key(page, 'ArrowUp');
+      await key(page, 'ArrowLeft');
       assert.equal(
         await page.evaluate(() => document.activeElement.dataset.ship),
         'needle',
@@ -922,7 +1441,17 @@ try {
         before.loadedId,
         'browsing does not construct a level',
       );
-      await pad(page, 15);
+      await pad(page, 13);
+      assert.equal(
+        await page.evaluate(() => document.activeElement.dataset.fleetUpgrade),
+        'speed-3',
+      );
+      await pad(page, 13);
+      assert.equal(
+        await page.evaluate(() => document.activeElement.dataset.action),
+        'toggle-exotic',
+      );
+      await pad(page, 13);
       assert.equal(
         await page.evaluate(() => document.activeElement.dataset.equip),
         'jump',
@@ -983,13 +1512,14 @@ try {
       const bytes = Buffer.concat(chunks),
         saved = JSON.parse(bytes);
       assert.equal(saved.profile.version, CAREER_VERSION);
-      assert.equal(Object.keys(saved.trophies.cups).length, 4);
+      assert.deepEqual(saved.trophies.cups, before.cupCollection.cups);
       assert.ok('cup' in saved && Array.isArray(saved.trials));
       await page.locator('[data-save-file]').setInputFiles({
         name: 'save.json',
         mimeType: 'application/json',
         buffer: bytes,
       });
+      await page.locator('[data-cancel]').waitFor({ state: 'visible' });
       assert.equal(
         await page.evaluate(() =>
           document.activeElement.hasAttribute('data-cancel'),
@@ -1032,64 +1562,240 @@ try {
     },
   );
   await check(
-    'Quad Core controller confirmation assigns four items to exactly one hull',
+    'Quad Core transfers, removes and reapplies with keyboard and controller',
     async (page) => {
       await open(page, 'dev=2');
-      await page.evaluate(() => {
+      await page.evaluate((profileKey) => {
         const profile = window.__VN_FRONTEND.getState().career.state;
         profile.exoticShip = null;
         for (const slots of Object.values(profile.loadouts)) {
           slots[2] = null;
           slots[3] = null;
         }
-        localStorage.setItem('vector-nova.career.v1', JSON.stringify(profile));
+        localStorage.setItem(profileKey, JSON.stringify(profile));
+      }, scopedProfileKey);
+      // The playtest entry only seeds earned rewards. Exercise the normal saved
+      // career for the garage changes, reload and save-transfer assertions.
+      await open(page, 'ship=shrike');
+      await action(page, 'garage-tab');
+      const expected = structuredClone((await state(page)).career.state);
+      const matchesProfile = async () =>
+        assert.deepEqual((await state(page)).career.state, expected);
+      const focusedAction = () =>
+        page.evaluate(() => document.activeElement.dataset.action);
+      const core = page.locator('[data-action="toggle-exotic"]');
+      const coreState = async (pressed) => {
+        assert.equal(await core.count(), 1);
+        assert.equal(await core.getAttribute('aria-pressed'), String(pressed));
+        assert.match(
+          await core.innerText(),
+          pressed ? /Equipped on this ship/ : /Equip on this ship/,
+        );
+        assert.equal(await core.locator('.reward-icon').count(), 1);
+        assert.equal(
+          await page.locator('#garage-core-hint').innerText(),
+          'Four equipment slots',
+        );
+        assert.equal(await page.locator('dialog[open]').count(), 0);
+      };
+      assert.equal(
+        await core.evaluate((button) => {
+          const panel = button.closest('.garage-performance');
+          const legend = panel?.querySelector('.garage-legend');
+          return (
+            !!legend &&
+            !!(
+              legend.compareDocumentPosition(button) &
+              Node.DOCUMENT_POSITION_FOLLOWING
+            ) &&
+            button.getBoundingClientRect().top >=
+              legend.getBoundingClientRect().bottom
+          );
+        }),
+        true,
+        'the compact toggle follows the legend under the performance stats',
+      );
+      for (const controller of [false, true]) {
+        const activate = async (selector) => {
+          await page.locator(selector).focus();
+          if (controller) await pad(page, 0);
+          else await key(page, 'Enter');
+        };
+        const fit = async (ship) => {
+          await activate('[data-action="toggle-exotic"]');
+          expected.exoticShip = ship;
+          assert.equal(await focusedAction(), 'toggle-exotic');
+          await coreState(true);
+          await matchesProfile();
+        };
+        await activate('[data-ship="shrike"]');
+        await coreState(false);
+        await page.locator('[data-equip="jump"]').focus();
+        const move = async (up) => {
+          if (controller) await pad(page, up ? 12 : 13);
+          else await key(page, up ? 'ArrowUp' : 'ArrowDown');
+        };
+        await move(true);
+        assert.equal(await focusedAction(), 'toggle-exotic');
+        await move(true);
+        assert.equal(
+          await page.evaluate(() =>
+            document.activeElement.hasAttribute('data-fleet-upgrade'),
+          ),
+          true,
+        );
+        await move(false);
+        assert.equal(await focusedAction(), 'toggle-exotic');
+        await move(false);
+        assert.equal(
+          await page.evaluate(() => document.activeElement.dataset.equip),
+          'jump',
+        );
+        await move(true);
+        assert.equal(await focusedAction(), 'toggle-exotic');
+        await matchesProfile();
+        await fit('shrike');
+        assert.match(
+          await core.getAttribute('title'),
+          /Slots 3–4 will be unequipped/,
+        );
+        for (const id of ['deflector', 'lance'])
+          await activate(`[data-equip="${id}"]`);
+        expected.loadouts.shrike = ['jump', 'injector', 'deflector', 'lance'];
+        await matchesProfile();
+        await activate('[data-equip="stabilizer"]');
+        assert.match(
+          await page.locator('.garage-notice').innerText(),
+          /4 equipped/,
+        );
+        await matchesProfile();
+
+        const activeTone = await core.evaluate((button) => {
+          const style = getComputedStyle(button);
+          return [
+            style.color,
+            style.backgroundColor,
+            style.borderColor,
+            style.opacity,
+          ];
+        });
+        await page.locator('[data-ship="kestrel"]').hover();
+        await coreState(false);
+        assert.match(
+          await core.getAttribute('title'),
+          /Shrike.*slots 3–4 will be unequipped/,
+        );
+        assert.equal(
+          (await state(page)).shipId,
+          'shrike',
+          'hover only previews a hull',
+        );
+        await matchesProfile();
+        const inactiveTone = await core.evaluate((button) => {
+          const style = getComputedStyle(button);
+          return [
+            style.color,
+            style.backgroundColor,
+            style.borderColor,
+            style.opacity,
+          ];
+        });
+        assert.notDeepEqual(
+          activeTone,
+          inactiveTone,
+          'the fitted hull has a brighter toggle',
+        );
+        await page.locator('[data-ship="shrike"]').hover();
+        await coreState(true);
+        await matchesProfile();
+        await page.mouse.move(10, 10);
+        await activate('[data-ship="kestrel"]');
+        await coreState(false);
+        assert.match(
+          await page.locator('.garage-equipment-count').innerText(),
+          /2 \/ 2 equipped/,
+        );
+        // Transfer gives the new owner capacity, without copying old extras.
+        expected.loadouts.shrike[2] = expected.loadouts.shrike[3] = null;
+        await fit('kestrel');
+        assert.match(
+          await page.locator('.garage-equipment-count').innerText(),
+          /2 \/ 4 equipped/,
+        );
+        for (const id of ['deflector', 'lance'])
+          await activate(`[data-equip="${id}"]`);
+        expected.loadouts.kestrel = ['jump', 'injector', 'deflector', 'lance'];
+        await matchesProfile();
+        await activate('[data-action="toggle-exotic"]');
+        expected.exoticShip = null;
+        expected.loadouts.kestrel[2] = expected.loadouts.kestrel[3] = null;
+        await coreState(false);
+        assert.equal(await focusedAction(), 'toggle-exotic');
+        assert.match(
+          await page.locator('.garage-equipment-count').innerText(),
+          /2 \/ 2 equipped/,
+        );
+        await matchesProfile();
+        await fit('kestrel');
+        assert.match(
+          await page.locator('.garage-equipment-count').innerText(),
+          /2 \/ 4 equipped/,
+        );
+        await activate('[data-action="toggle-exotic"]');
+        expected.exoticShip = null;
+        await coreState(false);
+        await matchesProfile();
+      }
+
+      await core.focus();
+      await key(page, 'Enter');
+      expected.exoticShip = 'kestrel';
+      for (const id of ['deflector', 'lance']) {
+        await page.locator(`[data-equip="${id}"]`).focus();
+        await key(page, 'Enter');
+      }
+      expected.loadouts.kestrel = ['jump', 'injector', 'deflector', 'lance'];
+      await page.reload();
+      await page.waitForFunction(() => window.__VN_FRONTEND);
+      await matchesProfile();
+      await action(page, 'career');
+      const download = page.waitForEvent('download');
+      await page.locator('[data-export]').focus();
+      await key(page, 'Enter');
+      const stream = await (await download).createReadStream();
+      const chunks = [];
+      for await (const chunk of stream) chunks.push(chunk);
+      const bytes = Buffer.concat(chunks);
+      assert.deepEqual(JSON.parse(bytes).profile, expected);
+      await action(page, 'garage-tab');
+      await core.focus();
+      await key(page, 'Enter');
+      assert.equal((await state(page)).career.state.exoticShip, null);
+      await action(page, 'career');
+      await page.locator('[data-save-file]').setInputFiles({
+        name: 'quad-core-save.json',
+        mimeType: 'application/json',
+        buffer: bytes,
       });
-      await open(page, 'dev=1&ship=shrike');
-      await action(page, 'ship-step');
-      await page.locator('[data-action="fit-exotic"]').focus();
-      await pad(page, 0);
+      await page.locator('[data-cancel]').waitFor({ state: 'visible' });
       assert.equal(
         await page.evaluate(() =>
           document.activeElement.hasAttribute('data-cancel'),
         ),
         true,
       );
-      await pad(page, 1);
-      assert.equal((await state(page)).career.state.exoticShip, null);
-      assert.equal(await page.locator('dialog[open]').count(), 0);
+      await pad(page, 15);
       assert.equal(
-        await page.evaluate(() => document.activeElement.dataset.action),
-        'fit-exotic',
+        await page.evaluate(() =>
+          document.activeElement.hasAttribute('data-confirm-import'),
+        ),
+        true,
       );
       await pad(page, 0);
-      await page.locator('[data-confirm-exotic]').focus();
-      await pad(page, 0);
-      assert.equal((await state(page)).career.state.exoticShip, 'shrike');
-      assert.equal(
-        await page.evaluate(() => document.activeElement.dataset.action),
-        'garage-tab',
-      );
-      for (const id of ['deflector', 'lance']) {
-        await page.locator(`[data-equip="${id}"]`).focus();
-        await pad(page, 0);
-      }
-      assert.deepEqual((await state(page)).career.state.loadouts.shrike, [
-        'jump',
-        'injector',
-        'deflector',
-        'lance',
-      ]);
-      await page.locator('[data-equip="stabilizer"]').click();
-      assert.match(
-        await page.locator('.garage-notice').innerText(),
-        /4 equipped/,
-      );
-      await page.locator('[data-ship="kestrel"]').click();
-      assert.equal(await page.locator('[data-action="fit-exotic"]').count(), 0);
-      assert.match(
-        await page.locator('.garage-equipment-heading').innerText(),
-        /2 \/ 2 equipped/,
-      );
+      await matchesProfile();
+      await page.reload();
+      await page.waitForFunction(() => window.__VN_FRONTEND);
+      await matchesProfile();
     },
   );
   await check(
@@ -1145,11 +1851,21 @@ try {
       await open(page, 'dev=2&ship=shrike');
       await action(page, 'time-trial');
       await action(page, 'ship-step');
+      const stockProfile = (await state(page)).career.state;
+      assert.equal(
+        await page.locator('[data-action="toggle-exotic"]:disabled').count(),
+        1,
+      );
+      assert.equal(
+        await page.locator('[data-action="toggle-exotic"]:enabled').count(),
+        0,
+      );
       assert.equal(
         await page.locator('.garage-equipment-card:enabled').count(),
         0,
       );
       assert.equal(await page.locator('.stat-notch').count(), 0);
+      assert.deepEqual((await state(page)).career.state, stockProfile);
       await key(page, 'Escape');
       await action(page, 'quick-race');
       await action(page, 'ship-step');
@@ -1163,10 +1879,22 @@ try {
       await page.locator('[data-ship="needle"]').click();
       assert.equal((await state(page)).shipId, 'shrike');
       assert.equal(
+        await page.locator('[data-action="toggle-exotic"]:disabled').count(),
+        1,
+      );
+      assert.equal(
+        await page.locator('[data-action="toggle-exotic"]:enabled').count(),
+        0,
+      );
+      assert.equal(
         await page.locator('.garage-equipment-card:enabled').count(),
         0,
       );
       await page.locator('[data-ship="shrike"]').click();
+      assert.equal(
+        await page.locator('[data-action="toggle-exotic"]:enabled').count(),
+        1,
+      );
       await page.locator('[data-equip="lance"]').click();
       await page.locator('[data-equip="stabilizer"]').click();
       await action(page, 'race-tab');
@@ -1217,8 +1945,13 @@ try {
                 document.querySelector('.garage-fleet'),
               ).gridTemplateColumns.split(' ').length,
           ),
-          1,
+          4,
         );
+        assert.equal(
+          await page.locator('.garage-fleet button small').count(),
+          0,
+        );
+        assert.ok((await page.locator('.garage-role').textContent()).trim());
         for (const selector of [
           '.garage-fleet',
           '.garage-equipment-grid',
@@ -1323,7 +2056,12 @@ try {
         ['deflector'],
       );
       await page.locator('.garage-fleet [data-ship="bastion"]').focus();
-      await pad(page, 15);
+      await pad(page, 13);
+      assert.equal(
+        await page.evaluate(() => document.activeElement.dataset.fleetUpgrade),
+        'speed-1',
+      );
+      await pad(page, 13);
       assert.equal(
         await page.evaluate(() => document.activeElement.dataset.equip),
         'deflector',
@@ -1375,11 +2113,75 @@ try {
     [844, 390],
   ]) {
     await check(
+      `responsive Quad Core controls ${width}x${height}`,
+      async (page) => {
+        await page.setViewportSize({ width, height });
+        await seedFleetUpgrades(page, true);
+        await open(page, 'ship=kestrel');
+        await action(page, 'garage-tab');
+        const core = page.locator('[data-action="toggle-exotic"]');
+        const fitsScreen = async () => {
+          assert.equal(
+            await page.evaluate(
+              () =>
+                document.querySelector('#front-shell').scrollWidth <=
+                innerWidth,
+            ),
+            true,
+          );
+          await core.scrollIntoViewIfNeeded();
+          assert.equal(
+            await core.evaluate((element) => {
+              const r = element.getBoundingClientRect();
+              return (
+                r.left >= 0 &&
+                r.right <= innerWidth &&
+                r.top >= 0 &&
+                r.bottom <= innerHeight
+              );
+            }),
+            true,
+          );
+        };
+        await fitsScreen();
+        assert.equal(await core.getAttribute('aria-pressed'), 'true');
+        await page.locator('[data-ship="shrike"]').tap();
+        await fitsScreen();
+        assert.equal(await core.getAttribute('aria-pressed'), 'false');
+        await core.tap();
+        assert.equal(await page.locator('dialog[open]').count(), 0);
+        assert.equal((await state(page)).career.state.exoticShip, 'shrike');
+        assert.equal(await core.getAttribute('aria-pressed'), 'true');
+        await fitsScreen();
+        await core.tap();
+        assert.equal((await state(page)).career.state.exoticShip, null);
+        assert.equal(await core.getAttribute('aria-pressed'), 'false');
+        await fitsScreen();
+        await core.tap();
+        assert.equal((await state(page)).career.state.exoticShip, 'shrike');
+        assert.equal(await core.getAttribute('aria-pressed'), 'true');
+        await fitsScreen();
+      },
+    );
+    await check(
       `responsive garage and equipment HUD ${width}x${height}`,
       async (page) => {
         await page.setViewportSize({ width, height });
         await open(page, 'dev=2&ship=shrike');
         await action(page, 'ship-step');
+        const equipmentHeight = await page
+          .locator('.garage-equipment')
+          .evaluate((element) => element.getBoundingClientRect().height);
+        for (const item of await page.locator('[data-equip]').all()) {
+          await item.focus();
+          assert.equal(
+            await page
+              .locator('.garage-equipment')
+              .evaluate((element) => element.getBoundingClientRect().height),
+            equipmentHeight,
+            'equipment descriptions keep a stable height as focus moves',
+          );
+        }
         await page.locator('[data-equip="lance"]').focus();
         assert.ok(
           await page.evaluate(() => {

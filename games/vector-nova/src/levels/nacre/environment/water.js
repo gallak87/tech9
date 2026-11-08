@@ -145,32 +145,57 @@ export function createNacreWater(
         vec3 halfLight=normalize(view+normalize(vec3(-.55,.72,.42)));
         float glint=pow(max(dot(normal,halfLight),0.),140.);
         surface+=vec3(.10,.13,.12)*glint*detailVisibility;
-        // Compression selects breaking groups. Long gaps and torn cellular
-        // edges leave most crest faces clear, instead of outlining each wave.
-        vec2 foamUV=windUV/vec2(42.,19.)-vec2(time*.085,0.);
+        // Compression keeps whitewater on the actual breaking groups. Thin
+        // across-wind ribbons follow the crest span; gaps and quiet residue
+        // keep the swell faces clear between those torn, advecting groups.
+        vec2 foamUV=windUV/vec2(18.,82.)-vec2(time*.20,time*.009);
         float foamPatch=noiseGradient(foamUV*.52+vec2(17.,31.)).x;
-        float laceVisibility=1.-smoothstep(.45,1.8,footprint*3.3/19.);
+        float laceVisibility=1.-smoothstep(.45,1.8,footprint*3.3/18.);
         float foamLace=mix(.5,noiseGradient(foamUV*3.3+vec2(5.,11.)).x,laceVisibility);
         float grainVisibility=1.-smoothstep(.6,2.8,footprint*.43);
         float foamGrain=mix(.5,noiseGradient(windUV*.43-wind*time*.4).x,grainVisibility);
         float breaking=smoothstep(.065,.15,waveData.z)*smoothstep(.24,.44,waveData.y);
         float ragged=smoothstep(.47,.72,foamPatch+foamLace*.16);
-        float cells=smoothstep(.22,.54,foamLace+foamGrain*.25);
+        float cells=smoothstep(.22,.54,foamLace+foamGrain*.12);
         float crestFoam=breaking*ragged*cells;
         float residue=smoothstep(.045,.11,waveData.z)*(1.-smoothstep(.11,.20,waveData.z));
-        residue*=smoothstep(.63,.83,foamPatch)*smoothstep(.45,.78,foamLace)*.14;
-        float foamFade=(1.-smoothstep(3800.,6500.,surfaceDistance))*(1.-smoothstep(.8,2.2,footprint/19.));
+        residue*=smoothstep(.63,.83,foamPatch)*smoothstep(.45,.78,foamLace)*.08;
+        float foamFade=(1.-smoothstep(3800.,6500.,surfaceDistance))*(1.-smoothstep(.8,2.2,footprint/18.));
         float foam=clamp((crestFoam+residue)*foamFade,0.,.86);
         surface=mix(surface,vec3(.53,.64,.61),foam);
-        // From below, broad warped transmission patches describe moving water
-        // without the previous normal-driven Fresnel bands. Only the upward
-        // Snell window admits filtered sky radiance; the horizon stays quiet.
-        vec3 ceiling=mix(vec3(.026,.079,.101),vec3(.054,.145,.163),patchLight*detailVisibility);
-        ceiling=mix(ceiling,vec3(.036,.108,.130),grazing*.45);
-        vec3 transmitted=refract(-view,-normal,1.333);
-        float windowWeight=smoothstep(.68,.85,abs(view.y))*detailVisibility;
-        vec3 transmittedSky=skyRadiance(normalize(transmitted+vec3(0.,.0001,0.)));
-        ceiling=mix(ceiling,transmittedSky*vec3(.30,.57,.62)+vec3(.010,.033,.044),windowWeight*.72);
+        // Below the sea, the geometric swell normal points into the water.
+        // Keep fine surface ripples out of the critical-angle window. Reflection samples
+        // a quiet depth gradient; only physically valid refraction admits sky.
+        // Broad radiance keeps its own footprint filter, independent of ripples.
+        vec3 undersideNormal=-baseNormal;
+        float undersideFacing=clamp(dot(undersideNormal,view),0.,1.);
+        vec3 internalRay=reflect(-view,undersideNormal);
+        float reflectedDepth=smoothstep(.04,.88,max(0.,-internalRay.y));
+        float broadVisibility=1.-smoothstep(.5,2.,footprint*.006);
+        float broadRadiance=mix(.5,patchLight,broadVisibility);
+        vec3 ceiling=mix(vec3(.025,.076,.095),vec3(.009,.033,.049),reflectedDepth);
+        ceiling*=.84+.32*broadRadiance;
+        float waterToAir=1.333;
+        float transmissionSquare=1.-waterToAir*waterToAir*(1.-undersideFacing*undersideFacing);
+        float transmittedFacing=sqrt(max(0.,transmissionSquare));
+        float perpendicular=(waterToAir*undersideFacing-transmittedFacing)/max(.0001,waterToAir*undersideFacing+transmittedFacing);
+        float parallel=(undersideFacing-waterToAir*transmittedFacing)/max(.0001,undersideFacing+waterToAir*transmittedFacing);
+        float internalFresnel=clamp(.5*(perpendicular*perpendicular+parallel*parallel),0.,1.);
+        float criticalWidth=max(.025,fwidth(transmissionSquare)*1.5);
+        float transmissionWeight=(1.-internalFresnel)*smoothstep(0.,criticalWidth,transmissionSquare);
+        // The explicit direction remains finite during total internal reflection;
+        // those fragments have zero transmission and cannot sample the zenith.
+        vec3 transmitted=waterToAir*(-view)+(waterToAir*undersideFacing-transmittedFacing)*undersideNormal;
+        vec3 transmittedSky=skyRadiance(normalize(transmitted));
+        vec3 filteredSky=transmittedSky*vec3(.30,.57,.62)+vec3(.010,.033,.044);
+        ceiling=mix(ceiling,filteredSky,transmissionWeight*.72);
+        // The optical ceiling travels through water to the camera. Absorb
+        // long red/green paths before the existing scene-distance treatment;
+        // a restrained in-water scatter term keeps distant troughs coherent.
+        // Near crossings retain the original interface response as path→0.
+        vec3 ceilingTransmission=exp(-vec3(.0060,.0030,.0021)*surfaceDistance);
+        vec3 ceilingScatter=vec3(.018,.077,.102)*.5;
+        ceiling=ceiling*ceilingTransmission+ceilingScatter*(1.-ceilingTransmission);
         vec3 color=mix(surface,ceiling,wetness);
         float distanceFade=1.-exp(-pow(surfaceDistance*.00020,1.35));
         color=mix(color,mix(seaHaze,vec3(.018,.077,.102),wetness),distanceFade*.8);

@@ -1,0 +1,747 @@
+{
+  "title": "Nomad Procession / Hero companion port-flank formed service armor cassettes",
+  "generator": "Original fitted Blender component assembly; broad returned armor plates, deep cooling wells, machined coating transitions and one inset service hatch.",
+  "source": "build_companion_armour.py",
+  "blend": "companion-armour.blend",
+  "runtimeAsset": "public/assets/levels/nomad/companion-armour.glb",
+  "coordinates": "+Y up, +Z bow, metres; attach unchanged to one visual companion root. Port flank (-X) only; no race or collision surfaces.",
+  "rights": "Project-authored geometry and exact existing Nomad material aliases; no external models, textures or baked lighting.",
+  "reference": "../../reference/nomad-procession-original.png",
+  "sourceHull": "../carrier-collision.json",
+  "prototypes": [
+    {
+      "name": "nomad_companion_armour",
+      "triangles": 7596,
+      "materialBatches": 4,
+      "bounds": {
+        "min": [-104.89308166503906, 74.68885803222656, -150.0],
+        "max": [-77.27188110351562, 129.9080810546875, 151.0]
+      },
+      "actualHullSeats": [
+        {
+          "name": "forward heat-exchanger cassette / lower shoulder socket",
+          "position": [-90.0, 86.0, -137.0],
+          "normal": [-1.0, 0.0, 0.0],
+          "sourceTriangle": 13148
+        },
+        {
+          "name": "forward heat-exchanger cassette / upper shoulder socket",
+          "position": [-81.72726440429688, 117.0, -137.0],
+          "normal": [-0.8436614274978638, 0.5368756055831909, 0.0],
+          "sourceTriangle": 13149
+        },
+        {
+          "name": "forward heat-exchanger cassette / lower shoulder socket",
+          "position": [-90.0, 86.0, -51.0],
+          "normal": [-1.0, 0.0, 0.0],
+          "sourceTriangle": 13476
+        },
+        {
+          "name": "forward heat-exchanger cassette / upper shoulder socket",
+          "position": [-81.72727966308594, 117.0, -51.0],
+          "normal": [-0.8436614274978638, 0.5368756055831909, 0.0],
+          "sourceTriangle": 13559
+        },
+        {
+          "name": "central armored service hatch / lower shoulder socket",
+          "position": [-90.0, 86.0, -18.0],
+          "normal": [-1.0, 0.0, 0.0],
+          "sourceTriangle": 13804
+        },
+        {
+          "name": "central armored service hatch / upper shoulder socket",
+          "position": [-81.72726440429688, 117.0, -18.0],
+          "normal": [-0.843661367893219, 0.5368756055831909, 0.0],
+          "sourceTriangle": 13805
+        },
+        {
+          "name": "central armored service hatch / lower shoulder socket",
+          "position": [-90.0, 86.0, 48.0],
+          "normal": [-1.0, 0.0, 0.0],
+          "sourceTriangle": 13886
+        },
+        {
+          "name": "central armored service hatch / upper shoulder socket",
+          "position": [-81.72727966308594, 117.0, 48.0],
+          "normal": [-0.843661367893219, 0.5368756055831909, 0.0],
+          "sourceTriangle": 13887
+        },
+        {
+          "name": "aft pressure-cooling cassette / lower shoulder socket",
+          "position": [-90.0, 86.0, 81.0],
+          "normal": [-1.0, 0.0, 0.0],
+          "sourceTriangle": 14132
+        },
+        {
+          "name": "aft pressure-cooling cassette / upper shoulder socket",
+          "position": [-81.72727966308594, 117.0, 81.0],
+          "normal": [-0.8436614274978638, 0.5368756055831909, 0.0],
+          "sourceTriangle": 14133
+        },
+        {
+          "name": "aft pressure-cooling cassette / lower shoulder socket",
+          "position": [-90.0, 86.0, 136.0],
+          "normal": [-1.0, 0.0, 0.0],
+          "sourceTriangle": 14214
+        },
+        {
+          "name": "aft pressure-cooling cassette / upper shoulder socket",
+          "position": [-81.72726440429688, 117.0, 136.0],
+          "normal": [-0.8436614274978638, 0.5368756055831909, 0.0],
+          "sourceTriangle": 14215
+        }
+      ]
+    }
+  ],
+  "clearance": {
+    "sidePortalReservedZ": [
+      [-281, -159],
+      [159, 281]
+    ],
+    "wheelAndGuardMaxY": 65,
+    "craneReservedZ": [
+      [-304, -274],
+      [263, 293]
+    ],
+    "result": "Every evaluated attachment vertex is above Y70 and strictly inside Z(-159,159); convex hull bounds therefore separate the entire kit from all tire/guard, lateral portal and crane station envelopes."
+  },
+  "materials": [
+    "Nomad / warm ivory armour",
+    "Nomad / navy structural steel",
+    "Nomad / rubbed warm alloy",
+    "Nomad / oxide freight enamel"
+  ],
+  "components": [
+    {
+      "name": "aft pressure-cooling cassette / cooling blade exposed retaining edge 00",
+      "min": [-101.67234802246094, 88.52423095703125, 86.9625015258789],
+      "max": [-95.72764587402344, 103.7757568359375, 87.4124984741211]
+    },
+    {
+      "name": "aft pressure-cooling cassette / cooling blade exposed retaining edge 01",
+      "min": [-101.67234802246094, 88.52423095703125, 93.3375015258789],
+      "max": [-95.72764587402344, 103.7757568359375, 93.7874984741211]
+    },
+    {
+      "name": "aft pressure-cooling cassette / cooling blade exposed retaining edge 02",
+      "min": [-101.67234802246094, 88.52423095703125, 99.7125015258789],
+      "max": [-95.72764587402344, 103.7757568359375, 100.1624984741211]
+    },
+    {
+      "name": "aft pressure-cooling cassette / cooling blade exposed retaining edge 03",
+      "min": [-101.67234802246094, 88.52423095703125, 106.0875015258789],
+      "max": [-95.72764587402344, 103.7757568359375, 106.5374984741211]
+    },
+    {
+      "name": "aft pressure-cooling cassette / cooling blade exposed retaining edge 04",
+      "min": [-101.67234802246094, 88.52423095703125, 112.4625015258789],
+      "max": [-95.72764587402344, 103.7757568359375, 112.9124984741211]
+    },
+    {
+      "name": "aft pressure-cooling cassette / cooling blade exposed retaining edge 05",
+      "min": [-101.67234802246094, 88.52423095703125, 118.8375015258789],
+      "max": [-95.72764587402344, 103.7757568359375, 119.2874984741211]
+    },
+    {
+      "name": "aft pressure-cooling cassette / cooling blade exposed retaining edge 06",
+      "min": [-101.67234802246094, 88.52423095703125, 125.2125015258789],
+      "max": [-95.72764587402344, 103.7757568359375, 125.6624984741211]
+    },
+    {
+      "name": "aft pressure-cooling cassette / cooling blade exposed retaining edge 07",
+      "min": [-101.67234802246094, 88.52423095703125, 131.58749389648438],
+      "max": [-95.72764587402344, 103.7757568359375, 132.03750610351562]
+    },
+    {
+      "name": "aft pressure-cooling cassette / cooling-bank seated end header",
+      "min": [-101.75, 86.25, 81.0],
+      "max": [-98.25, 87.75, 138.0]
+    },
+    {
+      "name": "aft pressure-cooling cassette / cooling-bank seated end header.001",
+      "min": [-101.75, 103.8499984741211, 81.0],
+      "max": [-98.25, 105.3499984741211, 138.0]
+    },
+    {
+      "name": "aft pressure-cooling cassette / deep service well backing",
+      "min": [-95.4000015258789, 84.44999694824219, 77.0],
+      "max": [-94.20000457763672, 106.94999694824219, 142.0]
+    },
+    {
+      "name": "aft pressure-cooling cassette / folded cooling blade 00",
+      "min": [-101.5, 87.69999694824219, 86.48750305175781],
+      "max": [-95.19999694824219, 104.0, 87.88749694824219]
+    },
+    {
+      "name": "aft pressure-cooling cassette / folded cooling blade 01",
+      "min": [-101.5, 87.69999694824219, 92.86250305175781],
+      "max": [-95.19999694824219, 104.0, 94.26249694824219]
+    },
+    {
+      "name": "aft pressure-cooling cassette / folded cooling blade 02",
+      "min": [-101.5, 87.69999694824219, 99.23750305175781],
+      "max": [-95.19999694824219, 104.0, 100.63749694824219]
+    },
+    {
+      "name": "aft pressure-cooling cassette / folded cooling blade 03",
+      "min": [-101.5, 87.69999694824219, 105.61250305175781],
+      "max": [-95.19999694824219, 104.0, 107.01249694824219]
+    },
+    {
+      "name": "aft pressure-cooling cassette / folded cooling blade 04",
+      "min": [-101.5, 87.69999694824219, 111.98750305175781],
+      "max": [-95.19999694824219, 104.0, 113.38749694824219]
+    },
+    {
+      "name": "aft pressure-cooling cassette / folded cooling blade 05",
+      "min": [-101.5, 87.69999694824219, 118.36250305175781],
+      "max": [-95.19999694824219, 104.0, 119.76249694824219]
+    },
+    {
+      "name": "aft pressure-cooling cassette / folded cooling blade 06",
+      "min": [-101.5, 87.69999694824219, 124.73750305175781],
+      "max": [-95.19999694824219, 104.0, 126.13749694824219]
+    },
+    {
+      "name": "aft pressure-cooling cassette / folded cooling blade 07",
+      "min": [-101.5, 87.69999694824219, 131.1125030517578],
+      "max": [-95.19999694824219, 104.0, 132.5124969482422]
+    },
+    {
+      "name": "aft pressure-cooling cassette / formed armor opening surround",
+      "min": [-104.0, 80.5, 72.0],
+      "max": [-95.0, 111.0, 147.0]
+    },
+    {
+      "name": "aft pressure-cooling cassette / formed lower return plate",
+      "min": [-103.79026794433594, 74.68885803222656, 69.0],
+      "max": [-89.74896240234375, 87.77349853515625, 150.0]
+    },
+    {
+      "name": "aft pressure-cooling cassette / formed upper shoulder plate",
+      "min": [-104.29444885253906, 105.0, 68.0],
+      "max": [-77.27188110351562, 129.9080810546875, 151.0]
+    },
+    {
+      "name": "aft pressure-cooling cassette / lower alloy seated return",
+      "min": [-104.4705810546875, 82.65908813476562, 71.0],
+      "max": [-101.85466003417969, 86.4885025024414, 148.0]
+    },
+    {
+      "name": "aft pressure-cooling cassette / lower shoulder socket / deep connected mounting bracket",
+      "min": [-98.0, 83.25, 78.75],
+      "max": [-91.10000610351562, 88.75, 83.25]
+    },
+    {
+      "name": "aft pressure-cooling cassette / lower shoulder socket / deep connected mounting bracket.001",
+      "min": [-98.0, 83.25, 133.75],
+      "max": [-91.10000610351562, 88.75, 138.25]
+    },
+    {
+      "name": "aft pressure-cooling cassette / lower shoulder socket / fitted hull sole",
+      "min": [-91.0999984741211, 83.0, 76.5],
+      "max": [-89.5999984741211, 89.0, 85.5]
+    },
+    {
+      "name": "aft pressure-cooling cassette / lower shoulder socket / fitted hull sole.001",
+      "min": [-91.0999984741211, 83.0, 131.5],
+      "max": [-89.5999984741211, 89.0, 140.5]
+    },
+    {
+      "name": "aft pressure-cooling cassette / lower shoulder socket / seated plate clamp",
+      "min": [-98.9000015258789, 84.25, 77.5],
+      "max": [-97.0999984741211, 87.75, 84.5]
+    },
+    {
+      "name": "aft pressure-cooling cassette / lower shoulder socket / seated plate clamp.001",
+      "min": [-98.9000015258789, 84.25, 132.5],
+      "max": [-97.0999984741211, 87.75, 139.5]
+    },
+    {
+      "name": "aft pressure-cooling cassette / machined recessed reveal",
+      "min": [-104.25, 84.80000305175781, 78.5],
+      "max": [-102.0, 106.5999984741211, 140.5]
+    },
+    {
+      "name": "aft pressure-cooling cassette / recessed longitudinal structural bearer",
+      "min": [-96.69999694824219, 81.75, 70.5],
+      "max": [-91.69999694824219, 86.25, 148.5]
+    },
+    {
+      "name": "aft pressure-cooling cassette / recessed longitudinal structural bearer.001",
+      "min": [-96.69999694824219, 105.75, 70.5],
+      "max": [-91.69999694824219, 110.25, 148.5]
+    },
+    {
+      "name": "aft pressure-cooling cassette / terminal seated navy gasket",
+      "min": [-100.05000305175781, 79.0, 68.5999984741211],
+      "max": [-94.55000305175781, 113.0, 70.4000015258789]
+    },
+    {
+      "name": "aft pressure-cooling cassette / terminal seated navy gasket.001",
+      "min": [-100.05000305175781, 79.0, 148.60000610351562],
+      "max": [-94.55000305175781, 113.0, 150.39999389648438]
+    },
+    {
+      "name": "aft pressure-cooling cassette / upper alloy coating transition",
+      "min": [-104.89308166503906, 104.69999694824219, 71.0],
+      "max": [-101.7540512084961, 112.60015106201172, 148.0]
+    },
+    {
+      "name": "aft pressure-cooling cassette / upper shoulder socket / deep connected mounting bracket",
+      "min": [-91.17295837402344, 114.27803802490234, 78.75],
+      "max": [-82.48234558105469, 120.3125228881836, 83.25]
+    },
+    {
+      "name": "aft pressure-cooling cassette / upper shoulder socket / deep connected mounting bracket.001",
+      "min": [-91.17295837402344, 114.27803802490234, 133.75],
+      "max": [-82.48233032226562, 120.3125228881836, 138.25]
+    },
+    {
+      "name": "aft pressure-cooling cassette / upper shoulder socket / fitted hull sole",
+      "min": [-84.15855407714844, 114.36164093017578, 76.5],
+      "max": [-79.88656616210938, 120.01416778564453, 85.5]
+    },
+    {
+      "name": "aft pressure-cooling cassette / upper shoulder socket / fitted hull sole.001",
+      "min": [-84.15853881835938, 114.36164093017578, 131.5],
+      "max": [-79.88655090332031, 120.01416778564453, 140.5]
+    },
+    {
+      "name": "aft pressure-cooling cassette / upper shoulder socket / seated plate clamp",
+      "min": [-92.56460571289062, 115.17462158203125, 77.5],
+      "max": [-89.43539428710938, 118.82537841796875, 84.5]
+    },
+    {
+      "name": "aft pressure-cooling cassette / upper shoulder socket / seated plate clamp.001",
+      "min": [-92.56460571289062, 115.17462158203125, 132.5],
+      "max": [-89.43539428710938, 118.82537841796875, 139.5]
+    },
+    {
+      "name": "central armored service hatch / deep service well backing",
+      "min": [-95.4000015258789, 84.44999694824219, -22.0],
+      "max": [-94.20000457763672, 106.94999694824219, 54.0]
+    },
+    {
+      "name": "central armored service hatch / formed armor opening surround",
+      "min": [-104.0, 80.5, -27.0],
+      "max": [-95.0, 111.0, 59.0]
+    },
+    {
+      "name": "central armored service hatch / formed lower return plate",
+      "min": [-103.79026794433594, 74.68885803222656, -30.0],
+      "max": [-89.74896240234375, 87.77349853515625, 62.0]
+    },
+    {
+      "name": "central armored service hatch / formed upper shoulder plate",
+      "min": [-104.29444885253906, 105.0, -31.0],
+      "max": [-77.27188110351562, 129.9080810546875, 63.0]
+    },
+    {
+      "name": "central armored service hatch / inset oxide service cover",
+      "min": [-102.79999542236328, 88.05000305175781, 2.9599990844726562],
+      "max": [-101.4000015258789, 103.55000305175781, 45.959999084472656]
+    },
+    {
+      "name": "central armored service hatch / lower alloy seated return",
+      "min": [-104.4705810546875, 82.65908813476562, -28.0],
+      "max": [-101.85466003417969, 86.4885025024414, 60.0]
+    },
+    {
+      "name": "central armored service hatch / lower shoulder socket / deep connected mounting bracket",
+      "min": [-98.0, 83.25, -20.25],
+      "max": [-91.10000610351562, 88.75, -15.75]
+    },
+    {
+      "name": "central armored service hatch / lower shoulder socket / deep connected mounting bracket.001",
+      "min": [-98.0, 83.25, 45.75],
+      "max": [-91.10000610351562, 88.75, 50.25]
+    },
+    {
+      "name": "central armored service hatch / lower shoulder socket / fitted hull sole",
+      "min": [-91.0999984741211, 83.0, -22.5],
+      "max": [-89.5999984741211, 89.0, -13.5]
+    },
+    {
+      "name": "central armored service hatch / lower shoulder socket / fitted hull sole.001",
+      "min": [-91.0999984741211, 83.0, 43.5],
+      "max": [-89.5999984741211, 89.0, 52.5]
+    },
+    {
+      "name": "central armored service hatch / lower shoulder socket / seated plate clamp",
+      "min": [-98.9000015258789, 84.25, -21.5],
+      "max": [-97.0999984741211, 87.75, -14.5]
+    },
+    {
+      "name": "central armored service hatch / lower shoulder socket / seated plate clamp.001",
+      "min": [-98.9000015258789, 84.25, 44.5],
+      "max": [-97.0999984741211, 87.75, 51.5]
+    },
+    {
+      "name": "central armored service hatch / machined pressure collar",
+      "min": [-101.84735107421875, 89.4000015258789, -15.100000381469727],
+      "max": [-97.75265502929688, 90.5999984741211, -10.899999618530273]
+    },
+    {
+      "name": "central armored service hatch / machined pressure collar.001",
+      "min": [-101.84735107421875, 100.9000015258789, -15.100000381469727],
+      "max": [-97.75265502929688, 102.0999984741211, -10.899999618530273]
+    },
+    {
+      "name": "central armored service hatch / machined pressure collar.002",
+      "min": [-101.84735107421875, 89.4000015258789, -6.099999904632568],
+      "max": [-97.75265502929688, 90.5999984741211, -1.9000000953674316]
+    },
+    {
+      "name": "central armored service hatch / machined pressure collar.003",
+      "min": [-101.84735107421875, 100.9000015258789, -6.099999904632568],
+      "max": [-97.75265502929688, 102.0999984741211, -1.9000000953674316]
+    },
+    {
+      "name": "central armored service hatch / machined recessed reveal",
+      "min": [-104.25, 84.80000305175781, -20.5],
+      "max": [-102.0, 106.5999984741211, 52.5]
+    },
+    {
+      "name": "central armored service hatch / recessed hatch seating strap",
+      "min": [-103.55000305175781, 87.55000305175781, 5.360000133514404],
+      "max": [-102.75, 104.05000305175781, 7.559999942779541]
+    },
+    {
+      "name": "central armored service hatch / recessed hatch seating strap.001",
+      "min": [-103.55000305175781, 87.55000305175781, 41.36000061035156],
+      "max": [-102.75, 104.05000305175781, 43.55999755859375]
+    },
+    {
+      "name": "central armored service hatch / recessed longitudinal structural bearer",
+      "min": [-96.69999694824219, 81.75, -28.5],
+      "max": [-91.69999694824219, 86.25, 60.5]
+    },
+    {
+      "name": "central armored service hatch / recessed longitudinal structural bearer.001",
+      "min": [-96.69999694824219, 105.75, -28.5],
+      "max": [-91.69999694824219, 110.25, 60.5]
+    },
+    {
+      "name": "central armored service hatch / seated hatch hinge barrel",
+      "min": [-104.0, 90.19999694824219, 3.9599997997283936],
+      "max": [-102.39999389648438, 91.80000305175781, 9.460000038146973]
+    },
+    {
+      "name": "central armored service hatch / seated hatch hinge barrel.001",
+      "min": [-104.0, 99.69999694824219, 3.9599997997283936],
+      "max": [-102.39999389648438, 101.30000305175781, 9.460000038146973]
+    },
+    {
+      "name": "central armored service hatch / service hatch dark inset",
+      "min": [-102.0999984741211, 86.55000305175781, 0.45999908447265625],
+      "max": [-100.0999984741211, 105.05000305175781, 48.459999084472656]
+    },
+    {
+      "name": "central armored service hatch / service pressure coupling",
+      "min": [-101.45738220214844, 89.0, -14.699999809265137],
+      "max": [-98.14262390136719, 102.5, -11.300000190734863]
+    },
+    {
+      "name": "central armored service hatch / service pressure coupling.001",
+      "min": [-101.45738220214844, 89.0, -5.699999809265137],
+      "max": [-98.14262390136719, 102.5, -2.299999952316284]
+    },
+    {
+      "name": "central armored service hatch / terminal seated navy gasket",
+      "min": [-100.05000305175781, 79.0, -30.399999618530273],
+      "max": [-94.55000305175781, 113.0, -28.600000381469727]
+    },
+    {
+      "name": "central armored service hatch / terminal seated navy gasket.001",
+      "min": [-100.05000305175781, 79.0, 60.599998474121094],
+      "max": [-94.55000305175781, 113.0, 62.400001525878906]
+    },
+    {
+      "name": "central armored service hatch / upper alloy coating transition",
+      "min": [-104.89308166503906, 104.69999694824219, -28.0],
+      "max": [-101.7540512084961, 112.60015106201172, 60.0]
+    },
+    {
+      "name": "central armored service hatch / upper shoulder socket / deep connected mounting bracket",
+      "min": [-91.17295837402344, 114.27803802490234, -20.25],
+      "max": [-82.48233032226562, 120.3125228881836, -15.749999046325684]
+    },
+    {
+      "name": "central armored service hatch / upper shoulder socket / deep connected mounting bracket.001",
+      "min": [-91.17295837402344, 114.27803802490234, 45.75],
+      "max": [-82.48234558105469, 120.3125228881836, 50.25]
+    },
+    {
+      "name": "central armored service hatch / upper shoulder socket / fitted hull sole",
+      "min": [-84.15853881835938, 114.36164093017578, -22.5],
+      "max": [-79.88655090332031, 120.01416778564453, -13.5]
+    },
+    {
+      "name": "central armored service hatch / upper shoulder socket / fitted hull sole.001",
+      "min": [-84.15855407714844, 114.36164093017578, 43.5],
+      "max": [-79.88656616210938, 120.01416778564453, 52.5]
+    },
+    {
+      "name": "central armored service hatch / upper shoulder socket / seated plate clamp",
+      "min": [-92.56460571289062, 115.17462158203125, -21.5],
+      "max": [-89.43539428710938, 118.82537841796875, -14.5]
+    },
+    {
+      "name": "central armored service hatch / upper shoulder socket / seated plate clamp.001",
+      "min": [-92.56460571289062, 115.17462158203125, 44.5],
+      "max": [-89.43539428710938, 118.82537841796875, 51.5]
+    },
+    {
+      "name": "forward heat-exchanger cassette / cooling blade exposed retaining edge 00",
+      "min": [-101.67234802246094, 88.52423095703125, -130.80833435058594],
+      "max": [-95.72764587402344, 103.7757568359375, -130.3583221435547]
+    },
+    {
+      "name": "forward heat-exchanger cassette / cooling blade exposed retaining edge 01",
+      "min": [-101.67234802246094, 88.52423095703125, -123.9749984741211],
+      "max": [-95.72764587402344, 103.7757568359375, -123.5250015258789]
+    },
+    {
+      "name": "forward heat-exchanger cassette / cooling blade exposed retaining edge 02",
+      "min": [-101.67234802246094, 88.52423095703125, -117.14166259765625],
+      "max": [-95.72764587402344, 103.7757568359375, -116.69166564941406]
+    },
+    {
+      "name": "forward heat-exchanger cassette / cooling blade exposed retaining edge 03",
+      "min": [-101.67234802246094, 88.52423095703125, -110.30833435058594],
+      "max": [-95.72764587402344, 103.7757568359375, -109.85833740234375]
+    },
+    {
+      "name": "forward heat-exchanger cassette / cooling blade exposed retaining edge 04",
+      "min": [-101.67234802246094, 88.52423095703125, -103.4749984741211],
+      "max": [-95.72764587402344, 103.7757568359375, -103.0250015258789]
+    },
+    {
+      "name": "forward heat-exchanger cassette / cooling blade exposed retaining edge 05",
+      "min": [-101.67234802246094, 88.52423095703125, -96.64166259765625],
+      "max": [-95.72764587402344, 103.7757568359375, -96.19166564941406]
+    },
+    {
+      "name": "forward heat-exchanger cassette / cooling blade exposed retaining edge 06",
+      "min": [-101.67234802246094, 88.52423095703125, -89.80833435058594],
+      "max": [-95.72764587402344, 103.7757568359375, -89.35833740234375]
+    },
+    {
+      "name": "forward heat-exchanger cassette / cooling blade exposed retaining edge 07",
+      "min": [-101.67234802246094, 88.52423095703125, -82.9749984741211],
+      "max": [-95.72764587402344, 103.7757568359375, -82.5250015258789]
+    },
+    {
+      "name": "forward heat-exchanger cassette / cooling blade exposed retaining edge 08",
+      "min": [-101.67234802246094, 88.52423095703125, -76.14166259765625],
+      "max": [-95.72764587402344, 103.7757568359375, -75.69166564941406]
+    },
+    {
+      "name": "forward heat-exchanger cassette / cooling blade exposed retaining edge 09",
+      "min": [-101.67234802246094, 88.52423095703125, -69.30833435058594],
+      "max": [-95.72764587402344, 103.7757568359375, -68.85833740234375]
+    },
+    {
+      "name": "forward heat-exchanger cassette / cooling blade exposed retaining edge 10",
+      "min": [-101.67234802246094, 88.52423095703125, -62.47500228881836],
+      "max": [-95.72764587402344, 103.7757568359375, -62.02499771118164]
+    },
+    {
+      "name": "forward heat-exchanger cassette / cooling blade exposed retaining edge 11",
+      "min": [-101.67234802246094, 88.52423095703125, -55.64167022705078],
+      "max": [-95.72764587402344, 103.7757568359375, -55.19166564941406]
+    },
+    {
+      "name": "forward heat-exchanger cassette / cooling-bank seated end header",
+      "min": [-101.75, 86.25, -137.0],
+      "max": [-98.25, 87.75, -49.0]
+    },
+    {
+      "name": "forward heat-exchanger cassette / cooling-bank seated end header.001",
+      "min": [-101.75, 103.8499984741211, -137.0],
+      "max": [-98.25, 105.3499984741211, -49.0]
+    },
+    {
+      "name": "forward heat-exchanger cassette / deep service well backing",
+      "min": [-95.4000015258789, 84.44999694824219, -141.0],
+      "max": [-94.20000457763672, 106.94999694824219, -45.0]
+    },
+    {
+      "name": "forward heat-exchanger cassette / folded cooling blade 00",
+      "min": [-101.5, 87.69999694824219, -131.28334045410156],
+      "max": [-95.19999694824219, 104.0, -129.88333129882812]
+    },
+    {
+      "name": "forward heat-exchanger cassette / folded cooling blade 01",
+      "min": [-101.5, 87.69999694824219, -124.44999694824219],
+      "max": [-95.19999694824219, 104.0, -123.05000305175781]
+    },
+    {
+      "name": "forward heat-exchanger cassette / folded cooling blade 02",
+      "min": [-101.5, 87.69999694824219, -117.61666870117188],
+      "max": [-95.19999694824219, 104.0, -116.21666717529297]
+    },
+    {
+      "name": "forward heat-exchanger cassette / folded cooling blade 03",
+      "min": [-101.5, 87.69999694824219, -110.78333282470703],
+      "max": [-95.19999694824219, 104.0, -109.38333129882812]
+    },
+    {
+      "name": "forward heat-exchanger cassette / folded cooling blade 04",
+      "min": [-101.5, 87.69999694824219, -103.94999694824219],
+      "max": [-95.19999694824219, 104.0, -102.55000305175781]
+    },
+    {
+      "name": "forward heat-exchanger cassette / folded cooling blade 05",
+      "min": [-101.5, 87.69999694824219, -97.11666870117188],
+      "max": [-95.19999694824219, 104.0, -95.71666717529297]
+    },
+    {
+      "name": "forward heat-exchanger cassette / folded cooling blade 06",
+      "min": [-101.5, 87.69999694824219, -90.28333282470703],
+      "max": [-95.19999694824219, 104.0, -88.88333129882812]
+    },
+    {
+      "name": "forward heat-exchanger cassette / folded cooling blade 07",
+      "min": [-101.5, 87.69999694824219, -83.44999694824219],
+      "max": [-95.19999694824219, 104.0, -82.05000305175781]
+    },
+    {
+      "name": "forward heat-exchanger cassette / folded cooling blade 08",
+      "min": [-101.5, 87.69999694824219, -76.61666870117188],
+      "max": [-95.19999694824219, 104.0, -75.21666717529297]
+    },
+    {
+      "name": "forward heat-exchanger cassette / folded cooling blade 09",
+      "min": [-101.5, 87.69999694824219, -69.78333282470703],
+      "max": [-95.19999694824219, 104.0, -68.38333129882812]
+    },
+    {
+      "name": "forward heat-exchanger cassette / folded cooling blade 10",
+      "min": [-101.5, 87.69999694824219, -62.95000076293945],
+      "max": [-95.19999694824219, 104.0, -61.54999923706055]
+    },
+    {
+      "name": "forward heat-exchanger cassette / folded cooling blade 11",
+      "min": [-101.5, 87.69999694824219, -56.11666488647461],
+      "max": [-95.19999694824219, 104.0, -54.71666717529297]
+    },
+    {
+      "name": "forward heat-exchanger cassette / formed armor opening surround",
+      "min": [-104.0, 80.5, -146.0],
+      "max": [-95.0, 111.0, -40.0]
+    },
+    {
+      "name": "forward heat-exchanger cassette / formed lower return plate",
+      "min": [-103.79026794433594, 74.68885803222656, -149.0],
+      "max": [-89.74896240234375, 87.77349853515625, -37.0]
+    },
+    {
+      "name": "forward heat-exchanger cassette / formed upper shoulder plate",
+      "min": [-104.29444885253906, 105.0, -150.0],
+      "max": [-77.27188110351562, 129.9080810546875, -36.0]
+    },
+    {
+      "name": "forward heat-exchanger cassette / lower alloy seated return",
+      "min": [-104.4705810546875, 82.65908813476562, -147.0],
+      "max": [-101.85466003417969, 86.4885025024414, -39.0]
+    },
+    {
+      "name": "forward heat-exchanger cassette / lower shoulder socket / deep connected mounting bracket",
+      "min": [-98.0, 83.25, -139.25],
+      "max": [-91.10000610351562, 88.75, -134.75]
+    },
+    {
+      "name": "forward heat-exchanger cassette / lower shoulder socket / deep connected mounting bracket.001",
+      "min": [-98.0, 83.25, -53.25],
+      "max": [-91.10000610351562, 88.75, -48.75]
+    },
+    {
+      "name": "forward heat-exchanger cassette / lower shoulder socket / fitted hull sole",
+      "min": [-91.0999984741211, 83.0, -141.5],
+      "max": [-89.5999984741211, 89.0, -132.5]
+    },
+    {
+      "name": "forward heat-exchanger cassette / lower shoulder socket / fitted hull sole.001",
+      "min": [-91.0999984741211, 83.0, -55.5],
+      "max": [-89.5999984741211, 89.0, -46.5]
+    },
+    {
+      "name": "forward heat-exchanger cassette / lower shoulder socket / seated plate clamp",
+      "min": [-98.9000015258789, 84.25, -140.5],
+      "max": [-97.0999984741211, 87.75, -133.5]
+    },
+    {
+      "name": "forward heat-exchanger cassette / lower shoulder socket / seated plate clamp.001",
+      "min": [-98.9000015258789, 84.25, -54.5],
+      "max": [-97.0999984741211, 87.75, -47.5]
+    },
+    {
+      "name": "forward heat-exchanger cassette / machined recessed reveal",
+      "min": [-104.25, 84.80000305175781, -139.5],
+      "max": [-102.0, 106.5999984741211, -46.5]
+    },
+    {
+      "name": "forward heat-exchanger cassette / recessed longitudinal structural bearer",
+      "min": [-96.69999694824219, 81.75, -147.5],
+      "max": [-91.69999694824219, 86.25, -38.5]
+    },
+    {
+      "name": "forward heat-exchanger cassette / recessed longitudinal structural bearer.001",
+      "min": [-96.69999694824219, 105.75, -147.5],
+      "max": [-91.69999694824219, 110.25, -38.5]
+    },
+    {
+      "name": "forward heat-exchanger cassette / terminal seated navy gasket",
+      "min": [-100.05000305175781, 79.0, -149.39999389648438],
+      "max": [-94.55000305175781, 113.0, -147.60000610351562]
+    },
+    {
+      "name": "forward heat-exchanger cassette / terminal seated navy gasket.001",
+      "min": [-100.05000305175781, 79.0, -38.400001525878906],
+      "max": [-94.55000305175781, 113.0, -36.599998474121094]
+    },
+    {
+      "name": "forward heat-exchanger cassette / upper alloy coating transition",
+      "min": [-104.89308166503906, 104.69999694824219, -147.0],
+      "max": [-101.7540512084961, 112.60015106201172, -39.0]
+    },
+    {
+      "name": "forward heat-exchanger cassette / upper shoulder socket / deep connected mounting bracket",
+      "min": [-91.17295837402344, 114.27803802490234, -139.25],
+      "max": [-82.48233032226562, 120.3125228881836, -134.75]
+    },
+    {
+      "name": "forward heat-exchanger cassette / upper shoulder socket / deep connected mounting bracket.001",
+      "min": [-91.17295837402344, 114.27803802490234, -53.25],
+      "max": [-82.48234558105469, 120.3125228881836, -48.75]
+    },
+    {
+      "name": "forward heat-exchanger cassette / upper shoulder socket / fitted hull sole",
+      "min": [-84.15853881835938, 114.36164093017578, -141.5],
+      "max": [-79.88655090332031, 120.01416778564453, -132.5]
+    },
+    {
+      "name": "forward heat-exchanger cassette / upper shoulder socket / fitted hull sole.001",
+      "min": [-84.15855407714844, 114.36164093017578, -55.5],
+      "max": [-79.88656616210938, 120.01416778564453, -46.5]
+    },
+    {
+      "name": "forward heat-exchanger cassette / upper shoulder socket / seated plate clamp",
+      "min": [-92.56460571289062, 115.17462158203125, -140.5],
+      "max": [-89.43539428710938, 118.82537841796875, -133.5]
+    },
+    {
+      "name": "forward heat-exchanger cassette / upper shoulder socket / seated plate clamp.001",
+      "min": [-92.56460571289062, 115.17462158203125, -54.5],
+      "max": [-89.43539428710938, 118.82537841796875, -47.5]
+    }
+  ],
+  "hashes": {
+    "build_companion_armour.py": "c9f9a3f1bd095c4c2617adca9d6ecfb1b891a71bae790933e8040266cdbdcb29",
+    "companion-armour.blend": "bd0d21ac6bf8ea89cababac6ac41a09746953d225ec9d97e68115b3abf7dbeba",
+    "companion-armour.glb": "1e9d41ca21b68d0b3f7f0387e279ec1dfd39ee95505c3826c909f0d958f9b5a4",
+    "carrier-collision.json": "550021843249dcda8199c0727a058c80a59dbefe68d79cd77315484dc4281204"
+  }
+}

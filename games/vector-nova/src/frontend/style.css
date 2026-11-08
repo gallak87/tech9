@@ -2,9 +2,15 @@
   --accent: #a81010;
   --paper: #e8e8e8;
   --muted: #999;
+  --selection-inline-padding: 14px;
   background: #090909;
   color: var(--paper);
   color-scheme: dark;
+}
+@media (max-width: 760px) {
+  :root {
+    --selection-inline-padding: 12px;
+  }
 }
 body {
   font-family: Arial, Helvetica, sans-serif;
@@ -36,6 +42,9 @@ button:disabled {
 }
 #front-shell[hidden] {
   display: none;
+}
+#front-shell.loading-page {
+  isolation: isolate;
 }
 .front-header {
   height: 78px;
@@ -258,17 +267,6 @@ button:disabled {
   display: none;
 }
 
-.ship-description {
-  display: grid;
-  max-width: 55ch;
-  margin: 15px 0 0;
-}
-.ship-description > span {
-  grid-area: 1 / 1;
-}
-.ship-description > [aria-hidden='true'] {
-  visibility: hidden;
-}
 .session-facts {
   display: flex;
   flex-wrap: wrap;
@@ -448,6 +446,18 @@ button:disabled {
 .settings-form input[type='range'] {
   width: 150px;
 }
+.audio-volume-control {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.audio-volume-control output {
+  color: #aaa;
+  font-size: 12px;
+  min-width: 4ch;
+  text-align: right;
+}
 .results-layout {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -614,7 +624,7 @@ body[data-screen='results'] .front-footer {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
-  padding-top: 22px;
+  padding-bottom: 22px;
 }
 .result-panel .results-actions button {
   min-width: 0;
@@ -1138,11 +1148,45 @@ body[data-screen='results'] #interface {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 12px;
-  border-top: 1px solid #333;
-  padding-top: 8px;
+  border-bottom: 1px solid #333;
+  padding-block: 8px 16px;
+  margin-bottom: 16px;
 }
 .cup-results-panel .cup-save {
   color: #e8e8e8;
+}
+.results-with-rewards {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: 'heading' 'actions' 'rewards' 'main';
+  align-items: start;
+  gap: 0 28px;
+  width: min(1160px, 100%);
+}
+.results-with-rewards > :is(.front-heading, .cup-result-heading) {
+  grid-area: heading;
+}
+.results-with-rewards > :is(.results-actions, .cup-result-actions) {
+  grid-area: actions;
+}
+.results-main {
+  grid-area: main;
+  min-width: 0;
+}
+.result-rewards {
+  grid-area: rewards;
+  min-width: 0;
+  margin-bottom: 20px;
+}
+@media (min-width: 1100px) {
+  .results-with-rewards {
+    grid-template-columns: minmax(0, 1fr) 330px;
+    grid-template-areas: 'heading heading' 'actions rewards' 'main rewards';
+  }
+  .result-rewards {
+    position: sticky;
+    top: 20px;
+  }
 }
 .cup-options > summary {
   min-height: 44px;
@@ -1294,8 +1338,14 @@ body[data-screen='results'] #interface {
     flex-wrap: wrap;
     gap: 16px;
   }
-  .dead-zone-control {
+  .dead-zone-control,
+  .audio-volume-control {
     width: 100%;
+  }
+  .settings-form .audio-volume-control input {
+    flex: 1;
+    min-width: 0;
+    width: auto;
   }
   .settings-form .dead-zone-control input {
     width: 100%;

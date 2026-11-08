@@ -1,6 +1,7 @@
 import { chromium } from 'playwright';
 import { access, writeFile } from 'node:fs/promises';
 import { basename, join } from 'node:path';
+import { musicTracks } from '../../src/audio/tracks.js';
 
 const finite = (value) => Number.isFinite(value);
 const seconds = (frames, fps) => Number((frames / fps).toFixed(9));
@@ -46,8 +47,12 @@ export async function assembleTrailer({
   manifest,
   config,
   command,
+  copyVideoFrom = null,
 }) {
   const { fps, frames, closing, music } = config;
+  const crf = config.crf ?? 17;
+  if (!Number.isInteger(crf) || crf < 0 || crf > 51)
+    throw new Error('Expected an H.264 CRF between 0 and 51.');
   if (
     config.kind !== 'trailer' ||
     fps !== 60 ||
@@ -65,14 +70,18 @@ export async function assembleTrailer({
     throw new Error(
       'Expected a 30–120s, 60fps trailer with a 3–3.5s closing hold.',
     );
+  const track = musicTracks.find((track) => track.id === music?.id);
   if (
-    music?.id !== 'ionwake' ||
+    !track ||
     !finite(music.sourceOffset) ||
     music.sourceOffset < 0 ||
     !finite(music.gain) ||
     music.gain < 0
   )
-    throw new Error('Expected an Ionwake source offset and gain.');
+    throw new Error(
+      'Expected a registered music track, source offset and gain.',
+    );
+  if (copyVideoFrom) await access(copyVideoFrom);
   const filename = config.outputFile ?? 'vector-nova-gameplay-trailer-30s.mp4';
   if (basename(filename) !== filename || !filename.endsWith('.mp4'))
     throw new Error(
@@ -140,8 +149,24 @@ export async function assembleTrailer({
     )
       throw new Error(`Invalid music duck: ${JSON.stringify(duck)}`);
   }
+  const leadIn = music.leadIn;
+  if (
+    leadIn &&
+    (!finite(leadIn.end) ||
+      leadIn.end <= 0 ||
+      leadIn.end >= duration ||
+      !finite(leadIn.fade) ||
+      leadIn.fade <= 0 ||
+      leadIn.fade > leadIn.end ||
+      !finite(leadIn.gain) ||
+      leadIn.gain < 0 ||
+      leadIn.gain > 1)
+  )
+    throw new Error('Invalid quiet music lead-in.');
 
-  const plate = await closingPlate(output, closing.image);
+  const plate = copyVideoFrom
+    ? null
+    : await closingPlate(output, closing.image);
   const inputArgs = [];
   const filters = [];
   const decisions = [];
@@ -187,9 +212,10 @@ export async function assembleTrailer({
       '-i',
       sourcePath,
     );
-    filters.push(
-      `[${index}:v]scale=1920:1080:flags=lanczos,fps=${fps},trim=end_frame=${cut.to - cut.from},setpts=N/(${fps}*TB),setsar=1[v${index}]`,
-    );
+    if (!copyVideoFrom)
+      filters.push(
+        `[${index}:v]scale=1920:1080:flags=lanczos,fps=${fps},trim=end_frame=${cut.to - cut.from},setpts=N/(${fps}*TB),setsar=1[v${index}]`,
+      );
     const fades = [
       ...(fadeIn > 0 ? [`afade=t=in:d=${fadeIn}`] : []),
       ...(fadeOutDuration > 0
@@ -218,39 +244,71 @@ export async function assembleTrailer({
     });
   }
   const plateIndex = sources.length;
-  inputArgs.push('-loop', '1', '-framerate', String(fps), '-i', plate);
-  filters.push(
-    `[${plateIndex}:v]fps=${fps},trim=end_frame=${closing.to - closing.from},setpts=N/(${fps}*TB),format=yuv420p,setsar=1[closing]`,
-    `${sources.map((_, index) => `[v${index}]`).join('')}[closing]concat=n=${sources.length + 1}:v=1:a=0[video]`,
-  );
-  const musicIndex = plateIndex + 1;
-  inputArgs.push('-i', join(root, 'assets/levels/halcyon/audio/ionwake.wav'));
-  const phrase = music.phraseJump;
-  if (
-    phrase &&
-    (!finite(phrase.at) ||
-      phrase.at <= 1 ||
-      phrase.at >= duration - 3 ||
-      !finite(phrase.source) ||
-      phrase.source < 0 ||
-      !finite(phrase.crossfade) ||
-      phrase.crossfade <= 0 ||
-      phrase.crossfade > 0.1 ||
-      !finite(phrase.gain) ||
-      phrase.gain < 0 ||
-      phrase.gain > 2)
-  )
-    throw new Error('Invalid same-song musical phrase jump.');
-  let musicInput = `[${musicIndex}:a]`;
-  if (phrase) {
-    const half = phrase.crossfade / 2;
+  if (!copyVideoFrom) {
+    inputArgs.push('-loop', '1', '-framerate', String(fps), '-i', plate);
     filters.push(
-      `[${musicIndex}:a]aresample=48000,aformat=channel_layouts=stereo,asplit=2[musicHead][musicReturn]`,
-      `[musicHead]atrim=start=${music.sourceOffset}:duration=${phrase.at + half},asetpts=PTS-STARTPTS[musicH]`,
-      `[musicReturn]atrim=start=${phrase.source - half}:duration=${duration - phrase.at + half},asetpts=PTS-STARTPTS[musicR]`,
-      `[musicH][musicR]acrossfade=d=${phrase.crossfade}:c1=qsin:c2=qsin[phraseMusic]`,
+      `[${plateIndex}:v]fps=${fps},trim=end_frame=${closing.to - closing.from},setpts=N/(${fps}*TB),format=yuv420p,setsar=1[closing]`,
+      `${sources.map((_, index) => `[v${index}]`).join('')}[closing]concat=n=${sources.length + 1}:v=1:a=0[joined]`,
+      // Concat uses microsecond timestamps. Pad only the static closing plate so
+      // EOF rounding cannot remove the final frame, then enforce the exact count.
+      `[joined]tpad=stop_mode=clone:stop_duration=${2 / fps},trim=end_frame=${frames},setpts=N/(${fps}*TB)[video]`,
     );
-    musicInput = '[phraseMusic]';
+  }
+  const musicIndex = plateIndex + (copyVideoFrom ? 0 : 1);
+  inputArgs.push(
+    '-i',
+    join(
+      root,
+      'assets/levels/halcyon/audio',
+      track.file.replace(/\.mp3$/, '.wav'),
+    ),
+  );
+  if (copyVideoFrom) inputArgs.push('-i', copyVideoFrom);
+  if (music.phraseJump && music.phraseJumps)
+    throw new Error('Use either phraseJump or phraseJumps, not both.');
+  const phrases =
+    music.phraseJumps ?? (music.phraseJump ? [music.phraseJump] : []);
+  if (
+    !Array.isArray(phrases) ||
+    phrases.some(
+      (phrase, index) =>
+        !finite(phrase.at) ||
+        phrase.at <= (index ? phrases[index - 1].at + 0.1 : 1) ||
+        phrase.at >= duration - 0.1 ||
+        !finite(phrase.source) ||
+        phrase.source < phrase.crossfade / 2 ||
+        !finite(phrase.crossfade) ||
+        phrase.crossfade <= 0 ||
+        phrase.crossfade > 0.1 ||
+        !finite(phrase.gain) ||
+        phrase.gain < 0 ||
+        phrase.gain > 2,
+    )
+  )
+    throw new Error('Invalid same-song musical phrase jumps.');
+  let musicInput = `[${musicIndex}:a]`;
+  if (phrases.length) {
+    const segments = [{ at: 0, source: music.sourceOffset }, ...phrases];
+    filters.push(
+      `[${musicIndex}:a]aresample=48000,aformat=channel_layouts=stereo,asplit=${segments.length}${segments.map((_, index) => `[musicSource${index}]`).join('')}`,
+    );
+    for (let index = 0; index < segments.length; index++) {
+      const segment = segments[index];
+      const next = segments[index + 1];
+      const left = index ? segment.crossfade / 2 : 0;
+      const right = next ? next.crossfade / 2 : 0;
+      filters.push(
+        `[musicSource${index}]atrim=start=${segment.source - left}:duration=${(next?.at ?? duration) - segment.at + left + right},asetpts=PTS-STARTPTS[musicSegment${index}]`,
+      );
+    }
+    musicInput = '[musicSegment0]';
+    for (let index = 1; index < segments.length; index++) {
+      const result = `[phraseMusic${index}]`;
+      filters.push(
+        `${musicInput}[musicSegment${index}]acrossfade=d=${segments[index].crossfade}:c1=qsin:c2=qsin${result}`,
+      );
+      musicInput = result;
+    }
   }
   // Soft trapezoid-shaped reductions leave actual combat sounds intelligible.
   const duckExpression = ducks.map(
@@ -259,23 +317,34 @@ export async function assembleTrailer({
   );
   const musicVolume = [
     String(music.gain),
-    ...duckExpression,
-    ...(phrase
-      ? [`(1+${phrase.gain - 1}*max(0,min(1,(t-${phrase.at})/0.6)))`]
+    ...(leadIn
+      ? [
+          `(${leadIn.gain}+${1 - leadIn.gain}*max(0,min(1,(t-${leadIn.end - leadIn.fade})/${leadIn.fade})))`,
+        ]
       : []),
+    ...duckExpression,
+    ...phrases
+      .filter((phrase) => phrase.gain !== 1)
+      .map(
+        (phrase) => `(1+${phrase.gain - 1}*max(0,min(1,(t-${phrase.at})/0.6)))`,
+      ),
   ].join('*');
   filters.push(
-    `${musicInput}aresample=48000,aformat=channel_layouts=stereo,atrim=${phrase ? '' : `start=${music.sourceOffset}:`}duration=${duration},asetpts=PTS-STARTPTS,volume='${musicVolume}':eval=frame,afade=t=in:d=0.025,afade=t=out:st=${duration - fadeOut}:d=${fadeOut}[music]`,
+    `${musicInput}aresample=48000,aformat=channel_layouts=stereo,atrim=${phrases.length ? '' : `start=${music.sourceOffset}:`}duration=${duration},asetpts=PTS-STARTPTS,volume='${musicVolume}':eval=frame,afade=t=in:d=0.025,afade=t=out:st=${duration - fadeOut}:d=${fadeOut}[music]`,
     `${sources.map((_, index) => `[a${index}]`).join('')}[music]amix=inputs=${sources.length + 1}:duration=longest:normalize=0,alimiter=limit=0.95:level=false:latency=true,apad=whole_len=${frames * 800},atrim=end_sample=${frames * 800}[audio]`,
   );
   const movie = join(output, filename);
   await writeFile(join(output, 'trailer.ffmpeg'), filters.join(';\n'));
   await writeFile(
     join(output, 'trailer-edit.json'),
-    JSON.stringify({ ...config, decisions, closingPlate: plate }, null, 2),
+    JSON.stringify(
+      { ...config, decisions, closingPlate: plate, videoSource: copyVideoFrom },
+      null,
+      2,
+    ),
   );
   console.log(
-    'EDIT trailer / gameplay and menus / continuous Ionwake / closing wordmark',
+    `EDIT trailer / ${track.title} / ${copyVideoFrom ? 'copied video stream' : 'gameplay and menus'}`,
   );
   await command('ffmpeg', [
     '-hide_banner',
@@ -288,25 +357,29 @@ export async function assembleTrailer({
     '-filter_complex',
     filters.join(';'),
     '-map',
-    '[video]',
+    copyVideoFrom ? `${musicIndex + 1}:v:0` : '[video]',
     '-map',
     '[audio]',
     '-t',
     String(duration),
     '-frames:v',
     String(frames),
-    '-r',
-    String(fps),
-    '-c:v',
-    'libx264',
-    '-threads',
-    '4',
-    '-preset',
-    'fast',
-    '-crf',
-    '17',
-    '-pix_fmt',
-    'yuv420p',
+    ...(copyVideoFrom
+      ? ['-c:v', 'copy']
+      : [
+          '-r',
+          String(fps),
+          '-c:v',
+          'libx264',
+          '-threads',
+          '4',
+          '-preset',
+          'fast',
+          '-crf',
+          String(crf),
+          '-pix_fmt',
+          'yuv420p',
+        ]),
     '-c:a',
     'aac',
     '-b:a',

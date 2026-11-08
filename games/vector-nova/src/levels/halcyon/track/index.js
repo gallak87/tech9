@@ -1,7 +1,9 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import { createPortalTrusses } from './portal-detail.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { createArchitectureMaps } from '../environment/architectural-finish.js';
 import { createAsphalt } from './asphalt.js';
+import { createLanePaintGeometry } from './lane-paint.js';
 import { concreteTexture, signTexture } from './textures.js';
 import * as THREE from 'three';
 import { RACE_GRID } from '../../../race/racers.js';
@@ -45,7 +47,8 @@ export function buildTrackVisual(track, settings, renderer) {
     asphaltFinish(shader, renderer);
     // Limit the low sun's direct highlight on this damp coated aggregate;
     // keep the broad sky/building reflections and scan's normal response.
-    shader.fragmentShader = shader.fragmentShader.replace(
+    shader.fragmentShader = replaceShader(
+      shader.fragmentShader,
       '#include <lights_fragment_end>',
       '#include <lights_fragment_end>\nreflectedLight.directSpecular *= .3;',
     );
@@ -282,7 +285,6 @@ export function buildTrackVisual(track, settings, renderer) {
     pierBands = [],
     girderSeams = [],
     curbMarkings = [],
-    laneDashes = [],
     serviceCovers = [];
   for (let s = 0; s < track.length; s += 12) {
     for (const side of [-1, 1]) {
@@ -307,8 +309,6 @@ export function buildTrackVisual(track, settings, renderer) {
   for (let s = 0; s < track.length; s += 36) {
     girderSeams.push(localTransform(s, 0, -5.535));
   }
-  for (let s = 12; s < 420; s += 21)
-    for (const x of [-4.7, 4.7]) laneDashes.push(localTransform(s, x, 0.028));
   const supportLayout = track.supportLayout ?? createSupportLayout(track);
   for (const { distance: s, tops } of supportLayout.standard) {
     crossheads.push(localTransform(s, 0, -6.15));
@@ -393,11 +393,10 @@ export function buildTrackVisual(track, settings, renderer) {
     darkSteel,
     girderSeams,
   );
-  addInstances(
+  addMesh(
     'Grid approach lane paint',
-    new THREE.BoxGeometry(0.12, 0.013, 6.2),
+    createLanePaintGeometry(track, runningSurface.geometry),
     stripe,
-    laneDashes,
   );
   addInstances(
     'Corner shoulder vermilion intervals',

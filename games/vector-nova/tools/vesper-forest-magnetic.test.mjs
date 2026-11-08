@@ -88,11 +88,14 @@ test('the Bloomspan corkscrew carries native hulls through a complete inversion 
         speed,
       };
       runtime.reset({ state });
+      // The climbing span crosses viscous sap off the left resin lane. Budget
+      // for 20 m/s average traversal instead of assuming the entry speed holds.
+      const maxTicks = Math.ceil(((end - start + 80) / 20) * 120);
       let inverted = false,
         bodyRoll = 0,
         previousBank = null;
-      // The sap lanes traverse this climbing roll more slowly than the resin.
-      for (let tick = 0; tick < 2000 && state.distance < end + 40; tick++) {
+      let ticks = 0;
+      for (; ticks < maxTicks && state.distance < end + 40; ticks++) {
         const before = state.speed;
         const events = runtime.advance(
           state,
@@ -146,7 +149,7 @@ test('the Bloomspan corkscrew carries native hulls through a complete inversion 
       }
       assert.ok(
         state.distance > end + 39 && inverted,
-        `incomplete inversion ${lateral}/${speed}`,
+        `incomplete inversion ${lateral}/${speed} after ${ticks / 120}s: ${state.distance}m of ${end + 40}m, speed ${state.speed}, inverted ${inverted}`,
       );
       assert.ok(
         Math.abs(bodyRoll - Math.PI * 2) < 0.05,

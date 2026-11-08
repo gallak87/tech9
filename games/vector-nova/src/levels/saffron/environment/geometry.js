@@ -1,12 +1,10 @@
 import * as T from 'three';
+import { createLcgRandom } from '../../../environment/random.js';
 
 export const UP = new T.Vector3(0, 1, 0);
 
 export function randomSequence(seed = 0x5aff204) {
-  return () => {
-    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
-    return seed / 4294967296;
-  };
+  return createLcgRandom(seed);
 }
 
 /** Resources belong to this component even while an asset is still loading. */

@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import * as T from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { groundFrame } from '../../../environment/placement.js';
@@ -121,23 +122,44 @@ export function createZephyrWater(track, stoneTexture) {
     adapted.add(m);
     m.onBeforeCompile = (shader) => {
       compile(shader);
-      shader.fragmentShader = shader.fragmentShader.replace(
+      shader.fragmentShader = replaceShader(
+        shader.fragmentShader,
         'diffuseColor.rgb=mix(vec3(.036,.10,.11),vec3(.46,.56,.55),foam);',
-        'float silverFlow=max(jet,channel); foam=clamp(foam+silverFlow*(.13+.25*turbulence),0.,.88); diffuseColor.rgb=mix(vec3(.04,.10,.13),vec3(.52,.64,.66),foam);',
+        'float silverFlow=max(jet,channel); foam=clamp(foam+silverFlow*(.34+.35*turbulence),0.,.94); diffuseColor.rgb=mix(vec3(.04,.10,.13),vec3(.80,.87,.86),foam);',
+      );
+      shader.fragmentShader = replaceShader(
+        replaceShader(
+          replaceShader(
+            replaceShader(
+              shader.fragmentShader,
+              '#include <emissivemap_fragment>',
+              '#include <emissivemap_fragment>\ntotalEmissiveRadiance+=vec3(.04,.055,.065)*foam*silverFlow;',
+            ),
+            'smoothstep(30.,480.,p.y)*channel',
+            'smoothstep(5.,180.,p.y)*channel',
+          ),
+          'float coreEdge=.98-breakup*.54;',
+          'float coreEdge=.98-breakup*.30;',
+        ),
+        '(.04+breakup*.05)*(coarse-.5)',
+        '(.04+breakup*.22)*(coarse-.5)',
       );
     };
     const flowCompile = m.onBeforeCompile;
     m.onBeforeCompile = (shader) => {
       flowCompile(shader);
-      shader.fragmentShader = shader.fragmentShader
-        .replace('p.x*.23,movingY*.067', 'p.x*.57,movingY*.14')
-        .replace(
-          'vHydroData.x*.18,movingY*.09',
-          'vHydroData.x*.42,movingY*.21',
-        );
+      shader.fragmentShader = replaceShader(
+        replaceShader(
+          shader.fragmentShader,
+          'p.x*.23,movingY*.067',
+          'p.x*.57,movingY*.14',
+        ),
+        'vHydroData.x*.18,movingY*.09',
+        'vHydroData.x*.42,movingY*.21',
+      );
     };
     m.customProgramCacheKey = () =>
-      `zephyr-silver-hydraulics-v6-${m.transparent}`;
+      `zephyr-silver-hydraulics-v8-${m.transparent}`;
   });
   let disposed = false;
   return {
@@ -163,8 +185,9 @@ export function createZephyrWater(track, stoneTexture) {
           rows = 72;
         const strands = wake
           ? [
-              [-0.2, 0.58, 0.94],
-              [0.19, 0.48, 1],
+              [-0.31, 0.22, 0.91],
+              [0.02, 0.3, 1],
+              [0.31, 0.18, 0.82],
             ]
           : crossing
             ? [
@@ -189,7 +212,9 @@ export function createZephyrWater(track, stoneTexture) {
                 u = x / columns - 0.5,
                 h = q * height * end;
               const travel = (Math.sqrt(144 + 19.62 * h) - 12) / 9.81;
-              const widthScale = 1 - q * 0.3 + q * q * 0.48;
+              const widthScale =
+                (1 - q * 0.3 + q * q * 0.48) *
+                (1 + q * 0.1 * Math.sin(q * 35 + n * 2.3));
               const xPos =
                 width * (center + u * span * widthScale) +
                 Math.sin(q * (wake ? 18 : 8) + n * 2) * q * (wake ? 10 : 2);
@@ -273,13 +298,14 @@ export function createZephyrWater(track, stoneTexture) {
         g.setAttribute(name, new T.Float32BufferAttribute(data, size));
       const m = createFallingWaterMaterial(clock, opening, ripple);
       m.name = 'Zephyr / gravity accelerated silver water';
-      m.envMapIntensity = 0.45;
+      m.envMapIntensity = 0.65;
       const compile = m.onBeforeCompile;
       m.onBeforeCompile = (shader) => {
         compile(shader);
         shader.vertexShader =
           'uniform float waterTime;attribute float strandEnd;attribute float strandU;varying float vStrandEnd;varying float vStrandU;\n' +
-          shader.vertexShader.replace(
+          replaceShader(
+            shader.vertexShader,
             '#include <begin_vertex>',
             `#include <begin_vertex>
           vStrandEnd=strandEnd;vStrandU=strandU;
@@ -289,16 +315,18 @@ export function createZephyrWater(track, stoneTexture) {
           );
         shader.fragmentShader =
           'varying float vStrandEnd;varying float vStrandU;\n' +
-          shader.fragmentShader
-            .replace(
-              'vec2(vFlow.x*.065+vSource.x*3.7,falling*.85)',
-              'vec2(vFlow.x*.31+vSource.x*3.7,falling*2.7)',
-            )
-            .replace(
-              'vec3(.018,.066,.079),vec3(.73,.79,.80)',
-              'vec3(.025,.075,.095),vec3(.42,.53,.56)',
-            )
-            .replace(
+          replaceShader(
+            replaceShader(
+              replaceShader(
+                replaceShader(
+                  shader.fragmentShader,
+                  'vec2(vFlow.x*.065+vSource.x*3.7,falling*.85)',
+                  'vec2(vFlow.x*.31+vSource.x*3.7,falling*2.7)',
+                ),
+                'diffuseColor.rgb=mix(vec3(.018,.066,.079),vec3(.73,.79,.80),foam);',
+                `foam=mix(foam,clamp(${wake ? '.16+foam*.78' : '.34+foam*.82'},0.,.96),${crossing ? '0.' : 'smoothstep(4.,65.,down)'});
+          diffuseColor.rgb=mix(vec3(.045,.10,.13),vec3(.82,.88,.87),foam);`,
+              ),
               'diffuseColor.a+=edge*foam*mix(.12,.07,vSource.y);',
               `diffuseColor.a+=edge*foam*mix(.12,.07,vSource.y);
           float middle=abs(vFlow.x-${(-bounds.min.x).toFixed(4)});
@@ -310,14 +338,17 @@ export function createZephyrWater(track, stoneTexture) {
           diffuseColor.a*=mix(1.,edgeStream*.7,smoothstep(brokenEdge-.07,brokenEdge+.04,edgeDistance)*smoothstep(8.,38.,vFlow.y));
           float strandEdge=smoothstep(0.,.18,vStrandU)*(1.-smoothstep(.82,1.,vStrandU));
           float tears=smoothstep(.16,.43,ropes*.65+lace*.35);
-          diffuseColor.a*=strandEdge*mix(.35,1.,tears);
-          ${wake ? 'float wakePatch=fallNoise(vec2(vFlow.x*.08,falling*1.15));diffuseColor.a*=mix(1.,smoothstep(.29,.64,wakePatch),smoothstep(25.,100.,down));' : ''}
+          diffuseColor.a*=strandEdge*mix(${crossing ? '.35' : wake ? '.48' : '.68'},1.,tears);
+          ${wake ? 'float wakePatch=fallNoise(vec2(vFlow.x*.08,falling*1.15));diffuseColor.a*=mix(1.,smoothstep(.24,.66,wakePatch),smoothstep(25.,100.,down));diffuseColor.a*=mix(1.,.48,smoothstep(vStrandEnd*.38,vStrandEnd*.93,down));' : ''}
           diffuseColor.a*=.76+.24*edgeStream;
-          diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.55,.64,.65),pow(foam,3.)*.3);`,
-            );
+          diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.84,.90,.88),pow(foam,3.)*.3);`,
+            ),
+            'totalEmissiveRadiance+=vec3(.024,.037,.040)*foam;',
+            'totalEmissiveRadiance+=vec3(.065,.085,.095)*foam;',
+          );
       };
       m.customProgramCacheKey = () =>
-        `zephyr-nightweir-fall-v18-${crossing}-${bounds.min.x}-${height}`;
+        `zephyr-nightweir-fall-v20-${crossing}-${wake}-${bounds.min.x}-${height}`;
       materials.add(m);
       mesh.material = m;
       mesh.castShadow = false;

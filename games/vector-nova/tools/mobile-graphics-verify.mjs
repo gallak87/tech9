@@ -1,15 +1,19 @@
 import assert from 'node:assert/strict';
-import { chromium, webkit, devices } from 'playwright';
+import { webkit, devices } from 'playwright';
+import {
+  launchVerificationBrowser,
+  collectPageErrors,
+} from './verification-browser.mjs';
+import { seedVerificationCareer } from './verification-career.mjs';
 
 // Real renderer + WebKit shader binding, with a deterministic context-loss fault.
 // This emulates phone input/layout, not an iPhone's hardware memory limit.
 const base = process.env.VN_URL;
 if (!base) throw new Error('Set VN_URL to an existing dev/preview server.');
 const chrome = process.env.VN_BROWSER === 'chrome';
-const browser = await (chrome ? chromium : webkit).launch({
-  headless: true,
-  ...(chrome ? { channel: 'chrome' } : {}),
-});
+const browser = chrome
+  ? await launchVerificationBrowser()
+  : await webkit.launch({ headless: true });
 try {
   for (const scenario of [
     { name: 'fresh portrait', viewport: { width: 390, height: 844 } },
@@ -28,14 +32,18 @@ try {
       ...(scenario.viewport ? { viewport: scenario.viewport } : {}),
     });
     try {
+      await seedVerificationCareer(context);
       await context.addInitScript(({ quality, fault, blockAudio }) => {
         if (blockAudio)
           AudioContext.prototype.resume = () => new Promise(() => {});
-        if (quality)
-          localStorage.setItem(
-            'vector-nova.settings',
-            JSON.stringify({ quality }),
-          );
+        localStorage.setItem(
+          'vector-nova.settings',
+          JSON.stringify({
+            ...(quality ? { quality } : {}),
+            volume: 0,
+            masterVolume: 0,
+          }),
+        );
         const create = WebGL2RenderingContext.prototype.createShader;
         const contexts = new WeakSet();
         window.__graphicsProbe = { shaders: 0, worlds: 0, lost: false };
@@ -55,8 +63,8 @@ try {
       }, scenario);
       const page = await context.newPage();
       const errors = [];
-      page.on('pageerror', (error) => errors.push(error.message));
-      await page.goto(new URL('?level=halcyon&music=0', base).href);
+      collectPageErrors(page, errors);
+      await page.goto(new URL('?intro=0&level=halcyon&music=0', base).href);
       await page.locator('[data-action="launch"]').tap();
       await page.waitForFunction(
         () =>

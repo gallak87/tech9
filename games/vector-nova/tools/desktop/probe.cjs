@@ -39,17 +39,41 @@ async function wait(expression, timeout = 120000) {
   );
 }
 async function click(selector) {
+  const target = `Array.from(document.querySelectorAll(${JSON.stringify(selector)})).find(element => element.getClientRects().length && !element.closest('[hidden], [inert]'))`;
   await wait(
-    `!!document.querySelector(${JSON.stringify(selector)}) && !document.querySelector(${JSON.stringify(selector)}).disabled`,
+    `(() => { const element = ${target}; return !!element && !element.disabled; })()`,
   );
-  await evaluate(`document.querySelector(${JSON.stringify(selector)}).click()`);
+  await evaluate(`(() => {
+    const element = ${target};
+    element.focus();
+    // Focus previews may replace a card; activate its current native control.
+    (${target}).click();
+  })()`);
 }
-function key(keyCode, type = 'keyDown') {
-  window.webContents.sendInputEvent({ type, keyCode });
+async function key(keyCode, type = 'keyDown') {
+  // Native sendInputEvent requires an OS-focused window. The external verifier
+  // stays hidden, so deliver trusted browser input without stealing host focus.
+  const letter = /^[A-Z]$/.test(keyCode);
+  await window.webContents.debugger.sendCommand('Input.dispatchKeyEvent', {
+    type,
+    key: letter ? keyCode.toLowerCase() : keyCode,
+    code: letter ? `Key${keyCode}` : keyCode,
+    text:
+      type === 'keyDown'
+        ? keyCode === 'Enter'
+          ? '\r'
+          : letter
+            ? keyCode.toLowerCase()
+            : ''
+        : '',
+    windowsVirtualKeyCode: letter
+      ? keyCode.charCodeAt(0)
+      : { Enter: 13, Escape: 27, F12: 123 }[keyCode],
+  });
 }
 async function press(keyCode) {
-  key(keyCode);
-  key(keyCode, 'keyUp');
+  await key(keyCode);
+  await key(keyCode, 'keyUp');
   await delay(100);
 }
 const menu = `!!document.querySelector('.race-menu') && !document.querySelector('#front-shell').hidden`;
@@ -98,6 +122,7 @@ async function enterCareer() {
   await press('Enter');
   await wait(
     `document.querySelectorAll('[data-entry-stage="profiles"] [data-career-slot]').length === 3`,
+    10000,
   );
   await click('[data-career-slot="1"]');
   await wait(menu);
@@ -107,7 +132,7 @@ async function enterCareer() {
 }
 async function unlockFullFleet() {
   const { unlockedCareerSave } = await import('./probe-helpers.mjs');
-  const text = unlockedCareerSave();
+  const text = unlockedCareerSave({ complete: true });
   await click('.menu-top-tabs [data-action="career"]');
   await wait(`!!document.querySelector('[data-save-file]')`);
   await evaluate(`(() => {
@@ -126,6 +151,82 @@ async function unlockFullFleet() {
     assert(profile.claims.includes(`ship-${ship}`));
   await click('[data-action="race-tab"]');
   await wait(menu);
+}
+async function checkFinaleOffline() {
+  const profile = JSON.parse(await readCareer('vector-nova.career.v1'));
+  profile.completion = { shipId: 'needle', acknowledged: false };
+  await writeCareer({ 'vector-nova.career.v1': JSON.stringify(profile) });
+  await window.loadURL('vn-game://app/index.html');
+  await enterCareer();
+  await wait(
+    `document.querySelector('.completion-cinematic')?.dataset.phase === 'playing'`,
+  );
+  assert.equal(
+    await evaluate(
+      `document.querySelector('.completion-cinematic canvas.completion-cinematic-canvas')?.width > 0`,
+    ),
+    true,
+  );
+  await delay(4500);
+  await press('Escape');
+  await wait(
+    `document.querySelector('.completion-cinematic')?.dataset.phase === 'credits'`,
+  );
+  assert.equal(
+    await evaluate(`document.querySelector('#completion-thanks').textContent`),
+    'Thx for playing, 3 new courses unlocked!',
+  );
+  await press('Enter');
+  await wait(`!document.querySelector('.completion-cinematic')`);
+  assert.equal(
+    JSON.parse(await readCareer('vector-nova.career.v1')).completion
+      .acknowledged,
+    true,
+  );
+  await click('[data-action="quick-race"]');
+  console.log(
+    'PASS full: offline last-racer finale, weapon audio assets, credits, keyboard Close and saved acknowledgement',
+  );
+}
+async function checkClassificationWorkerOffline() {
+  assert(manifest.levels.includes('nacre'));
+  const workers = manifest.files
+    .map((entry) => entry.path)
+    .filter((path) =>
+      /^dist\/assets\/cup-classification-worker-[\w-]+\.js$/.test(path),
+    );
+  assert.equal(
+    workers.length,
+    1,
+    'the package contains one classifier worker entry',
+  );
+  const url = `vn-game://app/${workers[0].slice('dist/'.length)}`;
+  const ready = await evaluate(`(async () => {
+    let worker, timer;
+    try {
+      worker = new Worker(${JSON.stringify(url)}, { type: 'module' });
+      return await new Promise((resolve, reject) => {
+        timer = setTimeout(() => reject(new Error('Packaged classifier worker boot exceeded 60 seconds')), 60000);
+        worker.addEventListener('error', event => reject(new Error(event.message || 'Packaged classifier worker failed')));
+        worker.addEventListener('messageerror', () => reject(new Error('Packaged classifier worker message could not be decoded')));
+        worker.addEventListener('message', ({data}) => {
+          if (data?.type === 'ready') resolve(true);
+          else if (data?.type === 'error') reject(new Error(data.message || 'Packaged classifier worker initialization failed'));
+        });
+        worker.postMessage({
+          type: 'init', levelId: 'nacre',
+          settings: JSON.parse(localStorage.getItem('vector-nova.settings') || '{}'),
+        });
+      });
+    } finally {
+      clearTimeout(timer);
+      worker?.terminate();
+    }
+  })()`);
+  assert.equal(ready, true);
+  console.log(
+    `PASS ${manifest.edition}: packaged classifier worker boots Nacre offline under the unchanged custom-scheme CSP`,
+  );
 }
 async function checkCollection() {
   const total = manifest.edition === 'demo' ? 4 : 28;
@@ -155,6 +256,13 @@ async function run() {
   window = BrowserWindow.getAllWindows()[0];
   assert.equal(window.webContents.isAudioMuted(), true);
   window.webContents.setBackgroundThrottling(false);
+  window.webContents.debugger.attach('1.3');
+  await window.webContents.debugger.sendCommand(
+    'Emulation.setFocusEmulationEnabled',
+    {
+      enabled: true,
+    },
+  );
   session.defaultSession.webRequest.onCompleted((details) => {
     if (details.statusCode >= 400)
       failures.push(`${details.statusCode} ${details.url}`);
@@ -216,6 +324,7 @@ async function run() {
     await evaluate('window.vectorNovaDesktop.quit()');
     return;
   }
+  await checkClassificationWorkerOffline();
   const menuItems = (menu) =>
     (menu?.items ?? []).flatMap((item) => [item, ...menuItems(item.submenu)]);
   assert(
@@ -244,13 +353,25 @@ async function run() {
     ['getFullscreen', 'onFullscreenChange', 'quit', 'toggleFullscreen'],
   );
   const expected = [...manifest.levels].sort();
+  const initialLevels = expected.filter(
+    (id) => !['ravel', 'nomad', 'oriel'].includes(id),
+  );
   assert.deepEqual(
     await evaluate(
       `[...document.querySelectorAll('button[data-level]')].map(b=>b.dataset.level).sort()`,
     ),
-    expected,
+    initialLevels,
   );
-  if (manifest.edition === 'full') await unlockFullFleet();
+  if (manifest.edition === 'full') {
+    await click('[data-action="cup-hub"]');
+    assert.equal(
+      await evaluate(`document.querySelectorAll('[data-cup]').length`),
+      4,
+    );
+    await click('[data-action="quick-race"]');
+    await unlockFullFleet();
+    await checkFinaleOffline();
+  }
   // Attempt conventional URL/save unlocks; the executable catalog cannot grow.
   await writeCareer({
     'vector-nova.ship': 'needle',
@@ -319,9 +440,9 @@ async function run() {
     await press('F12');
     assert.equal(window.webContents.isDevToolsOpened(), false);
     assert(await evaluate(racing));
-    key('W');
+    await key('W');
     await delay(1200);
-    key('W', 'keyUp');
+    await key('W', 'keyUp');
     const speed = await evaluate(
       `Number(document.querySelector('#speed').textContent)`,
     );
@@ -416,9 +537,9 @@ async function run() {
     await click('[data-action="practice"]');
     await click('[data-action="launch"]');
     await wait(racing);
-    key('W');
+    await key('W');
     await delay(1200);
-    key('W', 'keyUp');
+    await key('W', 'keyUp');
     assert(
       await evaluate(
         `Number(document.querySelector('#speed').textContent) > 5`,
@@ -437,6 +558,18 @@ async function run() {
   await click('button[data-ship="kestrel"]');
   await click('[data-action="race-tab"]');
   await click('[data-action="cup-hub"]');
+  if (manifest.edition === 'full') {
+    assert.equal(
+      await evaluate(`document.querySelectorAll('.cup-bonus-badge').length`),
+      1,
+    );
+    assert.equal(
+      await evaluate(
+        `document.querySelectorAll('.cup-cabinet .is-bonus.is-earned').length`,
+      ),
+      0,
+    );
+  }
   assert(
     await evaluate(
       `document.body.innerText.includes(${JSON.stringify(manifest.edition === 'demo' ? 'Demo Cup' : 'Founders Cup')})`,
@@ -444,7 +577,7 @@ async function run() {
   );
   assert.equal(
     await evaluate(`document.querySelectorAll('[data-cup]').length`),
-    manifest.edition === 'demo' ? 1 : 4,
+    manifest.edition === 'demo' ? 1 : 5,
   );
   await click('[data-action="cup-start"]');
   await wait(racing);

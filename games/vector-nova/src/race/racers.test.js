@@ -964,3 +964,102 @@ for (const difficulty of ['easy', 'medium', 'hard']) {
     );
   });
 }
+
+test('owned field checkpoints restore silently in place without validation runtimes and reproduce future finishers', () => {
+  let allocations = 0,
+    resets = 0;
+  const racers = createRacers({
+    track,
+    devices: createHalcyonDevices(track),
+    createRuntime: () => {
+      allocations++;
+      const runtime = createHalcyonSimulationRuntime({ track });
+      runtime.observePresentation({
+        events() {},
+        reset() {
+          resets++;
+        },
+      });
+      return runtime;
+    },
+  });
+  try {
+    racers.reset({ enabled: true });
+    for (const [index, opponent] of racers.opponents.entries()) {
+      opponent.state.distance = 2 * track.length - 25 - index;
+      opponent.state.speed = 100;
+      opponent.race.placeScenario(opponent.state.distance);
+      opponent.race.history = [
+        { duration: 60 + index, valid: true, rulesId: opponent.race.rulesId },
+      ];
+      opponent.race.lap = 2;
+      opponent.race.elapsed = 60;
+      opponent.race.valid = true;
+    }
+    const saved = racers.serialize(),
+      references = racers.opponents.map((opponent) => opponent.state);
+    resets = 0;
+    const first = step(racers, 1, { presentation: false });
+    const expected = racers.serialize();
+    assert.equal(
+      first.filter((event) => event.type === 'racer-complete').length,
+      9,
+    );
+    racers.opponents[0].state.forecastOnly = true;
+    racers.restore(saved, { trusted: true, presentation: false });
+    assert.equal(
+      allocations,
+      9,
+      'trusted live checkpoints allocate no validation actors',
+    );
+    assert.equal(resets, 0, 'forecasting never resets visible feedback');
+    assert.deepEqual(racers.serialize(), saved);
+    racers.opponents.forEach((opponent, index) =>
+      assert.equal(
+        opponent.state,
+        references[index],
+        'combat bindings keep the same state object',
+      ),
+    );
+    assert.equal('forecastOnly' in racers.opponents[0].state, false);
+    const second = step(racers, 1, { presentation: false });
+    assert.deepEqual(second, first);
+    assert.deepEqual(racers.serialize(), expected);
+    racers.restore(saved);
+    assert.equal(
+      allocations,
+      18,
+      'public restore still validates through isolated runtimes',
+    );
+    const invalid = structuredClone(saved);
+    invalid.opponents[0].state.speed = NaN;
+    assert.throws(() => racers.restore(invalid), /finite/);
+    assert.deepEqual(
+      racers.serialize(),
+      saved,
+      'invalid public data remains atomic',
+    );
+    for (const [key, value] of [
+      ['splits', 'invalid'],
+      ['completedTime', '0'],
+    ]) {
+      const malformed = structuredClone(saved);
+      malformed.opponents[0].race[key] = value;
+      assert.throws(() => racers.restore(malformed), /mismatch/);
+      assert.deepEqual(racers.serialize(), saved);
+    }
+    const legacy = structuredClone(saved);
+    for (const opponent of legacy.opponents) {
+      delete opponent.race.splits;
+      delete opponent.race.completedTime;
+    }
+    racers.restore(legacy);
+    assert.ok(
+      racers.opponents.every(
+        ({ race }) => race.splits.length === 0 && race.completedTime === 0,
+      ),
+    );
+  } finally {
+    racers.dispose();
+  }
+});

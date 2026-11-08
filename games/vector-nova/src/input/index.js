@@ -45,6 +45,8 @@ export function createInput(
       if (codes.includes(e.code)) {
         e.preventDefault();
         keys.add(e.code);
+        const slot = EQUIPMENT_CONTROLS.findIndex(({ key }) => key === e.code);
+        if (slot >= 0 && !e.repeat) equipmentPulses[slot] = true;
       }
       if (!e.repeat) {
         const commands = {
@@ -155,7 +157,7 @@ export function createInput(
             ? -(pad.aerialStickX ?? 0)
             : 0;
       }
-      // A touch pulse survives observation and render frames without a physics tick.
+      // Equipment taps survive observation and frames without a physics tick.
       return i;
     },
     bindTouch(root) {

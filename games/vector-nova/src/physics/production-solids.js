@@ -1,9 +1,9 @@
 import * as T from 'three';
 import { createCollisionWorld, indexedTriangles } from './collision-world.js';
 
-// Extract exact authored meshes in bounded jump corridors. Each level supplies
-// its own solid selection and route-coordinate convention; decorative meshes
-// and moving scenery are never inferred as colliders.
+// Extract exact authored meshes in bounded jump corridors. Levels may retain
+// their entire selected deck so magnetic support never changes skins at a
+// corridor boundary; rails and scenery keep their bounded collision coverage.
 export function collectProductionSolids({
   track,
   id,
@@ -12,6 +12,7 @@ export function collectProductionSolids({
   select,
   uvScale = 16,
   additionalTriangles = [],
+  fullDeck = false,
 }) {
   const group = road.group ?? road;
   const corridors = track.jumps.map((jump) => {
@@ -80,6 +81,7 @@ export function collectProductionSolids({
       if (!object.isMesh) return;
       const info = select(object);
       if (!info) return;
+      const retainDeck = fullDeck && info.kind === 'deck';
       const geometry = object.geometry;
       geometry.computeBoundingBox();
       const indices =
@@ -96,7 +98,11 @@ export function collectProductionSolids({
           object.getMatrixAt(index, instance);
           matrix.multiply(instance);
         }
-        if (!near(geometry.boundingBox.clone().applyMatrix4(matrix))) continue;
+        if (
+          !retainDeck &&
+          !near(geometry.boundingBox.clone().applyMatrix4(matrix))
+        )
+          continue;
         const solidId = `${object.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${targets.length}-${index}`;
         const source = indexedTriangles(
           geometry.attributes.position.array,
@@ -108,7 +114,8 @@ export function collectProductionSolids({
         const kept = [];
         for (const [i, triangle] of source.entries()) {
           const points = triangle.points.map((p) => new T.Vector3(...p));
-          if (!near(new T.Box3().setFromPoints(points))) continue;
+          if (!retainDeck && !near(new T.Box3().setFromPoints(points)))
+            continue;
           if (info.kind === 'deck' || info.roadBoundary) {
             const route =
               geometry.attributes.roadCoord ??
@@ -144,7 +151,7 @@ export function collectProductionSolids({
           kept.push(triangle);
         }
         if (!kept.length) continue;
-        triangles.push(...kept);
+        for (const triangle of kept) triangles.push(triangle);
         const bounds = new T.Box3().setFromPoints(
           kept.flatMap((t) => t.points.map((p) => new T.Vector3(...p))),
         );
@@ -164,7 +171,7 @@ export function collectProductionSolids({
   const world = createCollisionWorld({
     id,
     version: 1,
-    geometryId: `${track.geometryVersion}:${geometryId}`,
+    geometryId: `${track.geometryVersion}:${geometryId}${fullDeck ? ':full-deck-v1' : ''}`,
     triangles,
   });
   return Object.freeze({ ...world, targets: Object.freeze(targets) });

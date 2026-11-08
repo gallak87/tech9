@@ -7,18 +7,11 @@ import {
   upgradedHandling,
   REWARDS,
   RARITIES,
-  EQUIPMENT,
   requirementText,
 } from './catalog.js';
-import { rewardProgress, shipUnlocked, equippedItems } from './profile.js';
-export const escapeHTML = (value) =>
-  String(value).replace(
-    /[&<>"']/g,
-    (c) =>
-      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[
-        c
-      ],
-  );
+import { rewardProgress, shipUnlocked } from './profile.js';
+import { escapeHTML } from '../ui/html.js';
+export { escapeHTML };
 const paths = {
   speed: 'm4 17 8-10 8 10M7 17l5-6 5 6',
   acceleration: 'm5 17 7-5-7-5m8 10 7-5-7-5',
@@ -72,23 +65,14 @@ export function performanceView(ship, profile, { stock = false } = {}) {
             ? Math.round(v)
             : v.toFixed(1);
       const baseWidth = (base / maximum) * 100;
-      const label = `${stat.name}: ${display(value)} ${stat.unit}${rank ? `; ${Math.round(gain * 100)}% earned improvement` : '; stock'}`;
+      const label = `${stat.name}: ${display(value)} ${stat.unit}${rank ? `; ${Math.round(gain * 100)}% fleet improvement` : '; stock'}`;
       return `<div class="performance-stat" data-stat="${stat.id}"><div class="performance-label"><span>${stat.name}</span><b>${display(base)}${rank ? `<em> +${display(value - base)}</em>` : ''} <small>${stat.unit}</small></b></div><div class="enhancement-meter" role="meter" aria-label="${label}" aria-valuemin="0" aria-valuemax="${maximum}" aria-valuenow="${value}" aria-valuetext="${label}"><span class="stat-base" style="width:${baseWidth}%"></span>${Array.from({ length: rank }, (_, i) => `<span class="stat-notch" style="width:${stat.id === 'toughness' ? (stat.gains[i + 1] - stat.gains[i]) * 100 : (base / maximum) * (stat.gains[i + 1] - stat.gains[i]) * 100}%" title="${stat.name} ${i + 1}"></span>`).join('')}</div></div>`;
     },
   ).join('')}</div>`;
 }
-export function loadoutSummary(profile, shipId) {
-  const slots = equippedItems(profile, shipId);
-  return (
-    slots
-      .filter(Boolean)
-      .map((id) => EQUIPMENT.find((item) => item.id === id)?.name)
-      .join(' + ') || 'Choose your equipment'
-  );
-}
 export function rewardsView(rewards, { heading = 'Earned this run' } = {}) {
   if (!rewards?.length) return '';
-  return `<section class="earned-rewards" aria-label="${heading}"><h3>${heading}</h3><div>${rewards.map((reward) => `<article class="earned-reward rarity-${reward.rarity}">${rewardIcon(reward.id)}<span><small>${RARITIES[reward.rarity]}</small><strong>${reward.name}</strong><p>${reward.description}</p></span></article>`).join('')}</div></section>`;
+  return `<section class="earned-rewards" aria-label="${heading}"><h3>${heading}</h3><div>${rewards.map((reward) => `<article class="earned-reward rarity-${reward.rarity}">${rewardIcon(reward.id)}<span><small>${RARITIES[reward.rarity]}${reward.kind === 'enhancement' ? ' · Fleet upgrade unlocked' : ''}</small><strong>${reward.name}</strong><p>${reward.description}${reward.kind === 'enhancement' ? ' · Applies automatically to every ship.' : ''}</p></span></article>`).join('')}</div></section>`;
 }
 const collectedRewardCount = (profile) =>
   REWARDS.filter((reward) => profile.claims.includes(reward.id)).length;
@@ -100,13 +84,34 @@ export function careerProgressView(profile) {
   ).join('')}</div></section>`;
 }
 export function careerView(profile) {
-  return `<div class="career-summary"><strong>${collectedRewardCount(profile)}<small> / ${REWARDS.length} rewards</small></strong>${IS_DEMO ? '' : `<span>${profile.points} race progress</span>`}<span>${profile.finishes} finishes · ${profile.wins} wins</span><span>${IS_DEMO ? Number(profile.cups.includes('demo')) : fullCupWins(profile)} / ${IS_DEMO ? 1 : 4} cup wins</span><span>${Math.min(profile.trialTracks.length, IS_DEMO ? 1 : 2)} / ${IS_DEMO ? 1 : 2} Time Trial maps</span></div><p class="career-intro">${IS_DEMO ? 'Four rewards to earn: finish races, win the Demo Cup and set a clean Time Trial record. Equip two items. Export your save here, then import it in the full game to keep your rewards, trophy and records. Full-game upgrades stay saved while you play the demo.' : 'Permanent enhancements improve every ship. Every valid Quick Race, Eliminator or cup-race finish earns progress: 1st +5, 2nd +4, 3rd +3, 4th–5th +2, 6th–10th +1. Interceptor awards +5 for success or +1 for a valid failed pursuit. Win championships and set clean Time Trial records on two different maps to complete your collection.'}</p><div class="reward-roadmap">${REWARDS.map(
-    (reward) => {
-      const owned = profile.claims.includes(reward.id),
-        [progress, total] = rewardProgress(profile, reward.requirement);
-      return `<article class="reward-milestone rarity-${reward.rarity} ${owned ? 'earned' : ''}">${rewardIcon(reward.id)}<div><strong>${reward.name}</strong><p>${reward.description}</p><small>${owned ? '✓ Earned' : `${requirementText(reward.requirement)} · ${progress}/${total}`}</small></div></article>`;
-    },
-  ).join('')}</div>`;
+  const groups = [
+    [
+      'enhancements',
+      'Fleet upgrades',
+      REWARDS.filter((reward) => reward.kind === 'enhancement'),
+    ],
+    ['ships', 'Ships', REWARDS.filter((reward) => reward.kind === 'ship')],
+    [
+      'equipment',
+      'Equipment',
+      REWARDS.filter((reward) => ['equipment', 'exotic'].includes(reward.kind)),
+    ],
+  ].filter(([, , rewards]) => rewards.length);
+  const roadmap = groups
+    .map(([id, label, rewards]) => {
+      const earned = rewards.filter((reward) =>
+        profile.claims.includes(reward.id),
+      ).length;
+      return `<section class="career-reward-group" data-reward-group="${id}" aria-label="${label}"><header><h2>${label}</h2><span>${earned} / ${rewards.length}</span></header><div class="reward-roadmap">${rewards
+        .map((reward) => {
+          const owned = profile.claims.includes(reward.id),
+            [progress, total] = rewardProgress(profile, reward.requirement);
+          return `<article class="reward-milestone rarity-${reward.rarity} ${owned ? 'earned' : 'locked'}" aria-label="${escapeHTML(reward.name)} · ${owned ? 'Unlocked' : 'Locked'}">${rewardIcon(reward.id)}<div><strong>${reward.name}</strong><p>${reward.description}</p>${owned ? '' : `<small>${requirementText(reward.requirement)} · ${progress}/${total}</small>`}</div></article>`;
+        })
+        .join('')}</div></section>`;
+    })
+    .join('');
+  return `<div class="career-summary"><strong>${collectedRewardCount(profile)}<small> / ${REWARDS.length} rewards</small></strong>${IS_DEMO ? '' : `<span>${profile.points} race progress</span>`}<span>${profile.finishes} finishes · ${profile.wins} wins</span><span>${IS_DEMO ? Number(profile.cups.includes('demo')) : fullCupWins(profile)} / ${IS_DEMO ? 1 : 4} cup wins</span><span>${Math.min(profile.trialTracks.length, IS_DEMO ? 1 : 2)} / ${IS_DEMO ? 1 : 2} Time Trial maps</span></div><details class="career-rules"><summary tabindex="0">How to earn rewards</summary><p class="career-intro">${IS_DEMO ? 'Four rewards to earn: finish races, win the Demo Cup and set a clean Time Trial record. Fleet upgrades apply automatically to every ship. Equip two items. Export your save here, then import it in the full game to keep your rewards, trophy and records. Full-game upgrades stay saved while you play the demo.' : 'Fleet upgrades apply automatically to every ship. Every valid Quick Race or cup-race finish earns progress: 1st +5, 2nd +4, 3rd +3, 4th–5th +2, 6th–10th +1. Win championships and set clean Time Trial records on two different maps to complete your collection.'}</p></details><div class="career-rewards">${roadmap}</div>`;
 }
 export function shipLockText(profile, id) {
   if (shipUnlocked(profile, id)) return '';

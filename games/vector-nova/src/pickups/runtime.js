@@ -3,6 +3,7 @@ import { toughness } from '../progression/catalog.js';
 import { Vector3 } from 'three';
 import {
   createMagneticRuntime,
+  readRuntimeFrame,
   runtimeIdentity,
 } from '../core/session-runtime.js';
 import {
@@ -11,7 +12,11 @@ import {
   combatHitBounds,
   validateCombatResistance,
 } from './combat.js';
-import { createPickupSimulation, VECTOR_PROPULSION } from './simulation.js';
+import {
+  createPickupSimulation,
+  PICKUP_STATE_VERSION,
+  VECTOR_PROPULSION,
+} from './simulation.js';
 
 // Compose devices around a circuit's actual simulation. Player and rivals use
 // this same adapter. Rival renderers observe feedback without a HUD or audio graph.
@@ -103,48 +108,52 @@ export function createDeviceRuntime({
       motion.applyImpulse(state, impulse);
     } else state.speed = disruption.speedLimit;
   }
-  function bindCombat(state) {
+  function bindCombat(state, options) {
     if (!combat || !enabled) return;
-    combat.bind(combatId, {
-      ...(actorTeam ? { team: actorTeam } : {}),
-      ...(actorBounds ? { hitBounds: actorBounds } : {}),
-      ...(resistance ? { combatResistance: resistance } : {}),
-      ...(damageDuringGrace ? { damageDuringGrace: true } : {}),
-      state,
-      pose: () => motion.pose(1),
-      notify: (event) => pending.push(event),
-      disrupt: (disruption) => applyDisruption(state, disruption),
-      hit({ source, kind, impulse, cost, damageOnly = false }) {
-        if (equipment?.absorbHit()) {
-          const position = combat.pose(source)?.position?.toArray();
-          pending.push({
-            type: 'equipment-block',
-            payload: {
-              kind: 'deflector',
-              source,
-              ...(position ? { position } : {}),
-            },
-          });
-          return true;
-        }
-        const shield = simulation.consumeShield({ source, attack: kind });
-        if (shield) {
-          pending.push(shield);
-          return true;
-        }
-        if (damageOnly) return false;
-        motion.applyImpulse?.(
-          state,
-          impulse.clone().multiplyScalar(1 - toughness(state)),
-        );
-        state.energy = Math.max(
-          0,
-          state.energy - cost * (1 - toughness(state)),
-        );
-        state.impact = Math.max(state.impact, 0.65);
-        return false;
+    combat.bind(
+      combatId,
+      {
+        ...(actorTeam ? { team: actorTeam } : {}),
+        ...(actorBounds ? { hitBounds: actorBounds } : {}),
+        ...(resistance ? { combatResistance: resistance } : {}),
+        ...(damageDuringGrace ? { damageDuringGrace: true } : {}),
+        state,
+        pose: () => motion.pose(1),
+        notify: (event) => pending.push(event),
+        disrupt: (disruption) => applyDisruption(state, disruption),
+        hit({ source, kind, impulse, cost, damageOnly = false }) {
+          if (equipment?.absorbHit()) {
+            const position = combat.pose(source)?.position?.toArray();
+            pending.push({
+              type: 'equipment-block',
+              payload: {
+                kind: 'deflector',
+                source,
+                ...(position ? { position } : {}),
+              },
+            });
+            return true;
+          }
+          const shield = simulation.consumeShield({ source, attack: kind });
+          if (shield) {
+            pending.push(shield);
+            return true;
+          }
+          if (damageOnly) return false;
+          motion.applyImpulse?.(
+            state,
+            impulse.clone().multiplyScalar(1 - toughness(state)),
+          );
+          state.energy = Math.max(
+            0,
+            state.energy - cost * (1 - toughness(state)),
+          );
+          state.impact = Math.max(state.impact, 0.65);
+          return false;
+        },
       },
-    });
+      options,
+    );
   }
   function beforeEquipment(state, input, dt, before) {
     if (!equipment) return before;
@@ -168,7 +177,7 @@ export function createDeviceRuntime({
       )
     )
       combat?.resetActor(combatId);
-    for (let index = events.length - 1; index >= 0; index--) {
+    for (let index = 0; index < events.length;) {
       const entry = events[index];
       if (
         entry.type === 'pickup-activate' &&
@@ -177,7 +186,7 @@ export function createDeviceRuntime({
       ) {
         combat.request(combatId, entry);
         events.splice(index, 1);
-      }
+      } else index++;
     }
     for (const event of events)
       if (event.type === 'pickup-activate' && event.payload.kind === 'vector')
@@ -196,16 +205,13 @@ export function createDeviceRuntime({
   };
   return {
     ...ownIdentity,
-    ...(combat || Object.keys(actorIdentity).length
-      ? {
-          rulesId:
-            ownIdentity.rulesId +
-            (combat ? ':combat:' + JSON.stringify(COMBAT_RULES) : '') +
-            (Object.keys(actorIdentity).length
-              ? ':actor:' + JSON.stringify(actorIdentity)
-              : ''),
-        }
-      : {}),
+    rulesId:
+      ownIdentity.rulesId +
+      `:pickups-v${PICKUP_STATE_VERSION}` +
+      (combat ? ':combat:' + JSON.stringify(COMBAT_RULES) : '') +
+      (Object.keys(actorIdentity).length
+        ? ':actor:' + JSON.stringify(actorIdentity)
+        : ''),
     ...(combat && combatId === 'player'
       ? {
           advanceInteractions(dt) {
@@ -230,6 +236,14 @@ export function createDeviceRuntime({
     },
     ...(motion.launch
       ? { launch: (state, setup) => motion.launch(state, setup) }
+      : {}),
+    ...(typeof motion.stageCountdown === 'function'
+      ? {
+          stageCountdown: (state, phase) => motion.stageCountdown(state, phase),
+        }
+      : {}),
+    ...(typeof motion.manualRecoveryTarget === 'function'
+      ? { manualRecoveryTarget: (state) => motion.manualRecoveryTarget(state) }
       : {}),
     advance(state, input, dt) {
       if (disposed || !Number.isFinite(dt) || dt <= 0) return [];
@@ -324,7 +338,15 @@ export function createDeviceRuntime({
       );
       pending = [];
       staged = null;
-      resetPresentation();
+      if (context?.presentation !== false) resetPresentation();
+    },
+    readFrame() {
+      const movement = readRuntimeFrame(motion);
+      return {
+        ...movement,
+        ...simulation.status(),
+        ...(movement === null ? {} : { motion: movement }),
+      };
     },
     snapshot() {
       const movement = motion.snapshot();
@@ -338,14 +360,15 @@ export function createDeviceRuntime({
         ...(movement === null ? {} : { motion: movement }),
       };
     },
-    restore(data) {
+    restore(data, { presentation: notifyPresentation = true, state } = {}) {
       simulation.restore(data);
       if (equipment && data.equipment) equipment.restore(data.equipment);
       if (combat && combatId === 'player') combat.restore(data.combat);
       motion.restore(data?.motion ?? null);
       pending = [];
       staged = null;
-      resetPresentation();
+      if (state) bindCombat(state, { touch: false });
+      if (notifyPresentation) resetPresentation();
     },
     pose: (alpha) => motion.pose(alpha),
     equipment: () => equipment?.snapshot() ?? null,
@@ -355,6 +378,12 @@ export function createDeviceRuntime({
       return () => presentationObservers.delete(observer);
     },
     update(context) {
+      if (context?.presentation === false) {
+        // Hidden classification owns simulation only. Its feedback must not
+        // reach the renderer now or be replayed by the next visible update.
+        pending = [];
+        return;
+      }
       motion.update(context);
       presentation?.update({
         ...context,

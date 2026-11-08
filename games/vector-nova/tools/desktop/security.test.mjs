@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { resolve, sep } from 'node:path';
 import { createRequire } from 'node:module';
-import { editionPolicy, includePublic } from './policy.mjs';
+import { editionPolicy, includePublic, forbiddenModules } from './policy.mjs';
 import { menuIntent } from '../../src/input/menu-gamepad.js';
 const { resourcePath, forbiddenArguments, trustedSender, CSP } = createRequire(
   import.meta.url,
@@ -32,6 +32,55 @@ test('demo contains two worlds and one player ship; shared materials do not ship
   ])
     assert(!includePublic(path, 'demo'), path);
   assert.throws(() => editionPolicy('unlocked'));
+});
+test('full packages every original and bonus course without exposing bonus content in the demo', () => {
+  assert.equal(editionPolicy('full').levels.length, 17);
+  for (const id of ['ravel', 'nomad', 'oriel']) {
+    assert.equal(editionPolicy('full').levels.includes(id), true);
+    assert.equal(includePublic(`assets/menu/${id}.webp`, 'full'), true);
+    assert.equal(includePublic(`assets/levels/${id}/world.glb`, 'full'), true);
+    assert.equal(includePublic(`assets/levels/${id}/world.glb`, 'demo'), false);
+  }
+});
+test('only the four final native finale records and provenance manifest ship in the full edition', () => {
+  for (const file of [
+    'kestrel.json.gz',
+    'shrike.json.gz',
+    'bastion.json.gz',
+    'needle.json.gz',
+    'manifest.json',
+  ]) {
+    const path = `assets/completion/shatterline-v1/${file}`;
+    assert.equal(includePublic(path, 'full'), true, path);
+    assert.equal(includePublic(path, 'demo'), false, path);
+  }
+  for (const file of [
+    'kestrel.json',
+    'test.json.gz',
+    'kestrel.webm',
+    'capture.log',
+    'source.js',
+    '../needle.json.gz',
+  ])
+    assert.equal(
+      includePublic(`assets/completion/shatterline-v1/${file}`, 'full'),
+      false,
+      file,
+    );
+  assert.equal(
+    includePublic('assets/completion/old/needle.json.gz', 'full'),
+    false,
+  );
+  for (const tool of ['completion-capture', 'capture-completion-runs'])
+    assert.equal(
+      forbiddenModules.test(`/project/tools/${tool}.mjs`),
+      true,
+      'offline capture tools never enter the renderer bundle',
+    );
+  assert.equal(
+    forbiddenModules.test('/project/src/frontend/completion-run.js'),
+    false,
+  );
 });
 test('custom protocol confines requests to the renderer root', () => {
   const root = resolve('example/dist');
@@ -106,6 +155,7 @@ test('controller navigation dead zone and buttons are independent from driving',
   assert.deepEqual(menuIntent(null), {
     accept: false,
     back: false,
+    secondary: false,
     pause: false,
     camera: false,
     music: false,
@@ -120,12 +170,17 @@ test('controller navigation dead zone and buttons are independent from driving',
   assert.deepEqual(menuIntent(pad), {
     accept: false,
     back: false,
+    secondary: false,
     pause: true,
     camera: false,
     music: false,
     x: 0,
     y: -1,
   });
+  pad.buttons[3].pressed = true;
+  assert.equal(menuIntent(pad).secondary, true);
+  assert.equal(menuIntent(pad).accept, false);
+  assert.equal(menuIntent(pad).back, false);
 });
 
 test('local asset streaming supports music ranges and confines the decoder eval policy', async () => {

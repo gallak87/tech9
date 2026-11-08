@@ -14,6 +14,7 @@ import {
   shipUnlocked,
 } from '../../src/progression/profile.js';
 import { createCupStore } from '../../src/race/cup.js';
+import { isCareerComplete } from '../../src/progression/completion.js';
 import { createSaveTransfer } from '../../src/progression/save-transfer.js';
 
 test('desktop probe keys follow the active real career and reject missing selections', () => {
@@ -61,4 +62,24 @@ test('desktop full-fleet fixture imports as a complete current career with earne
   ]);
   assert.equal(save.cup, null);
   assert.deepEqual(save.trials, []);
+});
+
+test('full desktop content validation uses a normally earned 28-reward career without a pending film', () => {
+  const storage = createMemoryStorage();
+  const profileStore = createProfileStore(() => storage);
+  const transfer = createSaveTransfer({
+    profileStore,
+    cupStore: createCupStore(() => storage),
+    storage: () => storage,
+  });
+  const save = transfer.parse(unlockedCareerSave({ complete: true }));
+  transfer.replace(save);
+  assert.equal(isCareerComplete(profileStore.snapshot().state), true);
+  assert.equal(profileStore.snapshot().state.completion, null);
+  assert.deepEqual(profileStore.snapshot().state.cups, [
+    'founders',
+    'frontier',
+    'horizon',
+    'apex',
+  ]);
 });

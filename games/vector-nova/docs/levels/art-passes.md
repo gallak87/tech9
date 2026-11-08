@@ -1,0 +1,18 @@
+# Assigned level art passes
+
+User assignment, 2026-10-31. This is a finite sequence, not a recurring campaign.
+
+1. **Saffron Leviathan — complete.** Completed ten broad-strokes and six detail rounds on 2026-10-31. Final independent critic: **6.2/10 overall** (broad 6.2, purposeful finish 6.2); stopped at the sixteen-round cap below 9/10. Fossil anatomy, mineral finish and lighting improved; ordinary connectors, infrastructure and sandfall impact remain limitations. Desktop route/collision, lifecycle, native driving and production/shape smoke checks passed, the production build passed and the menu still was refreshed. See the latest score in [ART_SCORES.json](../ART_SCORES.json).
+2. **Nacre Tempest — complete.** Followed Saffron with ten broad-strokes and six detail rounds on 2026-10-31. Final independent critic: **5.2/10 overall** (broad 5.3, purposeful finish 5.0, weighted equally); stopped at the sixteen-round cap below 9/10. Reworked shore/reef forms, observatory construction, the editable leviathan, water finish and lighting. Cyan depth, isolated reef plinths, coarse geology, sparse observatory detail and creature-water weight remain limitations. Desktop contract/clearance, lifecycle, native driving with both jump landings, loading/recovery, bounded matched performance checks and the production build passed; the menu still was refreshed. See [ART_SCORES.json](../ART_SCORES.json). The assigned sequence is complete; both critic loops stay closed.
+
+## Follow-up Saffron skill pass
+
+The user subsequently assigned a new Saffron-only pass using the game-local art-pass skill. That pass is **complete at sixteen rounds**, with a final reference-calibrated critic score of **6.8/10** against a **5.5/10** baseline. Pale mineral finish, skeletal openings, broken spine forms, cranial depth, manufactured baffles and glass-surface continuity improved. Simplified fossil construction, connected terrain and sand-event weight remain below the original concept's target. The user praised the bone textures; retain that finish. This follow-up loop is closed below 9/10, and does not reopen Nacre. See the latest numeric score in [ART_SCORES.json](../ART_SCORES.json).
+
+## Prescribed pass
+
+Use an independent, brutal AAA environment-art critic with matched normal-driving and free-camera views covering the whole course. Allow **up to ten broad-strokes improvement/review rounds**, moving to detail early if broad strokes earns **9/10**. Then allow **up to six detail improvement/review rounds**, stopping at **9/10** or the detail cap. The total cap is sixteen completed improvement/review rounds; baseline inspection is separate. Include lighting, composition, large/medium forms, material response and ordinary connectors. Redesign weak scenery and use Blender where useful; Saffron may use larger bone props. Preserve approved routes, handling, jumps and gameplay readability.
+
+Follow [art direction](../ART_BIBLE.md), the [level workflow](../LEVEL_API.md#environment-assembly-workflow), and each course's technical constraints. Use bounded desktop verification; retain the expansion campaign's mobile/portrait deferral. Browser/Playwright use is authorized. Keep music off and verification audio muted. Do not replace whole-course judgment with one hero view or inflate a score because checks pass.
+
+Keep detailed round findings in chat and temporary captures under ignored `.experiments/`. After each course, replace its value in [ART_SCORES.json](../ART_SCORES.json) with its latest numeric score only, and retain a succinct note of this prescribed pass and its outcome in related level guidance. Record completion here so finished loops stay closed; do not start another course beyond this sequence automatically.

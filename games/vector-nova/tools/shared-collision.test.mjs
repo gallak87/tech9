@@ -499,7 +499,7 @@ test('Saffron shares one headless collision world and exact rendered terrain; fo
   }
 });
 
-test('a deliberate Saffron miss from the real approach hits reachable fossil/terrain during bounded recovery', () => {
+test('a deliberate Saffron lateral miss from the real approach hits reachable fossil during bounded recovery', () => {
   const state = {
     ...createVehicleState(),
     ...saffronTrack.scenarios['jump-playtest'],
@@ -531,8 +531,8 @@ test('a deliberate Saffron miss from the real approach hits reachable fossil/ter
   }
   const impacts = events.filter((event) => event.type === 'impact');
   assert.ok(impacts.some((event) => event.payload.contactKind === 'structure'));
-  assert.ok(impacts.some((event) => event.payload.contactKind === 'terrain'));
   const miss = events.findIndex((event) => event.type === 'jump-miss');
+  assert.ok(miss >= 0);
   assert.ok(
     miss < events.findIndex((event) => event.type === 'impact'),
     'falling recovery checks actual reachable scenery',
@@ -548,6 +548,54 @@ test('a deliberate Saffron miss from the real approach hits reachable fossil/ter
     ),
   );
   runtime.dispose();
+});
+
+test('a Saffron short launch hits actual terrain and recovers without landing credit', () => {
+  const state = {
+    ...createVehicleState(),
+    ...saffronTrack.scenarios['jump3-short'],
+  };
+  const runtime = createDeviceRuntime({
+    track: saffronTrack,
+    devices: saffron.racing.createDevices(saffronTrack),
+    motion: saffron.createRuntime({
+      track: saffronTrack,
+      collisionWorld: saffronWorld,
+      presentation: false,
+    }),
+  });
+  try {
+    runtime.reset({ state });
+    const events = [];
+    for (let i = 0; i < 1000; i++) {
+      events.push(...runtime.advance(state, {}, DT));
+      if (events.some((event) => event.type === 'jump-transfer')) break;
+    }
+    const terrain = events.findIndex(
+      (event) =>
+        event.type === 'impact' && event.payload.contactKind === 'terrain',
+    );
+    const miss = events.findIndex(
+      (event) =>
+        event.type === 'jump-miss' && event.payload.reason === 'terrain',
+    );
+    const transfer = events.findIndex(
+      (event) => event.type === 'jump-transfer',
+    );
+    assert.ok(terrain >= 0, 'the short fall contacts the rendered ground');
+    assert.ok(miss >= 0, 'terrain contact registers an honest jump miss');
+    assert.ok(transfer > terrain && transfer > miss);
+    assert.equal(events[transfer].payload.outcome, 'recovered');
+    assert.ok(
+      !events.some(
+        (event) =>
+          event.type === 'jump-transfer' && event.payload.outcome === 'landed',
+      ),
+    );
+    assert.equal(runtime.snapshot().mode, 'magnetic');
+  } finally {
+    runtime.dispose();
+  }
 });
 
 test('Saffron grounded 320 m jump playtest reaches launch speed with real devices and repeats a deterministic clean landing', () => {

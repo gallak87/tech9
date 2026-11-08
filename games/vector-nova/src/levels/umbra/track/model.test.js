@@ -143,9 +143,11 @@ test('shape and production are finite, share true gap boundaries, and release ow
     if (surfaceTexture) watch(surfaceTexture);
     let triangles = 0;
     let meshes = 0;
+    const surfaces = [];
     road.group.traverse((object) => {
       if (!object.isMesh) return;
       meshes += 1;
+      if (object.userData.roadSurface) surfaces.push(object);
       watch(object.geometry);
       watch(object.material);
       if (object.isInstancedMesh) watch(object);
@@ -170,35 +172,88 @@ test('shape and production are finite, share true gap boundaries, and release ow
         ((object.geometry.index?.count ?? position.count) / 3) *
         (object.isInstancedMesh ? object.count : 1);
     });
-    assert.ok(meshes <= 20);
-    assert.ok(triangles < 250000);
-    const surface = road.group.children.find(
-      (child) => child.userData.solidRuns,
+    // Approved panel culling splits each solid run into 576 m batches. Keep
+    // their cost explicit rather than treating each batch as new scenery.
+    const batches = track.solidRuns.flatMap(([start, end]) =>
+      Array.from({ length: Math.ceil((end - start) / 576) }, (_, index) => [
+        start + index * 576,
+        Math.min(end, start + (index + 1) * 576),
+      ]),
     );
-    assert.deepEqual(surface.userData.solidRuns, track.solidRuns);
-    const positions = surface.geometry.attributes.position;
-    let offset = 0;
-    for (const [start, end] of track.solidRuns) {
-      const count = Math.ceil((end - start) / 2);
-      for (const [index, s] of [
-        [0, start],
-        [count, end],
-      ]) {
-        const frame = track.sample(s);
-        const actual = new THREE.Vector3().fromBufferAttribute(
-          positions,
-          offset + index * 2,
+    assert.equal(surfaces.length, batches.length);
+    assert.equal(meshes - surfaces.length, shape ? 13 : 16);
+    assert.equal(
+      triangles,
+      shape ? 127964 : 280552,
+      'Approved shape and production geometry retain their exact triangle cost',
+    );
+    for (const [batchIndex, surface] of surfaces.entries()) {
+      assert.equal(surface.userData.drivingSurface, true);
+      const [start, end] = batches[batchIndex];
+      const {
+        position: positions,
+        roadCoord,
+        uv,
+      } = surface.geometry.attributes;
+      assert.equal(roadCoord.count, positions.count);
+      assert.equal(uv.count, positions.count);
+      let minimum = Infinity,
+        maximum = -Infinity;
+      for (let index = 0; index < positions.count; index++) {
+        const distance = roadCoord.getX(index),
+          lateral = roadCoord.getY(index);
+        assert.equal(uv.getX(index), lateral);
+        assert.equal(uv.getY(index), distance);
+        assert.ok(
+          distance >= Math.fround(start) && distance <= Math.fround(end),
+          'Every panel vertex stays inside its one declared solid-run batch',
         );
+        assert.ok(Math.abs(lateral) <= track.width / 2);
+        minimum = Math.min(minimum, distance);
+        maximum = Math.max(maximum, distance);
+        const frame = track.sample(distance);
         const expected = frame.position
           .clone()
-          .addScaledVector(frame.right, -track.width / 2)
-          .addScaledVector(frame.up, shape ? 0 : -0.12);
+          .addScaledVector(frame.right, lateral);
+        // The stored Float32 distance can round by 0.00025 m near 5.4 km;
+        // reconstructing from it also includes the corresponding frame turn.
         assert.ok(
-          actual.distanceTo(expected) < 0.0001,
-          'Each rendered deck ends exactly at its declared gap',
+          new THREE.Vector3()
+            .fromBufferAttribute(positions, index)
+            .distanceTo(expected) < 0.0005,
+          'Panel positions agree with their road-coordinate attributes',
         );
       }
-      offset += (count + 1) * 2;
+      assert.equal(minimum, Math.fround(start));
+      assert.equal(maximum, Math.fround(end));
+      for (const distance of [start, end]) {
+        const frame = track.sample(distance);
+        for (const side of [-1, 1]) {
+          const lateral = (side * track.width) / 2;
+          let boundary = -1;
+          for (let index = 0; index < positions.count; index++)
+            if (
+              roadCoord.getX(index) === Math.fround(distance) &&
+              roadCoord.getY(index) === lateral
+            ) {
+              boundary = index;
+              break;
+            }
+          assert.ok(
+            boundary >= 0,
+            'Each batch reaches both edges at both ends',
+          );
+          const expected = frame.position
+            .clone()
+            .addScaledVector(frame.right, lateral);
+          assert.ok(
+            new THREE.Vector3()
+              .fromBufferAttribute(positions, boundary)
+              .distanceTo(expected) < 0.0001,
+            'Each rendered deck ends exactly at its declared gap or batch seam',
+          );
+        }
+      }
     }
     road.dispose();
     road.dispose();

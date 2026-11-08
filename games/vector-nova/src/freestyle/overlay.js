@@ -1,6 +1,5 @@
 import { TRICKS } from './controller.js';
 import { controllerLayout } from '../input/gamepad.js';
-import './style.css';
 
 export function createFreestyleOverlay({ host }) {
   const root = document.createElement('section');

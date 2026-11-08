@@ -14,6 +14,7 @@ export default function createLevel({ shape }) {
   return {
     version: shape ? '0.3.0-level2-blockout' : '0.3.1-orbital-racing',
     racing: { createDevices },
+    camera: { preserveFlightView: true },
     renderer: {
       world: shape ? 'orbital-blockout' : 'asterion-orbital',
       background: '#03070d',

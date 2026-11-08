@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import * as THREE from 'three';
 import { SharedKTX2Loader } from '../../../assets/ktx2-loader.js';
 import { assetURL } from '../../../assets/url.js';
@@ -18,7 +19,8 @@ export function createDeckFinish(renderer) {
     material.normalMap = maps[1];
     material.aoMap = material.roughnessMap = material.metalnessMap = maps[2];
     material.color.set(0xffffff);
-    material.roughness = material.metalness = 1;
+    material.roughness = 0.75;
+    material.metalness = 1;
     material.needsUpdate = true;
   }
   const loader = renderer
@@ -68,10 +70,10 @@ export function createDeckFinish(renderer) {
     bind(material) {
       material.name = 'Asterion coated alloy / sealed induction cassettes';
       material.color.set(0x6f818e);
-      material.roughness = 0.43;
+      material.roughness = 0.32;
       material.metalness = 0.23;
       material.aoMapIntensity = 0.65;
-      material.envMapIntensity = 0.65;
+      material.envMapIntensity = 1.05;
       material.envMap = reflection;
       material.userData.orbitalDeck = true;
       // Stable small finish differences between installed cassettes. Use native
@@ -81,33 +83,32 @@ export function createDeckFinish(renderer) {
       const cacheKey = material.customProgramCacheKey();
       material.onBeforeCompile = (shader, view) => {
         compile.call(material, shader, view);
-        shader.vertexShader =
-          `varying vec2 cassetteUv;\n${shader.vertexShader}`.replace(
-            '#include <uv_vertex>',
-            '#include <uv_vertex>\n cassetteUv = uv * vec2(6.0, 2.0);',
-          );
-        shader.fragmentShader =
-          `varying vec2 cassetteUv;\n${shader.fragmentShader}`
-            .replace(
+        shader.vertexShader = replaceShader(
+          `varying vec2 cassetteUv;\n${shader.vertexShader}`,
+          '#include <uv_vertex>',
+          '#include <uv_vertex>\n cassetteUv = uv * vec2(6.0, 2.0);',
+        );
+        shader.fragmentShader = replaceShader(
+          replaceShader(
+            replaceShader(
+              `varying vec2 cassetteUv;\n${shader.fragmentShader}`,
               '#include <map_fragment>',
               `#include <map_fragment>
             vec3 cassetteSeed = fract(vec3(floor(cassetteUv).xyx) * .1031);
             cassetteSeed += dot(cassetteSeed, cassetteSeed.yzx + 33.33);
             float cassetteBatch = fract((cassetteSeed.x + cassetteSeed.y) * cassetteSeed.z);`,
-            )
-            .replace(
-              '#include <color_fragment>',
-              `#include <color_fragment>
-            diffuseColor.rgb *= .91 + .18 * cassetteBatch;`,
-            )
-            .replace(
-              '#include <roughnessmap_fragment>',
-              `#include <roughnessmap_fragment>
-            roughnessFactor = clamp(roughnessFactor + .09 * (cassetteBatch - .5), .15, 1.0);`,
-            );
+            ),
+            '#include <color_fragment>',
+            `#include <color_fragment>
+            diffuseColor.rgb *= .86 + .28 * cassetteBatch;`,
+          ),
+          '#include <roughnessmap_fragment>',
+          `#include <roughnessmap_fragment>
+            roughnessFactor = clamp(roughnessFactor + .12 * (cassetteBatch - .5), .15, 1.0);`,
+        );
       };
       material.customProgramCacheKey = () =>
-        `${cacheKey}-asterion-cassette-batches-v1`;
+        `${cacheKey}-asterion-cassette-batches-v2`;
       materials.add(material);
       apply(material);
     },

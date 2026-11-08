@@ -5,8 +5,13 @@ import { menuCatalog } from './tools/menu-catalog.mjs';
 let devServer;
 export default defineConfig({
   resolve: { dedupe: ['three'] },
+  worker: { format: 'es' },
+  cacheDir: process.env.VN_VITE_CACHE_DIR || 'node_modules/.vite',
   // Canonical assets in the linked package are also served during development.
   server: {
+    watch: {
+      ignored: ['**/.desktop/**', '**/release/**', '**/.experiments/**'],
+    },
     fs: {
       allow: [
         import.meta.dirname,

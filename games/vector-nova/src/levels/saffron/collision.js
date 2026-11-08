@@ -11,6 +11,7 @@ import { jumpSupportPlan } from './track/supports.js';
 import {
   SAFFRON_SOLIDS,
   roadRuns,
+  roadSweepOptions,
   toeProfile,
   createBaffleGeometry,
   bafflePlacements,
@@ -59,11 +60,11 @@ export function createSaffronCollisionWorld({ track }) {
       ['structure', SAFFRON_SOLIDS.underside],
       ...[-1, 1].map((side) => ['rail', toeProfile(side)]),
     ]) {
-      const data = sweepGeometry(track, profile, {
-        start,
-        end,
-        step: SAFFRON_SOLIDS.step,
-      });
+      const data = sweepGeometry(
+        track,
+        profile,
+        roadSweepOptions(start, end, kind === 'deck'),
+      );
       geometry(data, {
         id: `road-${start}-${kind}`,
         kind,
@@ -134,7 +135,9 @@ export function createSaffronCollisionWorld({ track }) {
           ),
         );
   }
-  triangles.push(...fossilTriangles);
+  // Detailed porous anatomy can exceed the engine's function-argument limit.
+  // Append iteratively while preserving the authored triangle order.
+  for (const triangle of fossilTriangles) triangles.push(triangle);
   const supports = jumpSupportPlan(track, survey, fossilTriangles);
   const leg = new T.BoxGeometry(1, 1, 1),
     shoe = new T.CylinderGeometry(0.38, 0.7, 1, 6),
@@ -156,7 +159,7 @@ export function createSaffronCollisionWorld({ track }) {
   const world = createCollisionWorld({
     id: 'saffron-solids',
     version: 2,
-    geometryId: `${track.geometryVersion}:${SAFFRON_SOLIDS.version}:terrain176-v1:fossils-${kit.sourceHash}:placements-v1:jump-supports-v1:road-boundaries-v1`,
+    geometryId: `${track.geometryVersion}:${SAFFRON_SOLIDS.version}:terrain176-v2:fossils-${kit.sourceHash}:placements-v2:jump-supports-v1:road-boundaries-v1`,
     triangles,
   });
   const boundsById = new Map();

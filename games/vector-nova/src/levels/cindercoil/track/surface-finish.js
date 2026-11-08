@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import * as THREE from 'three';
 
 // Texture coordinates only: the road's contact positions, shared stations and
@@ -38,11 +39,11 @@ export function setCeramicCoordinates(geometry, panel = false) {
 // Filter the sealed joint/rounded return in screen space; no raised overlay.
 export function applyCeramicPanelFinish(material) {
   material.onBeforeCompile = (shader) => {
-    shader.vertexShader =
-      `attribute vec2 ceramicPanel; varying vec2 vCeramicPanel;\n${shader.vertexShader}`.replace(
-        '#include <begin_vertex>',
-        '#include <begin_vertex>\n vCeramicPanel = ceramicPanel;',
-      );
+    shader.vertexShader = replaceShader(
+      `attribute vec2 ceramicPanel; varying vec2 vCeramicPanel;\n${shader.vertexShader}`,
+      '#include <begin_vertex>',
+      '#include <begin_vertex>\n vCeramicPanel = ceramicPanel;',
+    );
     shader.fragmentShader = `
       varying vec2 vCeramicPanel;
       vec3 ceramicEdgeNormal(vec3 n, vec3 p, float height, float faceSign) {
@@ -52,7 +53,8 @@ export function applyCeramicPanelFinish(material) {
         return normalize(abs(det) * n - sign(det) * (dFdx(height) * rx + dFdy(height) * ry));
       }
       ${shader.fragmentShader}`;
-    shader.fragmentShader = shader.fragmentShader.replace(
+    shader.fragmentShader = replaceShader(
+      shader.fragmentShader,
       '#include <color_fragment>',
       `#include <color_fragment>
        vec2 edges = min(vCeramicPanel, 1. - vCeramicPanel) * vec2(6., 12.);
@@ -63,16 +65,19 @@ export function applyCeramicPanelFinish(material) {
          * (1. - smoothstep(.06, .24, pixel));
        diffuseColor.rgb *= 1. - .48 * joint;`,
     );
-    shader.fragmentShader = shader.fragmentShader.replace(
+    shader.fragmentShader = replaceShader(
+      shader.fragmentShader,
       '#include <roughnessmap_fragment>',
       '#include <roughnessmap_fragment>\n roughnessFactor = mix(roughnessFactor, .83, joint);',
     );
-    shader.fragmentShader = shader.fragmentShader.replace(
+    shader.fragmentShader = replaceShader(
+      shader.fragmentShader,
       '#include <normal_fragment_maps>',
       '#include <normal_fragment_maps>\n normal = ceramicEdgeNormal(normal, -vViewPosition, returnHeight, faceDirection);',
     );
     if (material.isMeshPhysicalMaterial)
-      shader.fragmentShader = shader.fragmentShader.replace(
+      shader.fragmentShader = replaceShader(
+        shader.fragmentShader,
         '#include <clearcoat_normal_fragment_maps>',
         '#include <clearcoat_normal_fragment_maps>\n clearcoatNormal = ceramicEdgeNormal(clearcoatNormal, -vViewPosition, returnHeight, faceDirection);',
       );

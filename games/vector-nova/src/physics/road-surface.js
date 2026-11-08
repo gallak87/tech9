@@ -81,9 +81,20 @@ export function createRoadSurface(triangles) {
     faces.push(face);
     const from = Math.floor(Math.min(a[0], b[0], c[0]) / 16);
     const to = Math.floor(Math.max(a[0], b[0], c[0]) / 16);
+    const minLateral = Math.min(a[1], b[1], c[1]);
+    const maxLateral = Math.max(a[1], b[1], c[1]);
+    // Preserve the face test's barycentric tolerance across bucket edges;
+    // tiny projection/Float32 errors must not drop a supported shoulder.
+    const margin = (maxLateral - minLateral) * 2e-5;
+    const left = Math.floor((minLateral - margin) / 2);
+    const right = Math.floor((maxLateral + margin) / 2);
     for (let key = from; key <= to; key++) {
-      if (!cells.has(key)) cells.set(key, []);
-      cells.get(key).push(face);
+      if (!cells.has(key)) cells.set(key, new Map());
+      const row = cells.get(key);
+      for (let lateral = left; lateral <= right; lateral++) {
+        if (!row.has(lateral)) row.set(lateral, []);
+        row.get(lateral).push(face);
+      }
     }
   }
   for (const vertex of vertices.values()) {
@@ -100,7 +111,9 @@ export function createRoadSurface(triangles) {
       nearest = Infinity,
       selectedElevation = 0;
     const candidates = [];
-    for (const f of cells.get(Math.floor(distance / 16)) ?? []) {
+    for (const f of cells
+      .get(Math.floor(distance / 16))
+      ?.get(Math.floor(lateral / 2)) ?? []) {
       const s = distance - f.a[0],
         x = lateral - f.a[1];
       const u = (s * f.dx2 - x * f.ds2) / f.determinant;

@@ -1,3 +1,4 @@
+import { replaceShader } from '../../../renderer/shader-patch.js';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {
@@ -58,8 +59,9 @@ export function createZephyrRoad(track, { shape = false, settings = {} } = {}) {
     metalness: shape ? 0.44 : 0.22,
     map: maps[0] ?? null,
     normalMap: maps[1] ?? null,
+    normalScale: new THREE.Vector2(0.35, 0.35),
     roughnessMap: maps[2] ?? null,
-    envMapIntensity: 0.8,
+    envMapIntensity: 1,
   });
   const induction = material({
     color: shape ? 0x6f858b : 0x667d81,
@@ -102,13 +104,15 @@ export function createZephyrRoad(track, { shape = false, settings = {} } = {}) {
     silk.onBeforeCompile = (shader) => {
       shader.vertexShader =
         'varying vec3 clothPosition;\n' +
-        shader.vertexShader.replace(
+        replaceShader(
+          shader.vertexShader,
           '#include <begin_vertex>',
           '#include <begin_vertex>\nclothPosition=position;',
         );
       shader.fragmentShader =
         'varying vec3 clothPosition;\n' +
-        shader.fragmentShader.replace(
+        replaceShader(
+          shader.fragmentShader,
           '#include <color_fragment>',
           '#include <color_fragment>\nfloat thread=.5+.5*sin(clothPosition.y*18.);diffuseColor.rgb*=.88+thread*.12;',
         );
@@ -122,15 +126,17 @@ export function createZephyrRoad(track, { shape = false, settings = {} } = {}) {
       surface.onBeforeCompile = (shader) => {
         shader.vertexShader =
           'varying float zephyrRoadS;varying float zephyrRoadU;\n' +
-          shader.vertexShader.replace(
+          replaceShader(
+            shader.vertexShader,
             '#include <begin_vertex>',
             '#include <begin_vertex>\nzephyrRoadS=uv.y*2.5;zephyrRoadU=uv.x;',
           );
         shader.fragmentShader =
           'varying float zephyrRoadS;varying float zephyrRoadU;\n' +
           zephyrNoiseGLSL +
-          shader.fragmentShader
-            .replace(
+          replaceShader(
+            replaceShader(
+              shader.fragmentShader,
               '#include <color_fragment>',
               `#include <color_fragment>
  float zx=abs((zephyrRoadU-.5)*32.);
@@ -150,17 +156,16 @@ export function createZephyrRoad(track, { shape = false, settings = {} } = {}) {
  diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.19,.105,.045),edging*.75);
  diffuseColor.rgb*=1.-joint*.16;
  `,
-            )
-            .replace(
-              '#include <roughnessmap_fragment>',
-              `#include <roughnessmap_fragment>
+            ),
+            '#include <roughnessmap_fragment>',
+            `#include <roughnessmap_fragment>
         float zw=0.;
         ${(track.curtains ?? []).map((c) => `zw=max(zw,1.-smoothstep(4.,38.,abs(zephyrRoadS-${c.s.toFixed(3)})));`).join('')}
         float wear=zephyrNoise(vec3(zephyrRoadU*32.,0.,zephyrRoadS)*.24);
         roughnessFactor=clamp(roughnessFactor+wear*.12-.025,.28,.86);
         // Local water film fills the shallow weave; the dry circuit stays satin.
         roughnessFactor=mix(roughnessFactor,.16,zw*.9);`,
-            );
+          );
       };
       surface.customProgramCacheKey = () => 'zephyr-metric-twill-wet-road-v5';
     }
@@ -183,6 +188,8 @@ export function createZephyrRoad(track, { shape = false, settings = {} } = {}) {
   };
   // A single partitioned deck shares every longitudinal row. Induction bands
   // are part of the surface, so bank transitions cannot expose coplanar stripes.
+  // Small transverse cells keep whole-hull clearance smooth through the wall
+  // ride while sharing these exact faces with continuous native road support.
   const deckCuts = [-16, -14.4, -14, -5.15, -3.5, 3.5, 5.15, 14, 14.4, 16];
   for (let i = 0; i < deckCuts.length - 1; i++) {
     const a = deckCuts[i],
@@ -196,7 +203,7 @@ export function createZephyrRoad(track, { shape = false, settings = {} } = {}) {
           [a, 0],
           [b, 0],
         ],
-        { ...range, step: 3, uvScale: 2.5 },
+        { ...range, step: 3, transverseStep: 1, uvScale: 2.5 },
       );
       const uv = geometry.attributes.uv;
       for (let j = 0; j < uv.count; j++)
@@ -524,7 +531,7 @@ export function createZephyrRoad(track, { shape = false, settings = {} } = {}) {
       if (disposed || shape) return;
       for (const surface of [graphite, induction]) {
         surface.envMap = texture;
-        surface.envMapIntensity = 0.8;
+        surface.envMapIntensity = surface === graphite ? 1 : 0.8;
         surface.needsUpdate = true;
       }
     },

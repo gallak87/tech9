@@ -1,0 +1,123 @@
+import { discoverLevels } from '../levels/catalog.js';
+import { createVehicleState } from '../physics/index.js';
+import { createRace } from '../race/index.js';
+import { CUP_FINISH_GRACE } from '../race/cup.js';
+import { advanceSession } from './session-runtime.js';
+import { createSimulationWorld, createSimulationActors } from './simulation.js';
+import { createLifetime } from './lifecycle.js';
+import { restoreSimulationCheckpoint } from './simulation-checkpoint.js';
+
+const STEP = 1 / 120;
+const BRAKE = Object.freeze({
+  throttle: 0,
+  brake: 1,
+  airbrake: false,
+  boost: false,
+  steer: 0,
+});
+const clone = (value) => structuredClone(value);
+const yieldTask = () => new Promise((resolve) => setTimeout(resolve, 0));
+const noEvents = () => {};
+
+// The worker owns this selected circuit's CPU simulation. No renderer, road,
+// environment, model, audio or decorative presentation factory is constructed.
+export async function createCupClassificationSession({
+  levelId,
+  settings = {},
+  loadLevel = (id) => discoverLevels().load(id),
+  now = () => performance.now(),
+  yieldWork = yieldTask,
+} = {}) {
+  let track, dynamics, runtime, racers;
+  let disposed = false;
+  const lifetime = createLifetime();
+  const dispose = () => {
+    if (disposed) return;
+    disposed = true;
+    lifetime.dispose();
+  };
+  try {
+    const { definition, shape } = await loadLevel(levelId);
+    if (shape || !definition.racing)
+      throw new Error(
+        'Cup classification requires a production racing circuit.',
+      );
+    const world = lifetime.own(await createSimulationWorld(definition));
+    ({ track, dynamics } = world);
+    // The normal player context owns moving-world clocks even in a worker.
+    const context = { settings: clone(settings), equipment: true };
+    const actors = lifetime.own(
+      createSimulationActors(world, { settings: context.settings }),
+    );
+    ({ runtime } = await actors.createPlayer(context));
+    racers = await actors.createField();
+    const state = createVehicleState();
+    return {
+      async resolve(checkpoint, { signal } = {}) {
+        if (disposed)
+          throw new Error('Cup classification session is disposed.');
+        signal?.throwIfAborted();
+        if (
+          !checkpoint ||
+          checkpoint.racers?.trackId !== track.id ||
+          !checkpoint.racers.enabled
+        )
+          throw new Error('Cup classification checkpoint circuit mismatch.');
+        if (checkpoint.settings !== undefined) {
+          if (
+            !checkpoint.settings ||
+            typeof checkpoint.settings !== 'object' ||
+            Array.isArray(checkpoint.settings)
+          )
+            throw new Error('Cup classification settings must be an object.');
+          for (const key of Object.keys(context.settings))
+            delete context.settings[key];
+          Object.assign(context.settings, clone(checkpoint.settings));
+        }
+        const race = createRace(track, {
+          rulesId: checkpoint.race.rulesId,
+          laps: Infinity,
+        });
+        restoreSimulationCheckpoint(
+          checkpoint,
+          { state, race, runtime, racers, dynamics },
+          { presentation: false },
+        );
+        const snapshot = () =>
+          racers.snapshot({
+            playerState: state,
+            playerRace: race,
+            playerPose: runtime.pose(1),
+          });
+        if (!snapshot().results)
+          throw new Error('Cup classification needs the player finish.');
+        let untilYield = now() + 12;
+        for (let tick = 0; tick < Math.round(CUP_FINISH_GRACE / STEP); tick++) {
+          signal?.throwIfAborted();
+          if (racers.opponents.every((opponent) => opponent.finish)) break;
+          advanceSession({
+            state,
+            input: BRAKE,
+            dt: STEP,
+            runtime,
+            race,
+            dynamics,
+            racers,
+            emit: noEvents,
+            presentation: false,
+          });
+          if (now() >= untilYield) {
+            await yieldWork();
+            untilYield = now() + 12;
+          }
+        }
+        signal?.throwIfAborted();
+        return clone(snapshot().results);
+      },
+      dispose,
+    };
+  } catch (error) {
+    dispose();
+    throw error;
+  }
+}

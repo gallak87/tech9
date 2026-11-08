@@ -8,7 +8,10 @@ import {
   isCombatDevice,
   COMBAT_RULES,
 } from '../src/pickups/combat.js';
-import { VECTOR_PROPULSION } from '../src/pickups/simulation.js';
+import {
+  VECTOR_PROPULSION,
+  createPickupSimulation,
+} from '../src/pickups/simulation.js';
 import { createMagneticRuntime } from '../src/core/session-runtime.js';
 import { createVehicleState } from '../src/physics/index.js';
 import { VEHICLE_HULL } from '../src/physics/hull.js';
@@ -79,10 +82,15 @@ for (const folder of await readdir(directory, { withFileTypes: true })) {
         device.distance,
         device.distance + device.length / 2,
       ]) {
-        assert.ok(
-          (track.surfaceCoverage?.(distance) ?? 1) > 0,
-          `${device.id}: requires running surface`,
-        );
+        for (const lateral of [
+          device.lateral - device.width / 2,
+          device.lateral,
+          device.lateral + device.width / 2,
+        ])
+          assert.ok(
+            (track.surfaceCoverage?.(distance, lateral) ?? 1) > 0,
+            `${device.id}: requires running surface across its footprint`,
+          );
         assert.ok(
           !track.tubeAt?.(distance),
           `${device.id}: flat gate must not occupy a curved tube`,
@@ -119,6 +127,43 @@ for (const folder of await readdir(directory, { withFileTypes: true })) {
         );
       }
     }
+  });
+
+  test(`${folder.name}: actual pickup contacts decline centered weapons and collect each chosen lane once`, () => {
+    for (const device of attacks)
+      for (const lateral of [0, device.lateral]) {
+        let state = {
+          distance: device.distance - 5,
+          lateral,
+          heading: 0,
+          speed: 100,
+          grounded: true,
+        };
+        const simulation = createPickupSimulation({
+          trackLength: track.length,
+          closed: track.closed !== false,
+          devices,
+          vehicle: state,
+        });
+        const events = [];
+        for (let step = 0; step < 2; step++) {
+          const next = { ...state, distance: state.distance + 10 };
+          events.push(
+            ...simulation.beforeStep({ throttle: 1 }, 0.1, state).events,
+          );
+          events.push(...simulation.afterStep(state, next, { throttle: 1 }));
+          state = next;
+        }
+        assert.equal(
+          events.filter(
+            (event) =>
+              event.type === 'pickup-activate' &&
+              event.payload.deviceId === device.id,
+          ).length,
+          lateral === 0 ? 0 : 1,
+          `${device.id}: ${lateral === 0 ? 'centered decline' : 'deliberate lane contact'}`,
+        );
+      }
   });
 
   test(`${folder.name}: player and rival can both activate every combat gate with local motion`, async (t) => {

@@ -19,7 +19,7 @@ export const COMBAT_RULES = Object.freeze({
   version: 6,
   consequences: COMBAT_CONSEQUENCES,
   pulseDelay: 0.5,
-  pulseRadius: 36,
+  pulseRadius: 108,
   arcDelay: 0.15,
   arcInterval: 0.45,
   arcSpeed: 345,
@@ -107,11 +107,13 @@ export function createCombatSimulation({
   const actors = new Map();
   const boxes = new WeakMap();
   const touched = new Set();
+  const movingFrames = typeof track.frameAtTime === 'function';
   let requests = [];
   let state;
   const fresh = () => ({
     version: COMBAT_RULES.version,
     time: 0,
+    ...(movingFrames ? { frameTime: 0 } : {}),
     sequence: 0,
     emitters: {},
     grace: {},
@@ -140,6 +142,8 @@ export function createCombatSimulation({
     }
     return box;
   }
+  const courseFrame = (distance, time = state.frameTime) =>
+    movingFrames ? track.frameAtTime(distance, time) : track.sample(distance);
   function eligible(id, requireTouched = true) {
     const actor = actors.get(id);
     const pose = actor?.pose();
@@ -177,7 +181,7 @@ export function createCombatSimulation({
         T.MathUtils.euclideanModulo(ahead + track.length / 2, track.length) -
         track.length / 2;
     if (ahead <= 0 || ahead > COMBAT_RULES.arcLockRange) return null;
-    const frame = track.sample(other.actor.state.distance);
+    const frame = courseFrame(other.actor.state.distance);
     const height = other.pose.position
       .clone()
       .sub(frame.position)
@@ -321,7 +325,22 @@ export function createCombatSimulation({
   }
   function pulse(id, actor, pose) {
     const origin = pose.position;
-    const normal = up.clone().applyQuaternion(pose.quaternion);
+    const roadFrame = (distance, lateral) => {
+      const surface = movingFrames
+        ? track.surfaceAtTime?.(distance, lateral, state.frameTime)
+        : track.sampleSurface?.(distance, lateral);
+      if (surface) return surface;
+      const frame = courseFrame(distance);
+      return {
+        ...frame,
+        position: frame.position.clone().addScaledVector(frame.right, lateral),
+      };
+    };
+    const sourceFrame = roadFrame(actor.state.distance, actor.state.lateral);
+    const sourceHeight = origin
+      .clone()
+      .sub(sourceFrame.position)
+      .dot(sourceFrame.up);
     state.flashes.push({
       id: state.sequence++,
       kind: 'repulsor',
@@ -329,6 +348,8 @@ export function createCombatSimulation({
       quaternion: pose.quaternion.toArray(),
       age: 0,
       radius: COMBAT_RULES.pulseRadius,
+      distance: actor.state.distance,
+      lateral: actor.state.lateral,
     });
     notify(id, 'combat-fire', { kind: 'repulsor' });
     for (const [target] of actors) {
@@ -337,20 +358,63 @@ export function createCombatSimulation({
         !other ||
         id === target ||
         sameTeam(id, target) ||
-        !nearCourse(actor.state.distance, other.actor.state.distance, 60)
+        !nearCourse(
+          actor.state.distance,
+          other.actor.state.distance,
+          COMBAT_RULES.pulseRadius,
+        )
       )
         continue;
-      const delta = other.pose.position.clone().sub(origin);
-      if (Math.abs(delta.dot(normal)) > 6) continue;
-      delta.addScaledVector(normal, -delta.dot(normal));
-      const distance = delta.length();
-      if (
-        distance > COMBAT_RULES.pulseRadius ||
-        blocked(origin, other.pose.position) < 0.99
-      )
-        continue;
-      if (distance < 0.01) delta.set(1, 0, 0).applyQuaternion(pose.quaternion);
-      else delta.divideScalar(distance);
+      let along = other.actor.state.distance - actor.state.distance;
+      if (track.closed !== false)
+        along =
+          T.MathUtils.euclideanModulo(along + track.length / 2, track.length) -
+          track.length / 2;
+      const across = other.actor.state.lateral - actor.state.lateral;
+      const distance = Math.hypot(along, across);
+      if (distance > COMBAT_RULES.pulseRadius) continue;
+      const targetFrame = roadFrame(
+        other.actor.state.distance,
+        other.actor.state.lateral,
+      );
+      const targetHeight = other.pose.position
+        .clone()
+        .sub(targetFrame.position)
+        .dot(targetFrame.up);
+      if (Math.abs(targetHeight - sourceHeight) > 6) continue;
+      // A longer wave travels along the supported course, rather than a chord
+      // through a hill. Static cover still blocks it on each short interval.
+      const steps = Math.max(1, Math.ceil(distance / 8));
+      let before = origin;
+      let occluded = false;
+      for (let i = 1; i <= steps; i++) {
+        const t = i / steps;
+        const frame = roadFrame(
+          actor.state.distance + along * t,
+          actor.state.lateral + across * t,
+        );
+        const after =
+          i === steps
+            ? other.pose.position
+            : frame.position
+                .clone()
+                .addScaledVector(
+                  frame.up,
+                  T.MathUtils.lerp(sourceHeight, targetHeight, t),
+                );
+        if (blocked(before, after) < 0.99) {
+          occluded = true;
+          break;
+        }
+        before = after;
+      }
+      if (occluded) continue;
+      const delta = targetFrame.tangent
+        .clone()
+        .multiplyScalar(along)
+        .addScaledVector(targetFrame.right, across);
+      if (distance < 0.01) delta.copy(targetFrame.right);
+      else delta.normalize();
       const force = 12 * (1 - (distance / COMBAT_RULES.pulseRadius) * 0.65);
       hit(
         id,
@@ -364,7 +428,10 @@ export function createCombatSimulation({
   }
   function shoot(id, actor, pose, heavy = false, signature) {
     const direction = forward.clone().applyQuaternion(pose.quaternion);
-    const frame = track.sample(actor.state.distance);
+    const frame = courseFrame(
+      actor.state.distance,
+      Number.isFinite(actor.state.time) ? actor.state.time : state.frameTime,
+    );
     const heading = Math.atan2(
       direction.dot(frame.right),
       direction.dot(frame.tangent),
@@ -456,7 +523,7 @@ export function createCombatSimulation({
     }
   }
   return {
-    bind(id, actor) {
+    bind(id, actor, { touch = true } = {}) {
       hitBounds(actor);
       validateCombatResistance(actor.combatResistance);
       if (
@@ -465,7 +532,9 @@ export function createCombatSimulation({
       )
         throw new Error('Damage during grace must be a boolean');
       actors.set(id, actor);
-      touched.add(id);
+      if (touch) touched.add(id);
+      if (touch && movingFrames && Number.isFinite(actor.state.time))
+        state.frameTime = actor.state.time;
     },
     draftTarget(id) {
       const source = eligible(id);
@@ -552,6 +621,12 @@ export function createCombatSimulation({
     step(dt) {
       if (!Number.isFinite(dt) || dt <= 0) return;
       state.time += dt;
+      if (movingFrames) {
+        const simulationTime = [...touched]
+          .map((id) => actors.get(id)?.state.time)
+          .find(Number.isFinite);
+        state.frameTime = simulationTime ?? state.frameTime + dt;
+      }
       for (const [id, disruption] of Object.entries(state.disruptions))
         if (state.time >= disruption.startedAt + disruption.duration)
           delete state.disruptions[id];
@@ -561,7 +636,8 @@ export function createCombatSimulation({
       requests.sort(
         (a, b) =>
           (a.event.payload.fraction ?? 0) - (b.event.payload.fraction ?? 0) ||
-          a.id.localeCompare(b.id),
+          a.id.localeCompare(b.id) ||
+          a.event.payload.deviceId.localeCompare(b.event.payload.deviceId),
       );
       for (const { id, event } of requests) {
         if (!eligible(id)) continue;
@@ -575,33 +651,28 @@ export function createCombatSimulation({
             !wakeMuzzle.every((v) => Number.isFinite(v) && Math.abs(v) <= 100))
         )
           throw new Error('Ion emitter requires a finite physical muzzle');
-        if (state.emitters[id])
-          notify(id, 'pickup-unavailable', {
-            kind,
-            deviceId,
-            reason: 'active',
-          });
-        else {
-          state.emitters[id] = {
-            kind,
-            deviceId,
-            elapsed: 0,
-            shots: 0,
-            nextWake: 0,
-            tail: null,
-            burst: state.sequence++,
-            ...(wakeMuzzle ? { wakeMuzzle: [...wakeMuzzle] } : {}),
+        // Each accepted gate starts its full program, replacing any emitter.
+        // Fired shots, deposited wakes and their burst hit ledgers still own
+        // their original lifetime independently of the refreshed emitter.
+        state.emitters[id] = {
+          kind,
+          deviceId,
+          elapsed: 0,
+          shots: 0,
+          nextWake: 0,
+          tail: null,
+          burst: state.sequence++,
+          ...(wakeMuzzle ? { wakeMuzzle: [...wakeMuzzle] } : {}),
+        };
+        if (kind === 'ion')
+          state.wakeHits[state.emitters[id].burst] = {
+            until:
+              state.time +
+              COMBAT_RULES.wakeDuration +
+              COMBAT_RULES.wakeLifetime,
+            targets: [],
           };
-          if (kind === 'ion')
-            state.wakeHits[state.emitters[id].burst] = {
-              until:
-                state.time +
-                COMBAT_RULES.wakeDuration +
-                COMBAT_RULES.wakeLifetime,
-              targets: [],
-            };
-          notify(id, 'pickup-activate', event.payload);
-        }
+        notify(id, 'pickup-activate', event.payload);
       }
       requests = [];
       for (const [id, emitter] of Object.entries(state.emitters)) {
@@ -698,7 +769,7 @@ export function createCombatSimulation({
           Math.abs(shot.lateral) > track.width / 2
         )
           return false;
-        const frame = track.sample(shot.distance);
+        const frame = courseFrame(shot.distance);
         b ??= frame.position
           .clone()
           .addScaledVector(frame.right, shot.lateral)
@@ -834,14 +905,20 @@ export function createCombatSimulation({
         .slice(-256);
       state.flashes = state.flashes.slice(-32);
       for (const [id] of actors) {
-        const current = eligible(id);
-        if (current) state.positions[id] = current.pose.position.toArray();
+        // Keep the last physical pose even while this actor is immune. The
+        // landing tick must not sweep its entire flight from the takeoff point.
+        const pose = actors.get(id)?.pose();
+        if (pose) state.positions[id] = pose.position.toArray();
       }
       for (const [id, exposure] of Object.entries(state.wakeHits))
         if (exposure.until <= state.time) delete state.wakeHits[id];
       touched.clear();
     },
     disruption(id) {
+      const pose = actors.get(id)?.pose();
+      // Keep the ground-contact envelope's clock, but suspend its physical and
+      // presentation sampling through flight. Supported contact resumes it.
+      if (pose?.grounded === false || pose?.recovering) return null;
       return sampleCombatDisruption(state.disruptions[id], state.time);
     },
     avoidance(id) {
@@ -915,6 +992,8 @@ export function createCombatSimulation({
         !finite(data) ||
         !Number.isFinite(data.time) ||
         data.time < 0 ||
+        (movingFrames &&
+          (!Number.isFinite(data.frameTime) || data.frameTime < 0)) ||
         !Number.isSafeInteger(data.sequence) ||
         !Array.isArray(data.shots) ||
         data.shots.length > 30 ||

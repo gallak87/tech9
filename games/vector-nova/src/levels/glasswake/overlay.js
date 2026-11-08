@@ -1,4 +1,4 @@
-import { glasswakeFlightState } from './runtime.js';
+import { glasswakeFrameState } from './runtime.js';
 import { surfaceAt } from './surface.js';
 import { sampleCalvingState } from './environment/event.js';
 import { sampleFirstShelf } from './environment/first-shelf.js';
@@ -18,7 +18,8 @@ export function createGlasswakeOverlay({ host, track }) {
       const gap = track.jumps.find(
         (jump) => s >= jump.takeoff - 190 && s <= jump.takeoff + 0.01,
       );
-      const flight = glasswakeFlightState(track);
+      const flight =
+        frame.motion?.motion ?? frame.motion ?? glasswakeFrameState(track);
       const near = gap ? Math.max(0, Math.ceil(gap.takeoff - s)) : null;
       const firstShelf = sampleFirstShelf(flight.openingShelf);
       presentation = {

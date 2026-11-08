@@ -1,11 +1,11 @@
-import { chromium } from 'playwright';
+import { launchVerificationBrowser } from './verification-browser.mjs';
 import assert from 'node:assert/strict';
 const base = process.env.VN_URL || 'http://127.0.0.1:5179';
 const pngIndex = process.argv.indexOf('--png-fixture');
 const pngFixture = pngIndex >= 0 ? process.argv[pngIndex + 1] : null;
 if (pngIndex >= 0 && !pngFixture)
   throw new Error('--png-fixture requires a GLB path');
-const browser = await chromium.launch({ channel: 'chrome', headless: true });
+const browser = await launchVerificationBrowser();
 const context = await browser.newContext({
   viewport: { width: 1600, height: 1000 },
 });

@@ -1,6 +1,6 @@
 import { IS_DEMO, DEMO_REQUIREMENTS } from './edition.js';
 
-// Player progression is explicit session data; rival handling never reads it.
+// Earned ranks are explicit session data. Rival sessions may scale their bonuses.
 export const ENHANCEMENTS = Object.freeze([
   { id: 'speed', name: 'Top speed', gains: [0, 0.05, 0.1, 0.2], unit: 'km/h' },
   {
@@ -211,9 +211,10 @@ export function enhancementGain(ranks, id) {
   const stat = ENHANCEMENTS.find((entry) => entry.id === id);
   return stat?.gains[ranks?.[id]] ?? 0;
 }
-export function upgradedHandling(base, ranks) {
-  if (!ranks || !Object.values(ranks).some(Boolean)) return base;
-  const multiplier = (id) => 1 + enhancementGain(ranks, id);
+export function upgradedHandling(base, ranks, bonusScale = 1) {
+  if (!ranks || !Object.values(ranks).some(Boolean) || bonusScale === 0)
+    return base;
+  const multiplier = (id) => 1 + enhancementGain(ranks, id) * bonusScale;
   return {
     ...base,
     cruiseSpeed: base.cruiseSpeed * multiplier('speed'),
@@ -227,4 +228,5 @@ export function upgradedHandling(base, ranks) {
   };
 }
 export const toughness = (state) =>
-  enhancementGain(state?.enhancements, 'toughness');
+  enhancementGain(state?.enhancements, 'toughness') *
+  (state?.enhancementScale ?? 1);

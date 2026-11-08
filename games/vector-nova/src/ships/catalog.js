@@ -119,8 +119,12 @@ export function saveShipSelection(id, storage = null) {
   }
 }
 
-// Only the player session carries enhancements. Catalog profiles remain immutable
-// and every rival/stock trial continues to use the original tuning.
+// Session bonuses never mutate the chassis catalog. Stock trials omit them;
+// rivals can carry the same earned ranks at their declared difficulty scale.
 export function vehicleHandling(state) {
-  return upgradedHandling(getShip(state.shipId).handling, state.enhancements);
+  return upgradedHandling(
+    getShip(state.shipId).handling,
+    state.enhancements,
+    state.enhancementScale ?? 1,
+  );
 }

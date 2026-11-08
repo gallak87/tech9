@@ -40,6 +40,27 @@ function ranks(html) {
     (match) => Number(match[1]),
   );
 }
+test('new cup difficulty controls describe the selected rival rules without adding a focus stop', () => {
+  for (const [difficulty, description] of [
+    ['easy', 'Rivals receive 50% of your stat upgrade bonuses.'],
+    ['medium', 'Rivals receive 75% of your stat upgrade bonuses.'],
+    ['hard', 'Rivals match your stat upgrade bonuses.'],
+  ]) {
+    const html = cupView({ catalog: [], routes: [], difficulty });
+    assert.match(
+      html,
+      /<fieldset aria-describedby="cup-difficulty-description"><legend>Opponent difficulty<\/legend>/,
+    );
+    assert.ok(html.includes(description));
+    assert.match(html, /id="cup-difficulty-description"/);
+    assert.equal((html.match(/data-difficulty=/g) ?? []).length, 3);
+    assert.doesNotMatch(
+      html.match(/<p class="rival-difficulty-note".*?<\/p>/s)[0],
+      /tabindex=|<button/,
+    );
+  }
+  assert.doesNotMatch(resultAt(1), /rival-difficulty-note|data-difficulty=/);
+});
 test('the bonus cup only enters the picker and trophy cabinet after career completion', () => {
   const options = { catalog: [], routes: [], collection: {} };
   assert.doesNotMatch(cupView(options), /data-cup="encore"/);

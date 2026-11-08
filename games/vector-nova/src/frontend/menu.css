@@ -600,6 +600,14 @@
   color: #eee;
   background: #ffffff08;
 }
+.front-content .rival-difficulty-note {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  color: #aaa;
+  font-size: 11px;
+  line-height: 1.4;
+}
 /* Compact spacing and side-by-side ship details preserve previews in short windows. */
 @media (min-width: 900px) and (max-height: 800px) {
   .menu-wide .circuit-hero {
@@ -1028,9 +1036,28 @@
   }
   .menu-layout .race-actions {
     margin-top: 12px;
+    row-gap: 4px;
   }
   .menu-layout .mode-description {
     font-size: 11px;
+  }
+  .menu-wide .menu-extras button {
+    min-height: 32px;
+    padding-block: 6px;
+  }
+  .menu-wide .cup-cabinet li {
+    grid-template-columns: 28px minmax(0, 1fr);
+    gap: 1px 2px;
+    font-size: 9px;
+  }
+  .menu-wide .cup-cabinet li > :not(img) {
+    justify-self: start;
+    align-self: center;
+  }
+  .menu-wide .cup-cabinet img {
+    width: 28px;
+    height: 32px;
+    grid-row: 1 / span 2;
   }
 }
 @media (min-width: 900px) and (max-height: 640px) {

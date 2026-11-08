@@ -65,6 +65,8 @@ For branching course prototypes, optional `track.aiLaneSpeedLimit` bounds the CP
 
 ## Session adapters and replay
 
+The shared field factory enables equipment-capable motion for rivals independently of player/custom capture contexts. Rival device wrappers lazily own ordinary equipment only when the canonical race build assigns a loadout. Their optional `rivalEquipmentInput(state, input, nearby)` hook supplies item buttons to the shared driver; `aiEquipmentRulesId` joins field identity only for equipped actors. An optional motion `aiEquipmentJumpSafe(state, { reach })` callback can veto a manual Jump opportunity near local machinery; omission permits ordinary shared-path checks, and the callback must use the actor’s simulation clock rather than presentation state. Keep course samplers and local hazards independent of difficulty/progression; shared field builds own rival upgrade scaling, unlocked loadouts and replay seeds.
+
 Core calls `createRuntime({ track, road, collisionWorld, dynamics, scene, ship, host, settings, emit })`, or the ordinary `createMagneticRuntime` when omitted. Core composes shared devices around the returned adapter when `racing` is declared; flight/hazard motion remains level-owned. Preserve physics version 3 and steering assistance 0.3.
 
 The returned adapter supplies:

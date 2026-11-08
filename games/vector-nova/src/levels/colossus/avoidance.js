@@ -14,9 +14,31 @@ export const COLOSSUS_AI_RULES = Object.freeze({
   brakingFraction: 0.45,
   crossingSamples: 5,
   machineClearanceHeight: 5,
+  equipmentJumpBehind: 40,
 });
 
 const wrap = (distance, length) => ((distance % length) + length) % length;
+
+function machineInJumpReach(track, machines, distance, reach) {
+  for (const machine of machines) {
+    const gap =
+      wrap(machine.distance - distance + track.length / 2, track.length) -
+      track.length / 2;
+    if (gap > -COLOSSUS_AI_RULES.equipmentJumpBehind && gap < reach)
+      return true;
+  }
+  return false;
+}
+
+// Ground driving remains responsible for presses and crossheads at every phase;
+// the generic equipment policy does not need to know this world's machinery.
+export function isColossusEquipmentJumpSafe(track, state, { reach }) {
+  const distance = wrap(state.distance, track.length);
+  return (
+    !machineInJumpReach(track, track.presses, distance, reach) &&
+    !machineInJumpReach(track, track.ejectors, distance, reach)
+  );
+}
 
 /** Nine authored intervals, built once. Queries use scalar clocks, not geometry. */
 export function createColossusHazardPlanner(track) {

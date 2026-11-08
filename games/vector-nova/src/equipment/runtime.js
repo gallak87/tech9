@@ -6,6 +6,16 @@ export function createEquipmentSystem({ motion, combat, actorId = 'player' }) {
     held = Array(MAX_EQUIPMENT_SLOTS).fill(false),
     time = 0,
     shield = false;
+  // Internal borrowed scalar view: AI decisions never clone slot snapshots.
+  const readiness = {
+    time: 0,
+    readyMask: 0,
+    heldMask: 0,
+    activeMask: 0,
+    shield: false,
+    shieldRemaining: 0,
+    slipstreamRemaining: 0,
+  };
   function reset({ reason, state } = {}) {
     if (['recover', 'manual-recover'].includes(reason)) {
       for (const slot of slots) if (slot) slot.active = 0;
@@ -40,6 +50,24 @@ export function createEquipmentSystem({ motion, combat, actorId = 'player' }) {
   }
   return {
     reset,
+    readiness() {
+      readiness.time = time;
+      readiness.readyMask = readiness.heldMask = readiness.activeMask = 0;
+      readiness.shield = shield;
+      readiness.shieldRemaining = readiness.slipstreamRemaining = 0;
+      for (let i = 0; i < slots.length; i++) {
+        const slot = slots[i];
+        if (!slot) continue;
+        if (slot.remaining <= 0) readiness.readyMask |= 1 << i;
+        if (held[i]) readiness.heldMask |= 1 << i;
+        if (slot.active > 0) readiness.activeMask |= 1 << i;
+        if (slot.id === 'deflector' && shield)
+          readiness.shieldRemaining = slot.active;
+        if (slot.id === 'slipstream')
+          readiness.slipstreamRemaining = slot.active;
+      }
+      return readiness;
+    },
     beforeStep(state, input, dt, { enabled = true } = {}) {
       time += dt;
       const events = [];

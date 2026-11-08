@@ -39,6 +39,7 @@ async function edition(t, name) {
       'progression/catalog',
       'progression/save-transfer',
       'race/cup',
+      'race/rival-build',
       'progression/cup-collection',
       'progression/goals',
       'progression/view',
@@ -233,6 +234,44 @@ test('demo saves carry rewards and trophy to full; full saves round-trip through
     boost: 1,
     toughness: 0,
   });
+  const demoRivals = demo.sessionRivalSetup(original, 'kestrel');
+  assert.deepEqual(demoRivals, {
+    equipmentPool: ['jump', 'deflector'],
+    slots: 2,
+  });
+  const demoField = demo.createRivalFieldBuild({
+    ...demoRivals,
+    enhancements: demo.sessionBuild(original, 'kestrel').enhancements,
+    difficulty: 'hard',
+    seed: 73,
+  });
+  assert.ok(
+    demoField.opponents.every(
+      ({ equipment }) =>
+        equipment.length === 2 &&
+        equipment.every((id) => demoRivals.equipmentPool.includes(id)),
+    ),
+  );
+  assert.throws(
+    () =>
+      demo.createRivalFieldBuild({ ...demoRivals, equipmentPool: ['lance'] }),
+    /equipment pool/,
+  );
+  assert.throws(
+    () => demo.createRivalFieldBuild({ ...demoRivals, slots: 4 }),
+    /equipment capacity/,
+  );
+  const fullRivals = full.sessionRivalSetup(original, 'kestrel');
+  assert.equal(fullRivals.slots, 4);
+  assert.equal(fullRivals.equipmentPool.length, 6);
+  const fullField = full.createRivalFieldBuild({
+    ...fullRivals,
+    seed: 73,
+    difficulty: 'hard',
+  });
+  assert.ok(
+    fullField.opponents.every(({ equipment }) => equipment.length === 4),
+  );
   assert.equal(inDemo.profile.equip('kestrel', 1, 'lance'), false);
   assert.equal(inDemo.profile.chooseExotic('kestrel'), false);
   assert.equal(inDemo.profile.removeExotic(), false);

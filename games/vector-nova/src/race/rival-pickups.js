@@ -23,10 +23,12 @@ export function createRivalPickups(ship, runtime, settings) {
   }
   root.add(feedback.group);
   ship.add(root);
-  const events = [];
+  const events = [],
+    feedbackEvents = [];
   let previousTime = null;
   function reset() {
     events.length = 0;
+    feedbackEvents.length = 0;
     previousTime = null;
     feedback.reset();
   }
@@ -44,9 +46,49 @@ export function createRivalPickups(ship, runtime, settings) {
         previousTime === null
           ? 0
           : Math.max(0, Math.min(0.1, time - previousTime));
+      const gear = effects.equipment;
+      const shield =
+        gear?.shieldRemaining ??
+        (gear?.shield
+          ? (gear.slots?.find((slot) => slot?.id === 'deflector')?.active ?? 0)
+          : 0);
+      const slipstream =
+        gear?.slipstreamRemaining ??
+        gear?.slots?.find((slot) => slot?.id === 'slipstream')?.active ??
+        0;
+      for (const event of events) {
+        if (
+          event.type === 'equipment-activate' &&
+          event.payload?.kind !== 'lance'
+        )
+          feedbackEvents.push({
+            type: 'pickup-activate',
+            payload: {
+              kind: event.payload.kind === 'deflector' ? 'aegis' : 'vector',
+            },
+          });
+        else if (event.type === 'equipment-block')
+          feedbackEvents.push({ type: 'shield-hit', payload: event.payload });
+        else if (
+          event.type === 'equipment-expire' &&
+          event.payload?.kind === 'deflector' &&
+          !(effects.aegisRemaining > 0)
+        )
+          feedbackEvents.push({
+            type: 'pickup-expire',
+            payload: { kind: 'aegis' },
+          });
+        else feedbackEvents.push(event);
+      }
       feedback.update({
-        effects,
-        events,
+        effects: gear
+          ? {
+              ...effects,
+              aegisRemaining: Math.max(effects.aegisRemaining ?? 0, shield),
+              vectorActive: effects.vectorActive || slipstream > 0,
+            }
+          : effects,
+        events: feedbackEvents,
         racing:
           visible &&
           (['racing', 'results'].includes(mode) || events.length > 0),
@@ -57,11 +99,13 @@ export function createRivalPickups(ship, runtime, settings) {
         settings,
       });
       events.length = 0;
+      feedbackEvents.length = 0;
       previousTime = visible ? time : null;
     },
     dispose() {
       detach?.();
       events.length = 0;
+      feedbackEvents.length = 0;
       feedback.dispose();
       root.removeFromParent();
     },

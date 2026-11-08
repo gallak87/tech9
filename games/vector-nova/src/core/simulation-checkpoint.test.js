@@ -18,6 +18,7 @@ import { createRapierWorld } from '../physics/rapier-world.js';
 import { createRace } from '../race/index.js';
 import { createRaceGrid } from '../race/roster.js';
 import { createCombatSimulation } from '../pickups/combat.js';
+import { createRivalFieldBuild } from '../race/rival-build.js';
 
 function track() {
   const sample = (distance) => ({
@@ -56,7 +57,7 @@ function boundMotion(context) {
     },
   };
 }
-async function fixture(shipId = 'bastion') {
+async function fixture(shipId = 'bastion', { fieldBuild = null } = {}) {
   const settings = { steeringAssist: 0.3 };
   const world = await createSimulationWorld({
     createTrack: track,
@@ -108,6 +109,7 @@ async function fixture(shipId = 'bastion') {
   racers.reset({
     enabled: true,
     difficulty: 'hard',
+    fieldBuild,
     gridOrder: [
       'rook',
       'latch',
@@ -172,6 +174,89 @@ test('owned native checkpoint restores cold actor hulls, grid, complete identity
     assert.deepEqual(cold.capture(), live.capture());
   } finally {
     cold.dispose();
+    live.dispose();
+  }
+});
+
+test('fresh worker checkpoint restore adopts recorded rival upgrades, seeded loadouts and exact native future ticks', async () => {
+  const fieldBuild = createRivalFieldBuild({
+    enhancements: {
+      speed: 3,
+      acceleration: 2,
+      handling: 1,
+      boost: 3,
+      toughness: 2,
+    },
+    equipmentPool: ['jump', 'injector', 'deflector'],
+    slots: 2,
+    seed: 317,
+    difficulty: 'hard',
+  });
+  const live = await fixture('bastion', { fieldBuild });
+  const worker = await fixture('kestrel');
+  try {
+    live.racers.opponents.forEach((opponent, index) => {
+      Object.assign(opponent.state, {
+        distance: 100 + index * 30,
+        lateral: index % 2 ? -5 : 5,
+        speed: 80,
+        energy: 20,
+      });
+      opponent.runtime.reset({
+        reason: 'restart',
+        state: opponent.state,
+        presentation: false,
+      });
+    });
+    for (let tick = 0; tick < 80; tick++) live.step();
+    const saved = live.capture();
+    assert.ok(
+      saved.racers.opponents.some((opponent) =>
+        opponent.runtime.equipment?.slots.some(
+          (slot) => slot?.id === 'injector' && slot.remaining > 0,
+        ),
+      ),
+      'the checkpoint carries a real active rival cooldown',
+    );
+    assert.equal(worker.racers.serialize().field.rivalBuild, undefined);
+    restoreSimulationCheckpoint(saved, worker, { presentation: false });
+    assert.deepEqual(worker.capture(), saved);
+    assert.deepEqual(worker.racers.identity.rivalBuild, fieldBuild);
+    worker.racers.opponents.forEach((opponent, index) => {
+      assert.deepEqual(
+        opponent.state.equipment,
+        fieldBuild.opponents[index].equipment,
+      );
+      assert.deepEqual(opponent.state.enhancements, fieldBuild.enhancements);
+      assert.equal(opponent.state.enhancementScale, fieldBuild.bonusScale);
+      assert.deepEqual(
+        worker.combat.pose(opponent.specification.id),
+        opponent.runtime.pose(1),
+      );
+    });
+    for (let tick = 0; tick < 160; tick++) {
+      live.step();
+      worker.step();
+    }
+    assert.deepEqual(worker.capture(), live.capture());
+
+    const stock = await fixture('kestrel');
+    try {
+      const stockCheckpoint = stock.capture();
+      restoreSimulationCheckpoint(stockCheckpoint, worker, {
+        presentation: false,
+      });
+      assert.deepEqual(worker.capture(), stockCheckpoint);
+      assert.equal(
+        worker.racers.identity.rivalBuild,
+        undefined,
+        'an old stock checkpoint clears a previous recorded build',
+      );
+    } finally {
+      stock.dispose();
+    }
+  } finally {
+    worker.dispose();
     live.dispose();
   }
 });

@@ -37,6 +37,7 @@ export function restoreSimulationCheckpoint(
     racers.reset({
       enabled: checkpoint.racers.enabled,
       difficulty: checkpoint.racers.difficulty,
+      fieldBuild: checkpoint.racers.field.rivalBuild ?? null,
       gridOrder,
       presentation: false,
     });

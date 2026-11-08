@@ -3,7 +3,12 @@ import {
   getVehiclePace,
   STEERING_ASSIST,
 } from '../physics/index.js';
-import { getShip } from '../ships/catalog.js';
+import { getShip, vehicleHandling } from '../ships/catalog.js';
+import {
+  rivalBuildState,
+  validateRivalFieldBuild,
+  matchesRivalBuild,
+} from './rival-build.js';
 import { createRace } from './index.js';
 import {
   REQUIRED_RACE_PROGRESS_FIELDS,
@@ -72,6 +77,13 @@ function finishFrom(race) {
   };
 }
 
+function equipmentControl(opponent, control, nearby) {
+  const equipment =
+    !opponent.finish &&
+    opponent.runtime?.rivalEquipmentInput?.(opponent.state, control, nearby);
+  return equipment ? { ...control, ...equipment } : control;
+}
+
 // A driver, not a route-position animation: inputs pass through the same
 // magnetic physics and independent automatic-device simulation as the player.
 function controlsFor(opponent, track, devices, nearby, difficulty = 'easy') {
@@ -97,10 +109,14 @@ function controlsFor(opponent, track, devices, nearby, difficulty = 'easy') {
       allowBoost: profile.flightBoost === true,
     });
     if (typeof flightBoost === 'boolean') boost = flightBoost;
-    return { throttle: 1, brake: 0, steer: 0, boost, airbrake: false };
+    return equipmentControl(
+      opponent,
+      { throttle: 1, brake: 0, steer: 0, boost, airbrake: false },
+      nearby,
+    );
   }
-  const handling = getShip(state.shipId).handling;
-  const coursePace = getVehiclePace(state.shipId, track.pace);
+  const handling = vehicleHandling(state);
+  const coursePace = getVehiclePace(state.shipId, track.pace, handling);
   const speedProfile = coursePace ?? handling;
   const sampleSurface = (distance, lateral) =>
     track.movingSurfaces === true && track.surfaceAtTime
@@ -353,23 +369,27 @@ function controlsFor(opponent, track, devices, nearby, difficulty = 'easy') {
   const reorient =
     Math.abs(state.speed) < REORIENT.belowSpeed &&
     Math.abs(headingError) > REORIENT.heading;
-  return {
-    throttle: reorient
-      ? 0
-      : onVector ||
-          state.speed <= targetSpeed + 3 ||
-          (state.speed > speedProfile.cruiseSpeed + 3 &&
-            state.speed <= brakeSpeed + 3)
-        ? 1
-        : 0.35,
-    brake:
-      onVector || reorient
+  return equipmentControl(
+    opponent,
+    {
+      throttle: reorient
         ? 0
-        : clamp((state.speed - brakeSpeed - (jump ? 1 : 8)) / 28, 0, 0.65),
-    steer,
-    boost: wantsBoost && !onVector && !reorient,
-    airbrake: false,
-  };
+        : onVector ||
+            state.speed <= targetSpeed + 3 ||
+            (state.speed > speedProfile.cruiseSpeed + 3 &&
+              state.speed <= brakeSpeed + 3)
+          ? 1
+          : 0.35,
+      brake:
+        onVector || reorient
+          ? 0
+          : clamp((state.speed - brakeSpeed - (jump ? 1 : 8)) / 28, 0, 0.65),
+      steer,
+      boost: wantsBoost && !onVector && !reorient,
+      airbrake: false,
+    },
+    nearby,
+  );
 }
 
 export function getRacerControl(
@@ -419,7 +439,7 @@ export function createRacers({
   }));
   // Record the actual field configuration instead of a second version stamp.
   // Visual names/colors are deliberately absent from deterministic identity.
-  const identity = {
+  let identity = {
     grid: RACE_GRID,
     drivers: DRIVER_PROFILES,
     reorient: REORIENT,
@@ -442,6 +462,7 @@ export function createRacers({
     })),
   };
   let identityJSON = JSON.stringify(identity);
+  let selectedBuild = null;
   let gridPositions;
   const nearby = new Array(opponents.length + 1);
   let enabled = false,
@@ -458,16 +479,43 @@ export function createRacers({
         typeof runtime.finishAdvance === 'function',
     );
 
+  function projectIdentity(fieldBuild, grid = identity.grid) {
+    const projected = copy(identity);
+    projected.grid = copy(grid);
+    if (fieldBuild) projected.rivalBuild = copy(fieldBuild);
+    else delete projected.rivalBuild;
+    projected.opponents.forEach((entry, index) => {
+      const equipment = fieldBuild?.opponents[index].equipment;
+      const policy = opponents[index].runtime.aiEquipmentRulesId;
+      if (equipment?.length && policy !== undefined)
+        entry.runtime.aiEquipmentRulesId = policy;
+      else delete entry.runtime.aiEquipmentRulesId;
+    });
+    return projected;
+  }
+
+  function identityForBuild(fieldBuild = selectedBuild) {
+    return projectIdentity(
+      fieldBuild === null ? null : validateRivalFieldBuild(fieldBuild),
+    );
+  }
+
   function reset({
     enabled: nextEnabled = true,
-    difficulty: nextDifficulty = 'easy',
+    fieldBuild = selectedBuild,
+    difficulty: nextDifficulty = fieldBuild?.difficulty ?? 'easy',
     gridOrder = RACE_ORDER,
     presentation = true,
   } = {}) {
     if (!RACE_DIFFICULTIES.includes(nextDifficulty))
       throw new Error('Unknown race difficulty');
+    const nextBuild =
+      fieldBuild === null ? null : validateRivalFieldBuild(fieldBuild);
+    if (nextBuild && nextBuild.difficulty !== nextDifficulty)
+      throw new Error('Rival build difficulty mismatch');
     const grid = createRaceGrid(gridOrder);
-    identity.grid = grid;
+    selectedBuild = nextBuild;
+    identity = projectIdentity(selectedBuild, grid);
     identityJSON = JSON.stringify(identity);
     gridPositions = Object.fromEntries(
       gridOrder.map((id, index) => [id, index]),
@@ -487,6 +535,7 @@ export function createRacers({
       opponent.state = {
         ...createVehicleState(specification.shipId),
         chassisId: specification.id,
+        ...rivalBuildState(selectedBuild, specification.id),
         ...grid[specification.id],
       };
       opponent.prev = { ...opponent.state };
@@ -809,6 +858,7 @@ export function createRacers({
         data.trackId !== track.id ||
         typeof data.enabled !== 'boolean' ||
         !RACE_DIFFICULTIES.includes(data.difficulty) ||
+        (selectedBuild && data.difficulty !== selectedBuild.difficulty) ||
         !Number.isFinite(data.elapsed) ||
         data.elapsed < 0 ||
         data.opponents?.length !== opponents.length
@@ -862,7 +912,8 @@ export function createRacers({
               ([key, value]) => typeof state[key] === typeof value,
             ) ||
             state.shipId !== opponent.specification.shipId ||
-            state.chassisId !== opponent.specification.id
+            state.chassisId !== opponent.specification.id ||
+            !matchesRivalBuild(state, selectedBuild, opponent.specification.id)
           )
             throw new Error('Racer vehicle state mismatch');
         if (
@@ -899,7 +950,10 @@ export function createRacers({
           validation = createRuntime(opponent.specification, {
             validation: true,
           });
-          validation.restore(saved.runtime, { presentation });
+          validation.restore(saved.runtime, {
+            state: saved.state,
+            presentation: false,
+          });
         } finally {
           validation?.dispose();
           if (dynamics) dynamics.restore(engine);
@@ -921,6 +975,7 @@ export function createRacers({
       restoreRaceProgress(opponent.race, saved.race);
       opponent.runtime.restore(copy(saved.runtime), {
         presentation,
+        equipment: opponent.state.equipment,
         ...(bindState ? { state: opponent.state } : {}),
       });
       opponent.finish = copy(saved.finish);
@@ -932,6 +987,7 @@ export function createRacers({
     get identity() {
       return copy(identity);
     },
+    identityForBuild,
     get enabled() {
       return enabled;
     },

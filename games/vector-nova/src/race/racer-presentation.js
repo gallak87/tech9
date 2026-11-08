@@ -2,6 +2,7 @@ import { Quaternion, Vector3, MathUtils } from 'three';
 import { createRivalPreview } from '../ships/rivals.js';
 import { createHitFeedback } from '../pickups/hit-feedback.js';
 import { createRivalPickups } from './rival-pickups.js';
+import { readRuntimeFrame } from '../core/session-runtime.js';
 
 const up = new Vector3(0, 1, 0);
 const forward = new Vector3(0, 0, 1);
@@ -60,7 +61,11 @@ export async function createRacerPresentation({
       const flashes = combatState?.flashes ?? [];
       for (const { ship, opponent, yaw, roll, hitFeedback, pickups } of ships) {
         ship.group.visible = show;
-        const effects = opponent.runtime.snapshot?.() ?? {};
+        const effects =
+          typeof opponent.runtime.readFrame === 'function' ||
+          typeof opponent.runtime.snapshot === 'function'
+            ? (readRuntimeFrame(opponent.runtime) ?? {})
+            : {};
         pickups.update({
           visible: show,
           mode,
@@ -74,6 +79,7 @@ export async function createRacerPresentation({
             ['arc', 'repulsor', 'ion'].includes(flash.kind),
         );
         const blocking =
+          effects.equipment?.shield === true ||
           effects.aegisRemaining > 0 ||
           flashes.some(
             (flash) =>
@@ -96,7 +102,9 @@ export async function createRacerPresentation({
             blend,
           ),
           boost: state.boosting,
-          catapulting: effects.vectorActive === true,
+          catapulting:
+            effects.vectorActive === true ||
+            effects.equipment?.slipstreamRemaining > 0,
           time: state.time,
           energy: state.energy / 100,
           quality: settings.quality,

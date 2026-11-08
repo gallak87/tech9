@@ -1,7 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createColossusHazardPlanner } from './avoidance.js';
+import {
+  createColossusHazardPlanner,
+  isColossusEquipmentJumpSafe,
+} from './avoidance.js';
 import { EJECTOR_RULES } from './mechanics.js';
+import { createColossusTrack } from './track/model.js';
+import { createColossusRuntime } from './runtime.js';
 
 const course = (fields) => ({
   length: 10000,
@@ -134,4 +139,59 @@ test('plans derive entirely from the supplied state and leave route and replay d
   );
   assert.deepEqual(plan(state), expected);
   assert.deepEqual(track, route);
+});
+
+test('Colossus keeps equipment Jump away from every authored press and ejector at every machine phase', () => {
+  const track = createColossusTrack();
+  const runtime = createColossusRuntime({ track });
+  try {
+    for (const machine of [...track.presses, ...track.ejectors])
+      for (const time of [0, 1.5, 4.5, 8])
+        assert.equal(
+          runtime.aiEquipmentJumpSafe(
+            { distance: machine.distance - 100, time },
+            { reach: 450 },
+          ),
+          false,
+        );
+    assert.equal(
+      runtime.aiEquipmentJumpSafe({ distance: 0, time: 4 }, { reach: 450 }),
+      true,
+    );
+    assert.equal(
+      runtime.aiEquipmentJumpSafe(
+        { distance: track.belts[0].start, time: 4 },
+        { reach: 450 },
+      ),
+      true,
+      'ordinary grounded belt avoidance remains independent',
+    );
+  } finally {
+    runtime.dispose();
+  }
+});
+
+test('local machinery guard retains exact rear/ahead bounds and unwrapped lap coordinates', () => {
+  const track = {
+    length: 1000,
+    presses: [{ distance: 100 }],
+    ejectors: [{ distance: 650 }],
+  };
+  const safe = (distance) =>
+    isColossusEquipmentJumpSafe(track, { distance }, { reach: 200 });
+  assert.equal(
+    safe(-100),
+    true,
+    'the machine at exactly the reach endpoint is outside',
+  );
+  assert.equal(safe(-99.99), false);
+  assert.equal(safe(139.99), false);
+  assert.equal(
+    safe(140),
+    true,
+    'the whole conservative rear window has cleared',
+  );
+  assert.equal(safe(1000), false);
+  assert.equal(safe(-1000), false);
+  assert.equal(safe(300), true);
 });

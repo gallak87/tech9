@@ -214,7 +214,14 @@ export function createSimulationActors(world, { settings = {}, signal } = {}) {
               : combat;
           const motion = (
             definition.racing.createMotion ?? createMagneticRuntime
-          )({ track, collisionWorld, dynamics, settings, presentation: false });
+          )({
+            track,
+            collisionWorld,
+            dynamics,
+            settings,
+            equipment: true,
+            presentation: false,
+          });
           const runtime = wrapDeviceRuntime(
             { track, combat: actorCombat, combatId: specification.id },
             { motion, devices, identity: definition.racing.identity },

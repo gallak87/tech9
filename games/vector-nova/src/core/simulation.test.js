@@ -12,6 +12,7 @@ import { createDeviceRuntime } from '../pickups/runtime.js';
 import { createRacers } from '../race/racers.js';
 import { createRace } from '../race/index.js';
 import { createRaceGrid } from '../race/roster.js';
+import { createRivalFieldBuild } from '../race/rival-build.js';
 
 function track() {
   return {
@@ -209,7 +210,7 @@ test('live/worker players precede devices and nine rivals borrow the same mutabl
     );
     for (const { context } of fixture.contexts.slice(1)) {
       assert.equal(context.presentation, false);
-      assert.equal('equipment' in context, false);
+      assert.equal(context.equipment, true);
     }
     settings.steeringAssist = 0.2;
     assert.ok(
@@ -341,7 +342,7 @@ function nativeDefinition() {
     },
   };
 }
-async function nativeFixture(shared) {
+async function nativeFixture(shared, { fieldBuild = null } = {}) {
   const definition = nativeDefinition(),
     settings = { steeringAssist: 0.3 };
   let world, actors, runtime, racers, combat;
@@ -392,6 +393,7 @@ async function nativeFixture(shared) {
             collisionWorld,
             dynamics,
             settings,
+            equipment: true,
             presentation: false,
           }),
         }),
@@ -400,7 +402,7 @@ async function nativeFixture(shared) {
   const state = { ...createVehicleState(), ...createRaceGrid().player };
   const race = createRace(world.track, { rulesId: runtime.rulesId });
   world.dynamics.reset();
-  racers.reset({ enabled: true, difficulty: 'hard' });
+  racers.reset({ enabled: true, difficulty: 'hard', fieldBuild });
   runtime.reset({ state });
   const step = () =>
     advanceSession({
@@ -432,7 +434,7 @@ async function nativeFixture(shared) {
   };
 }
 
-test('shared native assembly reproduces the original manual ten-actor fixed-step state and identities', async () => {
+test('shared native assembly matches the manual ten-actor field with equipment-capable rival motion', async () => {
   const run = async (shared) => {
     const fixture = await nativeFixture(shared);
     try {
@@ -448,6 +450,56 @@ test('shared native assembly reproduces the original manual ten-actor fixed-step
     }
   };
   assert.deepEqual(await run(true), await run(false));
+});
+
+test('field rivals can perform a real powered hop without replacing their runtime or observers', async () => {
+  const fieldBuild = createRivalFieldBuild({
+    equipmentPool: ['jump'],
+    slots: 2,
+    seed: 14,
+    difficulty: 'hard',
+  });
+  const fixture = await nativeFixture(true, { fieldBuild });
+  try {
+    const opponent = fixture.racers.opponents[0];
+    const retained = opponent.runtime;
+    const identity = retained.rulesId;
+    let resets = 0;
+    const stop = retained.observePresentation({
+      events() {},
+      reset() {
+        resets++;
+      },
+    });
+    Object.assign(opponent.state, { distance: 100, lateral: 0, speed: 80 });
+    retained.reset({ reason: 'restart', state: opponent.state });
+    assert.equal(resets, 1);
+    const events = retained.advance(
+      opponent.state,
+      { throttle: 1, equipment1: true },
+      1 / 120,
+    );
+    assert.ok(
+      events.some(
+        (event) =>
+          event.type === 'equipment-activate' && event.payload.kind === 'jump',
+      ),
+    );
+    for (let tick = 0; tick < 20; tick++) fixture.step();
+    assert.equal(opponent.runtime, retained);
+    assert.equal(retained.rulesId, identity);
+    assert.equal(retained.pose(1).grounded, false);
+    assert.ok(retained.equipment().slots[0].remaining > 0);
+    retained.reset({ reason: 'restart', state: opponent.state });
+    assert.equal(
+      resets,
+      2,
+      'existing presentation subscriptions remain attached',
+    );
+    stop();
+  } finally {
+    fixture.dispose();
+  }
 });
 
 test('strict real-factory field restoration preserves live combat and actor bindings', async () => {

@@ -4,12 +4,13 @@ import assert from 'node:assert/strict';
 import {
   createProfileStore,
   sessionBuild,
+  sessionRivalSetup,
   shipUnlocked,
   validateProfile,
   freshProfile,
   PROFILE_KEY,
 } from './profile.js';
-import { ENHANCEMENTS, REWARDS } from './catalog.js';
+import { ENHANCEMENTS, REWARDS, AVAILABLE_EQUIPMENT } from './catalog.js';
 import { Vector3, Quaternion } from 'three';
 import { createRace } from '../race/index.js';
 import {
@@ -74,6 +75,11 @@ test('full collection requires distinct valid Time Trial maps and Quad Core expa
   store.recordTrial('orbital', true);
   assert.equal(store.snapshot().state.claims.length, REWARDS.length);
   assert.ok(store.chooseExotic('kestrel'));
+  assert.deepEqual(sessionRivalSetup(store.snapshot().state, 'kestrel'), {
+    equipmentPool: AVAILABLE_EQUIPMENT.map((item) => item.id),
+    slots: 4,
+  });
+  assert.equal(sessionRivalSetup(store.snapshot().state, 'shrike').slots, 2);
   assert.equal(store.chooseExotic('kestrel'), false);
   store.equip('kestrel', 1, 'jump');
   assert.deepEqual(sessionBuild(store.snapshot().state, 'kestrel').equipment, [
@@ -87,6 +93,35 @@ test('full collection requires distinct valid Time Trial maps and Quad Core expa
     { version: 1, enhancements: {}, equipment: [] },
   );
   assert.ok(validateProfile(store.snapshot().state));
+});
+
+test('rival setup uses every unlocked eligible item independently of the equipped player loadout', () => {
+  const profile = freshProfile();
+  assert.deepEqual(sessionRivalSetup(profile, 'shrike'), {
+    equipmentPool: [],
+    slots: 2,
+  });
+  profile.claims.push(
+    'equipment-slipstream',
+    'equipment-jump',
+    'equipment-unknown',
+  );
+  profile.loadouts.shrike[0] = 'jump';
+  const before = structuredClone(profile);
+  const setup = sessionRivalSetup(profile, 'shrike');
+  assert.deepEqual(setup, { equipmentPool: ['jump', 'slipstream'], slots: 2 });
+  setup.equipmentPool.pop();
+  assert.deepEqual(
+    profile,
+    before,
+    'race setup must not mutate the career or equipped items',
+  );
+  assert.deepEqual(sessionBuild(profile, 'shrike').equipment, ['jump', null]);
+  assert.deepEqual(sessionBuild(profile, 'shrike', { stock: true }), {
+    version: 1,
+    enhancements: {},
+    equipment: [],
+  });
 });
 
 test('Quad Core requires all four campaign cups, excluding Encore and demo', () => {

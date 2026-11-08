@@ -478,7 +478,10 @@ export function createPickupSimulation({
     afterStep,
     reset,
     snapshot,
-    status: () => ({ vectorActive: state.vectorActive }),
+    status: () => ({
+      vectorActive: state.vectorActive,
+      aegisRemaining: state.aegisRemaining,
+    }),
     restore,
     isAvailable(id, distance = state.lastDistance) {
       return (

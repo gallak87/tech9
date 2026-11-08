@@ -278,3 +278,89 @@ test('rival shield consumes real combat hits, cracks once, freezes on pause and 
     runtime.dispose();
   }
 });
+
+for (const quality of ['high', 'low'])
+  test(`${quality} rival equipment reuses the existing shield and drive presentation without snapshot cloning`, async () => {
+    const group = new Group();
+    const frames = [];
+    const equipment = {
+      shield: true,
+      shieldRemaining: 2,
+      slipstreamRemaining: 3,
+    };
+    let observer;
+    const state = {
+      ...createVehicleState(),
+      distance: 100,
+      speed: 120,
+      time: 1,
+    };
+    const runtime = {
+      readFrame: () => ({ vectorActive: false, aegisRemaining: 0, equipment }),
+      snapshot() {
+        throw new Error('a display frame must not clone a checkpoint');
+      },
+      pose: () => ({ position: new Vector3(), quaternion: new Quaternion() }),
+      observePresentation(value) {
+        observer = value;
+        return () => {
+          observer = null;
+        };
+      },
+    };
+    const presentation = await createRacerPresentation({
+      racers: {
+        enabled: true,
+        opponents: [
+          { specification: { id: 'rook', name: 'Rook' }, state, runtime },
+        ],
+      },
+      scene: new Scene(),
+      settings: { quality },
+      loadRival: async () => ({
+        group,
+        update: (frame) => frames.push(frame),
+        dispose: () => group.removeFromParent(),
+      }),
+    });
+    try {
+      const nodes = [];
+      group.traverse((node) => nodes.push(node));
+      observer.events([
+        { type: 'equipment-activate', payload: { kind: 'deflector' } },
+      ]);
+      presentation.update({ mode: 'racing', settings: { quality } });
+      const shield = group.getObjectByName(
+        quality === 'low'
+          ? 'Low Aegis / field'
+          : 'Aegis / hull field and outward pulses',
+      );
+      assert.equal(shield.visible, true);
+      assert.equal(frames.at(-1).catapulting, true);
+      equipment.shield = false;
+      equipment.shieldRemaining = equipment.slipstreamRemaining = 0;
+      state.time += 0.1;
+      observer.events([
+        { type: 'equipment-block', payload: { kind: 'deflector' } },
+      ]);
+      presentation.update({ mode: 'racing', settings: { quality } });
+      assert.equal(
+        shield.visible,
+        true,
+        'a real Deflector block retains the existing fracture tail',
+      );
+      assert.equal(frames.at(-1).catapulting, false);
+      const after = [];
+      group.traverse((node) => after.push(node));
+      assert.deepEqual(
+        after,
+        nodes,
+        'equipment does not add another render graph',
+      );
+      presentation.update({ mode: 'title', settings: { quality } });
+      assert.equal(group.visible, false);
+    } finally {
+      presentation.dispose();
+    }
+    assert.equal(observer, null);
+  });

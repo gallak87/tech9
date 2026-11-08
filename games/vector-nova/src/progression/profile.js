@@ -168,6 +168,15 @@ export function sessionBuild(profile, shipId, { stock = false } = {}) {
     equipment: stock ? [] : equippedItems(profile, shipId),
   };
 }
+// Race-only eligibility stays separate from equipped gear and trial identity.
+export function sessionRivalSetup(profile, shipId) {
+  return {
+    equipmentPool: AVAILABLE_EQUIPMENT.filter((item) =>
+      profile.claims.includes(`equipment-${item.id}`),
+    ).map((item) => item.id),
+    slots: equipmentCapacity(profile, shipId),
+  };
+}
 export function buildIdentity(build) {
   if (
     !build ||

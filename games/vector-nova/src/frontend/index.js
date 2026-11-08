@@ -9,6 +9,7 @@ import {
   shipUnlocked,
   starterShip,
   sessionBuild,
+  sessionRivalSetup,
 } from '../progression/profile.js';
 import { rewardsView, careerProgressView } from '../progression/view.js';
 import { bindRewardDetails } from '../progression/reward-details.js';
@@ -47,6 +48,10 @@ import {
   cupLaunch,
 } from './cup.js';
 import { recordsView } from './records.js';
+import {
+  difficultyBonusDescription,
+  difficultyDescriptionView,
+} from './difficulty.js';
 import { readTrialRecords } from '../race/time-trial.js';
 import { formatTime, formatDelta } from '../race/timing.js';
 import { discoverLevels } from '../levels/catalog.js';
@@ -396,7 +401,7 @@ export async function createFrontend(
             : 'Quick Race';
   const loadedLevel = () => catalog.find((l) => l.id === loadedId) ?? level();
   const difficultyControls = () =>
-    `<fieldset class="race-difficulty"><legend>Opponent difficulty</legend>${['easy', 'medium', 'hard'].map((d) => `<button data-difficulty="${d}" aria-pressed="${settings.difficulty === d}" tabindex="${settings.difficulty === d ? 0 : -1}">${d}</button>`).join('')}</fieldset>`;
+    `<fieldset class="race-difficulty" aria-describedby="race-difficulty-description"><legend>Opponent difficulty</legend>${['easy', 'medium', 'hard'].map((d) => `<button data-difficulty="${d}" aria-pressed="${settings.difficulty === d}" tabindex="${settings.difficulty === d ? 0 : -1}">${d}</button>`).join('')}</fieldset>${difficultyDescriptionView(settings.difficulty, 'race-difficulty-description')}`;
   const facts = () =>
     `<span>${route() ? (route().length / 1000).toFixed(2) + ' KM' : 'CIRCUIT'}</span> <span>${route()?.closed === false ? 'POINT TO POINT' : intent === 'practice' ? 'OPEN PRACTICE' : intent === 'time-trial' ? 'UNLIMITED LAPS' : '2 LAPS'}</span> <span>${!['race', 'cup'].includes(intent) ? 'SOLO' : `${RACE_FIELD_SIZE} PILOTS`}</span>`;
   function remember() {
@@ -1614,8 +1619,14 @@ export async function createFrontend(
     return loadView('race', (current) => {
       sessionIntent = intent;
       beginRewardAttempt();
+      const career = profile();
       current.setBuild?.(
-        sessionBuild(profile(), shipId, { stock: intent === 'time-trial' }),
+        sessionBuild(career, shipId, { stock: intent === 'time-trial' }),
+        {
+          rivals: ['race', 'cup'].includes(intent)
+            ? sessionRivalSetup(career, shipId)
+            : null,
+        },
       );
       setScreen('race');
       if (intent === 'cup') {
@@ -2542,6 +2553,10 @@ export async function createFrontend(
       control.setAttribute('aria-pressed', active);
       control.tabIndex = active ? 0 : -1;
     }
+    for (const description of shell.querySelectorAll(
+      '[data-rival-bonus-description]',
+    ))
+      description.textContent = difficultyBonusDescription(settings.difficulty);
     updateLaunchSummary();
   });
   transfer.querySelector('.retry-fleet').addEventListener(

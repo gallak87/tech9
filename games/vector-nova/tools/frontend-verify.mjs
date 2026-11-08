@@ -47,7 +47,8 @@ careers.create(1);
 const careerSeed = [...careerValues];
 const careerStorage = careers.storageFor(1);
 const fleetProfile = createProfileStore(() => careerStorage);
-// The generic fleet flow uses earned chassis without handling upgrades or gear.
+// Earned chassis also unlock defensive gear; the player equips none and has no
+// stat upgrades. Rival races still receive the actual unlocked equipment pool.
 for (const cup of ['founders', 'frontier', 'horizon'])
   fleetProfile.recordCup(cup);
 saveShipSelection('kestrel', careerStorage);
@@ -213,7 +214,7 @@ async function menuFits(page, maxOuterScroll = 0) {
     element.scrollTop = 0;
   });
 }
-async function finishInputs(difficulty, initial) {
+async function finishInputs(difficulty, initial, fieldBuild) {
   const definition = createHalcyonLevel({ shape: false });
   const track = definition.createTrack();
   // V8's platform math differs below a nanometre in the sampled route length.
@@ -240,7 +241,7 @@ async function finishInputs(difficulty, initial) {
         track,
         collisionWorld,
         dynamics,
-        equipment: specification.id === 'player',
+        equipment: true,
         presentation: false,
       }),
     });
@@ -262,7 +263,7 @@ async function finishInputs(difficulty, initial) {
       seed: initial.runtime.seed,
     });
     dynamics.reset();
-    racers.reset({ enabled: true, difficulty });
+    racers.reset({ enabled: true, difficulty, fieldBuild });
     runtime.reset({
       reason: 'fresh-lap',
       state: vehicle,
@@ -805,6 +806,7 @@ try {
         await page.locator('[data-action="time-trial"]').click();
         assert.equal((await front(page)).intent, 'time-trial');
         assert.equal(await page.locator('[data-difficulty]').count(), 0);
+        assert.equal(await page.locator('.rival-difficulty-note').count(), 0);
         assert.match(
           await page.locator('[data-action="launch"]').textContent(),
           /Time Trial/,
@@ -837,8 +839,10 @@ try {
           /Practice/,
         );
         assert.equal(await page.locator('[data-difficulty]').count(), 0);
+        assert.equal(await page.locator('.rival-difficulty-note').count(), 0);
         await page.locator('[data-action="cup-hub"]').click();
         assert.equal((await front(page)).intent, 'cup');
+        assert.equal(await page.locator('.rival-difficulty-note').count(), 1);
         assert.equal(await page.locator('[data-cup]').count(), 4);
         await page.locator('[data-action="cup-hub"]').focus();
         await page.keyboard.press('ArrowDown');
@@ -1009,7 +1013,27 @@ try {
         await press('Escape', '.menu-selection[data-action="ship-step"]');
         await press('ArrowDown', '[data-action="launch"]');
         await press('ArrowDown', '[data-difficulty="easy"]');
+        assert.match(
+          await page.locator('[data-rival-bonus-description]').textContent(),
+          /Rivals receive 50% of your stat upgrade bonuses\./,
+        );
+        assert.equal(
+          await page
+            .locator('.race-difficulty')
+            .getAttribute('aria-describedby'),
+          'race-difficulty-description',
+        );
         await press('ArrowRight', '[data-difficulty="medium"]');
+        assert.match(
+          await page.locator('[data-rival-bonus-description]').textContent(),
+          /Rivals receive 75% of your stat upgrade bonuses\./,
+        );
+        await press('ArrowRight', '[data-difficulty="hard"]');
+        assert.equal(
+          await page.locator('[data-rival-bonus-description]').textContent(),
+          'Rivals match your stat upgrade bonuses.',
+        );
+        await press('ArrowLeft', '[data-difficulty="medium"]');
         assert.equal(
           await page
             .locator('[data-difficulty="medium"]')
@@ -1190,6 +1214,10 @@ try {
         await page.locator('[data-action="race-tab"]').click();
         await page.locator('[data-difficulty="hard"]').click();
         assert.equal(
+          await page.locator('[data-rival-bonus-description]').textContent(),
+          'Rivals match your stat upgrade bonuses.',
+        );
+        assert.equal(
           await page
             .locator('.race-difficulty [aria-pressed="true"]')
             .textContent(),
@@ -1324,6 +1352,10 @@ try {
           await menuFits(page, 180);
           await page.locator('[data-action="race-tab"]').click();
           await page.locator('[data-difficulty="hard"]').click();
+          assert.equal(
+            await page.locator('[data-rival-bonus-description]').textContent(),
+            'Rivals match your stat upgrade bonuses.',
+          );
           assert.match(
             await page
               .locator('[data-action="launch"]')
@@ -1736,6 +1768,51 @@ try {
           assert.match(rejection.message, /Replay version mismatch/);
           assert.equal(rejection.unchanged, true);
         }
+        const invalidBuild = structuredClone(replay);
+        invalidBuild.field.rivalBuild.opponents[0].equipment = ['lance'];
+        const buildRejection = await page.evaluate((recording) => {
+          const retained = () => ({
+            snapshot: window.__VN.getSnapshot(),
+            field: window.__VN.getReplay().field,
+          });
+          const before = retained();
+          let message;
+          try {
+            window.__VN.playReplay(recording);
+          } catch (error) {
+            message = error.message;
+          }
+          return { message, before, after: retained() };
+        }, invalidBuild);
+        assert.match(
+          buildRejection.message,
+          /rival.*mismatch|Replay version mismatch/i,
+        );
+        assert.deepEqual(
+          buildRejection.after,
+          buildRejection.before,
+          'an invalid rival loadout is rejected before mutating the retained run',
+        );
+
+        const rerolled = await page.evaluate((previousSeed) => {
+          for (let attempt = 0; attempt < 4; attempt++) {
+            window.__VN.restart();
+            window.__VN.pause();
+            const field = window.__VN.getReplay().field;
+            if (field.rivalBuild.seed !== previousSeed) return field;
+          }
+          throw new Error('Fresh races did not reroll the rival seed');
+        }, replay.field.rivalBuild.seed);
+        assert.notEqual(rerolled.rivalBuild.seed, replay.field.rivalBuild.seed);
+        const restoredField = await page.evaluate((recording) => {
+          window.__VN.playReplay(recording);
+          return window.__VN.getReplay().field;
+        }, replay);
+        assert.deepEqual(
+          restoredField,
+          replay.field,
+          'replaying after a different race restores the exact recorded rival seed and loadouts',
+        );
         const invalidInitial = structuredClone(replay);
         invalidInitial.initial.vehicle.distance += 1;
         const rollback = await page.evaluate((recording) => {
@@ -1775,7 +1852,11 @@ try {
           (recording) => window.__VN.playReplay(recording),
           {
             ...replay,
-            inputs: await finishInputs(replay.difficulty, replay.initial),
+            inputs: await finishInputs(
+              replay.difficulty,
+              replay.initial,
+              replay.field.rivalBuild,
+            ),
           },
         );
         assert.ok(finished.competition.playerFinished);

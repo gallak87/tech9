@@ -1,4 +1,8 @@
 import { createEquipmentSystem } from '../equipment/runtime.js';
+import {
+  getRivalEquipmentInput,
+  RIVAL_EQUIPMENT_RULES,
+} from '../race/rival-equipment.js';
 import { toughness } from '../progression/catalog.js';
 import { Vector3 } from 'three';
 import {
@@ -12,6 +16,7 @@ import {
   PICKUP_STATE_VERSION,
   VECTOR_PROPULSION,
 } from './simulation.js';
+const noEquipmentInput = null;
 
 // Compose devices around a circuit's actual simulation. Player and rivals use
 // this same adapter. Rival renderers observe feedback without a HUD or audio graph.
@@ -25,9 +30,14 @@ export function createDeviceRuntime({
   combat = null,
   combatId = 'player',
 }) {
-  const equipment =
-    combatId === 'player'
-      ? createEquipmentSystem({ motion, combat, actorId: combatId })
+  const makeEquipment = () =>
+    createEquipmentSystem({ motion, combat, actorId: combatId });
+  let equipment = combatId === 'player' ? makeEquipment() : null;
+  const equipmentPose = () => motion.pose(1);
+  const equipmentCombat = () => combat?.view?.() ?? null;
+  const equipmentJumpSafe =
+    typeof motion.aiEquipmentJumpSafe === 'function'
+      ? (state, options) => motion.aiEquipmentJumpSafe(state, options)
       : null;
   const simulation = createPickupSimulation({
     trackLength: track.length,
@@ -194,6 +204,26 @@ export function createDeviceRuntime({
           aiRulesId: motion.aiRulesId,
         }
       : {}),
+    ...(combatId !== 'player'
+      ? {
+          aiEquipmentRulesId: JSON.stringify(RIVAL_EQUIPMENT_RULES),
+          rivalEquipmentInput(state, input, nearby) {
+            if (!enabled || !equipment) return noEquipmentInput;
+            return getRivalEquipmentInput({
+              actorId: combatId,
+              state,
+              input,
+              nearby,
+              track,
+              status: equipment.readiness(),
+              pose: equipmentPose,
+              combat: equipmentCombat,
+              aegisRemaining: simulation.status().aegisRemaining,
+              jumpSafe: equipmentJumpSafe,
+            });
+          },
+        }
+      : {}),
     scenarios: { ...motion.scenarios, ...deviceScenarios, ...scenarios },
     setEnabled(value) {
       if (enabled === Boolean(value)) return;
@@ -299,6 +329,11 @@ export function createDeviceRuntime({
     reset(context) {
       motion.reset(context);
       simulation.reset(context);
+      if (combatId !== 'player') {
+        if (context?.state?.equipment?.some(Boolean))
+          equipment ??= makeEquipment();
+        else equipment = null;
+      }
       equipment?.reset(context);
       combat?.resetActor(
         combatId,
@@ -315,6 +350,9 @@ export function createDeviceRuntime({
         ...movement,
         ...simulation.status(),
         ...(movement === null ? {} : { motion: movement }),
+        ...(equipment && combatId !== 'player'
+          ? { equipment: { ...equipment.readiness() } }
+          : {}),
       };
     },
     snapshot() {
@@ -329,8 +367,34 @@ export function createDeviceRuntime({
         ...(movement === null ? {} : { motion: movement }),
       };
     },
-    restore(data, { presentation: notifyPresentation = true, state } = {}) {
+    restore(
+      data,
+      {
+        presentation: notifyPresentation = true,
+        state,
+        equipment: expectedEquipment = state?.equipment,
+      } = {},
+    ) {
+      if (combatId !== 'player' && expectedEquipment !== undefined) {
+        if (
+          !Array.isArray(expectedEquipment) ||
+          (data?.equipment && !Array.isArray(data.equipment.slots))
+        )
+          throw new Error('Invalid rival equipment loadout.');
+        const expected = expectedEquipment.slice(0, 4).map((id) => id ?? null);
+        const actual =
+          data?.equipment?.slots?.map((slot) => slot?.id ?? null) ?? [];
+        if (
+          expected.length !== actual.length ||
+          expected.some((id, index) => id !== actual[index])
+        )
+          throw new Error('Rival equipment loadout does not match its field.');
+      }
       simulation.restore(data);
+      if (combatId !== 'player') {
+        if (data.equipment) equipment ??= makeEquipment();
+        else equipment = null;
+      }
       if (equipment && data.equipment) equipment.restore(data.equipment);
       if (combat && combatId === 'player') combat.restore(data.combat);
       motion.restore(data?.motion ?? null);

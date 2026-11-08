@@ -1,6 +1,10 @@
 import { createFlightModel } from '../../physics/flight.js';
 import { createScenarioDescriptors } from '../../core/scenarios.js';
-import { createColossusHazardPlanner, COLOSSUS_AI_RULES } from './avoidance.js';
+import {
+  createColossusHazardPlanner,
+  isColossusEquipmentJumpSafe,
+  COLOSSUS_AI_RULES,
+} from './avoidance.js';
 import {
   sampleCrossfeed,
   PRESS_RULES,
@@ -149,6 +153,8 @@ export function createColossusRuntime(context) {
       runtime.dispose();
     },
     aiHazardPlan,
+    aiEquipmentJumpSafe: (state, options) =>
+      isColossusEquipmentJumpSafe(track, state, options),
     aiRulesId: JSON.stringify(COLOSSUS_AI_RULES),
   };
 }

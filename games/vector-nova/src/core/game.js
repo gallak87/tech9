@@ -3,6 +3,7 @@ import { buildIdentity } from '../progression/profile.js';
 import { vehicleHandling } from '../ships/catalog.js';
 import { createCupFinish } from './cup-finish.js';
 import { createCupClassification } from './cup-classification.js';
+import { raceRivalBuild, replayRivalBuild } from './rival-setup.js';
 import { createRaceGrid } from '../race/roster.js';
 import { interpolateSurfaceLateral } from '../track/surface.js';
 import * as T from 'three';
@@ -263,6 +264,7 @@ export async function createGame({
     };
     let inspectionDrag = null;
     let playerBuild = { version: 1, enhancements: {}, equipment: [] };
+    let rivalSetup = null;
     const playerState = (stock = false) => ({
       ...createVehicleState(ship.selected.id),
       ...(!stock && buildIdentity(playerBuild)
@@ -546,7 +548,7 @@ export async function createGame({
     function advanceCupFinish(dt) {
       if (cupFinish) cupProgress = cupFinish.advance(dt);
     }
-    function resetRacers(enabled = competition) {
+    function resetRacers(enabled = competition, fieldBuild) {
       dynamics?.reset();
       racers?.reset({
         playerState: state,
@@ -554,6 +556,15 @@ export async function createGame({
         enabled,
         difficulty: raceDifficulty,
         gridOrder: cupRace?.gridOrder,
+        fieldBuild: enabled
+          ? (fieldBuild ??
+            raceRivalBuild({
+              build: playerBuild,
+              rivals: rivalSetup,
+              difficulty: raceDifficulty,
+              seed: Math.floor(Math.random() * 0x100000000),
+            }))
+          : null,
       });
     }
     race = makeRace();
@@ -725,6 +736,7 @@ export async function createGame({
       compete = competition,
       withCountdown = false,
       trialMode = timeTrial,
+      { fieldBuild } = {},
     ) {
       if (shipLoading) return;
       if (cupRace) onCupRetry?.();
@@ -759,7 +771,7 @@ export async function createGame({
         Object.assign(state, createRaceGrid(cupRace?.gridOrder).player);
       prev = { ...state };
       race = makeRace();
-      resetRacers();
+      resetRacers(competition, fieldBuild);
       resetRuntime('fresh-lap');
       initial = !import.meta.env?.VN_DESKTOP
         ? captureInitial(state, runtime, dynamics)
@@ -1973,10 +1985,11 @@ export async function createGame({
             leaveFly,
           }
         : {}),
-      setBuild(build) {
+      setBuild(build, { rivals = null } = {}) {
         if (sessionActive)
           throw new Error('Prepare a new session before changing the build.');
         playerBuild = structuredClone(build);
+        rivalSetup = structuredClone(rivals);
       },
       start,
       startCup(options) {
@@ -2096,8 +2109,7 @@ export async function createGame({
                 replay.trackId !== track.id ||
                 replay.physicsVersion !== 3 ||
                 (replay.competition &&
-                  JSON.stringify(replay.field) !==
-                    JSON.stringify(racers?.identity)) ||
+                  (!racingEnabled || !racers || !replay.field?.rivalBuild)) ||
                 (track.closed === false &&
                   JSON.stringify(replay.course) !==
                     JSON.stringify(courseIdentity(track))) ||
@@ -2107,6 +2119,21 @@ export async function createGame({
                 !compatibleRuntime(runtime, replay.runtime)
               )
                 throw new Error('Replay version mismatch');
+              let fieldBuild;
+              if (replay.competition) {
+                if (!['easy', 'medium', 'hard'].includes(replay.difficulty))
+                  throw new Error('Replay difficulty mismatch');
+                fieldBuild = replayRivalBuild(replay.field?.rivalBuild, {
+                  build: playerBuild,
+                  rivals: rivalSetup,
+                  difficulty: replay.difficulty,
+                });
+                if (
+                  JSON.stringify(replay.field) !==
+                  JSON.stringify(racers.identityForBuild(fieldBuild))
+                )
+                  throw new Error('Replay version mismatch');
+              }
               validateReplayInputs(replay.inputs);
               if (mode === 'fly') leaveFly();
               const retained = {
@@ -2152,17 +2179,12 @@ export async function createGame({
               cupProgress = null;
               cupFinalResult = null;
               try {
-                if (
-                  replay.competition &&
-                  !['easy', 'medium', 'hard'].includes(replay.difficulty)
-                )
-                  throw new Error('Replay difficulty mismatch');
                 raceDifficulty = replay.difficulty ?? 'easy';
                 this.loadScenario(replay.scenario || 'staging', replay.seed);
                 if (replay.competition) {
                   if (!racingEnabled || replay.scenario !== 'staging')
                     throw new Error('Replay competition mismatch');
-                  restart(true);
+                  restart(true, false, false, { fieldBuild });
                 }
                 if (replay.testLaunch) {
                   if (!playtest || !runtime.launch || replay.competition)

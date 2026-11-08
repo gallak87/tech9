@@ -7,19 +7,26 @@ export function isCareerComplete(profile) {
   return ALL_REWARDS.every((reward) => claims.has(reward.id));
 }
 
-export function endgameModesUnlocked(profile) {
-  return isCareerComplete(profile) && profile.completion?.acknowledged === true;
-}
-
 export function remainingModeUnlocks(profile) {
   const claims = new Set(profile?.claims ?? []);
-  const counts = { race: 0, cup: 0, 'time-trial': 0, practice: 0 };
+  const counts = {
+    race: 0,
+    cup: 0,
+    freestyle: 0,
+    eliminator: 0,
+    interceptor: 0,
+    'time-trial': 0,
+    practice: 0,
+  };
   for (const reward of REWARDS) {
     if (claims.has(reward.id)) continue;
     const requirement = reward.requirement;
     if (requirement.points || requirement.finishes) {
       counts.race++;
       counts.cup++;
+      counts.freestyle++;
+      counts.eliminator++;
+      counts.interceptor++;
     } else if (requirement.trials) counts['time-trial']++;
     else if (requirement.cup || requirement.cups) counts.cup++;
   }

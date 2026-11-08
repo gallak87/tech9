@@ -49,6 +49,22 @@ const cupContext = {
   sessionCup: true,
   getShipId: () => 'bastion',
 };
+function freestyleResult(medal = 'Gold', extra = {}) {
+  const landed = medal === 'Complete' ? 0 : medal === 'Bronze' ? 2 : 5;
+  return {
+    mode: 'freestyle',
+    playerValid: true,
+    medal,
+    landed,
+    legs: Array.from({ length: 5 }, (_, index) => ({
+      id: `transfer-${index + 1}`,
+      landed: index < landed,
+    })),
+    ...extra,
+  };
+}
+const freestyleContext = (attemptId, extra = {}) =>
+  raceContext(attemptId, { sessionIntent: 'freestyle', ...extra });
 function prepareFinal(s) {
   s.cupStore.start('horizon', 'bastion', 'hard');
   for (let event = 0; event < 2; event++) {
@@ -89,6 +105,180 @@ test('valid race finishes award progression once per attempt and best-score impr
   settleRaceResult(s, result(1), raceContext('another-attempt'));
   assert.equal(s.profileStore.snapshot().state.points, 10);
   assert.equal(s.profileStore.snapshot().state.finishes, 2);
+});
+
+for (const [medal, points] of [
+  ['Gold', 5],
+  ['Silver', 4],
+  ['Bronze', 3],
+  ['Complete', 1],
+]) {
+  test(`a full ${medal} Freestyle finish earns ${points} ordinary race progress without adding rewards`, () => {
+    const s = stores();
+    const data = freestyleResult(medal);
+    const context = freestyleContext('freestyle-attempt');
+    const first = settleRaceResult(s, data, context);
+    assert.equal(first.completionEligible, true);
+    assert.equal(first.celebration, null);
+    assert.equal(s.profileStore.snapshot().state.points, points);
+    assert.equal(s.profileStore.snapshot().state.finishes, 1);
+    assert.deepEqual(
+      first.rewards.map((reward) => reward.id),
+      ['speed-1'],
+    );
+    const earned = s.profileStore.snapshot().state;
+    assert.deepEqual(settleRaceResult(s, data, context).rewards, []);
+    assert.deepEqual(s.profileStore.snapshot().state, earned);
+  });
+}
+
+test('Freestyle settlement rejects invalid, incomplete, inconsistent, reordered and practice runs', () => {
+  const s = stores();
+  const before = s.profileStore.snapshot().state;
+  const good = freestyleResult();
+  const incomplete = good.legs.slice(0, 4);
+  const missed = good.legs.map((leg, index) => ({
+    ...leg,
+    landed: index !== 2,
+  }));
+  const reordered = [good.legs[1], good.legs[0], ...good.legs.slice(2)];
+  for (const [data, sessionIntent] of [
+    [freestyleResult('Gold', { playerValid: false }), 'freestyle'],
+    [freestyleResult('Gold', { landed: 4 }), 'freestyle'],
+    [freestyleResult('Gold', { legs: incomplete }), 'freestyle'],
+    [freestyleResult('Gold', { legs: missed }), 'freestyle'],
+    [freestyleResult('Gold', { legs: reordered }), 'freestyle'],
+    [freestyleResult('Gold', { legs: [] }), 'freestyle'],
+    [freestyleResult('Complete', { legs: Array(5) }), 'freestyle'],
+    [freestyleResult('Unknown'), 'freestyle'],
+    [good, 'practice'],
+  ]) {
+    const outcome = settleRaceResult(
+      s,
+      data,
+      freestyleContext('invalid-freestyle', {
+        sessionIntent,
+        getShipId() {
+          throw new Error('invalid Freestyle must not inspect runtime');
+        },
+      }),
+    );
+    assert.deepEqual(outcome, {
+      rewards: [],
+      celebration: null,
+      completionEligible: false,
+    });
+  }
+  assert.deepEqual(s.profileStore.snapshot().state, before);
+});
+
+test('a valid Freestyle finish can earn the final existing reward and queue the career finale once', () => {
+  const s = stores();
+  for (let i = 0; i < 22; i++)
+    s.profileStore.recordRace({ id: `earned-${i}`, position: 1 });
+  for (let i = 0; i < 2; i++)
+    s.profileStore.recordRace({ id: `silver-${i}`, position: 2 });
+  for (const cup of ['founders', 'frontier', 'horizon', 'apex'])
+    s.profileStore.recordCup(cup);
+  for (const track of ['halcyon', 'orbital'])
+    s.profileStore.recordTrial(track, true);
+  assert.equal(s.profileStore.snapshot().state.points, 118);
+  assert.equal(s.profileStore.snapshot().state.claims.length, 27);
+  const data = freestyleResult('Bronze', { shipId: 'needle' });
+  const context = freestyleContext('final-freestyle');
+  const outcome = settleRaceResult(s, data, context);
+  assert.deepEqual(
+    outcome.rewards.map((reward) => reward.id),
+    ['toughness-3'],
+  );
+  assert.equal(outcome.completionEligible, true);
+  const profile = s.profileStore.snapshot().state;
+  assert.equal(profile.claims.length, 28);
+  assert.deepEqual(profile.completion, {
+    shipId: 'needle',
+    acknowledged: false,
+  });
+  assert.deepEqual(settleRaceResult(s, data, context).rewards, []);
+  assert.deepEqual(s.profileStore.snapshot().state, profile);
+});
+
+for (const [mode, position, won] of [
+  ['interceptor', 1, true],
+  ['interceptor', 10, false],
+  ['eliminator', 1, true],
+  ['eliminator', 10, false],
+]) {
+  test(`a valid ${won ? 'won' : 'lost'} ${mode} result can earn the 28th reward and queue the finale`, () => {
+    const s = stores();
+    for (let i = 0; i < 23; i++)
+      s.profileStore.recordRace({ id: `earned-${i}`, position: 1 });
+    s.profileStore.recordRace({ id: 'silver', position: 2 });
+    for (const cup of ['founders', 'frontier', 'horizon', 'apex'])
+      s.profileStore.recordCup(cup);
+    for (const track of ['halcyon', 'orbital'])
+      s.profileStore.recordTrial(track, true);
+    assert.equal(s.profileStore.snapshot().state.points, 119);
+    assert.equal(s.profileStore.snapshot().state.claims.length, 27);
+    const data =
+      mode === 'interceptor'
+        ? { mode, won, playerValid: true, shipId: 'needle' }
+        : result(position, { mode, shipId: 'needle' });
+    const context = raceContext(`final-${mode}`, { sessionIntent: mode });
+    const outcome = settleRaceResult(s, data, context);
+    assert.deepEqual(
+      outcome.rewards.map((reward) => reward.id),
+      ['toughness-3'],
+    );
+    assert.equal(outcome.completionEligible, true);
+    const profile = s.profileStore.snapshot().state;
+    assert.equal(profile.claims.length, 28);
+    assert.deepEqual(profile.completion, {
+      shipId: 'needle',
+      acknowledged: false,
+    });
+    const repeated = settleRaceResult(s, data, context);
+    assert.equal(repeated.completionEligible, true);
+    assert.deepEqual(repeated.rewards, []);
+    assert.deepEqual(s.profileStore.snapshot().state, profile);
+    assert.deepEqual(stores(s.storage).profileStore.snapshot().state, profile);
+  });
+}
+
+test('invalid or unclassified event results cannot queue the finale or inspect the retained ship', () => {
+  const s = stores();
+  nearComplete(s);
+  const before = s.profileStore.snapshot().state;
+  const unclassified = result(10, { mode: 'eliminator' });
+  unclassified.standings.find((row) => row.id === 'player').position = 0;
+  const invalidPlayer = result(10, { mode: 'eliminator' });
+  invalidPlayer.standings.find((row) => row.id === 'player').valid = false;
+  for (const [data, intent] of [
+    [{ mode: 'interceptor', won: true, playerValid: false }, 'interceptor'],
+    [{ mode: 'interceptor', won: false, playerValid: false }, 'interceptor'],
+    [{ mode: 'interceptor', won: true, playerValid: true }, 'practice'],
+    [result(10, { mode: 'eliminator', valid: false }), 'eliminator'],
+    [result(10, { mode: 'eliminator', finished: false }), 'eliminator'],
+    [result(1, { mode: 'eliminator' }), 'practice'],
+    [unclassified, 'eliminator'],
+    [invalidPlayer, 'eliminator'],
+  ]) {
+    const outcome = settleRaceResult(
+      s,
+      data,
+      raceContext('invalid-event', {
+        sessionIntent: intent,
+        getShipId() {
+          throw new Error('invalid event must not inspect runtime');
+        },
+      }),
+    );
+    assert.deepEqual(outcome, {
+      rewards: [],
+      celebration: null,
+      completionEligible: false,
+    });
+    assert.deepEqual(s.profileStore.snapshot().state, before);
+  }
 });
 
 test('invalid, unfinished, practice and ordinary trial results do not award races or inspect the retained ship', () => {

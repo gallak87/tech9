@@ -25,7 +25,6 @@ import { createSaveTransfer } from '../progression/save-transfer.js';
 import { createProgressionMenu } from '../progression/menu.js';
 import {
   isCareerComplete,
-  endgameModesUnlocked,
   remainingModeUnlocks,
 } from '../progression/completion.js';
 import {
@@ -57,7 +56,14 @@ import { readTrialRecords } from '../race/time-trial.js';
 import { formatTime, formatDelta } from '../race/timing.js';
 import { discoverLevels } from '../levels/catalog.js';
 import { canonicalLevelId } from '../levels/aliases.js';
-import { filterAvailableLevels, levelAvailable } from '../levels/access.js';
+import {
+  MODE_UNLOCKS,
+  filterAvailableLevels,
+  levelAvailable,
+  modeAvailable,
+  modeUnlockRequirement,
+  lockedLevelMessage,
+} from '../levels/access.js';
 import routes from 'virtual:menu-catalog';
 import { RACE_FIELD_SIZE, RACE_OPPONENTS } from '../race/roster.js';
 import {
@@ -130,7 +136,7 @@ export async function createFrontend(
   const profile = () => profileStore.snapshot().state;
   const contentAccess = () => ({
     complete: isCareerComplete(profile()),
-    postCareer: endgameModesUnlocked(profile()),
+    cupWins: profile().cups,
     developer: !!developer,
   });
   const circuits = () => filterAvailableLevels(catalog, contentAccess());
@@ -670,7 +676,7 @@ export async function createFrontend(
           snapshot: () => ({ phase: 'credits', error: failure.message }),
         };
         loading.innerHTML =
-          '<div class="completion-boot-content" role="dialog" aria-modal="true" aria-labelledby="completion-fallback-title"><span class="kicker">28 / 28 · CAREER COMPLETE</span><h1 id="completion-fallback-title">Thx for playing, 3 new courses unlocked!</h1><p>Eliminator · Interceptor · Freestyle (Pilot)</p><p class="completion-error" role="alert">The cinematic couldn’t load. Your unlocks are still available.</p><p>Dev: George Allakhverdyan<br>Studio name TBD</p><p>Homies who helped test the game:<br>Noyan Gunday</p><button type="button" class="completion-retry" data-completion-retry>Reload and retry</button><button type="button" class="primary" data-completion-close>Close</button></div>';
+          '<div class="completion-boot-content" role="dialog" aria-modal="true" aria-labelledby="completion-fallback-title"><span class="kicker">28 / 28 · CAREER COMPLETE</span><h1 id="completion-fallback-title">Thx for playing, 3 new courses unlocked!</h1><p>Oriel · Ravel · Nomad Procession</p><p class="completion-error" role="alert">The cinematic couldn’t load. Your unlocks are still available.</p><p>Dev: George Allakhverdyan<br>Studio name TBD</p><p>Homies who helped test the game:<br>Noyan Gunday</p><button type="button" class="completion-retry" data-completion-retry>Reload and retry</button><button type="button" class="primary" data-completion-close>Close</button></div>';
         host.append(loading);
         menuBackdrop.mount(loading);
         menuBackdrop.configure({
@@ -711,16 +717,19 @@ export async function createFrontend(
   function heading(kicker, title) {
     return `<div class="front-heading"><span class="kicker">${kicker}</span><h1 tabindex="-1">${title}</h1></div>`;
   }
-  const trackBadge = (id) =>
-    eventTypeFor(id) === 'interceptor'
-      ? `<span class="track-type-badge" data-type="interceptor">${escape(encounterBoss(id).name)}</span>`
-      : `<span class="track-type-badge" data-type="${id === 'launchworks' ? 'freestyle' : isSprint(id) ? 'sprint' : 'circuit'}">${id === 'launchworks' ? 'Freestyle' : isSprint(id) ? 'Sprint' : 'Circuit'}</span>`;
+  const trackBadge = (id) => {
+    const type = eventTypeFor(id) ?? (isSprint(id) ? 'sprint' : 'circuit');
+    const label =
+      modeUnlockRequirement(type)?.label ??
+      (isSprint(id) ? 'Sprint' : 'Circuit');
+    return `<span class="track-type-badge" data-type="${type}">${label}</span>`;
+  };
   const trackCard = (l) => {
     const challenge =
       eventTypeFor(l.id) === 'interceptor'
         ? `${encounterBoss(l.id).name}, Interceptor`
         : trackChallenge(l.id);
-    return `<button class="circuit-card ${l.id === selected ? 'selected' : ''}" data-level="${l.id}" tabindex="${l.id === selected ? 0 : -1}" aria-pressed="${l.id === selected}" title="${escape(l.name)}" aria-label="${escape(l.name)}, ${challenge}, ${l.freestyle ? 'freestyle' : isSprint(l.id) ? 'downhill sprint' : 'circuit'}. Select track."><span class="track-icon">${picture(route(l.id))}${routeArt(route(l.id))}</span><span class="card-name"><span class="card-title">${escape(l.name)}</span></span>${trackBadge(l.id)}<span class="track-selected" aria-hidden="true">${l.id === selected ? '✓' : ''}</span></button>`;
+    return `<button class="circuit-card ${l.id === selected ? 'selected' : ''}" data-level="${l.id}" tabindex="${l.id === selected ? 0 : -1}" aria-pressed="${l.id === selected}" title="${escape(l.name)}" aria-label="${escape(l.name)}, ${challenge}, ${eventTypeFor(l.id) ?? (isSprint(l.id) ? 'downhill sprint' : 'circuit')}. Select track."><span class="track-icon">${picture(route(l.id))}${routeArt(route(l.id))}</span><span class="card-name"><span class="card-title">${escape(l.name)}</span></span>${trackBadge(l.id)}<span class="track-selected" aria-hidden="true">${l.id === selected ? '✓' : ''}</span></button>`;
   };
   const circuitPanel = () => {
     const groups = new Map();
@@ -746,7 +755,7 @@ export async function createFrontend(
     }
     const guide =
       intent === 'freestyle'
-        ? `<aside class="freestyle-guide"><h3>Five different approaches. One chain.</h3><p><b>Q / E</b> roll · <b>Z / X</b> flip · <b>C / V</b> spin. Combine freely; <b>Space</b> brakes rotation; hold with a direction for fine trim. Match the receiving bank. A well-timed brake adds precision.</p><p class="freestyle-pad-guide">Pad: <b>right stick</b> flips / spins · <b>X / Y</b> rolls · <b>${controllerLayout(settings).airbrake}</b> settles. Left stick keeps steering. Ctrl + direction remains an alternate.</p><p><b>Pause → Transfer practice</b> to learn one landing. Full chains have separate records. Stock ship · Equipment disabled.</p></aside>`
+        ? `<aside class="freestyle-guide"><h3>Five different approaches. One chain.</h3><p><b>Q / E</b> roll · <b>Z / X</b> flip · <b>C / V</b> spin. Combine freely; <b>Space</b> brakes rotation; hold with a direction for fine trim. Match the receiving bank. A well-timed brake adds precision.</p><p class="freestyle-pad-guide">Pad: <b>right stick</b> flips / spins · <b>X / Y</b> rolls · <b>${controllerLayout(settings).airbrake}</b> settles. Left stick keeps steering. Ctrl + direction remains an alternate.</p><p><b>Pause → Transfer practice</b> to learn one landing. Full-course finishes earn career progress: <b>Gold +5 · Silver +4 · Bronze +3 · Complete +1</b>. Stock ship · Equipment disabled.</p></aside>`
         : intent === 'eliminator'
           ? '<aside class="event-guide"><h3>Stay ahead of the cut.</h3><p>Last place is removed after <b>22 seconds</b>, then every <b>10 seconds</b>. Watch the at-risk racer and survive to the final ship. Your equipped build and the course’s weapons are active.</p><p>Every valid result earns normal race progress. Cups keep their original lineups.</p></aside>'
           : intent === 'interceptor'
@@ -783,20 +792,16 @@ export async function createFrontend(
       ['cup-hub', 'cup', 'Championships'],
       ['time-trial', 'time-trial', 'Time Trial'],
       ['practice', 'practice', 'Practice'],
-      ...(circuits().some((entry) => entry.freestyle)
-        ? [['freestyle', 'freestyle', 'Freestyle · Pilot']]
-        : []),
-      ...(circuits().some((entry) => entry.eventType === 'eliminator')
-        ? [['eliminator', 'eliminator', 'Eliminator']]
-        : []),
-      ...(circuits().some((entry) => entry.eventType === 'interceptor')
-        ? [['interceptor', 'interceptor', 'Interceptor']]
-        : []),
+      ...MODE_UNLOCKS.filter(({ mode }) =>
+        catalog.some((entry) => eventTypeFor(entry.id) === mode),
+      ).map(({ mode, label }) => [mode, mode, label]),
     ]
-      .map(
-        ([action, mode, label]) =>
-          `<button data-action="${action}" aria-pressed="${intent === mode}" aria-label="${label}${remaining[mode] ? `, ${remaining[mode]} unlocks remaining` : ''}"${mode === 'cup' && activeCup ? ` aria-describedby="active-cup-description" title="${cupStatus}"` : ''}><span>${label}</span><span class="mode-status">${mode === 'cup' && activeCup ? `<img class="mode-cup-trophy" src="${cupArt(activeCup.id).trophy}" alt="" aria-hidden="true">` : ''}${remaining[mode] ? `<span class="mode-unlock-badge" aria-hidden="true">${remaining[mode]}</span>` : ''}</span></button>`,
-      )
+      .map(([action, mode, label]) => {
+        const locked = !modeAvailable(mode, contentAccess());
+        const requirement = modeUnlockRequirement(mode);
+        const hint = locked ? `Win ${requirement.cupName}` : '';
+        return `<button data-action="${action}" aria-pressed="${intent === mode}"${locked ? ' aria-disabled="true"' : ''} aria-label="${label}${locked ? `, locked. ${hint} to unlock.` : remaining[mode] ? `, ${remaining[mode]} unlocks remaining` : ''}"${mode === 'cup' && activeCup ? ` aria-describedby="active-cup-description" title="${cupStatus}"` : ''}><span class="mode-label">${label}${locked ? `<small class="mode-requirement">${hint}</small>` : ''}</span><span class="mode-status">${mode === 'cup' && activeCup ? `<img class="mode-cup-trophy" src="${cupArt(activeCup.id).trophy}" alt="" aria-hidden="true">` : ''}${!locked && remaining[mode] ? `<span class="mode-unlock-badge" aria-hidden="true">${remaining[mode]}</span>` : ''}</span></button>`;
+      })
       .join(
         '',
       )}${activeCup ? `<span id="active-cup-description" class="sr-only">${cupStatus}</span>` : ''}</nav>`;
@@ -864,7 +869,7 @@ export async function createFrontend(
     const selectedCraft = lockedCup()
       ? SHIPS.find((entry) => entry.id === savedCup.shipId)
       : selectedShip();
-    return `<section class="race-menu" aria-label="Session setup">${import.meta.env?.VN_EDITION === 'demo' ? '<p class="demo-edition">DEMO · Kestrel · 2 courses · Unlimited play</p>' : ''}${sessionReturn()}${modePicker()}<button class="menu-selection" data-action="circuits"><span>${cup ? 'Cup' : 'Track'}</span><div><strong>${escape(cup ? cup.name : level().name)}</strong><small>${cup ? `${cup.tracks.length} races · ${savedCup ? `${savedCup.results.length} scored` : 'Championship'}` : intent === 'interceptor' ? `${escape(encounterBoss().name)} · Interceptor` : `${trackChallenge(selected)} · ${intent === 'freestyle' ? 'Freestyle · stock build' : isSprint() ? 'Downhill sprint' : 'Circuit'}`}</small></div><b aria-hidden="true">›</b></button><button class="menu-selection" data-action="ship-step"><span>Ship</span><div><strong>${selectedCraft.name}</strong><small>${lockedCup() ? 'Locked for this cup' : selectedCraft.role}</small></div><b aria-hidden="true">${lockedCup() ? '—' : '›'}</b></button>${raceActions()}<div class="menu-extras"><button data-action="records" aria-pressed="${screen === 'records'}">Time Trial records</button>${developer ? button('inspect', 'Ship inspector') : ''}</div>${careerProgressView(profile())}${cupCabinet(cupCollection.snapshot(), cups())}${import.meta.env?.VN_DESKTOP === true ? `<nav class="menu-links" aria-label="Application">${button('desktop-quit', 'Quit game')}</nav>` : ''}<div class="transfer-slot menu-transfer"></div>${savedCup && !cup ? `<aside class="saved-cup">${button('saved-cup', `${cupDefinition(savedCup.cupId).name} · ${savedCup.results.length}/${cupDefinition(savedCup.cupId).tracks.length} scored →`)}</aside>` : ''}</section>`;
+    return `<section class="race-menu" aria-label="Session setup">${import.meta.env?.VN_EDITION === 'demo' ? '<p class="demo-edition">DEMO · Kestrel · 2 courses · Unlimited play</p>' : ''}${sessionReturn()}${modePicker()}<button class="menu-selection" data-action="circuits"><span>${cup ? 'Cup' : 'Track'}</span><div><strong>${escape(cup ? cup.name : level().name)}</strong><small>${cup ? `${cup.tracks.length} races · ${savedCup ? `${savedCup.results.length} scored` : 'Championship'}` : intent === 'interceptor' ? `${escape(encounterBoss().name)} · Interceptor` : `${trackChallenge(selected)} · ${intent === 'freestyle' ? 'Freestyle · stock build' : intent === 'eliminator' ? 'Eliminator' : isSprint() ? 'Downhill sprint' : 'Circuit'}`}</small></div><b aria-hidden="true">›</b></button><button class="menu-selection" data-action="ship-step"><span>Ship</span><div><strong>${selectedCraft.name}</strong><small>${lockedCup() ? 'Locked for this cup' : selectedCraft.role}</small></div><b aria-hidden="true">${lockedCup() ? '—' : '›'}</b></button>${raceActions()}<div class="menu-extras"><button data-action="records" aria-pressed="${screen === 'records'}">Time Trial records</button>${developer ? button('inspect', 'Ship inspector') : ''}</div>${careerProgressView(profile())}${cupCabinet(cupCollection.snapshot(), cups())}${import.meta.env?.VN_DESKTOP === true ? `<nav class="menu-links" aria-label="Application">${button('desktop-quit', 'Quit game')}</nav>` : ''}<div class="transfer-slot menu-transfer"></div>${savedCup && !cup ? `<aside class="saved-cup">${button('saved-cup', `${cupDefinition(savedCup.cupId).name} · ${savedCup.results.length}/${cupDefinition(savedCup.cupId).tracks.length} scored →`)}</aside>` : ''}</section>`;
   };
   function cupPanel(withActions) {
     const cup = currentCup();
@@ -1127,7 +1132,6 @@ export async function createFrontend(
     }
     if (
       screen === 'results' &&
-      lastResults?.mode !== 'freestyle' &&
       (lastResults?.mode !== 'cup' || lastResults.final)
     ) {
       const panel = content.querySelector('.result-panel, .cup-results-panel');
@@ -1381,9 +1385,7 @@ export async function createFrontend(
   async function prepare() {
     if (disposed) throw new DOMException('Disposed', 'AbortError');
     if (!circuitAvailable(selected))
-      throw new Error(
-        'Complete all career rewards and close the completion credits to unlock this event.',
-      );
+      throw new Error(lockedLevelMessage(selected));
     if (game && loadedId === selected) return game;
     if (pending?.id === selected && !pending.signal.aborted)
       return pending.promise;
@@ -1873,6 +1875,7 @@ export async function createFrontend(
     cupConfirm = null;
   }
   function chooseMode(mode) {
+    if (!modeAvailable(mode, contentAccess())) return;
     if (eventTypeFor(selected))
       eventSelections.set(eventTypeFor(selected), selected);
     if (['freestyle', 'eliminator', 'interceptor'].includes(mode)) {
@@ -2121,7 +2124,8 @@ export async function createFrontend(
     'click',
     (e) => {
       const el = e.target.closest('button');
-      if (!el || el.disabled) return;
+      if (!el || el.disabled || el.getAttribute('aria-disabled') === 'true')
+        return;
       if (el.dataset.recordTrack) {
         if (!circuitAvailable(el.dataset.recordTrack)) return;
         selected = el.dataset.recordTrack;
@@ -2733,11 +2737,9 @@ export async function createFrontend(
       routes,
     };
   if (invalidLevel) {
-    error = eventTypeFor(requested)
-      ? 'Complete all 28 career rewards and close the completion credits to unlock this event.'
-      : catalog.some((level) => level.id === requested)
-        ? 'This circuit unlocks after all 28 career rewards. Choose another circuit to continue.'
-        : `Unknown circuit: ${requested}. Choose another circuit to continue.`;
+    error = catalog.some((level) => level.id === requested)
+      ? lockedLevelMessage(requested)
+      : `Unknown circuit: ${requested}. Choose another circuit to continue.`;
     setScreen('loading');
   } else if (special) {
     void launchSpecial();

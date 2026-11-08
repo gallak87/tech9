@@ -8,11 +8,7 @@ import {
   validateProfile,
   PROFILE_KEY,
 } from './profile.js';
-import {
-  isCareerComplete,
-  endgameModesUnlocked,
-  remainingModeUnlocks,
-} from './completion.js';
+import { isCareerComplete, remainingModeUnlocks } from './completion.js';
 
 function completedStore(storage) {
   const store = createProfileStore(() => storage);
@@ -54,16 +50,26 @@ test('mode unlock counts keep Time Trials discoverable after every cup is won', 
   assert.deepEqual(remainingModeUnlocks(profile), {
     race: 0,
     cup: 0,
+    freestyle: 0,
+    eliminator: 0,
+    interceptor: 0,
     'time-trial': 2,
     practice: 0,
   });
   assert.deepEqual(remainingModeUnlocks(store.snapshot().state), {
     race: 0,
     cup: 0,
+    freestyle: 0,
+    eliminator: 0,
+    interceptor: 0,
     'time-trial': 0,
     practice: 0,
   });
-  assert.ok(remainingModeUnlocks(freshProfile()).race > 0);
+  const fresh = remainingModeUnlocks(freshProfile());
+  assert.ok(fresh.race > 0);
+  assert.equal(fresh.freestyle, fresh.race);
+  assert.equal(fresh.eliminator, fresh.race);
+  assert.equal(fresh.interceptor, fresh.race);
 });
 
 test('completion retains the last racer, resumes interrupted playback and acknowledges once per career', () => {
@@ -101,22 +107,4 @@ test('older career saves remain valid and incomplete careers cannot queue or for
   const store = createProfileStore(() => createMemoryStorage());
   assert.equal(store.queueCompletion('shrike'), false);
   assert.equal(store.acknowledgeCompletion(), false);
-});
-
-test('endgame modes unlock only after the career completion credits are acknowledged', () => {
-  const store = completedStore(createMemoryStorage());
-  assert.equal(endgameModesUnlocked(store.snapshot().state), false);
-  store.queueCompletion('shrike');
-  assert.equal(endgameModesUnlocked(store.snapshot().state), false);
-  store.acknowledgeCompletion();
-  const completed = store.snapshot().state;
-  assert.equal(endgameModesUnlocked(completed), true);
-  assert.equal(
-    endgameModesUnlocked({
-      ...completed,
-      claims: completed.claims.slice(1),
-    }),
-    false,
-  );
-  assert.equal(endgameModesUnlocked(freshProfile()), false);
 });

@@ -1,18 +1,24 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { cupView, cupWaitingView } from './cup.js';
-import { createCupStore, availableCups } from '../race/cup.js';
-import { cupCabinet, cupCard, cupArt } from './cup-art.js';
+import { createCupStore, availableCups, cupDefinition } from '../race/cup.js';
+import {
+  cupCabinet,
+  cupCard,
+  cupArt,
+  cupHero,
+  cupVictoryView,
+} from './cup-art.js';
 import { RACE_OPPONENTS } from '../race/roster.js';
 
-function resultAt(
+function stateAt(
   position,
-  { complete = false, valid = true, notice = '' } = {},
+  { complete = false, valid = true, cupId = 'founders' } = {},
 ) {
   const ids = RACE_OPPONENTS.map((row) => row.id);
   ids.splice(position - 1, 0, 'player');
   const store = createCupStore(() => ({ getItem: () => null, setItem() {} }));
-  store.start('founders', 'kestrel', 'easy');
+  store.start(cupId, 'kestrel', 'easy');
   for (let event = 0; event < (complete ? 3 : 1); event++) {
     store.finish({
       standings: ids.map((id, i) => ({
@@ -24,9 +30,12 @@ function resultAt(
     });
     if (complete && event < 2) store.next();
   }
+  return store.snapshot().state;
+}
+function resultAt(position, options = {}) {
   return cupView({
-    state: store.snapshot().state,
-    notice,
+    state: stateAt(position, options),
+    notice: options.notice ?? '',
     catalog: [],
     routes: [],
   });
@@ -58,6 +67,45 @@ test('the bonus cup only enters the picker and trophy cabinet after career compl
     cupCabinet({ cups: won }, unlocked),
     /Encore Cup: trophy earned/,
   );
+});
+
+for (const [cupId, mode] of [
+  ['founders', 'Freestyle'],
+  ['frontier', 'Eliminator'],
+  ['horizon', 'Interceptor'],
+]) {
+  test(`${cupId} setup and championship award explain the ${mode} unlock`, () => {
+    const cup = cupDefinition(cupId);
+    const card = cupCard(cup, cupId, {});
+    assert.match(card, new RegExp(`class="cup-card-unlock">Unlocks ${mode}`));
+    assert.match(card, new RegExp(`aria-label="[^"]*, Unlocks ${mode}"`));
+    assert.match(card, /<button[^>]*data-cup=/);
+    const setup = cupView({ cupId, catalog: [], routes: [] });
+    assert.match(setup, new RegExp(`class="cup-mode-unlock">Unlocks ${mode}`));
+    const collection = { [cupId]: { earnedAt: 1 } };
+    assert.match(
+      cupHero(cup, cup.name, collection),
+      new RegExp(`class="cup-mode-unlock">${mode} unlocked`),
+    );
+    const state = stateAt(1, { cupId, complete: true });
+    for (const fresh of [true, false]) {
+      const victory = cupVictoryView(state, { fresh });
+      assert.match(
+        victory,
+        new RegExp(`class="cup-victory-unlock">${mode} unlocked`),
+      );
+      assert.match(victory, /data-action="cup-standings"/);
+      assert.match(victory, /data-action="cup-hub"/);
+    }
+  });
+}
+
+test('Apex and Encore presentation does not promise another event mode', () => {
+  for (const cupId of ['apex', 'encore']) {
+    const cup = cupDefinition(cupId);
+    assert.doesNotMatch(cupCard(cup, cupId, {}), /cup-card-unlock/);
+    assert.doesNotMatch(cupHero(cup, cup.name, {}), /cup-mode-unlock/);
+  }
 });
 for (const [position, expected] of [
   [1, [1, 2, 3]],

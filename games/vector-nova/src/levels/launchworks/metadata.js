@@ -6,7 +6,7 @@ export default {
   shape: false,
   review: true,
   ui: {
-    edition: 'FREESTYLE / PILOT',
+    edition: 'FREESTYLE',
     subtitle: 'ZEPHYR / FIVE IMPOSSIBLE ARRIVALS',
     heading: ['COMMIT.', 'CONNECT.'],
     intro:

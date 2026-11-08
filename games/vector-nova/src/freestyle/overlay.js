@@ -7,7 +7,7 @@ export function createFreestyleOverlay({ host, track, freestyleActions }) {
   root.className = 'freestyle-hud';
   root.setAttribute('aria-label', 'Freestyle score and receiving approach');
   root.innerHTML =
-    '<div class="fs-score"><span>FREESTYLE / PILOT</span><strong>0</strong><small>CHAIN <b>—</b></small></div><div class="fs-links" aria-label="Transfer chain">' +
+    '<div class="fs-score"><span>FREESTYLE</span><strong>0</strong><small>CHAIN <b>—</b></small></div><div class="fs-links" aria-label="Transfer chain">' +
     track.jumps.map((_, i) => `<i>${i + 1}</i>`).join('') +
     '</div><div class="fs-flight"><span class="fs-phase">BUILD YOUR APPROACH</span><h3 class="fs-transfer"></h3><p class="fs-approach"></p><p class="fs-receiver"></p><small class="fs-speed"></small><small class="fs-alignment"></small><strong class="fs-trick">Set your launch line.</strong><div class="fs-rotation" aria-label="Rotation speed"><i></i></div><p class="fs-catch">Match the receiving bank.</p><small class="fs-last"></small></div><div class="fs-controls"><span><b>Q / E</b>ROLL</span><span><b>Z / X</b>FLIP</span><span><b>C / V</b>FLAT SPIN</span><span class="fs-brake"><b>SPACE</b>BRAKE / FINE TRIM</span></div>';
   host.append(root);
@@ -114,7 +114,7 @@ export function createFreestyleOverlay({ host, track, freestyleActions }) {
       score.textContent = data.score.toLocaleString();
       modeLabel.textContent = frame.freestylePractice
         ? 'TRANSFER PRACTICE / UNRANKED'
-        : 'FREESTYLE / PILOT';
+        : 'FREESTYLE';
       chain.textContent = data.chain ? `×${data.chain}` : '—';
       const settling = data.pendingLanding;
       const currentId =

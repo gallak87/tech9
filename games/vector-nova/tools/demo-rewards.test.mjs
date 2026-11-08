@@ -43,6 +43,7 @@ async function edition(t, name) {
       'progression/goals',
       'progression/view',
       'frontend/cup-art',
+      'levels/access',
     ].map((id) => server.ssrLoadModule(`/src/${id}.js`)),
   );
   return Object.assign({}, ...modules);
@@ -75,6 +76,32 @@ function finishCup(api, cup, win = true) {
     if (!api.cupComplete(cup.snapshot().state)) cup.next();
   }
 }
+
+test('cup-unlocked modes stay outside the demo even with full career progress or developer access', async (t) => {
+  const demo = await edition(t, 'demo'),
+    full = await edition(t, 'full');
+  const access = {
+    complete: true,
+    cupWins: ['founders', 'frontier', 'horizon', 'apex'],
+  };
+  for (const unlock of full.MODE_UNLOCKS) {
+    assert.equal(full.modeAvailable(unlock.mode, access), true);
+    assert.equal(demo.modeAvailable(unlock.mode, access), false);
+    assert.equal(
+      demo.modeAvailable(unlock.mode, { ...access, developer: true }),
+      false,
+    );
+    for (const id of unlock.levelIds) {
+      assert.equal(full.levelAvailable(id, access), true);
+      assert.equal(demo.levelAvailable(id, access), false);
+      assert.equal(
+        demo.levelAvailable(id, { ...access, developer: true }),
+        false,
+      );
+    }
+  }
+  assert.equal(demo.modeAvailable('race'), true);
+});
 
 test('demo awards four reachable milestones, independent of placing and with two equipment slots', async (t) => {
   const api = await edition(t, 'demo');

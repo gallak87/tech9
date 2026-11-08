@@ -60,7 +60,11 @@ import { artPassURL } from './art-pass.js';
 
 import { createStartCountdown } from './start-countdown.js';
 import { discoverLevels } from '../levels/catalog.js';
-import { levelAvailable, filterAvailableLevels } from '../levels/access.js';
+import {
+  levelAvailable,
+  filterAvailableLevels,
+  lockedLevelMessage,
+} from '../levels/access.js';
 import { circuitURL } from '../levels/contract.js';
 import { createLevelPresentation } from '../levels/presentation.js';
 import { createLifetime } from './lifecycle.js';
@@ -154,15 +158,15 @@ export async function createGame({
       (parameters.get('test') === 'jump' ? 'saffron' : undefined);
     const access = {
       complete: contentAccess.complete === true,
-      postCareer: contentAccess.postCareer === true,
+      cupWins: Array.isArray(contentAccess.cupWins)
+        ? [...contentAccess.cupWins]
+        : [],
       developer:
         !import.meta.env?.VN_DESKTOP &&
         ['1', '2'].includes(parameters.get('dev')),
     };
     if (!levelAvailable(requestedLevel, access))
-      throw new Error(
-        'Complete all 28 career unlocks and close the completion credits to open this event.',
-      );
+      throw new Error(lockedLevelMessage(requestedLevel));
     const {
       metadata,
       definition,

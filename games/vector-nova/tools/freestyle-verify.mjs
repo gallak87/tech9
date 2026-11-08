@@ -10,7 +10,8 @@ import {
 import { createProfileStore } from '../src/progression/profile.js';
 
 // Completed, acknowledged career, using the real progression reducer. This
-// exercises the production event entry rather than bypassing it with dev=2.
+// exercises production Freestyle entry with an earned Founders Cup. The fully
+// earned fleet also keeps the native landing regression on its existing hull.
 const storage = createMemoryStorage();
 const careers = createCareerSlots({ storage: () => storage, now: () => 1 });
 careers.create(1);
@@ -100,9 +101,10 @@ try {
     false,
     'menu entry constructs no world',
   );
-  assert.match(
-    await page.locator('#front-shell').innerText(),
-    /Freestyle.*Pilot/i,
+  assert.match(await page.locator('#front-shell').innerText(), /Freestyle/i);
+  assert.doesNotMatch(
+    await page.locator('[data-action="freestyle"]').textContent(),
+    /Pilot/i,
   );
   await page.waitForFunction(
     () => window.__VN_FRONTEND.getState().preload.ready === 4,
@@ -122,9 +124,7 @@ try {
   assert.equal(motion(boot).equipment, undefined);
   assert.equal(await page.locator('.equipment-hud').count(), 0);
   await page.evaluate(() => window.__VN.stepFreestyle(1, {}));
-  console.log(
-    'PASS · post-credits Pilot entry, Zephyr biome, equipment disabled',
-  );
+  console.log('PASS · Freestyle entry, Zephyr biome, equipment disabled');
 
   // Exercise actual DOM keyboard events, not calls into the input reader.
   for (const [keys, expected] of [
@@ -342,6 +342,9 @@ try {
   );
   await page.locator('#freestyle-full-run').click();
   assert.equal((await read()).freestylePractice, null);
+  const careerBeforeRun = await page.evaluate(
+    () => window.__VN_FRONTEND.getState().career.state,
+  );
 
   await page.evaluate(async () => {
     const { createTransferPilot } = await import('/tools/freestyle-pilot.mjs');
@@ -402,6 +405,18 @@ try {
     airborneImpacts,
     [],
     'every scored catch must remain physically clean',
+  );
+  const careerAfterRun = await page.evaluate(
+    () => window.__VN_FRONTEND.getState().career.state,
+  );
+  const earnedProgress = { Gold: 5, Silver: 4, Bronze: 3, Complete: 1 }[
+    result.medal
+  ];
+  assert.equal(careerAfterRun.points, careerBeforeRun.points + earnedProgress);
+  assert.equal(careerAfterRun.finishes, careerBeforeRun.finishes + 1);
+  assert.equal(
+    await page.locator('.race-reward-progress h3').textContent(),
+    `+${earnedProgress} race progress`,
   );
   console.log(
     `PASS · native five-transfer chain from rest, ${result.score} points, no resets or airborne impacts`,

@@ -88,7 +88,7 @@ test('lava plumes and hull outline are absent from inactive staging and release 
     'Cindercoil / trailing hot hull smoke',
   );
   const outline = ship.group.getObjectByName(
-    'Thermal contact / smoke-gray hull outline',
+    'Thermal contact / lava-red hull envelope',
   );
   assert.ok(visible(smoke) && outline.visible);
   const matrices = Array.from(smoke.instanceMatrix.array);

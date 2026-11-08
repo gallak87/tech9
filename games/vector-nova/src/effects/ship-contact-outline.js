@@ -1,4 +1,4 @@
-import { BackSide, Color, Group, Matrix4, Mesh, ShaderMaterial } from 'three';
+import { Color, DoubleSide, Group, Matrix4, Mesh, ShaderMaterial } from 'three';
 
 const clamp = (value) => Math.max(0, Math.min(1, value));
 export function contactOutlineStrength(
@@ -7,32 +7,47 @@ export function contactOutlineStrength(
 ) {
   const age = contact ? contactDuration : contactAge;
   const release = Math.pow(1 - clamp(age / 0.85), 0.8);
-  if (reducedMotion) return release * (contact ? 0.13 : 0.08);
+  if (reducedMotion) return release * (contact ? 0.22 : 0.16);
   const pulse =
     0.25 + 0.75 * Math.pow(0.5 + 0.5 * Math.cos((age * Math.PI * 2) / 0.32), 2);
-  return release * pulse * (contact ? 0.38 : 0.24);
+  return release * pulse * (contact ? 0.76 : 0.58);
 }
 
-// One restrained back-face shell per existing opaque mesh. Geometry stays
-// borrowed; no copied vertex buffers, halo, texture or postprocessing pass.
+// The combat-style hull coat and broad rim share one draw per borrowed mesh.
+// Single-pass double sides avoid adding a second halo or transparency pass.
 export function createShipContactOutline() {
   const group = new Group();
-  group.name = 'Thermal contact / smoke-gray hull outline';
+  group.name = 'Thermal contact / lava-red hull envelope';
   group.visible = false;
   const material = new ShaderMaterial({
-    name: 'Thermal contact / smoke-gray edge',
+    name: 'Thermal contact / lava-red hull and rim',
     transparent: true,
     depthWrite: false,
-    side: BackSide,
+    side: DoubleSide,
+    forceSinglePass: true,
     toneMapped: false,
     uniforms: {
       strength: { value: 0 },
-      color: { value: new Color('#41464a') },
+      color: { value: new Color('#ff4020') },
     },
-    vertexShader:
-      'void main(){gl_Position=projectionMatrix*modelViewMatrix*vec4(position+normal*.075,1.);}',
-    fragmentShader:
-      'uniform vec3 color;uniform float strength;void main(){gl_FragColor=vec4(color,strength);}',
+    vertexShader: `
+      varying vec3 hullNormal, hullView;
+      void main() {
+        vec4 p = modelViewMatrix * vec4(position + normal * .16, 1.);
+        hullNormal = normalize(normalMatrix * normal);
+        hullView = -p.xyz;
+        gl_Position = projectionMatrix * p;
+      }`,
+    fragmentShader: `
+      uniform vec3 color;
+      uniform float strength;
+      varying vec3 hullNormal, hullView;
+      void main() {
+        float rim = pow(clamp(1. - abs(dot(normalize(hullNormal), normalize(hullView))), 0., 1.), 1.6);
+        float coverage = gl_FrontFacing ? .24 + rim * .52 : .85;
+        gl_FragColor = vec4(color, coverage * strength);
+        #include <colorspace_fragment>
+      }`,
   });
   const inverse = new Matrix4();
   let root,

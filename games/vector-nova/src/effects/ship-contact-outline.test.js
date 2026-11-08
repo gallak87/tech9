@@ -6,7 +6,7 @@ import {
   createShipContactOutline,
 } from './ship-contact-outline.js';
 
-test('contact and recovery each get at most three restrained pulses within one second', () => {
+test('contact and recovery each get at most three hull pulses within one second', () => {
   for (const contact of [0, 1]) {
     const values = Array.from({ length: 101 }, (_, index) =>
       contactOutlineStrength({
@@ -22,7 +22,7 @@ test('contact and recovery each get at most three restrained pulses within one s
         (index === values.length - 1 || value > values[index + 1]),
     );
     assert.ok(peaks.length >= 2 && peaks.length <= 3);
-    assert.ok(Math.max(...values) <= 0.38);
+    assert.ok(Math.max(...values) <= 0.76);
     assert.ok(values.slice(85).every((value) => value === 0));
     const reduced = values.map((_value, index) =>
       contactOutlineStrength(
@@ -66,7 +66,12 @@ test('outline borrows opaque geometry and follows ancestor visibility, LOD and h
     [false, true],
   );
   assert.ok(outline.group.children.every((mesh) => mesh.geometry === geometry));
-  assert.equal(outline.group.children[0].material.side, T.BackSide);
+  assert.equal(outline.group.children[0].material.side, T.DoubleSide);
+  assert.equal(outline.group.children[0].material.forceSinglePass, true);
+  assert.equal(
+    outline.group.children[0].material.uniforms.color.value.getHex(),
+    0xff4020,
+  );
   assert.equal(outline.group.children[0].material.depthWrite, false);
   assert.equal(outline.group.children[0].material.depthTest, true);
   const point = new T.Vector3();

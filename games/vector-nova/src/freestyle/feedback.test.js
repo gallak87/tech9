@@ -27,6 +27,7 @@ test('practice preserves actual miss evidence and describes geometry without inv
     };
     const outcome = freestylePracticeOutcome({ type: 'jump-miss', payload });
     assert.equal(outcome.clean, false);
+    assert.equal(outcome.landed, false);
     assert.equal(outcome.reason, label);
     assert.equal(outcome.kind, 'jump-miss');
     assert.equal(outcome.sourceReason, reason);
@@ -63,6 +64,22 @@ test('practice keeps the actual bank quality and failure description', () => {
     }).clean,
     true,
   );
+});
+
+test('practice reports a recovered landing as credited without pretending it was clean', () => {
+  const outcome = freestylePracticeOutcome({
+    type: 'freestyle-bank',
+    payload: {
+      landed: true,
+      clean: false,
+      quality: 'landed',
+      reason: 'Recovered landing',
+      bank: 1000,
+    },
+  });
+  assert.equal(outcome.landed, true);
+  assert.equal(outcome.clean, false);
+  assert.equal(outcome.reason, 'Recovered landing');
 });
 
 test('launch speed guidance uses only authored bands and reports human display units', () => {

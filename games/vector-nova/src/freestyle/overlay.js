@@ -116,7 +116,9 @@ export function createFreestyleOverlay({ host, track, freestyleActions }) {
         ? 'TRANSFER PRACTICE / UNRANKED'
         : 'FREESTYLE / PILOT';
       chain.textContent = data.chain ? `×${data.chain}` : '—';
-      const currentId = frame.freestylePractice?.id ?? data.flight?.id;
+      const settling = data.pendingLanding;
+      const currentId =
+        frame.freestylePractice?.id ?? settling?.id ?? data.flight?.id;
       const index = currentId
         ? track.jumps.findIndex((jump) => jump.id === currentId)
         : Math.min(data.legs.length, track.jumps.length - 1);
@@ -126,28 +128,34 @@ export function createFreestyleOverlay({ host, track, freestyleActions }) {
         node.dataset.state = leg
           ? leg.clean
             ? 'clean'
-            : 'broken'
-          : i === index
-            ? 'current'
-            : 'waiting';
+            : leg.landed
+              ? 'landed'
+              : 'broken'
+          : settling?.id === track.jumps[i].id
+            ? 'settling'
+            : i === index
+              ? 'current'
+              : 'waiting';
       });
-      const airborne = !!data.flight,
+      const airborne = !!data.flight && !settling,
         omega = Math.max(
           Math.hypot(...data.angular),
           data.actualAngularSpeed ?? 0,
         ),
         seconds = data.touchdown;
-      phase.textContent = airborne
-        ? data.flight.failed
-          ? 'TRANSFER MISSED'
-          : seconds == null
-            ? 'AIRBORNE'
-            : `TOUCHDOWN ~${Math.max(0, seconds).toFixed(1)}s`
-        : data.legs.length === track.jumps.length
-          ? 'FINAL RUNOUT'
-          : `TRANSFER ${index + 1} / ${track.jumps.length} · APPROACH`;
+      phase.textContent = settling
+        ? 'SETTLING LANDING'
+        : airborne
+          ? data.flight.failed
+            ? 'TRANSFER MISSED'
+            : seconds == null
+              ? 'AIRBORNE'
+              : `TOUCHDOWN ~${Math.max(0, seconds).toFixed(1)}s`
+          : data.legs.length === track.jumps.length
+            ? 'FINAL RUNOUT'
+            : `TRANSFER ${index + 1} / ${track.jumps.length} · APPROACH`;
       const finishedTransfers =
-        !airborne && data.legs.length === track.jumps.length;
+        !settling && !airborne && data.legs.length === track.jumps.length;
       transferName.textContent = finishedTransfers
         ? 'The finish basin'
         : jump.label;
@@ -156,13 +164,13 @@ export function createFreestyleOverlay({ host, track, freestyleActions }) {
         : (jump.approachHint ?? 'Set your speed and release line.');
       receiver.textContent = jump.receiverHint ?? 'Match the receiving bank.';
       receiver.hidden = finishedTransfers;
-      speed.hidden = finishedTransfers;
+      speed.hidden = finishedTransfers || !!settling;
       const launchSpeed = freestyleLaunchSpeed(
         jump.speedRange,
         frame.state.speed,
       );
       const approaching =
-        !airborne && jump.takeoff - frame.state.distance <= 400;
+        !settling && !airborne && jump.takeoff - frame.state.distance <= 400;
       speed.textContent = launchSpeed
         ? `Launch ${launchSpeed.label}${approaching ? ` · ${launchSpeed.advice}` : ''}`
         : (jump.speedHint ?? '');
@@ -171,36 +179,44 @@ export function createFreestyleOverlay({ host, track, freestyleActions }) {
       alignment.textContent = reference
         ? `Receiver reference · tilt ${Math.round((reference.tilt * 180) / Math.PI)}° · nose ${Math.round((reference.nose * 180) / Math.PI)}°`
         : '';
-      alignment.hidden = !reference;
-      trick.textContent = airborne
-        ? data.flight.failed
-          ? 'The next link is still yours.'
-          : (data.active ??
-            (data.flight.tricks.length
-              ? data.flight.tricks.map((kind) => TRICKS[kind].name).join(' + ')
-              : 'Aim first. Style when you can.'))
-        : 'Make the landing. Build the chain.';
+      alignment.hidden = !reference || !!settling;
+      trick.textContent = settling
+        ? 'Hold the landing.'
+        : airborne
+          ? data.flight.failed
+            ? 'The next link is still yours.'
+            : (data.active ??
+              (data.flight.tricks.length
+                ? data.flight.tricks
+                    .map((kind) => TRICKS[kind].name)
+                    .join(' + ')
+                : 'Aim first. Style when you can.'))
+          : 'Make the landing. Build the chain.';
       rotation.style.transform = `scaleX(${Math.min(1, omega / 3.2)})`;
       root.dataset.late = String(
         airborne && seconds != null && seconds < 0.8 && omega > 0.65,
       );
-      catchText.textContent = airborne
-        ? data.flight.failed
-          ? 'Use Pause → transfer practice to learn this receiver.'
-          : reference
-            ? freestyleAttitudeCue(reference, {
-                gamepad: frame.gamepad,
-                brake: names[3],
-                angularSpeed: omega,
-              })
-            : seconds != null && seconds < 0.8
-              ? 'Hold your bank into contact. A timed brake adds precision.'
-              : 'Face the receiver. Leave time to settle.'
-        : 'Each release asks for a different line. Keep the next receiver in sight.';
+      catchText.textContent = settling
+        ? 'Stay on the receiver while the ship settles.'
+        : airborne
+          ? data.flight.failed
+            ? 'Use Pause → transfer practice to learn this receiver.'
+            : reference
+              ? freestyleAttitudeCue(reference, {
+                  gamepad: frame.gamepad,
+                  brake: names[3],
+                  angularSpeed: omega,
+                })
+              : seconds != null && seconds < 0.8
+                ? 'Hold your bank into contact. A timed brake adds precision.'
+                : 'Face the receiver. Leave time to settle.'
+          : 'Each release asks for a different line. Keep the next receiver in sight.';
       const leg = data.legs.at(-1);
-      last.textContent = leg
-        ? `${leg.reason} · ${leg.bank ? `+${leg.bank.toLocaleString()}` : 'chain broken'}`
-        : 'Pause → transfer practice · R retries';
+      last.textContent = settling
+        ? 'Touchdown · confirming the catch'
+        : leg
+          ? `${leg.reason} · ${leg.bank ? `+${leg.bank.toLocaleString()}` : 'chain broken'}`
+          : 'Pause → transfer practice · R retries';
     },
     dispose() {
       controller.abort();

@@ -293,23 +293,26 @@ export function createLaunchworksRoad({ track, shape = false }) {
       );
     }
     if (jump.receiverType !== 'tube') {
-      // A muted woven inlay communicates the receiving face without painting
-      // over its material or implying that the whole width is an aiming gate.
+      // Paint the accepted receiving lane, including its full landing runout.
+      // This woven inlay is visual only; the driving skin below owns contact.
       const arrival = surface.clone();
       arrival.name = 'Skywell / woven turquoise receiver inlay';
       arrival.color.set('#6f9e97');
       arrival.emissive.set('#235e59');
       arrival.emissiveIntensity = 0.16;
+      // sweep() scales the original 38 m profiles to the current road width.
+      const halfPaint = ((jump.catchWidth / 2) * 38) / track.width;
       const zone = sweep(
         'Receiving bank / turquoise arrival field',
-        jump.landingStart + 12,
-        Math.min(jump.landingEnd, jump.landingStart + 220),
+        jump.landingStart + 0.5,
+        jump.landingEnd - 0.5,
         [
-          [-12.8, 0.045],
-          [12.8, 0.045],
+          [-halfPaint, 0.045],
+          [halfPaint, 0.045],
         ],
         arrival,
       );
+      zone.userData.receiverId = jump.id;
       zones.push({ id: jump.id, zone });
     }
     const frame = track.sample(jump.landingStart + 15);
@@ -392,8 +395,9 @@ export function createLaunchworksRoad({ track, shape = false }) {
         const leg = fs.legs.find((entry) => entry.id === id);
         zone.material.emissiveIntensity =
           0.16 +
-          (leg?.clean && !frame.settings.reducedMotion
-            ? Math.exp(-Math.max(0, fs.clock - leg.at) * 6) * 0.9
+          ((leg?.landed || leg?.clean) && !frame.settings.reducedMotion
+            ? Math.exp(-Math.max(0, fs.clock - leg.at) * 6) *
+              (leg.clean ? 0.9 : 0.55)
             : 0);
       }
     },

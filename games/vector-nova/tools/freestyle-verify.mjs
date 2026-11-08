@@ -333,12 +333,12 @@ try {
   await page.keyboard.up('Space');
   await page.keyboard.up('KeyW');
   assert.equal(
-    snapshot.freestylePractice.outcome?.clean,
+    snapshot.freestylePractice.outcome?.landed,
     true,
     `a deliberate keyboard roll and brake trim catches the opposing bank: ${JSON.stringify(snapshot.freestylePractice.outcome)}`,
   );
   console.log(
-    `PASS · failed keyboard practice (${missed}), launch feedback, R retry and clean held-key bank`,
+    `PASS · failed keyboard practice (${missed}), launch feedback, R retry and credited held-key bank`,
   );
   await page.locator('#freestyle-full-run').click();
   assert.equal((await read()).freestylePractice, null);
@@ -361,10 +361,22 @@ try {
   }
   const result = motion(snapshot).freestyle.result;
   assert.ok(result, 'native full run must reach the finish');
-  assert.equal(result.clean, 5);
+  assert.equal(result.landed, 5);
+  assert.ok(result.legs.every((leg) => leg.landed));
+  assert.ok(
+    result.legs.some((leg) => leg.clean),
+    'settled arrivals retain their clean bonus',
+  );
   assert.equal(result.bestChain, 5);
   assert.equal(result.playerValid, true);
-  assert.ok(result.score >= 27000);
+  assert.ok(
+    result.score >= 15000,
+    'five credited landings earn at least the base chain score',
+  );
+  assert.equal(
+    result.score,
+    result.legs.reduce((sum, leg) => sum + leg.bank, 0),
+  );
   assert.equal(
     snapshot.events.filter((e) => e.type === 'jump-launch').length,
     5,

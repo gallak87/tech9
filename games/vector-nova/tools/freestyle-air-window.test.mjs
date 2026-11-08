@@ -50,7 +50,8 @@ test('the long-air course receives every stock hull and boosted transfers withou
         quantum: 0.25,
       });
       const events = [];
-      let launchedAt = null;
+      let launchedAt = null,
+        touchdownAt = null;
       for (let tick = 0; tick < 2400; tick++) {
         const input = {
           ...pilot({
@@ -64,9 +65,11 @@ test('the long-air course receives every stock hull and boosted transfers withou
         events.push(...emitted);
         if (emitted.some((event) => event.type === 'jump-launch'))
           launchedAt = state.time;
+        if (emitted.some((event) => event.type === 'jump-transfer'))
+          touchdownAt = state.time;
         if (
           emitted.some((event) =>
-            ['jump-transfer', 'jump-miss'].includes(event.type),
+            ['freestyle-bank', 'jump-miss'].includes(event.type),
           )
         )
           break;
@@ -83,10 +86,25 @@ test('the long-air course receives every stock hull and boosted transfers withou
         label,
       );
       assert.ok(
-        state.time - launchedAt >= 3.8,
+        touchdownAt - launchedAt >= 3.8,
         `${label}: genuine airtime, not a wider catch trigger`,
       );
       assert.equal(runtime.pose(1).grounded, true, label);
+      assert.equal(
+        events.find((event) => event.type === 'freestyle-bank')?.payload.landed,
+        true,
+        `${label}: sustained physical support must receive landing credit`,
+      );
+      assert.ok(
+        state.time - touchdownAt >= 0.29,
+        `${label}: grading waits for real settlement`,
+      );
+      if (shipId === 'kestrel' && !boost && i === 0)
+        assert.equal(
+          events.find((event) => event.type === 'freestyle-bank').payload.clean,
+          true,
+          'an ordinary settled native arrival keeps its clean grade',
+        );
     }
   }
 });

@@ -16,6 +16,9 @@ export function freestylePracticeOutcome(event) {
   if (!['freestyle-bank', 'jump-miss'].includes(event?.type)) return null;
   const payload = event.payload ?? {};
   return {
+    landed:
+      event.type === 'freestyle-bank' &&
+      (payload.landed === true || payload.clean === true),
     clean: event.type === 'freestyle-bank' && payload.clean === true,
     reason:
       event.type === 'freestyle-bank'

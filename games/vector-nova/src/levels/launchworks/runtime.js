@@ -23,28 +23,39 @@ export function createLaunchworksDynamics({ collisionWorld }) {
 
 export function createLaunchworksRuntime(context) {
   const { track, dynamics } = context;
+  let physicalActor = null;
+  const observedDynamics = dynamics && {
+    ...dynamics,
+    createActor(...args) {
+      physicalActor = dynamics.createActor(...args);
+      return physicalActor;
+    },
+  };
   const controller = createFreestyleController({ track });
   const model = createFlightModel({
     ...SKYWELL_FLIGHT_RULES,
     railHeight: Object.fromEntries(track.jumps.map((j) => [j.id, 0.8])),
   });
-  const motion = model.createRuntime(context, {
-    id: 'launchworks-freestyle',
-    version: 4,
-    rulesId: `launchworks-v4:${JSON.stringify({ rules: FREESTYLE_RULES, pace: track.pace, flight: SKYWELL_FLIGHT_RULES })}`,
-    scenarios: Object.fromEntries(
-      Object.entries(track.scenarios).map(([id, state]) => [
-        id,
-        { label: id, state },
-      ]),
-    ),
-    groundOptions: () => ({ pace: track.pace }),
-    airAttitude: ({ target }) => controller.attitude(target),
-    airAngularSpeed: 6,
-    airAngularResponse: 24,
-    forgivingContacts: false,
-    surfaceLanding: true,
-  });
+  const motion = model.createRuntime(
+    { ...context, dynamics: observedDynamics },
+    {
+      id: 'launchworks-freestyle',
+      version: 5,
+      rulesId: `launchworks-v5:${JSON.stringify({ rules: FREESTYLE_RULES, pace: track.pace, flight: SKYWELL_FLIGHT_RULES })}`,
+      scenarios: Object.fromEntries(
+        Object.entries(track.scenarios).map(([id, state]) => [
+          id,
+          { label: id, state },
+        ]),
+      ),
+      groundOptions: () => ({ pace: track.pace }),
+      airAttitude: ({ target }) => controller.attitude(target),
+      airAngularSpeed: 6,
+      airAngularResponse: 24,
+      forgivingContacts: false,
+      surfaceLanding: true,
+    },
+  );
   let incoming = null;
   function before(state, input, dt) {
     incoming = { pose: motion.pose(1), flight: motion.snapshot().flight };
@@ -53,10 +64,18 @@ export function createLaunchworksRuntime(context) {
   }
   function finish(state, events) {
     for (const e of events) {
-      if (e.type === 'jump-launch') controller.launch(e.payload.id);
+      if (e.type === 'jump-launch') {
+        const interrupted = controller.launch(e.payload.id);
+        if (interrupted)
+          events.push({ type: 'freestyle-bank', payload: interrupted });
+      }
       if (e.type === 'impact') controller.damage();
       if (e.type === 'jump-miss') controller.fail();
-      if (e.type === 'road-recovery') controller.invalidate();
+      if (e.type === 'road-recovery') {
+        const leg = controller.rejectLanding('Lost receiver support');
+        if (leg) events.push({ type: 'freestyle-bank', payload: leg });
+        controller.invalidate();
+      }
       if (e.type === 'jump-transfer') {
         const jump = track.jumps.find((j) => j.id === e.payload.id);
         const pose = motion.pose(1) ?? incoming.pose;
@@ -78,6 +97,36 @@ export function createLaunchworksRuntime(context) {
         });
         if (leg) events.push({ type: 'freestyle-bank', payload: leg });
       }
+    }
+    if (controller.readFrame().pendingLanding) {
+      // Grade sustained physical support, not the visual landing interpolation
+      // or a remembered airborne rotation command. No movement is corrected.
+      const pose = motion.pose(1);
+      const body = physicalActor?.read();
+      const frame =
+        track.sampleSurface?.(state.distance, state.lateral) ??
+        track.sample(state.distance);
+      const leg = controller.settle({
+        distance: state.distance,
+        lateral: state.lateral,
+        supported:
+          pose?.grounded === true &&
+          !track.isGap(state.distance) &&
+          (!body || body.support != null),
+        quaternion: body?.quaternion ?? pose?.quaternion,
+        // Turning along the road is normal driving, not an unfinished trick.
+        angularSpeed: body
+          ? body.angularVelocity
+              .clone()
+              .addScaledVector(frame.up, -body.angularVelocity.dot(frame.up))
+              .length()
+          : 0,
+        normalSpeed: body?.velocity.dot(frame.up) ?? 0,
+        supportError: body?.support
+          ? body.position.clone().sub(body.support.position).dot(frame.up)
+          : 0,
+      });
+      if (leg) events.push({ type: 'freestyle-bank', payload: leg });
     }
     if (
       state.distance >= track.finishDistance &&

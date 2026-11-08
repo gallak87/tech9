@@ -1,5 +1,8 @@
 export const FREESTYLE_RULES = Object.freeze({
-  version: 4,
+  version: 5,
+  landingWindow: 0.3,
+  stableWindow: 0.1,
+  points: Object.freeze({ landed: 1000, clean: 2000, perfect: 2500 }),
   catchWindow: 0.65,
   catchLead: 0.08,
   angularSpeed: [2.8, 2.6, 3.1],

@@ -15,6 +15,7 @@ export function createFreestyleController({ track }) {
       chain: 0,
       bestChain: 0,
       flight: null,
+      pendingLanding: null,
       orientation: [0, 0, 0, 1],
       angular: [0, 0, 0],
       progress: [0, 0, 0],
@@ -28,6 +29,57 @@ export function createFreestyleController({ track }) {
       invalid: false,
       result: null,
     };
+  }
+  function bankLanding(landed, failureReason = 'Unsettled landing') {
+    const pending = data.pendingLanding;
+    if (!pending) return null;
+    if (landed && !pending.line) {
+      landed = false;
+      failureReason = 'Outside landing zone';
+    }
+    const clean = landed && pending.clean && !pending.damaged;
+    const perfect = clean && pending.perfect;
+    data.chain = landed ? data.chain + 1 : 0;
+    data.bestChain = Math.max(data.bestChain, data.chain);
+    const base = perfect
+      ? FREESTYLE_RULES.points.perfect
+      : clean
+        ? FREESTYLE_RULES.points.clean
+        : FREESTYLE_RULES.points.landed;
+    const bank = landed ? Math.round((pending.style + base) * data.chain) : 0;
+    const leg = {
+      id: pending.id,
+      label: pending.label,
+      at: data.clock,
+      touchdownAt: pending.at,
+      landed,
+      clean,
+      perfect,
+      quality: perfect
+        ? 'perfect'
+        : clean
+          ? 'clean'
+          : landed
+            ? 'landed'
+            : 'rough',
+      bank,
+      chain: data.chain,
+      tricks: [...pending.tricks],
+      reason: perfect
+        ? 'Perfect banked catch'
+        : clean
+          ? pending.tube
+            ? 'Tube catch'
+            : 'Clean banked catch'
+          : landed
+            ? 'Recovered landing'
+            : failureReason,
+      speed: pending.speed,
+    };
+    data.score += bank;
+    data.legs.push(leg);
+    data.pendingLanding = null;
+    return leg;
   }
   reset();
   return {
@@ -52,6 +104,13 @@ export function createFreestyleController({ track }) {
         invalid: data.invalid,
         braceAt: data.braceAt,
         angular: [...data.angular],
+        pendingLanding: data.pendingLanding
+          ? {
+              id: data.pendingLanding.id,
+              label: data.pendingLanding.label,
+              elapsed: data.pendingLanding.elapsed,
+            }
+          : null,
         active: names.length ? names.join(' + ') : null,
         flight: data.flight
           ? { ...data.flight, tricks: [...data.flight.tricks] }
@@ -64,6 +123,9 @@ export function createFreestyleController({ track }) {
       delete data.active;
     },
     launch(id) {
+      const interrupted = data.pendingLanding
+        ? bankLanding(false, 'Landing interrupted')
+        : null;
       data.flight = { id, tricks: [], damaged: false };
       data.orientation = [0, 0, 0, 1];
       data.angular = [0, 0, 0];
@@ -72,6 +134,7 @@ export function createFreestyleController({ track }) {
       data.compoundProgress = 0;
       data.compoundAxis = [0, 0, 1];
       data.braceAt = -99;
+      return interrupted;
     },
     step(input, dt) {
       data.clock += dt;
@@ -159,16 +222,19 @@ export function createFreestyleController({ track }) {
     },
     damage() {
       if (data.flight) data.flight.damaged = true;
+      if (data.pendingLanding) data.pendingLanding.damaged = true;
     },
     fail() {
       if (data.flight) {
         data.flight.failed = true;
         data.flight.damaged = true;
       }
+      if (data.pendingLanding) data.pendingLanding.failed = true;
       data.chain = 0;
       data.angular = [0, 0, 0];
     },
     invalidate() {
+      data.pendingLanding = null;
       data.invalid = true;
       data.chain = 0;
       data.flight = null;
@@ -188,6 +254,7 @@ export function createFreestyleController({ track }) {
     }) {
       if (
         !data.flight ||
+        data.pendingLanding ||
         data.flight.id !== jump.id ||
         data.legs.some((l) => l.id === jump.id)
       )
@@ -242,64 +309,81 @@ export function createFreestyleController({ track }) {
             0.5 ** all.slice(0, i).filter((k) => k === kind).length,
         0,
       );
-      data.chain = clean ? data.chain + 1 : 0;
-      data.bestChain = Math.max(data.bestChain, data.chain);
-      const bank =
-        outcome === 'landed' && !data.flight.failed
-          ? Math.round(
-              clean
-                ? (style + (perfect ? 2500 : 2000)) * data.chain
-                : style * 0.2,
-            )
-          : 0;
-      data.score += bank;
-      const reason = clean
-        ? perfect
-          ? 'Perfect banked catch'
-          : tube
-            ? 'Tube catch'
-            : 'Clean banked catch'
-        : outcome !== 'landed'
-          ? 'Missed receiver'
-          : data.flight.damaged || edgeCaught
-            ? 'Rough contact'
-            : rotating
-              ? 'Still rotating'
-              : !headingAligned
-                ? 'Nose out of line'
-                : !bankAligned
-                  ? 'Off-bank attitude'
-                  : distance > receiverEnd
-                    ? 'Late receiver'
-                    : 'Outside receiver line';
-      const leg = {
+      data.pendingLanding = {
         id: jump.id,
         label: jump.label ?? jump.id,
         at: data.clock,
+        elapsed: 0,
+        lastObservedAt: data.clock,
+        stableTime: 0,
+        distance,
+        lateral,
+        line,
         clean,
         perfect,
-        quality: perfect
-          ? 'perfect'
-          : clean
-            ? 'clean'
-            : outcome === 'landed'
-              ? 'rough'
-              : 'miss',
-        bank,
-        chain: data.chain,
-        tricks: [...data.flight.tricks],
-        reason,
+        tube,
+        style,
+        failed: !!data.flight.failed || outcome !== 'landed',
+        damaged: !!data.flight.damaged || edgeCaught,
         speed: velocity.length(),
+        tricks: [...data.flight.tricks],
       };
-      data.legs.push(leg);
+      // Contact ends the trick. Grounded keys cannot add rotations or upgrade
+      // arrival quality while the physical hull settles onto its receiver.
       data.flight = null;
       data.orientation = [0, 0, 0, 1];
       data.angular = [0, 0, 0];
       data.braceAt = -99;
-      return leg;
+      return data.pendingLanding.failed
+        ? bankLanding(false, 'Missed receiver')
+        : null;
+    },
+    settle({
+      supported,
+      quaternion,
+      distance,
+      lateral,
+      angularSpeed = 0,
+      normalSpeed = 0,
+      supportError = 0,
+    }) {
+      const pending = data.pendingLanding;
+      if (!pending) return null;
+      if (pending.failed) return bankLanding(false, 'Missed receiver');
+      const dt = data.clock - pending.lastObservedAt;
+      if (dt <= 0) return null;
+      pending.lastObservedAt = data.clock;
+      pending.elapsed = data.clock - pending.at;
+      const frame =
+        track.sampleSurface?.(
+          distance ?? pending.distance,
+          lateral ?? pending.lateral,
+        ) ?? track.sample(distance ?? pending.distance);
+      const aligned =
+        quaternion &&
+        new T.Vector3(0, 1, 0).applyQuaternion(quaternion).dot(frame.up) >
+          Math.cos(0.48) &&
+        new T.Vector3(0, 0, 1).applyQuaternion(quaternion).dot(frame.tangent) >
+          Math.cos(0.58);
+      const stable =
+        supported &&
+        aligned &&
+        angularSpeed < 1.2 &&
+        Math.abs(normalSpeed) < 8 &&
+        Math.abs(supportError) < 1.5;
+      pending.stableTime = stable ? pending.stableTime + dt : 0;
+      if (pending.elapsed + 1e-9 < FREESTYLE_RULES.landingWindow) return null;
+      return bankLanding(
+        pending.stableTime + 1e-9 >= FREESTYLE_RULES.stableWindow,
+        supported ? 'Unsettled landing' : 'Lost receiver support',
+      );
+    },
+    rejectLanding(reason = 'Lost receiver support') {
+      return bankLanding(false, reason);
     },
     complete(shipId) {
       if (data.result) return data.result;
+      if (data.pendingLanding) return null;
       const medals = FREESTYLE_RULES.medals;
       const complete =
         data.legs.length === track.jumps.length &&
@@ -309,6 +393,7 @@ export function createFreestyleController({ track }) {
         score: data.score,
         bestChain: data.bestChain,
         clean: data.legs.filter((l) => l.clean).length,
+        landed: data.legs.filter((l) => l.landed).length,
         legs: structuredClone(data.legs),
         playerValid: !data.invalid && complete,
         shipId,

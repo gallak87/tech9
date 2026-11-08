@@ -64,6 +64,16 @@
   color: #a5f4da;
   border-color: #91d8c1;
 }
+.fs-links i[data-state='landed'] {
+  background: #243e3a;
+  color: #b4d2c8;
+  border-color: #71998a;
+}
+.fs-links i[data-state='settling'] {
+  background: #42392b;
+  color: #f6d8b0;
+  border-color: #d6ad76;
+}
 .fs-links i[data-state='broken'] {
   background: #4d2725;
   color: #d7a096;

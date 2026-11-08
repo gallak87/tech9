@@ -244,12 +244,41 @@ function controlsFor(opponent, track, devices, nearby, difficulty = 'easy') {
           (surface?.bounds?.min ?? -track.width / 2) + 4.5,
           (surface?.bounds?.max ?? track.width / 2) - 4.5,
         );
-  const speed = Math.max(18, state.speed);
-  const sidewaysLoad =
-    -frame.curvature * speed * speed * 0.75 - 9.81 * frame.right.y;
   const laneSpeedLimit = Number.isFinite(track.aiLaneSpeedLimit)
     ? clamp(track.aiLaneSpeedLimit, 4, 30)
     : 9;
+  const hazardPlan = opponent.runtime?.aiHazardPlan?.(state, {
+    laneSpeedLimit,
+    braking: handling.braking,
+  });
+  if (Number.isFinite(hazardPlan?.lane)) {
+    targetLane = clamp(
+      hazardPlan.lane,
+      (surface?.bounds?.min ?? -track.width / 2) + 4.5,
+      (surface?.bounds?.max ?? track.width / 2) - 4.5,
+    );
+    // Keep the chosen safe machine lane, but brake for a racer already in it.
+    for (const other of nearby) {
+      if (other === state) continue;
+      const gap = other.distance - state.distance;
+      if (
+        gap > 0 &&
+        gap < 20 &&
+        Math.abs(laneDelta(targetLane, other.lateral)) < 4.8
+      ) {
+        brakeSpeed = Math.min(brakeSpeed, Math.max(40, other.speed - 6));
+        targetSpeed = Math.min(targetSpeed, brakeSpeed);
+      }
+    }
+    if (Number.isFinite(hazardPlan.speedLimit) && hazardPlan.speedLimit > 0) {
+      targetSpeed = Math.min(targetSpeed, hazardPlan.speedLimit);
+      brakeSpeed = Math.min(brakeSpeed, hazardPlan.speedLimit);
+      wantsBoost = wantsBoost && state.speed < hazardPlan.speedLimit - 3;
+    }
+  }
+  const speed = Math.max(18, state.speed);
+  const sidewaysLoad =
+    -frame.curvature * speed * speed * 0.75 - 9.81 * frame.right.y;
   const targetSideways = clamp(
     laneDelta(state.lateral, targetLane) * 1.5,
     -laneSpeedLimit,
@@ -406,6 +435,9 @@ export function createRacers({
         id: runtime.id,
         version: runtime.version,
         rulesId: runtime.rulesId,
+        ...(runtime.aiRulesId === undefined
+          ? {}
+          : { aiRulesId: runtime.aiRulesId }),
       },
     })),
   };

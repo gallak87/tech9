@@ -1,10 +1,9 @@
 import { createFlightModel } from '../../physics/flight.js';
 import { createScenarioDescriptors } from '../../core/scenarios.js';
+import { createColossusHazardPlanner, COLOSSUS_AI_RULES } from './avoidance.js';
 import {
   sampleCrossfeed,
-  samplePress,
   PRESS_RULES,
-  sampleEjector,
   EJECTOR_RULES,
   CROSSFEED_RULES,
 } from './mechanics.js';
@@ -21,7 +20,7 @@ export const COLOSSUS_FLIGHT_RULES = Object.freeze({
 const model = createFlightModel(COLOSSUS_FLIGHT_RULES);
 export function createColossusRuntime(context) {
   const { track } = context;
-  let currentState = null;
+  const aiHazardPlan = createColossusHazardPlanner(track);
   let contact = null;
   let lastContactTime = -Infinity;
   let disposed = false;
@@ -43,7 +42,6 @@ export function createColossusRuntime(context) {
         flight: model.rules,
       }),
     groundOptions: ({ state }) => {
-      currentState = state;
       const belt = sampleCrossfeed(
         track,
         state.distance,
@@ -64,7 +62,6 @@ export function createColossusRuntime(context) {
   // Read the solved grounded pose, so flying over a belt never shakes the
   // camera. The tread phase comes from the same clock as the moving plates.
   function conveyorContact(state, events) {
-    currentState = state;
     const belt =
       runtime.pose(1)?.grounded === false
         ? null
@@ -143,7 +140,6 @@ export function createColossusRuntime(context) {
     reset(args) {
       contact = null;
       lastContactTime = -Infinity;
-      currentState = args.state;
       context.dynamics?.setMachineTime?.(args.state.time ?? 0);
       runtime.reset(args);
     },
@@ -152,38 +148,7 @@ export function createColossusRuntime(context) {
       contact = null;
       runtime.dispose();
     },
-    avoidance() {
-      const state = currentState;
-      if (!state) return null;
-      const distance =
-        ((state.distance % track.length) + track.length) % track.length;
-      const ejector = track.ejectors.find(
-        (e) => e.distance - distance > -35 && e.distance - distance < 260,
-      );
-      if (ejector) {
-        const arrival =
-          state.time +
-          Math.max(0, ejector.distance - distance) / Math.max(40, state.speed);
-        const cycle = sampleEjector(arrival, ejector);
-        // Pass behind a moving head. On approach, bias towards its departure side.
-        if (cycle.warning || cycle.striking) return -ejector.side * 24;
-        if (cycle.extension > 0.3) return -ejector.side * 22;
-      }
-      const press = track.presses.find(
-        (p) => p.distance - distance > -30 && p.distance - distance < 220,
-      );
-      if (press) {
-        const arrival =
-          state.time +
-          Math.max(0, press.distance - distance) / Math.max(40, state.speed);
-        const sample = samplePress(arrival, press);
-        if (sample.warning || sample.closure > 0.2)
-          return -Math.sign(press.lateral) * 16;
-      }
-      const belt = track.belts.find(
-        (b) => distance >= b.start - 130 && distance <= b.end,
-      );
-      return belt ? -belt.side * 19 : null;
-    },
+    aiHazardPlan,
+    aiRulesId: JSON.stringify(COLOSSUS_AI_RULES),
   };
 }

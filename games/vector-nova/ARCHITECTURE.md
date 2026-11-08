@@ -348,6 +348,8 @@ Colossus owns a compact 9.46 km closed working-channel surface. Its steel triang
 
 Three press heads and two opposing ejectors are massive actors in the shared query world. A versioned machine clock drives visual and physical poses, including pause/reset/replay. The ejector head traverses the open bed, rises clear, then returns; recovery keeps the shared 1.5-second fall delay. Reduced motion freezes decorative drives and counterweights but preserves hazard timing. Four crossfeed belts remain level-local surface forces.
 
+Colossus rivals anticipate those nine cached hazard intervals from current speed, actual chassis bounds and available lane-change time. The CPU-only `aiHazardPlan` forecasts press clearance and the ejector's full low-head sweep, chooses a nearby safe lane, retains the earliest hazard through tail clearance and requests ordinary braking when needed. The planner stops before authored jump alignment; the shared driver retains traffic braking on the final safe lane. Other levels keep their existing avoidance path. No geometry queries, render passes, player handling changes or hazard immunity are added; the static planning policy joins only competitive field identity.
+
 Colossus opts into `track.deviceProjection = 'rendered-surface'`. Pickup hardware clips its track-space footprints against the actual indexed `roadSurface` triangles and borrows their transforms, rather than fitting a flat swept approximation above the shoulders. Existing planar consumers retain their projector. Finish paint uses the opted-in `sampleSurface` at each tile corner. Both are presentation-only and keep device contact footprints and checkpoint timing unchanged.
 
 ### Career completion and Encore

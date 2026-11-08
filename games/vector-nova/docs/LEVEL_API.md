@@ -108,6 +108,8 @@ Device wrappers expose `observePresentation({ events(batch), reset() })`, return
 
 AI snapshots are temporary test state captured and restored within the same build. Validate their contents and course/ship identity; AI behavior has no version counter, and difficulty tuning requires no compatibility migration.
 
+Motion adapters may opt into `aiHazardPlan(state, { laneSpeedLimit, braking })`, returning `null` or a read-only `{ lane, speedLimit? }` with a finite lane and an optional positive finite speed limit. Device wrappers forward this hook only when supplied. It requests ordinary steering/braking through the shared driver; it never moves an actor or changes hazard forces. Preserve mandatory jump alignment and traffic braking on the final chosen lane. Other circuits retain their existing scalar `avoidance()` behavior. An optional `aiRulesId` describes the static planning policy in competitive field identity without changing player motion or solo Time Trial identity.
+
 The wrapper preserves local scenarios and adds device approach scenarios. Snapshots retain device fields at the top level and the complete custom adapter under `motion`; identity includes the motion rules and layout. Optional `racing.identity` supplies a deliberately preserved compatibility identity (used by Halcyon), and `racing.scenarios` can add diagnostic setups. All production circuits, including Nacre, require this shared system.
 
 ## Rendering and camera options

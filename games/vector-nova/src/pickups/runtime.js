@@ -188,6 +188,12 @@ export function createDeviceRuntime({
       : {}),
     avoidance: () =>
       combat?.avoidance(combatId) ?? motion.avoidance?.() ?? null,
+    ...(typeof motion.aiHazardPlan === 'function'
+      ? {
+          aiHazardPlan: (state, options) => motion.aiHazardPlan(state, options),
+          aiRulesId: motion.aiRulesId,
+        }
+      : {}),
     scenarios: { ...motion.scenarios, ...deviceScenarios, ...scenarios },
     setEnabled(value) {
       if (enabled === Boolean(value)) return;

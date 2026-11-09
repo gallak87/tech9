@@ -28,6 +28,8 @@
   line-height: 1.2;
   font-weight: 750;
   letter-spacing: -0.04em;
+  text-shadow: 0 0 calc(var(--fs-score-glow, 0) * 20px)
+    var(--fs-grade-color, #8ff5c4);
 }
 .fs-score > small {
   font-size: 10px;
@@ -83,6 +85,107 @@
 .fs-transfer {
   font-size: 17px;
   margin: 5px 0 0;
+}
+.fs-air {
+  margin-top: 13px;
+  padding-top: 10px;
+  border-top: 1px solid #8dd6ef30;
+}
+.fs-air-score {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  color: #a5e5f5;
+}
+.fs-air-score > span {
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  color: #9abcc8;
+}
+.fs-air-score > strong {
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: -0.025em;
+}
+.fs-charge {
+  margin-top: 8px;
+}
+.fs-charge > span {
+  display: block;
+  font-size: 10px;
+  margin-bottom: 5px;
+  color: #b9d4dc;
+}
+.fs-charge > i {
+  display: block;
+  height: 5px;
+  overflow: hidden;
+  background: #bddbe012;
+  border-radius: 1px;
+}
+.fs-charge b {
+  display: block;
+  height: 100%;
+  transform-origin: left;
+  background: linear-gradient(90deg, #4e98a9, #8edfed 75%, #d5fff6);
+  box-shadow: 0 0 8px #a5e5f580;
+}
+.freestyle-payoff {
+  --fs-grade-color: #8ff5c4;
+  position: absolute;
+  z-index: 6;
+  top: 30%;
+  left: 50%;
+  display: grid;
+  justify-items: center;
+  pointer-events: none;
+  color: var(--fs-grade-color);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  text-shadow:
+    0 2px 10px #000d,
+    0 0 22px #0009;
+  transform: translate(-50%, calc((1 - var(--fs-payoff-entrance, 1)) * 12px));
+}
+.freestyle-payoff[hidden],
+.freestyle-payoff [hidden] {
+  display: none;
+}
+.fs-grade {
+  font-size: clamp(30px, 3.4vw, 52px);
+  font-weight: 850;
+  font-style: italic;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+.fs-bank-points {
+  font-size: clamp(32px, 3.5vw, 56px);
+  font-weight: 800;
+  letter-spacing: -0.055em;
+  line-height: 1.1;
+  transform: translate(
+      calc(var(--fs-payoff-sweep, 0) * var(--fs-bank-dx, -45px)),
+      calc(var(--fs-payoff-sweep, 0) * var(--fs-bank-dy, -18px))
+    )
+    scale(calc(1 - var(--fs-payoff-sweep, 0) * 0.6));
+}
+.fs-bank-label {
+  margin-top: 6px;
+  color: #e0e8e8;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.2em;
+}
+.freestyle-payoff[data-grade='perfect'] .fs-grade {
+  color: #fff3d5;
+  text-shadow:
+    0 2px 10px #000d,
+    0 0 20px #ffe3a055;
+}
+.freestyle-payoff[data-grade='miss'] .fs-grade {
+  font-size: clamp(24px, 2.8vw, 40px);
 }
 .fs-diagnostics {
   margin-top: 12px;

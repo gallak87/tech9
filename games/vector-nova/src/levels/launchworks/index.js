@@ -9,18 +9,18 @@ import { createLaunchworksDevices } from './devices.js';
 import { createZephyrBackdrop } from '../zephyr/backdrop/index.js';
 import { collectProductionSolids } from '../../physics/production-solids.js';
 import { createFreestyleOverlay } from '../../freestyle/overlay.js';
+import { createFreestyleCatchVfx } from '../../freestyle/catch-vfx.js';
+import { createFreestyleAudio } from '../../freestyle/audio.js';
 import { RACE_SAMPLES } from '../../audio/sample-cues.js';
-import { DEVICE_SAMPLES } from '../../pickups/sample-cues.js';
 
 export default function createLevel() {
+  let catchVfx = null;
   return {
     version: '0.5.0-skywell-freestyle-pilot',
     freestyle: true,
     audio: {
-      samples: {
-        ...RACE_SAMPLES,
-        'freestyle-bank': DEVICE_SAMPLES['jump-land'],
-      },
+      samples: RACE_SAMPLES,
+      environment: createFreestyleAudio,
     },
     renderer: {
       world: 'zephyr-basilica',
@@ -38,10 +38,48 @@ export default function createLevel() {
       flightViewScale: 1.06,
     },
     createTrack: createLaunchworksTrack,
-    createRoad: createLaunchworksRoad,
+    createRoad(context) {
+      const road = createLaunchworksRoad(context);
+      if (context.shape) return road;
+      let effect;
+      try {
+        effect = createFreestyleCatchVfx(context);
+        catchVfx = effect;
+        road.group.add(effect.group);
+      } catch (error) {
+        road.dispose();
+        throw error;
+      }
+      return {
+        ...road,
+        update(frame) {
+          road.update?.(frame);
+          effect.update(frame);
+        },
+        reset() {
+          road.reset?.();
+          effect.reset();
+        },
+        dispose() {
+          effect.group.removeFromParent();
+          effect.dispose();
+          if (catchVfx === effect) catchVfx = null;
+          road.dispose();
+        },
+      };
+    },
     createEnvironment: createLaunchworksEnvironment,
     createBackdrop: createZephyrBackdrop,
-    createOverlay: createFreestyleOverlay,
+    createOverlay(context) {
+      const overlay = createFreestyleOverlay(context);
+      return {
+        ...overlay,
+        getPresentation: () => ({
+          ...overlay.getPresentation?.(),
+          freestyleCatch: catchVfx?.getPresentation(),
+        }),
+      };
+    },
     createCollisionWorld: ({ track }) =>
       collectProductionSolids({
         track,

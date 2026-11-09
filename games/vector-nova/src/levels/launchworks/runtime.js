@@ -56,13 +56,19 @@ export function createLaunchworksRuntime(context) {
       surfaceLanding: true,
     },
   );
-  let incoming = null;
+  let incoming = null,
+    trickEvents = null;
   function before(state, input, dt) {
     incoming = { pose: motion.pose(1), flight: motion.snapshot().flight };
-    controller.step(input, dt);
+    trickEvents = controller.step(input, dt);
     return input;
   }
   function finish(state, events) {
+    if (trickEvents) {
+      for (const payload of trickEvents)
+        events.push({ type: 'freestyle-trick', payload });
+      trickEvents = null;
+    }
     for (const e of events) {
       if (e.type === 'jump-launch') {
         const interrupted = controller.launch(e.payload.id);
@@ -138,6 +144,7 @@ export function createLaunchworksRuntime(context) {
   const runtime = {
     ...motion,
     reset(options = {}) {
+      trickEvents = null;
       motion.reset(options);
       if (options.reason === 'manual-recover') controller.invalidate();
       else {
@@ -205,6 +212,7 @@ export function createLaunchworksRuntime(context) {
       return { ...frame, freestyle };
     },
     restore(data, options) {
+      trickEvents = null;
       motion.restore(data, options);
       controller.restore(data.freestyle);
       incoming = null;

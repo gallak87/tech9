@@ -1,6 +1,7 @@
 import { TRICKS } from './controller.js';
 import { controllerLayout } from '../input/gamepad.js';
 import { freestyleAttitudeCue, freestyleLaunchSpeed } from './feedback.js';
+import { createFreestyleArcade, FREESTYLE_GRADES } from './arcade.js';
 
 export function createFreestyleOverlay({
   host,
@@ -15,18 +16,33 @@ export function createFreestyleOverlay({
   root.innerHTML =
     '<div class="fs-score"><span>FREESTYLE</span><strong>0</strong><small>CHAIN <b>—</b></small></div><div class="fs-links" aria-label="Transfer chain">' +
     track.jumps.map((_, i) => `<i>${i + 1}</i>`).join('') +
-    '</div><div class="fs-flight"><span class="fs-phase"></span><h3 class="fs-transfer"></h3><strong class="fs-trick" hidden></strong><small class="fs-last" hidden></small></div>' +
+    '</div><div class="fs-flight"><span class="fs-phase"></span><h3 class="fs-transfer"></h3><div class="fs-air" hidden><div class="fs-air-score"><span>AIR SCORE</span><strong>0</strong></div><div class="fs-charge" hidden><span></span><i><b></b></i></div></div><strong class="fs-trick" hidden></strong><small class="fs-last" hidden></small></div>' +
     (showDiagnostics
       ? '<div class="fs-diagnostics"><p class="fs-approach"></p><p class="fs-receiver"></p><small class="fs-speed"></small><small class="fs-alignment"></small><div class="fs-rotation" aria-label="Rotation speed"><i></i></div><p class="fs-catch"></p><div class="fs-controls"><span><b>← / →</b>ROLL</span><span><b>↑ / ↓</b>FLIP</span><span><b>Q / E</b>FLAT SPIN</span><span class="fs-brake"><b>SPACE</b>BRAKE / FINE TRIM</span></div></div>'
       : '');
   host.append(root);
+  const payoffRoot = document.createElement('div');
+  payoffRoot.className = 'freestyle-payoff';
+  payoffRoot.hidden = true;
+  payoffRoot.innerHTML =
+    '<span class="fs-grade"></span><strong class="fs-bank-points"></strong><small class="fs-bank-label"></small>';
+  host.append(payoffRoot);
+  const arcade = createFreestyleArcade();
   const score = root.querySelector('.fs-score>strong'),
     modeLabel = root.querySelector('.fs-score>span'),
     chain = root.querySelector('.fs-score small b'),
     phase = root.querySelector('.fs-phase'),
     transferName = root.querySelector('.fs-transfer'),
     trick = root.querySelector('.fs-trick'),
-    last = root.querySelector('.fs-last');
+    last = root.querySelector('.fs-last'),
+    air = root.querySelector('.fs-air'),
+    airScore = root.querySelector('.fs-air-score strong'),
+    charge = root.querySelector('.fs-charge'),
+    chargeLabel = root.querySelector('.fs-charge span'),
+    chargeFill = root.querySelector('.fs-charge b'),
+    grade = payoffRoot.querySelector('.fs-grade'),
+    bankPoints = payoffRoot.querySelector('.fs-bank-points'),
+    bankLabel = payoffRoot.querySelector('.fs-bank-label');
   const links = [...root.querySelectorAll('.fs-links i')];
   const diagnostics = showDiagnostics
     ? {
@@ -182,8 +198,18 @@ export function createFreestyleOverlay({
       updatePractice(frame);
       root.hidden = !['racing', 'countdown'].includes(frame.mode);
       const data = frame.motion?.motion?.freestyle ?? frame.motion?.freestyle;
-      if (!data) return;
-      score.textContent = data.score.toLocaleString();
+      if (!data) {
+        payoffRoot.hidden = true;
+        return;
+      }
+      const reducedMotion = !!frame.settings?.reducedMotion;
+      const presentation = arcade.update(data, {
+        running: frame.mode === 'racing',
+        reducedMotion,
+        session: frame.freestylePractice?.id ?? 'full-run',
+      });
+      score.textContent = presentation.score.toLocaleString();
+      root.dataset.reducedMotion = String(reducedMotion);
       modeLabel.textContent = frame.freestylePractice
         ? 'PRACTICE / UNRANKED'
         : 'FREESTYLE';
@@ -226,12 +252,56 @@ export function createFreestyleOverlay({
             ? 'FINISH'
             : `TRANSFER ${index + 1} / ${track.jumps.length}`;
       transferName.textContent = finishedTransfers ? 'Finish' : jump.label;
-      trick.textContent =
-        airborne && !data.flight.failed
-          ? (data.active ??
-            data.flight.tricks.map((kind) => TRICKS[kind].name).join(' + '))
-          : '';
+      air.hidden = !(settling || (airborne && !data.flight.failed));
+      airScore.textContent = presentation.airScore.toLocaleString();
+      charge.hidden = !presentation.charge;
+      if (presentation.charge) {
+        chargeLabel.textContent = TRICKS[presentation.charge.kind].name;
+        chargeFill.style.transform = `scaleX(${presentation.charge.progress})`;
+      }
+      const callout = presentation.callout;
+      trick.textContent = callout
+        ? `${callout.label}  +${Math.round(callout.points).toLocaleString()}`
+        : '';
       trick.hidden = !trick.textContent;
+      trick.style.opacity = callout
+        ? Math.min(1, (1.45 - callout.age) / 0.3)
+        : 0;
+      trick.style.transform = `translateY(${callout && !reducedMotion ? -Math.max(0, 1 - callout.age / 0.18) * 5 : 0}px)`;
+      const payoff = presentation.payoff;
+      payoffRoot.hidden = root.hidden || !payoff;
+      if (payoff) {
+        const theme = FREESTYLE_GRADES[payoff.grade];
+        root.style.setProperty('--fs-grade-color', theme.color);
+        root.style.setProperty(
+          '--fs-score-glow',
+          payoff.sweep * (1 - payoff.sweep) * 4,
+        );
+        payoffRoot.style.setProperty('--fs-grade-color', theme.color);
+        payoffRoot.style.setProperty('--fs-payoff-entrance', payoff.entrance);
+        payoffRoot.style.setProperty('--fs-payoff-sweep', payoff.sweep);
+        payoffRoot.style.opacity = payoff.opacity;
+        payoffRoot.dataset.grade = payoff.grade;
+        grade.textContent = theme.label;
+        bankPoints.textContent = `+${payoff.points.toLocaleString()}`;
+        bankPoints.hidden =
+          !payoff.bank || (payoff.points === 0 && payoff.age > 0.22);
+        bankLabel.textContent = payoff.bank
+          ? `BANKED${payoff.chain > 1 ? ` ×${payoff.chain}` : ''}`
+          : 'CHAIN BROKEN';
+        if (payoff.age === 0 && !reducedMotion && !root.hidden && payoff.bank) {
+          const target = score.getBoundingClientRect();
+          const source = bankPoints.getBoundingClientRect();
+          payoffRoot.style.setProperty(
+            '--fs-bank-dx',
+            `${target.left + target.width / 2 - source.left - source.width / 2}px`,
+          );
+          payoffRoot.style.setProperty(
+            '--fs-bank-dy',
+            `${target.top + target.height / 2 - source.top - source.height / 2}px`,
+          );
+        }
+      } else root.style.setProperty('--fs-score-glow', 0);
       const leg = data.legs.at(-1);
       last.textContent = settling
         ? 'Touchdown'
@@ -252,6 +322,7 @@ export function createFreestyleOverlay({
       controller.abort();
       practice?.remove();
       root.remove();
+      payoffRoot.remove();
     },
   };
 }

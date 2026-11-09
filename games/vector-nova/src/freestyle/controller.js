@@ -1,6 +1,7 @@
 import * as T from 'three';
 
 import { FREESTYLE_RULES, TRICKS } from './rules.js';
+import { freestyleStylePoints } from './arcade.js';
 export { FREESTYLE_RULES, TRICKS } from './rules.js';
 const clamp = T.MathUtils.clamp;
 
@@ -104,11 +105,15 @@ export function createFreestyleController({ track }) {
         invalid: data.invalid,
         braceAt: data.braceAt,
         angular: [...data.angular],
+        progress: [...data.progress],
+        compoundProgress: data.compoundProgress,
         pendingLanding: data.pendingLanding
           ? {
               id: data.pendingLanding.id,
               label: data.pendingLanding.label,
               elapsed: data.pendingLanding.elapsed,
+              style: data.pendingLanding.style,
+              tricks: [...data.pendingLanding.tricks],
             }
           : null,
         active: names.length ? names.join(' + ') : null,
@@ -141,7 +146,8 @@ export function createFreestyleController({ track }) {
       const brace = !!input.airbrake;
       if (brace && !data.catchDown && data.flight) data.braceAt = data.clock;
       data.catchDown = brace;
-      if (!data.flight || data.flight.failed || data.result) return;
+      if (!data.flight || data.flight.failed || data.result) return null;
+      let recognized = null;
       const controls = [
         input.aerialPitch ?? 0,
         input.aerialYaw ?? 0,
@@ -197,6 +203,11 @@ export function createFreestyleController({ track }) {
         data.compoundProgress += speed * dt;
         if (data.compoundProgress >= 2 * Math.PI - 0.15) {
           data.flight.tricks.push('corkscrew');
+          (recognized ??= []).push({
+            id: data.flight.id,
+            kind: 'corkscrew',
+            ordinal: data.flight.tricks.length,
+          });
           data.compoundProgress -= 2 * Math.PI;
           data.progress = [0, 0, 0];
         }
@@ -214,8 +225,14 @@ export function createFreestyleController({ track }) {
         if (!compound && data.progress[i] >= 2 * Math.PI - 0.15) {
           data.progress[i] -= 2 * Math.PI;
           data.flight.tricks.push(['flip', 'spin', 'roll'][i]);
+          (recognized ??= []).push({
+            id: data.flight.id,
+            kind: ['flip', 'spin', 'roll'][i],
+            ordinal: data.flight.tricks.length,
+          });
         }
       }
+      return recognized;
     },
     attitude(target) {
       target.multiply(new T.Quaternion().fromArray(data.orientation));
@@ -302,13 +319,7 @@ export function createFreestyleController({ track }) {
         Math.abs(along) < (jump.precisionLength ?? 150) &&
         Math.abs(velocity.dot(frame.up)) < 38 &&
         timed;
-      const style = data.flight.tricks.reduce(
-        (sum, kind, i, all) =>
-          sum +
-          TRICKS[kind].points *
-            0.5 ** all.slice(0, i).filter((k) => k === kind).length,
-        0,
-      );
+      const style = freestyleStylePoints(data.flight.tricks);
       data.pendingLanding = {
         id: jump.id,
         label: jump.label ?? jump.id,

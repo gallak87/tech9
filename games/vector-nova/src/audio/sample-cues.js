@@ -153,8 +153,6 @@ export function raceSample(event) {
         ? { id, gain: 0.88 }
         : null;
     }
-    case 'freestyle-bank':
-      return event.payload?.clean ? { id: 'freestyle-bank', gain: 0.65 } : null;
     case 'eliminator-cut':
       return event.payload?.id === 'player'
         ? null

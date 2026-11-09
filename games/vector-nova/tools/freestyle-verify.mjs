@@ -1,5 +1,9 @@
 import assert from 'node:assert/strict';
 import {
+  freestyleLandingGrade,
+  FREESTYLE_GRADES,
+} from '../src/freestyle/arcade.js';
+import {
   launchVerificationBrowser,
   collectPageErrors,
 } from './verification-browser.mjs';
@@ -35,7 +39,8 @@ await page.addInitScript((values) => {
   for (const [key, value] of values) localStorage.setItem(key, value);
   localStorage.setItem(
     'vector-nova.settings',
-    JSON.stringify({ quality: 'low', volume: 0 }),
+    // Chromium is host-muted; an enabled effects mix still exercises real cues.
+    JSON.stringify({ quality: 'low', volume: 0.35 }),
   );
 }, seed);
 // Fixed ticks still run the live native session with bounded normalized input.
@@ -67,6 +72,13 @@ await page.route('**/src/core/game.js*', async (route) => {
 const read = () => page.evaluate(() => window.__VN.getSnapshot());
 const motion = (snapshot) =>
   snapshot.runtime.state.motion ?? snapshot.runtime.state;
+const renderFrame = () =>
+  page.evaluate(
+    () =>
+      new Promise((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(resolve)),
+      ),
+  );
 async function padButton(index) {
   await page.evaluate((i) => {
     window.__testPad.buttons[i] = { pressed: true, value: 1 };
@@ -137,7 +149,10 @@ try {
     { timeout: 90000 },
   );
   await page.waitForFunction(() => window.__VN.getSnapshot().mode === 'racing');
+  await renderFrame();
   const boot = await read();
+  assert.equal(boot.environment.audio.audible, true);
+  assert.equal(boot.environment.thunder.type, 'freestyle');
   assert.equal(boot.track.name, 'Zephyr Skywell');
   assert.equal(motion(boot).equipment, undefined);
   assert.equal(await page.locator('.equipment-hud').count(), 0);
@@ -240,6 +255,56 @@ try {
         Math.hypot(...motion(turned).flight.angularVelocity) > 0.1,
         'held axes turn the actual native hull',
       );
+    if (
+      input.aerialRoll === 1 &&
+      input.aerialPitch === -1 &&
+      input.aerialYaw === 1
+    ) {
+      await renderFrame();
+      assert.equal(await page.locator('.fs-air').isVisible(), true);
+      assert.equal(await page.locator('.fs-charge').isVisible(), true);
+      assert.match(
+        await page.locator('.fs-air-score').innerText(),
+        /AIR SCORE/,
+      );
+      const charge = await page
+        .locator('.fs-charge b')
+        .evaluate((node) =>
+          Number(node.style.transform.match(/scaleX\(([^)]+)\)/)?.[1]),
+        );
+      assert.ok(
+        charge > 0 && charge <= 1,
+        'a real partial turn fills the rotation charge',
+      );
+      const completed = await page.evaluate(
+        (control) => window.__VN.stepFreestyle(180, control),
+        input,
+      );
+      assert.ok(
+        motion(completed).freestyle.flight?.tricks.length > 0,
+        'held compound rotation completes a real trick',
+      );
+      assert.ok(
+        completed.events.some((event) => event.type === 'freestyle-trick'),
+      );
+      await renderFrame();
+      assert.ok(
+        Number(
+          (await page.locator('.fs-air-score strong').innerText()).replaceAll(
+            ',',
+            '',
+          ),
+        ) > 0,
+      );
+      assert.match(
+        await page.locator('.fs-trick').innerText(),
+        /Corkscrew.*\+/,
+      );
+      assert.equal(
+        (await read()).environment.thunder.lastCue,
+        'trick:corkscrew',
+      );
+    }
     for (const key of keys) await page.keyboard.up(key);
   }
   console.log(
@@ -300,12 +365,38 @@ try {
     window.__VN.restart();
     window.__VN.stepFreestyle(1, window.__fsPilot);
   });
-  for (let i = 0; i < 8; i++) {
+  let observedBanks = 0;
+  for (let i = 0; i < 320; i++) {
     snapshot = await page.evaluate(() =>
-      window.__VN.stepFreestyle(1200, window.__fsPilot),
+      window.__VN.stepFreestyle(30, window.__fsPilot),
     );
+    const legs = motion(snapshot).freestyle.legs;
+    if (legs.length > observedBanks) {
+      observedBanks = legs.length;
+      const leg = legs.at(-1);
+      const grade = freestyleLandingGrade(leg);
+      await renderFrame();
+      assert.equal(
+        await page.locator('.fs-grade').textContent(),
+        FREESTYLE_GRADES[grade].label,
+      );
+      assert.equal(
+        await page.locator('.freestyle-payoff').isVisible(),
+        true,
+        'a real full-run bank shows its grade and score payoff',
+      );
+      const presented = await read();
+      assert.equal(presented.environment.freestyleCatch.grade, grade);
+      assert.equal(presented.environment.freestyleCatch.contactId, leg.id);
+      assert.equal(presented.environment.thunder.lastGrade, grade);
+    }
     if (motion(snapshot).freestyle.result) break;
   }
+  assert.equal(
+    observedBanks,
+    5,
+    'all five real bank grades reach the public HUD, VFX and audio',
+  );
   const result = motion(snapshot).freestyle.result;
   assert.ok(result, 'native full run must reach the finish');
   assert.equal(result.landed, 5);
@@ -554,6 +645,17 @@ try {
   await page.keyboard.press('KeyR');
   assert.equal((await read()).freestylePractice.id, 'transfer-4');
   await flyToLip();
+  await renderFrame();
+  assert.equal(
+    (await read()).environment.freestyleCatch.visible,
+    false,
+    'retry clears the previous landing effect',
+  );
+  assert.equal(
+    (await read()).environment.thunder.activeVoices,
+    0,
+    'retry has no old landing voices',
+  );
   // Deliberate gesture: hold a right line, roll right550ms, trim400ms, then settle.
   // No receiver quaternion, future contact or controller steers this gesture.
   await page.keyboard.down('KeyW');
@@ -565,10 +667,28 @@ try {
   await heldTicks(48);
   await page.keyboard.up('ArrowRight');
   await page.keyboard.up('KeyD');
-  for (let i = 0; i < 20; i++) {
-    snapshot = await heldTicks(60);
+  let observedContact = false;
+  for (let i = 0; i < 100; i++) {
+    snapshot = await heldTicks(12);
+    if (motion(snapshot).freestyle.pendingLanding && !observedContact) {
+      observedContact = true;
+      await renderFrame();
+      const effect = (await read()).environment.freestyleCatch;
+      assert.equal(effect.contactId, 'transfer-4');
+      assert.equal(effect.visible, true);
+      assert.equal(
+        effect.grade,
+        null,
+        'contact-only seating does not invent a landing grade',
+      );
+    }
     if (snapshot.freestylePractice.outcome) break;
   }
+  assert.equal(
+    observedContact,
+    true,
+    'the held-key gesture reaches genuine pending contact before grading',
+  );
   await page.keyboard.up('Space');
   await page.keyboard.up('KeyW');
   assert.equal(
@@ -576,8 +696,26 @@ try {
     true,
     `a deliberate keyboard roll and brake trim catches the opposing bank: ${JSON.stringify(snapshot.freestylePractice.outcome)}`,
   );
+  await renderFrame();
+  const landed = motion(snapshot).freestyle.legs.at(-1);
+  const landedGrade = freestyleLandingGrade(landed);
+  assert.equal(
+    await page.locator('.fs-grade').textContent(),
+    FREESTYLE_GRADES[landedGrade].label,
+  );
+  assert.equal((await read()).environment.freestyleCatch.grade, landedGrade);
+  assert.equal(
+    (await read()).environment.thunder.activeVoices,
+    0,
+    'practice pause stops landing voices',
+  );
+  assert.equal(
+    await page.locator('.freestyle-payoff').isVisible(),
+    false,
+    'pause keeps the score payoff behind its menu',
+  );
   console.log(
-    `PASS · failed keyboard practice (${missed}), launch feedback, R retry and credited held-key bank`,
+    `PASS · failed keyboard practice (${missed}), launch feedback, R retry, real contact-only seating and ${landedGrade} catch`,
   );
   assert.deepEqual(
     await page.evaluate(() =>

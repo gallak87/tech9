@@ -4,6 +4,7 @@ import { vehicleHandling } from '../ships/catalog.js';
 import { createCupFinish } from './cup-finish.js';
 import { finishFreestyle } from '../freestyle/records.js';
 import { freestylePracticeOutcome } from '../freestyle/feedback.js';
+import { withFreestyleCatchFeedback } from '../freestyle/catch-feedback.js';
 import { createRaceGrid, RACE_ORDER } from '../race/roster.js';
 import { createEliminatorEvent } from '../events/eliminator.js';
 import { createEliminatorPresentation } from '../events/eliminator-view.js';
@@ -2021,7 +2022,7 @@ export async function createGame({
         mode !== 'fly' && (mode !== 'inspection' || inspectionTab === 'fleet');
       const motionFeedback = readRuntimeFrame(runtime) ?? {};
       const thermal = motionFeedback.motion ?? motionFeedback;
-      const feedback = raceFeedback.update({
+      let feedback = raceFeedback.update({
         state: s,
         mode,
         reducedMotion: settings.reducedMotion,
@@ -2033,6 +2034,12 @@ export async function createGame({
               ? 0.6
               : 0,
       });
+      if (freestyle)
+        feedback = withFreestyleCatchFeedback(
+          feedback,
+          motionFeedback.freestyle ?? motionFeedback.motion?.freestyle,
+          { reducedMotion: settings.reducedMotion, mode },
+        );
       if (mode === 'inspection') {
         if (inspectionPreview.autoRotate && !settings.reducedMotion)
           inspectionTime += dt;

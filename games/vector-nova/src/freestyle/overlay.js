@@ -392,7 +392,8 @@ export function createFreestyleOverlay({
           !payoff.bank || (payoff.points === 0 && payoff.age > 0.22);
         bankLabel.textContent = payoff.bank
           ? `BANKED${payoff.chain > 1 ? ` ×${payoff.chain}` : ''}`
-          : 'CHAIN BROKEN';
+          : '';
+        bankLabel.hidden = !payoff.bank;
         if (payoff.age === 0 && !reducedMotion && !root.hidden && payoff.bank) {
           const target = score.getBoundingClientRect();
           const source = bankPoints.getBoundingClientRect();

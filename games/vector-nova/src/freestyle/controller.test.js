@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as T from 'three';
 import { createFreestyleController, landingEstimate } from './controller.js';
+import { freestyleAirPoints } from './scoring.js';
 
 const track = {
   jumps: Array.from({ length: 5 }, (_, i) => ({
@@ -83,6 +84,107 @@ test('full rolls in both directions and multi-axis corkscrews are recognized wit
         .flight.tricks.includes(input.aerialPitch ? 'corkscrew' : 'roll'),
     );
   }
+});
+
+test('held partial rotations earn immediately and keep earning across direction changes without a full trick', () => {
+  const c = createFreestyleController({ track });
+  c.launch('jump-0');
+  let previous = 0;
+  for (let i = 0; i < 24; i++) {
+    assert.equal(c.step({ aerialRoll: 1 }, 1 / 120), null);
+    const current = c.snapshot().flight.rotationPoints;
+    assert.ok(current > previous);
+    previous = current;
+  }
+  assert.deepEqual(c.snapshot().flight.tricks, []);
+  assert.ok(c.snapshot().progress[2] < Math.PI);
+  steps(c, { aerialRoll: -1 }, 0.3);
+  assert.ok(c.snapshot().flight.rotationPoints > previous);
+  assert.ok(c.snapshot().angular[2] < 0);
+  assert.deepEqual(c.snapshot().flight.tricks, []);
+  assert.equal(c.snapshot().score, 0, 'airborne points remain provisional');
+});
+
+test('steady rotation rate scales with analog effort, stays bounded and slows during directional fine trim', () => {
+  const full = createFreestyleController({ track });
+  const half = createFreestyleController({ track });
+  const trim = createFreestyleController({ track });
+  for (const c of [full, half, trim]) c.launch('jump-0');
+  steps(full, { aerialRoll: 1 }, 2);
+  steps(half, { aerialRoll: 0.5 }, 2);
+  steps(trim, { aerialRoll: 1, airbrake: true }, 2);
+  const points = full.snapshot().flight.rotationPoints;
+  assert.ok(
+    Math.abs(half.snapshot().flight.rotationPoints * 2 - points) < 1e-9,
+  );
+  assert.ok(trim.snapshot().flight.rotationPoints < points * 0.4);
+  steps(full, { aerialRoll: 1 }, 1);
+  const steady = full.snapshot().flight.rotationPoints - points;
+  assert.ok(steady > 790 && steady <= 800);
+  const diagonal = createFreestyleController({ track });
+  diagonal.launch('jump-0');
+  steps(diagonal, { aerialPitch: 1, aerialYaw: 1, aerialRoll: 1 }, 2);
+  assert.ok(diagonal.snapshot().flight.rotationPoints <= 1600);
+});
+
+test('ground, coasting, brake-only, stopped simulation and failed flights cannot farm rotation points', () => {
+  const c = createFreestyleController({ track });
+  steps(c, { aerialRoll: 1 }, 1);
+  assert.equal(c.snapshot().flight, null);
+  assert.equal(c.snapshot().score, 0);
+  c.launch('jump-0');
+  steps(c, { airbrake: true }, 1);
+  assert.equal(c.snapshot().flight.rotationPoints, 0);
+  steps(c, { aerialRoll: 1 }, 0.2);
+  const points = c.snapshot().flight.rotationPoints;
+  c.step({}, 1 / 120);
+  assert.ok(c.snapshot().angular[2] > 0, 'the hull still physically coasts');
+  steps(c, {}, 0.5);
+  steps(c, { airbrake: true }, 0.2);
+  c.step({ aerialRoll: 1 }, 0);
+  assert.equal(c.snapshot().flight.rotationPoints, points);
+  c.fail();
+  steps(c, { aerialRoll: 1 }, 1);
+  assert.equal(c.snapshot().flight.rotationPoints, points);
+  c.launch('jump-1');
+  assert.equal(c.snapshot().flight.rotationPoints, 0);
+});
+
+test('continuous air points survive snapshots, freeze at touchdown and bank exactly once with trick bonuses', () => {
+  const a = createFreestyleController({ track });
+  a.launch('jump-0');
+  steps(a, { aerialRoll: 1 }, 2.4);
+  assert.ok(a.snapshot().flight.tricks.includes('roll'));
+  const b = createFreestyleController({ track });
+  b.restore(JSON.parse(JSON.stringify(a.snapshot())));
+  for (const c of [a, b]) steps(c, { aerialPitch: -0.5, aerialRoll: -1 }, 0.25);
+  assert.deepEqual(a.snapshot(), b.snapshot());
+  const expectedAir = freestyleAirPoints(a.snapshot());
+  assert.ok(expectedAir > 1000);
+  for (const c of [a, b]) {
+    const exposed = c.readFrame();
+    exposed.flight.rotationPoints = -1;
+    assert.equal(freestyleAirPoints(c.snapshot()), expectedAir);
+    c.land({
+      jump: track.jumps[0],
+      outcome: 'landed',
+      position: new T.Vector3(0, 0.72, 0),
+      quaternion: new T.Quaternion(),
+      velocity: new T.Vector3(0, 0, 145),
+      angularSpeed: 1.5,
+    });
+    assert.equal(c.snapshot().pendingLanding.style, expectedAir);
+    assert.equal(c.snapshot().score, 0);
+    steps(c, { aerialRoll: 1 }, 0.15);
+    assert.equal(c.snapshot().pendingLanding.style, expectedAir);
+    const leg = settle(c);
+    assert.equal(leg.bank, Math.round(expectedAir + 1000));
+    const banked = c.snapshot().score;
+    assert.equal(contact(c), null);
+    steps(c, { aerialRoll: 1 }, 0.2);
+    assert.equal(c.snapshot().score, banked);
+  }
+  assert.deepEqual(a.snapshot(), b.snapshot());
 });
 
 test('five clean geometric transfers grow a chain, bank only once each, and earn gold without mandatory tricks', () => {
@@ -306,6 +408,7 @@ test('settling snapshots replay exactly; held grounded axes cannot farm tricks, 
     velocity: new T.Vector3(0, 0, 145),
     angularSpeed: 1.5,
   });
+  const touchdownStyle = a.snapshot().pendingLanding.style;
   settle(a, {}, 0.1);
   const b = createFreestyleController({ track });
   b.restore(JSON.parse(JSON.stringify(a.snapshot())));
@@ -321,7 +424,7 @@ test('settling snapshots replay exactly; held grounded axes cannot farm tricks, 
     }
   assert.deepEqual(a.snapshot(), b.snapshot());
   assert.equal(a.snapshot().legs.length, 1);
-  assert.equal(a.snapshot().legs[0].bank, 1000);
+  assert.equal(a.snapshot().legs[0].bank, Math.round(1000 + touchdownStyle));
   assert.equal(a.snapshot().legs[0].perfect, false);
   assert.deepEqual(a.snapshot().legs[0].tricks, []);
   assert.equal(

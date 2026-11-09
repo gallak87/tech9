@@ -1,3 +1,5 @@
+import { Object3D, Vector3 } from 'three';
+import { createReadoutAnchor } from '../pickups/readout-anchor.js';
 import { TRICKS } from './controller.js';
 import { controllerLayout } from '../input/gamepad.js';
 import { freestyleAttitudeCue, freestyleLaunchSpeed } from './feedback.js';
@@ -6,6 +8,7 @@ import { createFreestyleArcade, FREESTYLE_GRADES } from './arcade.js';
 export function createFreestyleOverlay({
   host,
   track,
+  view,
   freestyleActions,
   developer = false,
 }) {
@@ -16,11 +19,33 @@ export function createFreestyleOverlay({
   root.innerHTML =
     '<div class="fs-score"><span>FREESTYLE</span><strong>0</strong><small>CHAIN <b>—</b></small></div><div class="fs-links" aria-label="Transfer chain">' +
     track.jumps.map((_, i) => `<i>${i + 1}</i>`).join('') +
-    '</div><div class="fs-flight"><span class="fs-phase"></span><h3 class="fs-transfer"></h3><div class="fs-air" hidden><div class="fs-air-score"><span>AIR SCORE</span><strong>0</strong></div><div class="fs-charge" hidden><span></span><i><b></b></i></div></div><strong class="fs-trick" hidden></strong><small class="fs-last" hidden></small></div>' +
+    '</div><div class="fs-flight"><span class="fs-phase"></span><h3 class="fs-transfer"></h3><small class="fs-last" hidden></small></div>' +
     (showDiagnostics
       ? '<div class="fs-diagnostics"><p class="fs-approach"></p><p class="fs-receiver"></p><small class="fs-speed"></small><small class="fs-alignment"></small><div class="fs-rotation" aria-label="Rotation speed"><i></i></div><p class="fs-catch"></p><div class="fs-controls"><span><b>← / →</b>ROLL</span><span><b>↑ / ↓</b>FLIP</span><span><b>Q / E</b>FLAT SPIN</span><span class="fs-brake"><b>SPACE</b>BRAKE / FINE TRIM</span></div></div>'
       : '');
   host.append(root);
+  const air = document.createElement('section');
+  air.className = 'freestyle-air-readout fs-air';
+  air.setAttribute('aria-label', 'Unbanked air score');
+  air.hidden = true;
+  air.innerHTML =
+    '<div class="fs-air-score"><span>AIR SCORE</span><strong>0</strong></div><div class="fs-charge" hidden><span></span><i><b></b></i></div><strong class="fs-trick" hidden></strong>';
+  host.append(air);
+  const viewportElement =
+    view?.renderer?.domElement ?? host.querySelector('canvas#world');
+  const readoutAnchor = createReadoutAnchor();
+  const viewAlignedAnchor = new Object3D();
+  const shipCentre = new Vector3();
+  const projectedCentre = new Vector3();
+  const airPresentation = {
+    visible: false,
+    x: null,
+    y: null,
+    shipX: null,
+    shipY: null,
+    width: null,
+    height: null,
+  };
   const payoffRoot = document.createElement('div');
   payoffRoot.className = 'freestyle-payoff';
   payoffRoot.hidden = true;
@@ -33,13 +58,12 @@ export function createFreestyleOverlay({
     chain = root.querySelector('.fs-score small b'),
     phase = root.querySelector('.fs-phase'),
     transferName = root.querySelector('.fs-transfer'),
-    trick = root.querySelector('.fs-trick'),
+    trick = air.querySelector('.fs-trick'),
     last = root.querySelector('.fs-last'),
-    air = root.querySelector('.fs-air'),
-    airScore = root.querySelector('.fs-air-score strong'),
-    charge = root.querySelector('.fs-charge'),
-    chargeLabel = root.querySelector('.fs-charge span'),
-    chargeFill = root.querySelector('.fs-charge b'),
+    airScore = air.querySelector('.fs-air-score strong'),
+    charge = air.querySelector('.fs-charge'),
+    chargeLabel = air.querySelector('.fs-charge span'),
+    chargeFill = air.querySelector('.fs-charge b'),
     grade = payoffRoot.querySelector('.fs-grade'),
     bankPoints = payoffRoot.querySelector('.fs-bank-points'),
     bankLabel = payoffRoot.querySelector('.fs-bank-label');
@@ -193,12 +217,89 @@ export function createFreestyleOverlay({
           })
         : '';
   }
+  function hideAirReadout() {
+    air.hidden = true;
+    readoutAnchor.reset();
+    airPresentation.visible = false;
+    airPresentation.x = airPresentation.y = null;
+    airPresentation.shipX = airPresentation.shipY = null;
+  }
+  function positionAirReadout(frame, active) {
+    if (
+      !active ||
+      frame.mode !== 'racing' ||
+      !frame.ship?.group ||
+      !frame.camera
+    ) {
+      hideAirReadout();
+      return;
+    }
+    const viewport = viewportElement?.getBoundingClientRect();
+    if (!viewport?.width || !viewport.height) {
+      hideAirReadout();
+      return;
+    }
+    frame.camera.updateWorldMatrix(true, false);
+    frame.ship.group.getWorldPosition(shipCentre);
+    projectedCentre.copy(shipCentre).project(frame.camera);
+    if (
+      projectedCentre.z < -1 ||
+      projectedCentre.z > 1 ||
+      Math.abs(projectedCentre.x) > 1 ||
+      Math.abs(projectedCentre.y) > 1
+    ) {
+      hideAirReadout();
+      return;
+    }
+    // Reuse the pickup readout's filtered screen anchor. Its lift is aligned
+    // with the view, so an inverted hull never swings the score below itself.
+    viewAlignedAnchor.position.copy(shipCentre);
+    frame.camera.getWorldQuaternion(viewAlignedAnchor.quaternion);
+    viewAlignedAnchor.updateWorldMatrix(false, false);
+    const anchor = readoutAnchor.update({
+      ship: viewAlignedAnchor,
+      camera: frame.camera,
+      width: viewport.width,
+      height: viewport.height,
+      dt: frame.dt,
+    });
+    if (!anchor) {
+      hideAirReadout();
+      return;
+    }
+    const margin = Math.min(108, viewport.width / 2);
+    const x = Math.max(margin, Math.min(viewport.width - margin, anchor.x));
+    const y = Math.max(118, Math.min(viewport.height - 88, anchor.y - 16));
+    // Game host owns fixed canvas/UI children and has no layout height. Use
+    // the real rendered canvas rectangle and viewport-fixed CSS coordinates.
+    air.style.left = `${viewport.left + x}px`;
+    air.style.top = `${viewport.top + y}px`;
+    air.hidden = false;
+    airPresentation.visible = true;
+    airPresentation.x = viewport.left + x;
+    airPresentation.y = viewport.top + y;
+    airPresentation.shipX =
+      viewport.left + (projectedCentre.x * 0.5 + 0.5) * viewport.width;
+    airPresentation.shipY =
+      viewport.top + (-projectedCentre.y * 0.5 + 0.5) * viewport.height;
+    airPresentation.viewportLeft = viewport.left;
+    airPresentation.viewportTop = viewport.top;
+    airPresentation.width = viewport.width;
+    airPresentation.height = viewport.height;
+  }
   return {
+    reset() {
+      hideAirReadout();
+      payoffRoot.hidden = true;
+    },
+    getPresentation: () => ({ freestyleAir: { ...airPresentation } }),
     update(frame) {
+      if (frame.reset) readoutAnchor.reset();
       updatePractice(frame);
       root.hidden = !['racing', 'countdown'].includes(frame.mode);
       const data = frame.motion?.motion?.freestyle ?? frame.motion?.freestyle;
       if (!data) {
+        hideAirReadout();
         payoffRoot.hidden = true;
         return;
       }
@@ -252,7 +353,10 @@ export function createFreestyleOverlay({
             ? 'FINISH'
             : `TRANSFER ${index + 1} / ${track.jumps.length}`;
       transferName.textContent = finishedTransfers ? 'Finish' : jump.label;
-      air.hidden = !(settling || (airborne && !data.flight.failed));
+      positionAirReadout(
+        frame,
+        !!settling || (airborne && !data.flight.failed),
+      );
       airScore.textContent = presentation.airScore.toLocaleString();
       charge.hidden = !presentation.charge;
       if (presentation.charge) {
@@ -323,6 +427,7 @@ export function createFreestyleOverlay({
       practice?.remove();
       root.remove();
       payoffRoot.remove();
+      air.remove();
     },
   };
 }

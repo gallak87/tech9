@@ -16,7 +16,7 @@ import { RACE_SAMPLES } from '../../audio/sample-cues.js';
 export default function createLevel() {
   let catchVfx = null;
   return {
-    version: '0.5.0-skywell-freestyle-pilot',
+    version: '0.6.0-skywell-freestyle',
     freestyle: true,
     audio: {
       samples: RACE_SAMPLES,

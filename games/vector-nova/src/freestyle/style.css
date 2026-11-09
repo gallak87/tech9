@@ -86,10 +86,36 @@
   font-size: 17px;
   margin: 5px 0 0;
 }
-.fs-air {
-  margin-top: 13px;
-  padding-top: 10px;
-  border-top: 1px solid #8dd6ef30;
+.freestyle-air-readout {
+  position: fixed;
+  z-index: 6;
+  width: 184px;
+  padding: 10px 14px 11px;
+  box-sizing: border-box;
+  transform: translate(-50%, -100%);
+  pointer-events: none;
+  color: #d9f8ff;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 2px 5px #000c;
+  background: linear-gradient(
+    90deg,
+    #07151b00,
+    #07151bc9 18%,
+    #07151bc9 82%,
+    #07151b00
+  );
+  border-bottom: 1px solid #b7eef53b;
+}
+.freestyle-air-readout[hidden],
+.freestyle-air-readout [hidden] {
+  display: none;
+}
+.freestyle-air-readout .fs-trick {
+  margin: 8px 0 0;
+  font-size: 11px;
+  line-height: 1.35;
+  color: #ffcf9c;
+  text-align: center;
 }
 .fs-air-score {
   display: flex;
@@ -99,14 +125,18 @@
   color: #a5e5f5;
 }
 .fs-air-score > span {
-  font-size: 9px;
+  font-size: 8px;
   letter-spacing: 0.16em;
   color: #9abcc8;
 }
 .fs-air-score > strong {
-  font-size: 24px;
+  font-size: 30px;
   line-height: 1;
-  letter-spacing: -0.025em;
+  font-weight: 850;
+  letter-spacing: -0.035em;
+  text-shadow:
+    0 2px 5px #000c,
+    0 0 12px #8ee9ff75;
 }
 .fs-charge {
   margin-top: 8px;
@@ -119,7 +149,7 @@
 }
 .fs-charge > i {
   display: block;
-  height: 5px;
+  height: 3px;
   overflow: hidden;
   background: #bddbe012;
   border-radius: 1px;

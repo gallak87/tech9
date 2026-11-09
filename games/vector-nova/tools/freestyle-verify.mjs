@@ -260,13 +260,60 @@ try {
       input.aerialPitch === -1 &&
       input.aerialYaw === 1
     ) {
+      const partialFlight = motion(turned).freestyle.flight;
+      assert.equal(
+        partialFlight.tricks.length,
+        0,
+        'this is a partial turn, not a completed trick',
+      );
+      assert.ok(
+        partialFlight.rotationPoints > 0,
+        'real held rotation earns points before a full turn',
+      );
+      assert.equal(
+        motion(turned).freestyle.score,
+        0,
+        'air points stay unbanked before touchdown',
+      );
       await renderFrame();
-      assert.equal(await page.locator('.fs-air').isVisible(), true);
+      const floating = page.locator('.freestyle-air-readout');
+      assert.equal(await floating.isVisible(), true);
+      assert.equal(
+        await floating.evaluate((node) => !!node.closest('.freestyle-hud')),
+        false,
+        'air score floats over the ship instead of living in the left scorecard',
+      );
       assert.equal(await page.locator('.fs-charge').isVisible(), true);
       assert.match(
         await page.locator('.fs-air-score').innerText(),
         /AIR SCORE/,
       );
+      const partialAirScore = Number(
+        (await page.locator('.fs-air-score strong').innerText()).replaceAll(
+          ',',
+          '',
+        ),
+      );
+      assert.ok(
+        partialAirScore > 0,
+        'the live counter already shows a partial rotation award',
+      );
+      const anchor = (await read()).environment.freestyleAir;
+      assert.equal(anchor.visible, true);
+      assert.ok(
+        anchor.y < anchor.shipY,
+        'the score anchor sits above the projected hull',
+      );
+      assert.ok(
+        Math.abs(anchor.x - anchor.shipX) < 120,
+        'the score follows the ship across the view',
+      );
+      const floatingBounds = await floating.evaluate((node) => {
+        const box = node.getBoundingClientRect();
+        return { centreX: box.left + box.width / 2, bottom: box.bottom };
+      });
+      assert.ok(Math.abs(floatingBounds.centreX - anchor.x) < 2);
+      assert.ok(Math.abs(floatingBounds.bottom - anchor.y) < 2);
       const charge = await page
         .locator('.fs-charge b')
         .evaluate((node) =>
@@ -276,8 +323,28 @@ try {
         charge > 0 && charge <= 1,
         'a real partial turn fills the rotation charge',
       );
+      const growing = await page.evaluate(
+        (control) => window.__VN.stepFreestyle(30, control),
+        input,
+      );
+      assert.equal(motion(growing).freestyle.flight.tricks.length, 0);
+      assert.ok(
+        motion(growing).freestyle.flight.rotationPoints >
+          partialFlight.rotationPoints,
+        'holding the same rotation continues to earn before trick completion',
+      );
+      assert.equal(motion(growing).freestyle.score, 0);
+      await renderFrame();
+      assert.ok(
+        Number(
+          (await page.locator('.fs-air-score strong').innerText()).replaceAll(
+            ',',
+            '',
+          ),
+        ) > partialAirScore,
+      );
       const completed = await page.evaluate(
-        (control) => window.__VN.stepFreestyle(180, control),
+        (control) => window.__VN.stepFreestyle(150, control),
         input,
       );
       assert.ok(
@@ -287,15 +354,12 @@ try {
       assert.ok(
         completed.events.some((event) => event.type === 'freestyle-trick'),
       );
-      await renderFrame();
-      assert.ok(
-        Number(
-          (await page.locator('.fs-air-score strong').innerText()).replaceAll(
-            ',',
-            '',
-          ),
-        ) > 0,
+      assert.equal(
+        motion(completed).freestyle.score,
+        0,
+        'completed tricks are also provisional until landing',
       );
+      await renderFrame();
       assert.match(
         await page.locator('.fs-trick').innerText(),
         /Corkscrew.*\+/,
@@ -304,6 +368,50 @@ try {
         (await read()).environment.thunder.lastCue,
         'trick:corkscrew',
       );
+      const beforePause = await read();
+      const pausedReadout = await page
+        .locator('.fs-air-score strong')
+        .textContent();
+      await page.evaluate(() => window.__VN.pause());
+      await renderFrame();
+      const paused = await read();
+      assert.equal(paused.mode, 'paused');
+      assert.equal(
+        motion(paused).freestyle.clock,
+        motion(beforePause).freestyle.clock,
+      );
+      assert.equal(
+        motion(paused).freestyle.flight.rotationPoints,
+        motion(beforePause).freestyle.flight.rotationPoints,
+      );
+      assert.equal(
+        await page.locator('.fs-air-score strong').textContent(),
+        pausedReadout,
+      );
+      assert.equal(await floating.isVisible(), false);
+      assert.equal(paused.environment.freestyleAir.visible, false);
+      assert.equal(
+        paused.environment.freestyleAir.x,
+        null,
+        'pause clears the screen anchor',
+      );
+      assert.equal(paused.environment.thunder.activeVoices, 0);
+      await page.locator('#resume').click();
+      for (const key of keys) await page.keyboard.up(key);
+      const releasedInput = (await read()).input;
+      assert.equal(releasedInput.aerialRoll, 0);
+      assert.equal(releasedInput.aerialPitch, 0);
+      assert.equal(releasedInput.aerialYaw, 0);
+      const released = await page.evaluate(
+        (control) => window.__VN.stepFreestyle(10, control),
+        releasedInput,
+      );
+      assert.equal(
+        motion(released).freestyle.flight.rotationPoints,
+        motion(beforePause).freestyle.flight.rotationPoints,
+        'releasing the directions stops authoritative rotation earnings immediately',
+      );
+      assert.equal(motion(released).freestyle.score, 0);
     }
     for (const key of keys) await page.keyboard.up(key);
   }
@@ -388,6 +496,11 @@ try {
       const presented = await read();
       assert.equal(presented.environment.freestyleCatch.grade, grade);
       assert.equal(presented.environment.freestyleCatch.contactId, leg.id);
+      assert.equal(
+        presented.environment.freestyleAir.visible,
+        false,
+        'banked landings hide the provisional readout',
+      );
       assert.equal(presented.environment.thunder.lastGrade, grade);
     }
     if (motion(snapshot).freestyle.result) break;
@@ -632,6 +745,12 @@ try {
     'practice provides one visible retry action',
   );
   const missed = snapshot.freestylePractice.outcome.reason;
+  assert.equal(
+    await page.locator('.freestyle-air-readout').isVisible(),
+    false,
+    'a real missed jump hides its provisional counter',
+  );
+  assert.equal((await read()).environment.freestyleAir.visible, false);
   assert.deepEqual(
     await page.evaluate(() =>
       Object.keys(localStorage)

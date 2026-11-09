@@ -34,20 +34,22 @@ test('landing grades distinguish real recovered, clean and perfect catches from 
     assert.equal(Number.parseInt(theme.color.slice(1), 16), theme.hex);
 });
 
-test('air points count completed tricks with per-kind diminishing returns and no partial-rotation award', () => {
+test('air points include continuous rotation while full-trick bonuses retain diminishing returns', () => {
   assert.equal(freestyleStylePoints([]), 0);
   assert.equal(
     freestyleStylePoints(['roll', 'roll', 'flip', 'roll', 'spin', 'corkscrew']),
     6250,
   );
   const data = frame({
-    flight: { id: 'one', tricks: [] },
+    flight: { id: 'one', tricks: [], rotationPoints: 240.5 },
     angular: [0, 0, 2],
     progress: [0, 0, Math.PI],
   });
   assert.equal(freestyleRotationCharge(data).kind, 'roll');
   assert.ok(freestyleRotationCharge(data).progress > 0.5);
-  assert.equal(createFreestyleArcade().update(data).airPoints, 0);
+  const shown = createFreestyleArcade().update(data);
+  assert.equal(shown.airPoints, 240.5);
+  assert.equal(shown.airScore, 241);
   data.angular = [1, 0, 2];
   data.compoundProgress = 3;
   assert.equal(freestyleRotationCharge(data).kind, 'corkscrew');
@@ -55,16 +57,16 @@ test('air points count completed tricks with per-kind diminishing returns and no
   assert.equal(freestyleRotationCharge(data), null);
 });
 
-test('completed trick callouts preserve the actual award while only the visible number rolls up', () => {
+test('completed trick callouts add their bonus on top of the live continuous total', () => {
   const arcade = createFreestyleArcade();
   arcade.update(frame({ flight: { id: 'one', tricks: [] } }));
   const data = frame({
     clock: 0.1,
-    flight: { id: 'one', tricks: ['roll', 'roll'] },
+    flight: { id: 'one', tricks: ['roll', 'roll'], rotationPoints: 240.5 },
   });
   const visible = arcade.update(data);
-  assert.equal(visible.airPoints, 1500);
-  assert.ok(visible.airScore > 0 && visible.airScore < 1500);
+  assert.equal(visible.airPoints, 1740.5);
+  assert.equal(visible.airScore, 1741);
   assert.equal(visible.callout.label, 'Barrel roll');
   assert.equal(visible.callout.points, 500);
   assert.equal(visible.callout.ordinal, 2);

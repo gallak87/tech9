@@ -1,7 +1,7 @@
 import * as T from 'three';
 
 import { FREESTYLE_RULES, TRICKS } from './rules.js';
-import { freestyleStylePoints } from './arcade.js';
+import { freestyleAirPoints } from './scoring.js';
 export { FREESTYLE_RULES, TRICKS } from './rules.js';
 const clamp = T.MathUtils.clamp;
 
@@ -131,7 +131,7 @@ export function createFreestyleController({ track }) {
       const interrupted = data.pendingLanding
         ? bankLanding(false, 'Landing interrupted')
         : null;
-      data.flight = { id, tricks: [], damaged: false };
+      data.flight = { id, tricks: [], rotationPoints: 0, damaged: false };
       data.orientation = [0, 0, 0, 1];
       data.angular = [0, 0, 0];
       data.progress = [0, 0, 0];
@@ -146,7 +146,13 @@ export function createFreestyleController({ track }) {
       const brace = !!input.airbrake;
       if (brace && !data.catchDown && data.flight) data.braceAt = data.clock;
       data.catchDown = brace;
-      if (!data.flight || data.flight.failed || data.result) return null;
+      if (
+        !data.flight ||
+        data.flight.failed ||
+        data.pendingLanding ||
+        data.result
+      )
+        return null;
       let recognized = null;
       const controls = [
         input.aerialPitch ?? 0,
@@ -169,6 +175,24 @@ export function createFreestyleController({ track }) {
       const angular = new T.Vector3(...data.angular).clampLength(0, 3.2),
         speed = angular.length();
       data.angular = angular.toArray();
+      if (turning && speed > 0.0001 && dt > 0) {
+        const effort = Math.min(1, Math.hypot(...controls));
+        const targetSpeed = Math.min(
+          3.2,
+          Math.hypot(
+            ...controls.map(
+              (value, i) => value * FREESTYLE_RULES.angularSpeed[i],
+            ),
+          ),
+        );
+        // Real rotation ramps the reward in with the hull. Steady analog input
+        // scales the rate; fine-trim braking slows both rotation and earnings.
+        data.flight.rotationPoints +=
+          FREESTYLE_RULES.rotationPointsPerSecond *
+          effort *
+          Math.min(1, speed / targetSpeed) *
+          dt;
+      }
       if (speed > 0.0001) {
         const orientation = new T.Quaternion().fromArray(data.orientation);
         orientation
@@ -319,7 +343,7 @@ export function createFreestyleController({ track }) {
         Math.abs(along) < (jump.precisionLength ?? 150) &&
         Math.abs(velocity.dot(frame.up)) < 38 &&
         timed;
-      const style = freestyleStylePoints(data.flight.tricks);
+      const style = freestyleAirPoints(data);
       data.pendingLanding = {
         id: jump.id,
         label: jump.label ?? jump.id,

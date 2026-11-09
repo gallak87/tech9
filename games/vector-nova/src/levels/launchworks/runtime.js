@@ -40,8 +40,8 @@ export function createLaunchworksRuntime(context) {
     { ...context, dynamics: observedDynamics },
     {
       id: 'launchworks-freestyle',
-      version: 5,
-      rulesId: `launchworks-v5:${JSON.stringify({ rules: FREESTYLE_RULES, pace: track.pace, flight: SKYWELL_FLIGHT_RULES })}`,
+      version: 6,
+      rulesId: `launchworks-v6:${JSON.stringify({ rules: FREESTYLE_RULES, pace: track.pace, flight: SKYWELL_FLIGHT_RULES })}`,
       scenarios: Object.fromEntries(
         Object.entries(track.scenarios).map(([id, state]) => [
           id,

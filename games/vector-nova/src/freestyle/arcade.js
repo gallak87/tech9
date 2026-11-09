@@ -1,4 +1,6 @@
 import { TRICKS } from './rules.js';
+import { freestyleStylePoints, freestyleAirPoints } from './scoring.js';
+export { freestyleStylePoints } from './scoring.js';
 
 export const FREESTYLE_GRADES = Object.freeze({
   good: Object.freeze({ label: 'Good', color: '#69d8f2', hex: 0x69d8f2 }),
@@ -10,17 +12,6 @@ export const FREESTYLE_GRADES = Object.freeze({
 export function freestyleLandingGrade(leg) {
   if (!leg?.landed) return 'miss';
   return leg.perfect ? 'perfect' : leg.clean ? 'great' : 'good';
-}
-
-// Shared by banking and its provisional HUD preview. Only completed tricks
-// count; repeating one trick halves that trick's next award within this flight.
-export function freestyleStylePoints(tricks) {
-  const repeats = new Map();
-  return tricks.reduce((total, kind) => {
-    const repeated = repeats.get(kind) ?? 0;
-    repeats.set(kind, repeated + 1);
-    return total + TRICKS[kind].points * 0.5 ** repeated;
-  }, 0);
 }
 
 export function freestyleRotationCharge(data) {
@@ -55,7 +46,6 @@ const easeOut = (value) => 1 - (1 - clamp01(value)) ** 3;
 // clears it. No animation owns a timer or can award gameplay points.
 export function createFreestyleArcade() {
   let previous = null;
-  let shownAir = 0;
   let callout = null;
   let payoff = null;
   return {
@@ -63,9 +53,7 @@ export function createFreestyleArcade() {
       const clock = data.clock ?? 0;
       const legs = data.legs ?? [];
       const flight = data.flight;
-      const tricks = flight?.tricks ?? data.pendingLanding?.tricks ?? [];
-      const airPoints =
-        data.pendingLanding?.style ?? freestyleStylePoints(tricks);
+      const airPoints = freestyleAirPoints(data);
       const reset =
         !previous ||
         session !== previous.session ||
@@ -74,14 +62,12 @@ export function createFreestyleArcade() {
         legs.length < previous.legs;
       const dt = !reset && running ? Math.min(0.1, clock - previous.clock) : 0;
       if (reset) {
-        shownAir = airPoints;
         callout = null;
         payoff = null;
       } else {
         if (callout) callout.age += dt;
         if (payoff) payoff.age += dt;
         const sameFlight = flight && flight.id === previous.flight;
-        if (flight && !sameFlight) shownAir = 0;
         const newTricks = sameFlight ? previous.tricks : 0;
         if (flight && flight.tricks.length > newTricks) {
           const ordinal = flight.tricks.length;
@@ -109,11 +95,6 @@ export function createFreestyleArcade() {
           callout = null;
         }
       }
-      if (reducedMotion) shownAir = airPoints;
-      else {
-        shownAir += (airPoints - shownAir) * -Math.expm1(-16 * dt);
-        if (Math.abs(airPoints - shownAir) < 0.5) shownAir = airPoints;
-      }
       const visiblePayoff = payoff && payoff.age < 1.7 ? payoff : null;
       const sweep = visiblePayoff ? easeOut((payoff.age - 0.42) / 0.68) : 1;
       const result = {
@@ -122,7 +103,7 @@ export function createFreestyleArcade() {
             (reducedMotion ? 0 : (visiblePayoff?.bank ?? 0) * (1 - sweep)),
         ),
         airPoints,
-        airScore: Math.round(shownAir),
+        airScore: Math.round(airPoints),
         charge: freestyleRotationCharge(data),
         callout: callout && callout.age < 1.45 ? { ...callout } : null,
         payoff: visiblePayoff

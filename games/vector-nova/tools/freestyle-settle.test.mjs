@@ -118,7 +118,12 @@ test('a real late-roll landing earns recovered credit after sustained native sup
   assert.equal(banks[0].payload.landed, true);
   assert.equal(banks[0].payload.clean, false);
   assert.equal(banks[0].payload.perfect, false);
-  assert.equal(banks[0].payload.bank, 1000);
+  const airPoints = checkpoint.runtime.freestyle.pendingLanding.style;
+  assert.ok(
+    airPoints > 0,
+    'the real airborne corrections earned continuous rotation points',
+  );
+  assert.equal(banks[0].payload.bank, Math.round(1000 + airPoints));
   assert.equal(banks[0].payload.chain, 1);
   assert.ok(banks[0].payload.at - banks[0].payload.touchdownAt >= 0.299);
   assert.equal(

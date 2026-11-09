@@ -3,16 +3,17 @@
   z-index: 5;
   top: 112px;
   left: 32px;
-  width: 292px;
+  width: 252px;
   pointer-events: none;
   color: #f3f1e9;
   text-shadow: 0 2px 5px #000;
   background: linear-gradient(90deg, #071015dd, #07101588 82%, transparent);
-  padding: 18px 22px 20px 18px;
+  padding: 14px 16px 16px 14px;
   border-left: 2px solid #d45335;
   font-variant-numeric: tabular-nums;
 }
-.freestyle-hud[hidden] {
+.freestyle-hud[hidden],
+.freestyle-hud [hidden] {
   display: none;
 }
 .fs-score > span,
@@ -23,7 +24,7 @@
 }
 .fs-score > strong {
   display: block;
-  font-size: 42px;
+  font-size: 36px;
   line-height: 1.2;
   font-weight: 750;
   letter-spacing: -0.04em;
@@ -34,7 +35,7 @@
   color: #b5c5cb;
 }
 .fs-score small b {
-  font-size: 22px;
+  font-size: 19px;
   letter-spacing: 0;
   color: #f7b184;
   margin-left: 10px;
@@ -42,7 +43,7 @@
 .fs-links {
   display: flex;
   gap: 5px;
-  margin: 15px 0 22px;
+  margin: 12px 0;
 }
 .fs-links i {
   width: 36px;
@@ -80,8 +81,16 @@
   border-color: #925c52;
 }
 .fs-transfer {
-  font-size: 19px;
-  margin: 7px 0 5px;
+  font-size: 17px;
+  margin: 5px 0 0;
+}
+.fs-diagnostics {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #ffffff20;
+}
+.fs-diagnostics :is(.fs-approach, .fs-receiver, .fs-catch):empty {
+  display: none;
 }
 .fs-approach,
 .fs-receiver {
@@ -115,10 +124,10 @@
 }
 .fs-trick {
   display: block;
-  font-size: 15px;
+  font-size: 13px;
   line-height: 1.35;
-  min-height: 20px;
-  margin: 8px 0;
+  margin: 8px 0 0;
+  color: #f1c69e;
 }
 .fs-rotation {
   height: 3px;
@@ -142,8 +151,9 @@
 .fs-last {
   display: block;
   font-size: 11px;
-  min-height: 16px;
-  color: #8da5a9;
+  line-height: 1.4;
+  margin-top: 8px;
+  color: #aabdc3;
 }
 .fs-controls {
   display: grid;
@@ -244,7 +254,6 @@
   }
   .fs-trick {
     font-size: 14px;
-    min-height: 35px;
   }
   .fs-catch {
     font-size: 11px;
@@ -289,6 +298,8 @@
 }
 
 /* Transfer practice already provides both retry and full-chain actions. */
-#interface[data-level='launchworks'] #pause-panel .pause-restart {
+#interface[data-level='launchworks']
+  #pause-panel:has(.fs-practice)
+  .pause-restart {
   display: none;
 }

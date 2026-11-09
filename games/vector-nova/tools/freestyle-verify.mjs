@@ -112,7 +112,7 @@ try {
   );
   assert.match(
     await page.locator('.freestyle-pad-guide').innerText(),
-    /right stick.*pitches \/ rolls.*X \/ Y.*flat-spins/s,
+    /right stick.*pitch \/ roll.*X \/ Y.*flat-spin/s,
   );
   await page.locator('[data-action="settings"]').click();
   assert.match(
@@ -160,6 +160,30 @@ try {
   );
   await page.keyboard.up('ArrowUp');
   await page.keyboard.up('ArrowRight');
+
+  assert.equal(await page.locator('.fs-practice, .fs-diagnostics').count(), 0);
+  assert.equal(
+    await page
+      .locator(
+        '.fs-approach, .fs-receiver, .fs-catch, .fs-alignment, .fs-speed',
+      )
+      .count(),
+    0,
+  );
+  await page.evaluate(() => window.__VN.pause());
+  assert.equal(await page.locator('#freestyle-practice-transfer').count(), 0);
+  assert.equal(
+    await page.locator('#restart').isVisible(),
+    true,
+    'full-run Restart remains available',
+  );
+  await page.locator('#restart').click();
+  await page.evaluate(() => window.__VN.stepFreestyle(1, {}));
+  assert.equal((await read()).freestylePractice, null);
+  assert.equal(motion(await read()).freestyle.invalid, false);
+  console.log(
+    'PASS · compact production scorecard, no practice menu, and valid full-run Restart',
+  );
 
   // Exercise actual DOM keyboard events, not calls into the input reader.
   for (const [keys, expected] of [
@@ -261,144 +285,7 @@ try {
     'PASS · independent controller steering, right-stick pitch/roll and X/Y flat spins',
   );
 
-  // Production practice controls must be reachable through the shared pad menu.
-  await page.evaluate(() => window.__VN.pause());
-  await focusByPad('#freestyle-practice-transfer');
-  await padButton(15);
-  assert.equal(
-    await page.locator('#freestyle-practice-transfer').inputValue(),
-    'transfer-2',
-  );
-  await focusByPad('#freestyle-practice-start');
-  await padButton(0);
-  let snapshot = await read();
-  assert.equal(snapshot.freestylePractice.id, 'transfer-2');
-  assert.equal(motion(snapshot).freestyle.invalid, true);
-  await page.keyboard.press('KeyR');
-  assert.equal((await read()).freestylePractice.id, 'transfer-2');
-  await page.evaluate(() => window.__VN.pause());
-  // Native select typeahead chooses Veil; Tab and Enter activate practice.
-  await page.locator('#freestyle-practice-transfer').focus();
-  await page.keyboard.press('v');
-  assert.equal(
-    await page.locator('#freestyle-practice-transfer').inputValue(),
-    'transfer-3',
-  );
-  await page.keyboard.press('Tab');
-  assert.equal(
-    await page.evaluate(() => document.activeElement.id),
-    'freestyle-practice-start',
-  );
-  await page.keyboard.press('Enter');
-  assert.equal((await read()).freestylePractice.id, 'transfer-3');
-  assert.equal(
-    await page.evaluate(() =>
-      document.activeElement?.matches('button,input,select'),
-    ),
-    false,
-    'practice gives driving keys back to the game',
-  );
-  await page.evaluate(() => window.__VN.pause());
-  await focusByPad('#freestyle-full-run');
-  await padButton(0);
-  assert.equal((await read()).freestylePractice, null);
-  console.log(
-    'PASS · keyboard and controller practice selection, retry, unranked state and ranked exit',
-  );
-
-  // One deliberate failure and retry use the native practice flow. The
-  // approach driver only steers the road; the airborne attempt is held keys.
-  await page.evaluate(() => window.__VN.pause());
-  await page.locator('#freestyle-practice-transfer').selectOption('transfer-4');
-  await page.locator('#freestyle-practice-start').click();
-  async function flyToLip() {
-    await page.evaluate(async () => {
-      const { createTransferPilot } =
-        await import('/tools/freestyle-pilot.mjs');
-      window.__approachPilot = createTransferPilot(window.__VN.getTrack(), {
-        reaction: 0.15,
-        quantum: 0.25,
-        targetSpeed: 'course',
-      });
-    });
-    for (let i = 0; i < 40; i++) {
-      const state = await page.evaluate(() =>
-        window.__VN.stepFreestyle(12, window.__approachPilot),
-      );
-      if (motion(state).flight) return;
-    }
-    assert.fail('Practice approach must reach its native launch');
-  }
-  async function heldTicks(count) {
-    return page.evaluate(
-      (ticks) =>
-        window.__VN.stepFreestyle(ticks, window.__VN.getSnapshot().input),
-      count,
-    );
-  }
-  await flyToLip();
-  await page.keyboard.down('KeyW');
-  for (let i = 0; i < 12; i++) {
-    snapshot = await heldTicks(90);
-    if (snapshot.freestylePractice.outcome) break;
-  }
-  await page.keyboard.up('KeyW');
-  assert.ok(snapshot.freestylePractice.outcome);
-  assert.equal(
-    snapshot.freestylePractice.outcome.clean,
-    false,
-    'holding the launch bank must not silently pass the opposing bank',
-  );
-  await page.waitForTimeout(100);
-  assert.match(
-    await page.locator('.fs-practice-status').innerText(),
-    /Launch \d+ km\/h; band/,
-  );
-  assert.equal(
-    await page.locator('#restart').isVisible(),
-    false,
-    'practice provides one visible retry action',
-  );
-  const missed = snapshot.freestylePractice.outcome.reason;
-  assert.equal(
-    await page.evaluate(() =>
-      Object.keys(localStorage).some((key) =>
-        key.includes('vector-nova.freestyle.v2.'),
-      ),
-    ),
-    false,
-    'practice cannot save a ranked best',
-  );
-  await page.keyboard.press('KeyR');
-  assert.equal((await read()).freestylePractice.id, 'transfer-4');
-  await flyToLip();
-  // Deliberate gesture: hold a right line, roll right550ms, trim400ms, then settle.
-  // No receiver quaternion, future contact or controller steers this gesture.
-  await page.keyboard.down('KeyW');
-  await page.keyboard.down('KeyD');
-  await heldTicks(18);
-  await page.keyboard.down('ArrowRight');
-  await heldTicks(66);
-  await page.keyboard.down('Space');
-  await heldTicks(48);
-  await page.keyboard.up('ArrowRight');
-  await page.keyboard.up('KeyD');
-  for (let i = 0; i < 20; i++) {
-    snapshot = await heldTicks(60);
-    if (snapshot.freestylePractice.outcome) break;
-  }
-  await page.keyboard.up('Space');
-  await page.keyboard.up('KeyW');
-  assert.equal(
-    snapshot.freestylePractice.outcome?.landed,
-    true,
-    `a deliberate keyboard roll and brake trim catches the opposing bank: ${JSON.stringify(snapshot.freestylePractice.outcome)}`,
-  );
-  console.log(
-    `PASS · failed keyboard practice (${missed}), launch feedback, R retry and credited held-key bank`,
-  );
-  await page.locator('#freestyle-full-run').click();
-  assert.equal((await read()).freestylePractice, null);
+  let snapshot;
   const careerBeforeRun = await page.evaluate(
     () => window.__VN_FRONTEND.getState().career.state,
   );
@@ -522,6 +409,206 @@ try {
   assert.equal('aerialRoll' in racePad, false);
   console.log(
     'PASS · ordinary keyboard/controller driving and Settings hints retain their existing layout',
+  );
+  url.searchParams.set('dev', '1');
+  await page.goto(url.href);
+  await page.locator('[data-action="launch"]').waitFor();
+  await page.locator('[data-action="launch"]').click();
+  await page.waitForFunction(
+    () =>
+      window.__VN?.ready && window.__VN_FRONTEND.getState().screen === 'race',
+    null,
+    { timeout: 90000 },
+  );
+  await page.evaluate(() => window.__VN.stepFreestyle(1, {}));
+  await page.evaluate(() => {
+    window.__testPad = {
+      id: 'freestyle-verifier',
+      index: 0,
+      mapping: 'standard',
+      connected: true,
+      axes: [0, 0, 0, 0],
+      buttons: Array.from({ length: 17 }, () => ({ pressed: false, value: 0 })),
+    };
+    Object.defineProperty(navigator, 'getGamepads', {
+      configurable: true,
+      value: () => [window.__testPad],
+    });
+  });
+  await page.waitForFunction(() => window.__VN.getSnapshot().gamepadPresent);
+  const rankedRecordsBeforePractice = await page.evaluate(() =>
+    Object.keys(localStorage)
+      .filter((key) => key.includes('vector-nova.freestyle.v2.'))
+      .sort()
+      .map((key) => [key, localStorage.getItem(key)]),
+  );
+  // Developer-only practice controls must be reachable through the shared pad menu.
+  await page.evaluate(() => window.__VN.pause());
+  await focusByPad('#freestyle-practice-transfer');
+  await padButton(15);
+  assert.equal(
+    await page.locator('#freestyle-practice-transfer').inputValue(),
+    'transfer-2',
+  );
+  await focusByPad('#freestyle-practice-start');
+  await padButton(0);
+  snapshot = await read();
+  assert.equal(snapshot.freestylePractice.id, 'transfer-2');
+  assert.equal(motion(snapshot).freestyle.invalid, true);
+  await page.keyboard.press('KeyR');
+  assert.equal((await read()).freestylePractice.id, 'transfer-2');
+  await page.evaluate(() => window.__VN.pause());
+  // Native select typeahead chooses Veil; Tab and Enter activate practice.
+  await page.locator('#freestyle-practice-transfer').focus();
+  await page.keyboard.press('v');
+  assert.equal(
+    await page.locator('#freestyle-practice-transfer').inputValue(),
+    'transfer-3',
+  );
+  await page.keyboard.press('Tab');
+  assert.equal(
+    await page.evaluate(() => document.activeElement.id),
+    'freestyle-practice-start',
+  );
+  await page.keyboard.press('Enter');
+  assert.equal((await read()).freestylePractice.id, 'transfer-3');
+  assert.equal(
+    await page.evaluate(() =>
+      document.activeElement?.matches('button,input,select'),
+    ),
+    false,
+    'practice gives driving keys back to the game',
+  );
+  await page.evaluate(() => window.__VN.pause());
+  await focusByPad('#freestyle-full-run');
+  await padButton(0);
+  assert.equal((await read()).freestylePractice, null);
+  console.log(
+    'PASS · keyboard and controller practice selection, retry, unranked state and ranked exit',
+  );
+
+  // One deliberate failure and retry use the native practice flow. The
+  // approach driver only steers the road; the airborne attempt is held keys.
+  await page.evaluate(() => window.__VN.pause());
+  await page.locator('#freestyle-practice-transfer').selectOption('transfer-4');
+  await page.locator('#freestyle-practice-start').click();
+  async function flyToLip() {
+    await page.evaluate(async () => {
+      const { createTransferPilot } =
+        await import('/tools/freestyle-pilot.mjs');
+      window.__approachPilot = createTransferPilot(window.__VN.getTrack(), {
+        reaction: 0.15,
+        quantum: 0.25,
+        targetSpeed: 'course',
+      });
+    });
+    for (let i = 0; i < 40; i++) {
+      const state = await page.evaluate(() =>
+        window.__VN.stepFreestyle(12, window.__approachPilot),
+      );
+      if (motion(state).flight) return;
+    }
+    assert.fail('Practice approach must reach its native launch');
+  }
+  async function heldTicks(count) {
+    return page.evaluate(
+      (ticks) =>
+        window.__VN.stepFreestyle(ticks, window.__VN.getSnapshot().input),
+      count,
+    );
+  }
+  await flyToLip();
+  await page.keyboard.down('KeyW');
+  for (let i = 0; i < 12; i++) {
+    snapshot = await heldTicks(90);
+    if (snapshot.freestylePractice.outcome) break;
+  }
+  await page.keyboard.up('KeyW');
+  assert.ok(snapshot.freestylePractice.outcome);
+  assert.equal(
+    snapshot.freestylePractice.outcome.clean,
+    false,
+    'holding the launch bank must not silently pass the opposing bank',
+  );
+  await page.waitForTimeout(100);
+  assert.match(
+    await page.locator('.fs-practice-status').innerText(),
+    /Launch \d+ km\/h; band/,
+  );
+  assert.equal(
+    await page.locator('#restart').isVisible(),
+    false,
+    'practice provides one visible retry action',
+  );
+  const missed = snapshot.freestylePractice.outcome.reason;
+  assert.deepEqual(
+    await page.evaluate(() =>
+      Object.keys(localStorage)
+        .filter((key) => key.includes('vector-nova.freestyle.v2.'))
+        .sort()
+        .map((key) => [key, localStorage.getItem(key)]),
+    ),
+    rankedRecordsBeforePractice,
+    'practice cannot create or overwrite a ranked best',
+  );
+  await page.keyboard.press('KeyR');
+  assert.equal((await read()).freestylePractice.id, 'transfer-4');
+  await flyToLip();
+  // Deliberate gesture: hold a right line, roll right550ms, trim400ms, then settle.
+  // No receiver quaternion, future contact or controller steers this gesture.
+  await page.keyboard.down('KeyW');
+  await page.keyboard.down('KeyD');
+  await heldTicks(18);
+  await page.keyboard.down('ArrowRight');
+  await heldTicks(66);
+  await page.keyboard.down('Space');
+  await heldTicks(48);
+  await page.keyboard.up('ArrowRight');
+  await page.keyboard.up('KeyD');
+  for (let i = 0; i < 20; i++) {
+    snapshot = await heldTicks(60);
+    if (snapshot.freestylePractice.outcome) break;
+  }
+  await page.keyboard.up('Space');
+  await page.keyboard.up('KeyW');
+  assert.equal(
+    snapshot.freestylePractice.outcome?.landed,
+    true,
+    `a deliberate keyboard roll and brake trim catches the opposing bank: ${JSON.stringify(snapshot.freestylePractice.outcome)}`,
+  );
+  console.log(
+    `PASS · failed keyboard practice (${missed}), launch feedback, R retry and credited held-key bank`,
+  );
+  assert.deepEqual(
+    await page.evaluate(() =>
+      Object.keys(localStorage)
+        .filter((key) => key.includes('vector-nova.freestyle.v2.'))
+        .sort()
+        .map((key) => [key, localStorage.getItem(key)]),
+    ),
+    rankedRecordsBeforePractice,
+    'a credited practice landing cannot change ranked records',
+  );
+  await page.locator('#freestyle-full-run').click();
+  assert.equal((await read()).freestylePractice, null);
+  url.searchParams.set('dev', '2');
+  await page.goto(url.href);
+  await page.locator('[data-action="launch"]').waitFor();
+  await page.locator('[data-action="launch"]').click();
+  await page.waitForFunction(
+    () =>
+      window.__VN?.ready && window.__VN_FRONTEND.getState().screen === 'race',
+    null,
+    { timeout: 90000 },
+  );
+  await page.evaluate(() => window.__VN.pause());
+  assert.equal(
+    await page.locator('#freestyle-practice-transfer').isVisible(),
+    true,
+  );
+  assert.equal(await page.locator('.fs-diagnostics').count(), 1);
+  console.log(
+    'PASS · transfer practice and diagnostics are available in both dev=1 and dev=2',
   );
   assert.deepEqual(errors, []);
   assert.deepEqual(snapshot.errors, []);

@@ -9,10 +9,9 @@ export default {
     edition: 'FREESTYLE',
     subtitle: 'ZEPHYR / FIVE IMPOSSIBLE ARRIVALS',
     heading: ['COMMIT.', 'CONNECT.'],
-    intro:
-      'Five different transfers through the suspended water gardens. Drive the launch angle, match the bank and keep the chain.',
+    intro: 'Five transfers through the suspended water gardens.',
     detail:
-      'WASD drive · ↑/↓ pitch · ←/→ roll · Q/E flat spin. Combine axes and match the receiving surface. Space brakes rotation; Shift boosts. Three Vector approaches and two gravity dives demand different speed choices. Equipment is disabled. Pad: right stick pitch/roll, X/Y flat spin.',
+      'WASD drive · ↑/↓ pitch · ←/→ roll · Q/E flat spin · Space rotation brake · Shift boost. Pad: left stick steer · right stick pitch/roll · X/Y flat spin.',
     tag: 'ZEPHYR SKYWELL',
     tagDetail: 'FIVE DISTINCT ARRIVALS / STOCK BUILD',
     start: 'START FREESTYLE',

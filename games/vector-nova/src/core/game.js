@@ -265,7 +265,7 @@ export async function createGame({
         settings,
         checkpoint,
         developer: access.developer,
-        ...(freestyle
+        ...(freestyle && access.developer
           ? {
               freestyleActions: {
                 practiceTransfer: (id) => practiceFreestyleTransfer(id),
@@ -1265,7 +1265,7 @@ export async function createGame({
         api.devSetup({ finish: true, place: parameters.get('place') ?? 1 });
     }
     function practiceFreestyleTransfer(id) {
-      if (!freestyle || shipLoading) return false;
+      if (!freestyle || !access.developer || shipLoading) return false;
       const index = track.jumps.findIndex((jump) => jump.id === id);
       if (index < 0) return false;
       const jump = track.jumps[index];
@@ -1295,7 +1295,7 @@ export async function createGame({
       return true;
     }
     function startFreestyleRun() {
-      if (!freestyle || shipLoading) return;
+      if (!freestyle || !access.developer || shipLoading) return;
       freestylePractice = null;
       restart(false, true, false);
       audio.unlock().catch(() => {});

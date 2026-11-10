@@ -4,6 +4,7 @@ import { sweepGeometry } from '../../../track/geometry.js';
 import { disposeGroup } from '../../../pickups/geometry.js';
 import { createZephyrWeave } from '../../zephyr/track/weave.js';
 import { finishZephyrMaterial } from '../../zephyr/environment/materials.js';
+import { finishSkywellDeck, finishSkywellThroat } from './finish.js';
 import {
   MESH_STEPS,
   quadTriangles,
@@ -78,6 +79,7 @@ export function createLaunchworksRoad({ track, shape = false }) {
     metalness: 0.05,
     roughness: 0.76,
   });
+  if (!shape) finishSkywellDeck(surface);
   const bronze = new T.MeshStandardMaterial({
     name: 'Skywell / seated bronze load carriers',
     color: '#927044',
@@ -90,8 +92,16 @@ export function createLaunchworksRoad({ track, shape = false }) {
     roughness: 0.63,
     metalness: 0.3,
   });
+  const keelLiner = dark.clone();
+  keelLiner.name = 'Skywell / inset graphite keel cassettes';
+  if (!shape) {
+    finishSkywellDeck(keelLiner);
+    keelLiner.color.set('#202a30');
+    keelLiner.roughness = 0.86;
+  }
   if (!shape)
     for (const material of [stone, bronze]) finishZephyrMaterial(material);
+  const throat = shape ? stone : finishSkywellThroat(stone.clone());
   const amber = new T.MeshStandardMaterial({
     name: 'Skywell / steady amber launch margins',
     color: '#e5a955',
@@ -116,7 +126,17 @@ export function createLaunchworksRoad({ track, shape = false }) {
     side: T.DoubleSide,
     depthWrite: false,
   });
-  const materials = [surface, stone, bronze, dark, amber, mint, glass];
+  const materials = [
+    surface,
+    stone,
+    throat,
+    bronze,
+    dark,
+    keelLiner,
+    amber,
+    mint,
+    glass,
+  ];
   const zones = [];
   function add(name, geometry, material, driving = false) {
     const mesh = new T.Mesh(geometry, material);
@@ -179,7 +199,7 @@ export function createLaunchworksRoad({ track, shape = false }) {
       surface,
       true,
     );
-    sweep(
+    const keel = sweep(
       'Bronze folded box keel',
       a,
       b,
@@ -191,6 +211,57 @@ export function createLaunchworksRoad({ track, shape = false }) {
       ],
       bronze,
     );
+    if (!shape) {
+      // The broad underside is a fitted dark liner, carried by bronze folds.
+      // Preserve every vertex; separate materials expose the actual section.
+      const { rows, columns } = keel.geometry.userData.sweep;
+      let offset = 0;
+      for (const [face, count] of columns.entries()) {
+        const indices = (rows - 1) * (count - 1) * 6;
+        keel.geometry.addGroup(offset, indices, face === 1 ? 1 : 0);
+        offset += indices;
+      }
+      keel.material = [bronze, keelLiner];
+      // Close the box section below the unchanged running skin. The open ends
+      // otherwise expose the sky through a paper-thin deck at departure/catch.
+      for (const [distance, reverse] of [
+        [a, true],
+        [b, false],
+      ]) {
+        const frame = track.sample(distance),
+          positions = [],
+          coordinates = [];
+        for (const [x, y] of [
+          [-19, -0.08],
+          [-17, -3.2],
+          [17, -3.2],
+          [19, -0.08],
+        ]) {
+          const lateral = (x * track.width) / 38;
+          positions.push(
+            ...frame.position
+              .clone()
+              .addScaledVector(frame.right, lateral)
+              .addScaledVector(frame.up, y)
+              .toArray(),
+          );
+          coordinates.push(distance, lateral);
+        }
+        const cap = new T.BufferGeometry();
+        cap.setAttribute(
+          'position',
+          new T.Float32BufferAttribute(positions, 3),
+        );
+        cap.setAttribute(
+          'roadCoord',
+          new T.Float32BufferAttribute(coordinates, 2),
+        );
+        cap.setIndex(reverse ? [0, 2, 1, 0, 3, 2] : [0, 1, 2, 0, 2, 3]);
+        cap.computeVertexNormals();
+        cap.computeBoundingSphere();
+        add('Closed graphite cassette end', cap, keelLiner);
+      }
+    }
     for (const side of [-1, 1]) {
       sweep(
         'Ivory containment shoulder',
@@ -240,7 +311,7 @@ export function createLaunchworksRoad({ track, shape = false }) {
     add(
       'Tube driving shell / shared Shatterline facets',
       tubeGeometry(track, chunk),
-      [stone, glass],
+      [throat, glass],
       true,
     );
   // The rims sit outside the real driving skin. They communicate the throat's
@@ -261,11 +332,11 @@ export function createLaunchworksRoad({ track, shape = false }) {
       const curve = new T.CatmullRomCurve3(positions);
       add(
         'Tube outboard bronze rib',
-        new T.TubeGeometry(curve, 96, 0.42, 5, false),
+        new T.TubeGeometry(curve, 96, 0.6, 8, false),
         bronze,
       );
     }
-  for (const [i, jump] of track.jumps.entries()) {
+  for (const jump of track.jumps) {
     // Quiet lane inlays make the settled release surface visible at speed.
     if (jump.releaseLength)
       for (const side of [-1, 1])
@@ -300,6 +371,7 @@ export function createLaunchworksRoad({ track, shape = false }) {
       arrival.color.set('#6f9e97');
       arrival.emissive.set('#235e59');
       arrival.emissiveIntensity = 0.16;
+      if (!shape) finishSkywellDeck(arrival, { receiver: true });
       // sweep() scales the original 38 m profiles to the current road width.
       const halfPaint = ((jump.catchWidth / 2) * 38) / track.width;
       const zone = sweep(
@@ -313,53 +385,12 @@ export function createLaunchworksRoad({ track, shape = false }) {
         arrival,
       );
       zone.userData.receiverId = jump.id;
-      zones.push({ id: jump.id, zone });
-    }
-    const frame = track.sample(jump.landingStart + 15);
-    for (const side of [-1, 1]) {
-      const crown = i === 0,
-        height = crown ? 200 : 34,
-        elevation = crown ? 88 : 12;
-      const mast = new T.Mesh(new T.BoxGeometry(2.5, height, 4), bronze);
-      mast.name = `Receiver ${i + 1} / outboard approach lantern`;
-      mast.position
-        .copy(frame.position)
-        .addScaledVector(frame.right, side * 27)
-        .addScaledVector(frame.up, elevation);
-      mast.quaternion.copy(frame.quaternion);
-      group.add(mast);
-      const lamp = new T.Mesh(
-        new T.BoxGeometry(2.7, crown ? 70 : 13, 1.2),
-        mint,
-      );
-      lamp.position
-        .copy(mast.position)
-        .addScaledVector(frame.up, crown ? 55 : 0)
-        .addScaledVector(frame.tangent, -2.2);
-      lamp.quaternion.copy(frame.quaternion);
-      group.add(lamp);
-      // Crown's receiving bank falls below its convex launch crest. Tall,
-      // physically rooted lanterns remain visible before committing to it.
-      const foot = add(
-        'Receiver lantern / limestone footing',
-        new T.BoxGeometry(7, crown ? 11 : 6, 8),
-        stone,
-      );
-      foot.position
-        .copy(frame.position)
-        .addScaledVector(frame.right, side * 27)
-        .addScaledVector(frame.up, crown ? -11 : -6);
-      foot.quaternion.copy(frame.quaternion);
-      const arm = add(
-        'Receiver lantern / keel attachment',
-        new T.BoxGeometry(9, 4, 6),
-        bronze,
-      );
-      arm.position
-        .copy(frame.position)
-        .addScaledVector(frame.right, side * 23)
-        .addScaledVector(frame.up, -4);
-      arm.quaternion.copy(frame.quaternion);
+      zones.push({
+        id: jump.id,
+        zone,
+        baseEmissive: arrival.emissiveIntensity,
+      });
+      materials.push(arrival);
     }
   }
   for (const name of [
@@ -379,8 +410,15 @@ export function createLaunchworksRoad({ track, shape = false }) {
       part.geometry.dispose();
     }
   }
+  let disposed = false;
   return {
     group,
+    setStoneTexture(texture) {
+      if (shape) return;
+      borrowed.add(texture);
+      throat.map = texture;
+      throat.needsUpdate = true;
+    },
     setReflection(texture) {
       borrowed.add(texture);
       for (const material of materials) {
@@ -391,10 +429,10 @@ export function createLaunchworksRoad({ track, shape = false }) {
     update(frame) {
       const fs = frame.motion?.freestyle ?? frame.motion?.motion?.freestyle;
       if (!fs) return;
-      for (const { id, zone } of zones) {
+      for (const { id, zone, baseEmissive } of zones) {
         const leg = fs.legs.find((entry) => entry.id === id);
         zone.material.emissiveIntensity =
-          0.16 +
+          baseEmissive +
           ((leg?.landed || leg?.clean) && !frame.settings.reducedMotion
             ? Math.exp(-Math.max(0, fs.clock - leg.at) * 6) *
               (leg.clean ? 0.9 : 0.55)
@@ -402,8 +440,16 @@ export function createLaunchworksRoad({ track, shape = false }) {
       }
     },
     dispose() {
+      if (disposed) return;
+      disposed = true;
+      const mounted = new Set();
+      group.traverse((mesh) => {
+        for (const material of [mesh.material].flat().filter(Boolean))
+          mounted.add(material);
+      });
       disposeGroup(group);
-      materials.forEach((material) => material.dispose());
+      for (const material of materials)
+        if (!mounted.has(material)) material.dispose();
       textures.forEach((texture) => {
         if (!borrowed.has(texture)) texture.dispose();
       });

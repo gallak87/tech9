@@ -1,7 +1,41 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { Texture } from 'three';
 import { createLaunchworksTrack } from './model.js';
 import { createLaunchworksRoad } from './road.js';
+
+test('the finished road releases its shared and cloned surface resources once while borrowing its reflection', () => {
+  const road = createLaunchworksRoad({ track: createLaunchworksTrack() });
+  const resources = new Map();
+  const observe = (resource) => {
+    if (!resource || resources.has(resource)) return;
+    resources.set(resource, 0);
+    resource.addEventListener('dispose', () =>
+      resources.set(resource, resources.get(resource) + 1),
+    );
+  };
+  road.group.traverse((mesh) => {
+    observe(mesh.geometry);
+    for (const material of [mesh.material].flat().filter(Boolean)) {
+      observe(material);
+      for (const value of Object.values(material))
+        if (value?.isTexture) observe(value);
+    }
+  });
+  const reflection = new Texture();
+  let borrowedDisposals = 0;
+  reflection.addEventListener('dispose', () => borrowedDisposals++);
+  road.setReflection(reflection);
+  road.dispose();
+  road.dispose();
+  assert.ok(resources.size > 15);
+  assert.deepEqual(
+    [...resources.values()].filter((count) => count !== 1),
+    [],
+  );
+  assert.equal(borrowedDisposals, 0);
+  reflection.dispose();
+});
 
 test('receiver paint marks the actual accepted lane across its runout without adding a driving surface', () => {
   const track = createLaunchworksTrack();

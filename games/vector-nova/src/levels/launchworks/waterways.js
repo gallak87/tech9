@@ -6,6 +6,9 @@ import { finishZephyrMaterial } from '../zephyr/environment/materials.js';
 const UP = new T.Vector3(0, 1, 0);
 const SPAN = 78;
 const STEP = 4;
+// The seven-metre bed tops out at 3.5 m; water must clear it while staying
+// below the raised parapets. This is scenery, never a contact surface.
+const FLOW_Y = 4.1;
 
 // The original Blender bay is the construction unit. Skywell supplies only
 // authored canal alignments, containment and their relationship to the falls.
@@ -185,7 +188,7 @@ export function createSkywellWaterways({ track, stoneTexture, place, water }) {
       const z = -length / 2 + (i + 0.5) * SPAN;
       const y = -i * STEP;
       masonry.push(frame(new T.Vector3(0, y, z)));
-      flow.push(frame(new T.Vector3(0, y + 0.5, z)));
+      flow.push(frame(new T.Vector3(0, y + FLOW_Y, z)));
       stone.push(frame(new T.Vector3(0, y, z), [22, 7, SPAN + 0.5]));
       stone.push(frame(new T.Vector3(0, y - 119, z), [25, 8, SPAN + 0.5]));
       for (const side of [-1, 1]) {
@@ -276,12 +279,12 @@ export function createSkywellWaterways({ track, stoneTexture, place, water }) {
       `${name} / receiving water`,
       receivingFlow.geometry,
       receivingFlow.material,
-      [frame(poolCenter)],
+      [frame(poolCenter.clone().addScaledVector(UP, 0.3))],
     );
     const point = (local) =>
       local.clone().applyQuaternion(rotation).add(origin);
     const sourcePosition = point(
-      new T.Vector3(0, lastY + 0.5, length / 2 + 12),
+      new T.Vector3(0, lastY + FLOW_Y, length / 2 + 12),
     );
     const placed = [
       place('island-terrace', distance, {

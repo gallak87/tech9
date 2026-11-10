@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "source": "build_arrival_art.py; skywell-arrival-kit.blend",
+  "coordinateConvention": "Metres, X lateral / Y up / +Z forward; identity glTF node transforms",
+  "reference": {
+    "file": "../zephyr/zephyr-scene-reference.png",
+    "promptSource": "../zephyr/asset-manifest.json#concept",
+    "direction": "Original Skywell arrival furniture derived from the approved ivory Gothic/bronze Zephyr world, not a new scene or generated image."
+  },
+  "provenance": "Original Blender-authored geometry/materials/vertex finish. No downloaded models, texture images, fonts or generated runtime media. Four or fewer merged role meshes; original sources remain editable.",
+  "saddleConstruction": {
+    "pickupWebs": 4,
+    "underKeelFlanges": 2,
+    "newGeometryMaximumY": -3.05,
+    "keelUndersideY": -3.2,
+    "flangeKeelOverlap": 0.15,
+    "flangeWebOverlap": 0.15,
+    "webSpineOverlap": 0.5,
+    "editableReference": "REFERENCE / original 44m road keel (not exported)"
+  },
+  "veilSourceConstruction": {
+    "mouthsX": [
+      [-49.98, -32.34],
+      [-26.46, -16.66],
+      [14.7, 24.5],
+      [30.87, 49.49]
+    ],
+    "waterSourceY": 0,
+    "waterSourceZ": 0,
+    "armContact": [50, 6, -12],
+    "placement": "Copy the unchanged gameplay curtain matrix, including x=.85; no water mesh or opacity changes."
+  },
+  "assets": [
+    {
+      "file": "arrival-beacon-crown.glb",
+      "boundsMetres": {
+        "min": [-5.0, -14.0, -5.800000190734863],
+        "max": [5.0, 188.02243041992188, 5.800000190734863]
+      },
+      "triangles": 8160,
+      "materialDraws": 4,
+      "bytes": 719028,
+      "sha256": "10180bc76c013ea358246d46bd1eae2ae6961fe1172c7f750c4e18bc75f0a3a0"
+    },
+    {
+      "file": "arrival-beacon-small.glb",
+      "boundsMetres": {
+        "min": [-3.5, -9.800000190734863, -4.059999942779541],
+        "max": [3.5, 29.004117965698242, 4.059999942779541]
+      },
+      "triangles": 7264,
+      "materialDraws": 4,
+      "bytes": 645456,
+      "sha256": "bf0a7814d3151b2e8ce3d5ad2d12c5e0b7edc14981571570d46c3ecea2d2c2f0"
+    },
+    {
+      "file": "terrace-saddle.glb",
+      "boundsMetres": {
+        "min": [-30.971538543701172, -27.696252822875977, -6.0],
+        "max": [30.971538543701172, -2.0, 6.0]
+      },
+      "triangles": 3880,
+      "materialDraws": 3,
+      "bytes": 350084,
+      "sha256": "b7972cd6f73d398cb2a195b9fb29fc399a4b2f3042598512b07ada702d6e4424"
+    },
+    {
+      "file": "veil-spill-lip.glb",
+      "boundsMetres": {
+        "min": [-56.0, 0.0, -28.0],
+        "max": [56.0, 10.0, 1.0]
+      },
+      "triangles": 2872,
+      "materialDraws": 3,
+      "bytes": 223356,
+      "sha256": "5f1cc3fe0f6e0d872a293560ba296d525fea8e24bce56460c5afaeb49566621a"
+    }
+  ]
+}

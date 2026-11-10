@@ -424,3 +424,71 @@ test('completed Skywell scenery clears real native transfers and owns its resour
     },
   );
 });
+
+test('Skywell composition rejection releases loaded source art and limestone exactly once', async () => {
+  const track = createLevel().createTrack(),
+    resources = new Map();
+  let limestone,
+    oversizedNave = false;
+  function observe(resource) {
+    if (resources.has(resource)) return;
+    resources.set(resource, 0);
+    resource.addEventListener('dispose', () =>
+      resources.set(resource, resources.get(resource) + 1),
+    );
+  }
+  await assert.rejects(
+    createLaunchworksEnvironment({
+      track,
+      async loadAsset(url) {
+        const data = await readFile(
+          new URL(`public/${url.replace(/^\/+/, '')}`, root),
+        );
+        const gltf = await new GLTFLoader().parseAsync(
+          data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength),
+          '',
+        );
+        const nave = url.endsWith('/nave-bay.glb');
+        gltf.scene.traverse((mesh) => {
+          // Valid loaded geometry that cannot fit any real precinct site forces
+          // composition to fail after the private source library is acquired.
+          if (mesh.geometry) {
+            if (nave) mesh.geometry.scale(1000, 1000, 1000);
+            observe(mesh.geometry);
+          }
+          for (const material of [mesh.material].flat().filter(Boolean)) {
+            observe(material);
+            for (const value of Object.values(material))
+              if (value?.isTexture) observe(value);
+          }
+        });
+        oversizedNave ||= nave;
+        return gltf;
+      },
+      async loadTexture() {
+        limestone = new T.Texture();
+        observe(limestone);
+        return limestone;
+      },
+    }),
+    /No clear Skywell precinct site: Cloister walk\/nave-bay/,
+  );
+  assert.ok(
+    oversizedNave,
+    'failure uses an oversized loaded architectural asset',
+  );
+  assert.ok(
+    resources.size > 1,
+    'source assets were acquired before composition failed',
+  );
+  assert.equal(resources.get(limestone), 1, 'limestone is released once');
+  assert.deepEqual(
+    [...resources]
+      .filter(([, count]) => count !== 1)
+      .map(
+        ([resource, count]) =>
+          `${resource.type ?? resource.constructor.name} ${resource.name || resource.uuid}: ${count} disposals`,
+      ),
+    [],
+  );
+});

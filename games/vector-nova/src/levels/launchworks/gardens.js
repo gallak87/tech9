@@ -96,10 +96,12 @@ export async function createSkywellGardens({
       matrix = new T.Matrix4(),
       rotation = new T.Quaternion(),
       local = new T.Vector3();
-    const treeLimit = Math.min(16, Math.floor(300 / terraces.length)),
-      shrubLimit = Math.min(24, Math.floor(400 / terraces.length));
+    const totalWeight = terraces.reduce(
+      (sum, terrace) => sum + (terrace.garden?.weight ?? 1),
+      0,
+    );
     for (const [index, terrace] of terraces.entries()) {
-      const { object, seed = index + 1, blockers = [] } = terrace,
+      const { object, seed = index + 1, blockers = [], garden = {} } = terrace,
         random = randomSource(seed),
         surfaces = [],
         localBounds = new T.Box3(),
@@ -139,15 +141,27 @@ export async function createSkywellGardens({
         structures.push({ bounds, meshes });
       }
       grove.name = `Skywell / rooted grove ${index + 1}`;
-      const turn = random() * Math.PI * 2,
+      const turn = garden.rotation ?? random() * Math.PI * 2,
         cosine = Math.cos(turn),
         sine = Math.sin(turn);
       function rootFor(clump, shrub) {
         // Three broad planting courts leave the centre and mineral edge open.
         const angle = random() * Math.PI * 2,
           radius = Math.sqrt(random()),
-          x = clump[0] + Math.cos(angle) * radius * (shrub ? 0.22 : 0.2),
-          z = clump[1] + Math.sin(angle) * radius * (shrub ? 0.22 : 0.2);
+          x =
+            clump[0] +
+            Math.cos(angle) *
+              radius *
+              (shrub
+                ? (garden.shrubRadius ?? 0.22)
+                : (garden.treeRadius ?? 0.2)),
+          z =
+            clump[1] +
+            Math.sin(angle) *
+              radius *
+              (shrub
+                ? (garden.shrubRadius ?? 0.22)
+                : (garden.treeRadius ?? 0.2));
         local.set(
           center.x + (x * cosine - z * sine) * half.x,
           0,
@@ -186,7 +200,9 @@ export async function createSkywellGardens({
         // The island library's cultivated bed is y=0; lower ledges/undersides
         // share its rock material and must never become planting surfaces.
         if (Math.abs(at.y) > 2.5) return null;
-        const spacing = shrub ? 4.5 : 13;
+        const spacing = shrub
+          ? (garden.shrubSpacing ?? 4.5)
+          : (garden.treeSpacing ?? 13);
         if (
           roots.some(
             (point) => point.distanceToSquared(hit.point) < spacing ** 2,
@@ -195,25 +211,76 @@ export async function createSkywellGardens({
           return null;
         return hit.point;
       }
-      const targetTrees = Math.min(treeLimit, 12 + Math.floor(random() * 5)),
-        targetShrubs = Math.min(shrubLimit, 16 + Math.floor(random() * 9));
+      const weight = garden.weight ?? 1,
+        treeLimit = Math.min(
+          garden.trees ?? 16,
+          Math.floor((300 * weight) / totalWeight),
+        ),
+        shrubLimit = Math.min(
+          garden.shrubs ?? 24,
+          Math.floor((400 * weight) / totalWeight),
+        ),
+        targetTrees = Math.min(
+          treeLimit,
+          garden.trees ?? 12 + Math.floor(random() * 5),
+        ),
+        targetShrubs = Math.min(
+          shrubLimit,
+          garden.shrubs ?? 16 + Math.floor(random() * 9),
+        );
       group.userData.targetTreeCount += targetTrees;
       group.userData.targetShrubCount += targetShrubs;
+      const prototype = kit.prototypes[(seed >>> 0) % kit.prototypes.length];
+      const plantBounds = (parts) => {
+        const result = new T.Box3();
+        for (const part of parts) {
+          part.geometry.computeBoundingBox();
+          result.union(part.geometry.boundingBox);
+        }
+        return result;
+      };
+      const treeBounds = garden.clearance
+          ? plantBounds(prototype.treeParts)
+          : null,
+        shrubBounds = garden.clearance ? plantBounds(kit.shrubParts) : null;
       function plant(target, shrub, placements) {
         for (
           let attempt = 0;
           placements.length < target && attempt < target * 9;
           attempt++
         ) {
-          const point = rootFor(CLUMPS[attempt % CLUMPS.length], shrub);
+          const clumps = garden.clumps ?? CLUMPS;
+          const point = rootFor(clumps[attempt % clumps.length], shrub);
           if (!point) continue;
-          const scale = shrub ? 0.7 + random() * 0.55 : 0.12 + random() * 0.12;
+          const range = shrub
+            ? (garden.shrubScale ?? [0.7, 1.25])
+            : (garden.treeScale ?? [0.12, 0.24]);
+          const scale = T.MathUtils.lerp(range[0], range[1], random());
           rotation.setFromAxisAngle(UP, random() * Math.PI * 2);
           matrix.compose(
             point,
             rotation,
             new T.Vector3(scale * (0.92 + random() * 0.16), scale, scale),
           );
+          if (garden.clearance) {
+            const bounds = (shrub ? shrubBounds : treeBounds)
+              .clone()
+              .applyMatrix4(matrix);
+            const centre = bounds.getCenter(new T.Vector3()),
+              size = bounds.getSize(new T.Vector3());
+            if (
+              !garden.clearance.clears(
+                centre.x,
+                centre.z,
+                size.x,
+                size.z,
+                bounds.max.y,
+                0,
+                bounds.min.y,
+              )
+            )
+              continue;
+          }
           placements.push(matrix.clone());
           roots.push(point);
         }
@@ -239,11 +306,7 @@ export async function createSkywellGardens({
           grove.add(mesh);
         }
       }
-      batch(
-        kit.prototypes[(seed >>> 0) % kit.prototypes.length].treeParts,
-        trees,
-        'garden trees',
-      );
+      batch(prototype.treeParts, trees, 'garden trees');
       batch(kit.shrubParts, shrubs, 'garden shrubs');
       if (grove.children.length) {
         group.add(grove);

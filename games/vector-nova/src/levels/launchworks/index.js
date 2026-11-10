@@ -28,6 +28,7 @@ export default function createLevel() {
       fog: { color: '#a9b0c6', density: 0.00022 },
       bloomStrength: 0.08,
       bloomThreshold: 1.2,
+      catapultBlurScale: 0.45,
       reflectionFar: 6500,
     },
     camera: {

@@ -116,6 +116,21 @@ try {
         camera.up.set(0, 1, 0);
         camera.fov = 58;
         camera.clearViewOffset();
+        if (id === 'launchworks') {
+          // Crown's flight corridor reveals the court and receiving bank;
+          // the generic starting overview is blocked by a foreground shore.
+          const frame = track.sample(track.jumps[0].takeoff);
+          const forward = frame.tangent.clone().setY(0).normalize();
+          const right = forward.clone().set(forward.z, 0, -forward.x);
+          camera.position
+            .copy(frame.position)
+            .addScaledVector(forward, 314.8)
+            .addScaledVector(right, -2.3);
+          camera.position.y += 10.1;
+          target.copy(frame.position).addScaledVector(forward, 997.6);
+          target.y -= 144;
+          camera.fov = 72;
+        }
         // Frame the crown and exposed road, rather than aiming through the
         // monolith toward the route's interior-weighted average.
         if (id === 'vesper-forest') {

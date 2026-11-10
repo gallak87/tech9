@@ -1,39 +1,92 @@
 import assert from 'node:assert/strict';
-import { chromium } from 'playwright';
+import {
+  createCareerSlots,
+  createMemoryStorage,
+  CAREER_SLOTS_KEY,
+} from '../src/progression/careers.js';
+import { createProfileStore, PROFILE_KEY } from '../src/progression/profile.js';
+import { MODE_UNLOCKS } from '../src/levels/access.js';
+import { launchVerificationBrowser } from './verification-browser.mjs';
 
 const base = process.env.VN_URL ?? 'http://127.0.0.1:5214';
-const browser = await chromium.launch({
-  channel: 'chrome',
-  headless: true,
-  args: ['--mute-audio'],
-});
+const levelIds = MODE_UNLOCKS.find(
+  ({ mode }) => mode === 'eliminator',
+).levelIds;
+const levelId = process.env.VN_LEVEL ?? 'eliminator-glasswake';
+assert.ok(
+  levelIds.includes(levelId),
+  `VN_LEVEL must be one of: ${levelIds.join(', ')}`,
+);
+function careerSeed({ earned = false } = {}) {
+  const storage = createMemoryStorage();
+  const careers = createCareerSlots({ storage: () => storage, now: () => 1 });
+  careers.create(1);
+  const store = createProfileStore(() => careers.storageFor(1));
+  if (earned) {
+    store.recordCup('frontier');
+    for (const id of levelIds.slice(0, levelIds.indexOf(levelId)))
+      assert.equal(store.recordCourseFinish(id), true);
+  }
+  return Array.from({ length: storage.length }, (_, i) => {
+    const key = storage.key(i);
+    return [key, storage.getItem(key)];
+  });
+}
+const freshSeed = careerSeed();
+const earnedSeed = careerSeed({ earned: true });
+const profileStorageKey = earnedSeed.find(([key]) =>
+  key.endsWith(`.${PROFILE_KEY}`),
+)[0];
+const entryURL = (id, options = {}) => {
+  const target = new URL(base);
+  target.search = new URLSearchParams({
+    level: id,
+    intro: '0',
+    music: '0',
+    ...options,
+  });
+  return target.href;
+};
+const browser = await launchVerificationBrowser();
 const page = await browser.newPage({ viewport: { width: 1440, height: 960 } });
 const faults = [];
 page.on('pageerror', (error) => faults.push(error.message));
-
-await page.addInitScript(() => {
-  localStorage.setItem(
-    'vector-nova.settings',
-    JSON.stringify({
-      quality: 'low',
-      volume: 0,
-      reducedMotion: true,
-      difficulty: 'easy',
-    }),
-  );
-  window.__checkPad = {
-    id: 'event-controller-check',
-    index: 0,
-    connected: false,
-    mapping: 'standard',
-    axes: [0, 0, 0, 0],
-    buttons: Array.from({ length: 17 }, () => ({ pressed: false, value: 0 })),
-  };
-  Object.defineProperty(navigator, 'getGamepads', {
-    configurable: true,
-    value: () => [window.__checkPad],
-  });
+const worldRequests = [];
+page.on('request', (request) => {
+  if (/\/src\/levels\/[^/]+\/index\.js(?:\?|$)/.test(request.url()))
+    worldRequests.push(request.url());
 });
+
+await page.addInitScript(
+  ({ seed, registryKey }) => {
+    // Seed one real scoped career only on first entry; later navigations retain
+    // earned fixtures and native result writes instead of silently resetting them.
+    if (!localStorage.getItem(registryKey))
+      for (const [key, value] of seed) localStorage.setItem(key, value);
+    localStorage.setItem(
+      'vector-nova.settings',
+      JSON.stringify({
+        quality: 'low',
+        volume: 0,
+        reducedMotion: true,
+        difficulty: 'easy',
+      }),
+    );
+    window.__checkPad = {
+      id: 'event-controller-check',
+      index: 0,
+      connected: false,
+      mapping: 'standard',
+      axes: [0, 0, 0, 0],
+      buttons: Array.from({ length: 17 }, () => ({ pressed: false, value: 0 })),
+    };
+    Object.defineProperty(navigator, 'getGamepads', {
+      configurable: true,
+      value: () => [window.__checkPad],
+    });
+  },
+  { seed: freshSeed, registryKey: CAREER_SLOTS_KEY },
+);
 
 // Response-only diagnostics accelerate the unchanged fixed-step session. They
 // never enter the application, its production builds or durable player saves.
@@ -215,7 +268,7 @@ async function runContest(label) {
 }
 
 try {
-  await page.goto(new URL('?level=halcyon&music=0', base).href);
+  await page.goto(entryURL('halcyon'));
   await page.waitForFunction(
     () => window.__VN_FRONTEND?.getState().screen === 'home',
   );
@@ -226,8 +279,20 @@ try {
   );
   await pressButton('[data-action="eliminator"]');
   assert.equal((await front()).intent, 'eliminator');
-  assert.equal((await front()).selected, 'crucible');
-  assert.equal(await page.locator('.circuit-card').count(), 1);
+  assert.equal((await front()).selected, levelIds[0]);
+  assert.deepEqual(
+    await page
+      .locator('.circuit-card')
+      .evaluateAll((cards) => cards.map((card) => card.dataset.level)),
+    levelIds,
+  );
+  if (levelId !== levelIds[0]) await pressButton(`[data-level="${levelId}"]`);
+  assert.equal((await front()).selected, levelId);
+  assert.equal(await page.locator('[data-action="launch"]').isDisabled(), true);
+  assert.match(
+    await page.locator('#course-start-requirement').textContent(),
+    /Win Frontier Cup/,
+  );
   assert.equal(
     await page.evaluate(() => !!window.__VN),
     false,
@@ -249,6 +314,36 @@ try {
     'leaving Eliminator restores the selected race course',
   );
   await pressButton('[data-action="eliminator"]');
+  assert.equal(
+    await page.evaluate(() => !!window.__VN),
+    false,
+    'locked previews and ordinary mode switching never construct a world',
+  );
+  assert.deepEqual(
+    worldRequests,
+    [],
+    'locked previews fetch no level factories',
+  );
+  // Record the cup and any earlier course completions through the production
+  // reducer. This navigation then exercises ordinary earned launch permission.
+  await page.evaluate((entries) => {
+    for (const [key, value] of entries) localStorage.setItem(key, value);
+  }, earnedSeed);
+  await page.goto(entryURL(levelId));
+  await page.waitForFunction(
+    () => window.__VN_FRONTEND?.getState().screen === 'home',
+  );
+  assert.equal((await front()).selected, levelId);
+  assert.equal(
+    await page.locator('[data-action="launch"]').isDisabled(),
+    false,
+  );
+  assert.equal(await page.evaluate(() => !!window.__VN), false);
+  assert.deepEqual(
+    worldRequests,
+    [],
+    'earned setup also stays lazy until Start',
+  );
   await page.setViewportSize({ width: 1440, height: 960 });
   await pressButton('[data-action="launch"]');
   await page.waitForFunction(
@@ -370,14 +465,17 @@ try {
   if (!result.won) {
     // The event explicitly permits earned career builds. This isolated fixture
     // exercises a genuine win without fabricating positions, damage or survival.
-    durableCareer = await page.evaluate(() =>
-      localStorage.getItem('vector-nova.career.v1'),
+    durableCareer = await page.evaluate(
+      (key) => localStorage.getItem(key),
+      profileStorageKey,
     );
     await page.goto(
-      new URL(
-        '?level=crucible&music=0&dev=2&ship=shrike&upgrades=3&equipment=injector,deflector',
-        base,
-      ).href,
+      entryURL(levelId, {
+        dev: '2',
+        ship: 'shrike',
+        upgrades: '3',
+        equipment: 'injector,deflector',
+      }),
     );
     await page.waitForFunction(
       () => window.__VN_FRONTEND?.getState().screen === 'home',
@@ -396,7 +494,10 @@ try {
     assert.equal((await front()).error, '');
     result = await runContest('isolated earned Shrike / injector + deflector');
     assert.equal(
-      await page.evaluate(() => localStorage.getItem('vector-nova.career.v1')),
+      await page.evaluate(
+        (key) => localStorage.getItem(key),
+        profileStorageKey,
+      ),
       durableCareer,
       'earned fixture cannot alter the durable career',
     );

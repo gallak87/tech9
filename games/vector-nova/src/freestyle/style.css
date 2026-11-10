@@ -311,10 +311,10 @@
 .freestyle-hud[data-late='true'] .fs-rotation i {
   background: #ea593f;
 }
-#interface[data-level='launchworks'] .top-telemetry,
-#interface[data-level='launchworks'] #race-roster,
-#interface[data-level='launchworks'] #legend,
-#interface[data-level='launchworks'] #minimap {
+#interface[data-freestyle='true'] .top-telemetry,
+#interface[data-freestyle='true'] #race-roster,
+#interface[data-freestyle='true'] #legend,
+#interface[data-freestyle='true'] #minimap {
   display: none !important;
 }
 .freestyle-results .fs-result-score {
@@ -431,7 +431,7 @@
 }
 
 /* Transfer practice already provides both retry and full-chain actions. */
-#interface[data-level='launchworks']
+#interface[data-freestyle='true']
   #pause-panel:has(.fs-practice)
   .pause-restart {
   display: none;

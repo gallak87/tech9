@@ -13,6 +13,7 @@ import { REWARDS, AVAILABLE_EQUIPMENT } from './catalog.js';
 import { CUPS, CUP_STORAGE_KEY, createCupStore } from '../race/cup.js';
 import { RACE_OPPONENTS } from '../race/roster.js';
 import { SHIPS } from '../ships/catalog.js';
+import { COURSE_IDS } from '../levels/access.js';
 export function createDeveloperSession(parameters, sourceStorage = null) {
   const storage = createMemoryStorage();
   const completionShowcase =
@@ -37,6 +38,7 @@ export function createDeveloperSession(parameters, sourceStorage = null) {
     state.cups = CUPS.map((cup) => cup.id);
     state.trialTracks = IS_DEMO ? ['halcyon'] : ['halcyon', 'orbital'];
     state.claims = REWARDS.map((reward) => reward.id);
+    state.finishedCourses = IS_DEMO ? [] : [...COURSE_IDS];
     state.exoticShip = IS_DEMO
       ? null
       : (SHIPS.find(

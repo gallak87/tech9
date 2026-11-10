@@ -1,0 +1,56 @@
+{
+  "id": "freestyle-ravel-receiver-jaw-v1",
+  "generator": "Original project-authored background Blender geometry",
+  "rights": "Original editable project geometry and scalar PBR materials. Existing project-owned Ravel concepts are reference-only. No third-party assets or textures.",
+  "coordinates": "metres; +Y up; +X retained pin axis; +Z front; identity root",
+  "root": "receiver_jaw",
+  "source": {
+    "file": "assets/levels/freestyle-ravel/build_receiver_jaw.py",
+    "sha256": "67821d3fcfac4fb150dcbbe8190723d838bbe14d75b902bcfb9e18dd686759c0"
+  },
+  "blend": {
+    "file": "assets/levels/freestyle-ravel/receiver-jaw.blend",
+    "sha256": "acb1cf4b966898be0592aa23c5a34c81639f1cfabc3ba40acacb4a441f1aad3f"
+  },
+  "runtimeAsset": {
+    "file": "public/assets/levels/freestyle-ravel/receiver-jaw.glb",
+    "sha256": "4a66303f4c5043a8fea4ab8940a368ba5806f1dc8372de42e724f39f1a536109",
+    "bytes": 114644
+  },
+  "referenceImages": [
+    {
+      "file": "assets/levels/ravel/reference/ravel-anchor-narrows-concept.png",
+      "sha256": "9d10cfba850da22fb6a01a92df0624af25dec7329e36c340df34e20454c13ea5"
+    },
+    {
+      "file": "assets/levels/ravel/reference/ravel-crown-fold-concept.png",
+      "sha256": "5f98830aacd2235dd2f4b742cadf861a08ea9c271f11f6a6eeb220bc87c6b969"
+    }
+  ],
+  "geometry": {
+    "triangles": 3036,
+    "materialRoles": [
+      "Titanium / formed jaw fittings",
+      "Graphite / receiver load chassis",
+      "Copper / recessed pin bearings"
+    ],
+    "textures": [],
+    "bounds": {
+      "min": [-22.0, -16.100000381469727, -27.5],
+      "max": [22.0, 16.700000762939453, 27.499998092651367]
+    },
+    "throughBearingBoreRadius": 5.25,
+    "retainedPinRadius": 5,
+    "retainedPinXSpan": [-17, 17],
+    "retainedPinYZ": [
+      [0, -16],
+      [0, 16]
+    ],
+    "construction": "Two continuous bored load cheeks, formed outer covers, four open annular copper bearings, closed upper/lower bridges, continuous shelf carriers, two integrated service balconies. No opaque front/back panels or painted holes."
+  },
+  "anchors": {
+    "jawfront": [0, 0, 26],
+    "back": [0, 0, -26],
+    "root": [0, 0, 0]
+  }
+}

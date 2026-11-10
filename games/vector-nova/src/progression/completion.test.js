@@ -9,6 +9,8 @@ import {
   PROFILE_KEY,
 } from './profile.js';
 import { isCareerComplete, remainingModeUnlocks } from './completion.js';
+import { careerUnlockProgress } from './completion.js';
+import { MODE_UNLOCKS, levelAvailable } from '../levels/access.js';
 
 function completedStore(storage) {
   const store = createProfileStore(() => storage);
@@ -17,15 +19,41 @@ function completedStore(storage) {
     store.recordCup(cup);
   store.recordTrial('halcyon', true);
   store.recordTrial('orbital', true);
+  for (const mode of MODE_UNLOCKS)
+    for (const id of mode.levelIds.slice(0, 2)) store.recordCourseFinish(id);
   return store;
 }
 
-test('career completion requires every original reward and has no bonus-cup prerequisite', () => {
+test('the one thirty-seven unlock collection requires twenty-eight rewards and nine earned courses without a bonus-course cycle', () => {
   const profile = freshProfile();
   assert.equal(ALL_REWARDS.length, 28);
   assert.equal(isCareerComplete(profile), false);
   profile.claims = ALL_REWARDS.map(({ id }) => id);
+  assert.equal(isCareerComplete(profile), false);
+  assert.equal(careerUnlockProgress(profile).collected, 28);
+  profile.cups = ['founders', 'frontier', 'horizon'];
+  profile.finishedCourses = MODE_UNLOCKS.flatMap((mode) =>
+    mode.levelIds.slice(0, 2),
+  );
   assert.equal(isCareerComplete(profile), true);
+  const progress = careerUnlockProgress(profile);
+  assert.equal(progress.total, 37);
+  assert.equal(progress.collected, 37);
+  assert.equal(progress.rewardCount, 28);
+  assert.equal(progress.courseCount, 9);
+  assert.equal(new Set(progress.items.map((item) => item.id)).size, 37);
+  assert.equal(profile.finishedCourses.length, 6);
+  assert.ok(!profile.cups.includes('encore'));
+  assert.ok(
+    profile.finishedCourses.every(
+      (id) => !['oriel', 'ravel', 'nomad'].includes(id),
+    ),
+  );
+  for (const id of ['oriel', 'ravel', 'nomad'])
+    assert.equal(
+      levelAvailable(id, { complete: isCareerComplete(profile) }),
+      true,
+    );
   for (const reward of ALL_REWARDS) {
     assert.equal(
       isCareerComplete({
@@ -36,8 +64,43 @@ test('career completion requires every original reward and has no bonus-cup prer
       reward.id,
     );
   }
+  for (const cup of profile.cups)
+    assert.equal(
+      isCareerComplete({
+        ...profile,
+        cups: profile.cups.filter((id) => id !== cup),
+      }),
+      false,
+    );
+  for (const course of profile.finishedCourses)
+    assert.equal(
+      isCareerComplete({
+        ...profile,
+        finishedCourses: profile.finishedCourses.filter((id) => id !== course),
+      }),
+      false,
+    );
   profile.claims = Array(28).fill('speed-1');
   assert.equal(isCareerComplete(profile), false);
+});
+
+test('course unlocks are derived from earned progress and cannot be supplied as fake claims or developer permission', () => {
+  const profile = freshProfile();
+  profile.claims = ALL_REWARDS.map(({ id }) => id);
+  const progress = careerUnlockProgress({ ...profile, developer: true });
+  assert.equal(progress.total, 37);
+  assert.equal(progress.collected, 28);
+  assert.equal(progress.courseCount, 0);
+  assert.equal(isCareerComplete({ ...profile, developer: true }), false);
+  assert.equal(
+    validateProfile({ ...profile, claims: [...profile.claims, 'launchworks'] }),
+    null,
+  );
+  assert.ok(
+    progress.items
+      .filter((item) => item.kind === 'course')
+      .every((item) => !item.collected),
+  );
 });
 
 test('mode unlock counts keep Time Trials discoverable after every cup is won', () => {
@@ -70,6 +133,19 @@ test('mode unlock counts keep Time Trials discoverable after every cup is won', 
   assert.equal(fresh.freestyle, fresh.race);
   assert.equal(fresh.eliminator, fresh.race);
   assert.equal(fresh.interceptor, fresh.race);
+  const gearOnly = store.snapshot().state;
+  gearOnly.finishedCourses = [];
+  assert.deepEqual(remainingModeUnlocks(gearOnly), {
+    race: 0,
+    cup: 0,
+    freestyle: 2,
+    eliminator: 2,
+    interceptor: 2,
+    'time-trial': 0,
+    practice: 0,
+  });
+  gearOnly.cups = [];
+  assert.equal(remainingModeUnlocks(gearOnly).cup, 3);
 });
 
 test('completion retains the last racer, resumes interrupted playback and acknowledges once per career', () => {
@@ -93,14 +169,32 @@ test('completion retains the last racer, resumes interrupted playback and acknow
   assert.ok(validateProfile(JSON.parse(storage.getItem(PROFILE_KEY))));
 });
 
-test('older career saves remain valid and incomplete careers cannot queue or forge completion', () => {
+test('completion acknowledgement is structural presentation metadata and incomplete careers cannot queue playback', () => {
   const old = freshProfile();
   delete old.completion;
   assert.equal(validateProfile(old).completion, null);
+  const acknowledged = validateProfile({
+    ...old,
+    claims: ALL_REWARDS.map(({ id }) => id),
+    completion: { shipId: 'shrike', acknowledged: true },
+  });
+  assert.equal(acknowledged.claims.length, 28);
+  assert.deepEqual(acknowledged.completion, {
+    shipId: 'shrike',
+    acknowledged: true,
+  });
+  assert.equal(isCareerComplete(acknowledged), false);
   assert.equal(
     validateProfile({
       ...old,
-      completion: { shipId: 'shrike', acknowledged: true },
+      completion: { shipId: 'rival', acknowledged: true },
+    }),
+    null,
+  );
+  assert.equal(
+    validateProfile({
+      ...old,
+      completion: { shipId: 'shrike', acknowledged: 'yes' },
     }),
     null,
   );

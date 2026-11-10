@@ -198,6 +198,51 @@
       "sourceRevision": "024a8b2a87b5d9b354120148f3dc88a911bcc360",
       "sourceDirty": false,
       "routeSignature": "cc5a0db53f912a6e"
+    },
+    "freestyle-oriel": {
+      "file": "freestyle-oriel.webp",
+      "width": 640,
+      "height": 400,
+      "preset": "route-overview-v1",
+      "sourceRevision": "3a276fbef1fbeec067658f436dffc9161d3e20ef",
+      "sourceDirty": true,
+      "routeSignature": "80aaf4bd23e3cb80"
+    },
+    "freestyle-ravel": {
+      "file": "freestyle-ravel.webp",
+      "width": 640,
+      "height": 400,
+      "preset": "route-overview-v1",
+      "sourceRevision": "3a276fbef1fbeec067658f436dffc9161d3e20ef",
+      "sourceDirty": true,
+      "routeSignature": "e69594abdeaee283"
+    },
+    "eliminator-glasswake": {
+      "file": "eliminator-glasswake.webp",
+      "width": 640,
+      "height": 400,
+      "preset": "route-overview-v1",
+      "sourceRevision": "3a276fbef1fbeec067658f436dffc9161d3e20ef",
+      "sourceDirty": true,
+      "routeSignature": "2ddcf9f54829d68a"
+    },
+    "eliminator-saffron": {
+      "file": "eliminator-saffron.webp",
+      "width": 640,
+      "height": 400,
+      "preset": "route-overview-v1",
+      "sourceRevision": "3a276fbef1fbeec067658f436dffc9161d3e20ef",
+      "sourceDirty": true,
+      "routeSignature": "6ea85cbb4d3f1359"
+    },
+    "eliminator-nomad": {
+      "file": "eliminator-nomad.webp",
+      "width": 640,
+      "height": 400,
+      "preset": "route-overview-v1",
+      "sourceRevision": "3a276fbef1fbeec067658f436dffc9161d3e20ef",
+      "sourceDirty": true,
+      "routeSignature": "37a93254a696cb8f"
     }
   }
 }

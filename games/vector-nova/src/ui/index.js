@@ -36,6 +36,7 @@ export function createUI(
   const listeners = new AbortController();
   root.id = 'interface';
   root.dataset.level = metadata.id;
+  root.dataset.freestyle = String(metadata.freestyle === true);
   root.classList.toggle('jump-playtest', Boolean(playtest));
   host.append(root);
   root.innerHTML = `<header class="masthead"><a class="wordmark" href="#" aria-label="Vector Nova home">VECTOR<span>//</span>NOVA</a><div class="edition"><i></i> <span></span></div><button class="quiet" id="pause-button" aria-label="Pause">Ⅱ</button></header>

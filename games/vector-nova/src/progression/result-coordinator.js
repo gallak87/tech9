@@ -1,5 +1,6 @@
 import { cupChampion } from '../race/cup.js';
 import { raceProgressPoints } from './profile.js';
+import { levelUnlockRequirement } from '../levels/access.js';
 
 const freestylePositions = { Gold: 1, Silver: 2, Bronze: 3, Complete: 10 };
 
@@ -26,7 +27,7 @@ export function freestyleProgressPosition(data) {
 export function settleRaceResult(
   { profileStore, cupStore, cupCollection },
   data,
-  { sessionIntent, sessionCup, attemptId, getShipId } = {},
+  { sessionIntent, sessionCup, attemptId, getShipId, courseId } = {},
 ) {
   const rewards = [];
   let celebration = null;
@@ -117,6 +118,15 @@ export function settleRaceResult(
     interceptorComplete ||
     eliminatorComplete
   );
+  const courseFinished =
+    freestyleComplete ||
+    (eliminatorComplete && data.won === true && player.position === 1) ||
+    (interceptorComplete && data.won === true);
+  if (
+    courseFinished &&
+    levelUnlockRequirement(courseId)?.mode === sessionIntent
+  )
+    profileStore.recordCourseFinish(courseId);
   if (completionEligible)
     profileStore.queueCompletion(data.shipId ?? getShipId?.());
   // Eligibility is deliberately independent of whether queuing was new: a

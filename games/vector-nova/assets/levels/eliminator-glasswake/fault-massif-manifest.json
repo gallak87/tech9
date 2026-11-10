@@ -1,0 +1,82 @@
+{
+  "id": "eliminator-glasswake-fault-massif-v2",
+  "generator": "Original project-authored background Blender geometry",
+  "rights": "Original editable project geometry and canonical project-owned scalar ice recipes. Project-owned generated scene reference guides form only. No third-party assets or embedded textures.",
+  "coordinates": "metres; +Y up; +X outboard; +Z along shore; identity root; founded closed foot Y=0",
+  "root": "fracture_massif",
+  "source": {
+    "file": "assets/levels/eliminator-glasswake/build_fault_massif.py",
+    "sha256": "373dbdc8b486f8f4f3c8eac0788f558565d2c4128785898a8393beecddf2ee33"
+  },
+  "blend": {
+    "file": "assets/levels/eliminator-glasswake/fault-massif.blend",
+    "sha256": "af1709e8d010ee2a6c3947aadb2e8a1e3c4415075aa772b9c742976fc519107e"
+  },
+  "runtimeAsset": {
+    "file": "public/assets/levels/eliminator-glasswake/fault-massif.glb",
+    "sha256": "30822eb68c4e3f63dcf690eb92ebf97667291ceb3a1f67eb87207e9728513013",
+    "bytes": 160692
+  },
+  "reference": {
+    "file": "assets/levels/glasswake/scene-reference.png",
+    "sha256": "053c638d5f7798dfe80f5b0234a0c8656de19fde9bd0769a782e01375df97ca8",
+    "prompt": "assets/levels/glasswake/scene-prompt.txt",
+    "promptSha256": "1b9b40b11ae85cbbe1d8bc4014cd13e46f920d4585166d9fe95da5137172d2a9"
+  },
+  "canonicalMaterialSource": {
+    "file": "public/assets/levels/glasswake/glasswake-environment-v5.glb",
+    "sha256": "6a11c2ddc97ccd0560ab28aba3003884e5c8cfb9450bdee6411c97cd0be91cf6"
+  },
+  "geometry": {
+    "triangles": 6708,
+    "vertices": 3356,
+    "bounds": {
+      "min": [-20.0, 0.0, -180.0],
+      "max": [210.0, 450.0, 180.0]
+    },
+    "materialRoles": [
+      "Pale fractured wind-polished ice",
+      "Blue compact ice planes",
+      "Cobalt buried blue-black core",
+      "Opaque frost crust",
+      "Fresh fracture blue edges"
+    ],
+    "textures": [],
+    "closedManifold": true,
+    "boundaryEdges": 0,
+    "signedVolumeCubicMetres": 20166443.692309536,
+    "capVerification": {
+      "method": "Constrained boundary tessellation with interior height samples; no radial rings",
+      "triangles": 374,
+      "reversedOrDegenerateXZTriangles": 0,
+      "outerBoundaryPreserved": true
+    },
+    "normalVerification": {
+      "opposedTriangles": 0,
+      "minimumGeometricSplitAlignment": 0.06996278092265129
+    },
+    "features": {
+      "obliqueUndercut": {
+        "openingFaces": "-X",
+        "lipZSpan": [-120, 145],
+        "lipYSpan": [170, 384],
+        "closedRearX": 118,
+        "type": "Irregular long stepped planar lens; no ellipsoid tool",
+        "mouthReference": [
+          39.78004569604993, 286.37952796936037, 18.116886020552716
+        ],
+        "mouthReferenceMethod": "Mean shared cobalt/exterior rim vertices in the exported GLB",
+        "sharedRimVertices": 200
+      },
+      "plateau": {
+        "highShoulderZ": [26, 106],
+        "lowerConnectingShoulderZ": [-180, -70],
+        "majorCreasedStrata": [8, 16, 24]
+      },
+      "compactIceStratum": {
+        "sourceRows": [3, 15],
+        "upperBoundary": "Complete formed/creased ring 16, not per-corner world-height thresholds"
+      }
+    }
+  }
+}

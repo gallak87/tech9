@@ -12,6 +12,10 @@ import { createProfileStore } from '../src/progression/profile.js';
 import { saveShipSelection } from '../src/ships/catalog.js';
 import { createCupStore } from '../src/race/cup.js';
 import { RACE_ORDER } from '../src/race/roster.js';
+import { COURSE_IDS, MODE_UNLOCKS } from '../src/levels/access.js';
+import { careerUnlockProgress } from '../src/progression/completion.js';
+import { createEliminatorEvent } from '../src/events/eliminator.js';
+import { createInterceptorEvent } from '../src/events/interceptor.js';
 
 // Maintained release-flow integration checks. Use an existing development server:
 // VN_URL=http://127.0.0.1:5179 node tools/release-verify.mjs
@@ -49,17 +53,20 @@ function fixture({
   trials = 0,
   pending = false,
   horizonFinal = false,
+  starterCups = [],
 } = {}) {
   const storage = createMemoryStorage();
   const careers = createCareerSlots({ storage: () => storage, now: () => 1 });
   careers.create(1);
   const scoped = careers.storageFor(1);
   const store = createProfileStore(() => scoped);
+  for (const id of starterCups) store.recordCup(id);
   for (let i = 0; i < wins; i++)
     store.recordRace({ id: `release-race-${i}`, won: true });
   if (cups)
     for (const id of ['founders', 'frontier', 'horizon', 'apex'])
       store.recordCup(id);
+  if (cups) for (const id of COURSE_IDS) store.recordCourseFinish(id);
   for (const id of ['halcyon', 'orbital'].slice(0, trials))
     store.recordTrial(id, true);
   if (horizonFinal) {
@@ -140,6 +147,7 @@ const phase = async (page, value) => {
 };
 const mockGame = `export async function createGame(options) {
   let shipId='needle', session=false, mode='overview';
+  (window.__releaseGameEntries??=[]).push({level:options.parameters.get('level'),access:structuredClone(options.contentAccess)});
   const snapshot=()=>({mode,ship:{id:shipId},vehicle:{shipId},competition:{enabled:true,playerFinished:false},timeTrial:null});
   const api={ready:true,getSnapshot:snapshot,configure(){},prepareSession(){session=false},setBuild(){},
     setSuspended(value){window.__releaseSuspended=value},clearInput(){},dispose(){session=false},
@@ -149,6 +157,7 @@ const mockGame = `export async function createGame(options) {
     returnToSetup(){mode='overview'},resumeSession(){mode='racing';options.onMode(mode)},showResults(){mode='results'},
     celebrateCup(){window.__releaseCelebrations=(window.__releaseCelebrations??0)+1;return 0.6}};
   window.__releaseRace={
+    finishCourse(data){mode='results';session=false;options.onResults({...data,shipId})},
     trial(){options.onTrialRecord({playerValid:true,improved:true,shipId})},
     home(){options.onHome()},
     cupFinish(present=true){mode='results';options.onResults(${JSON.stringify(cupFinish)},{present})},
@@ -182,6 +191,9 @@ async function check(
   try {
     await context.addInitScript(
       ({ values, registryKey, reducedMotion }) => {
+        // Vite module graphs plus a garage visit exceed the browser's default
+        // 250-entry buffer before the selected finale record is fetched.
+        performance.setResourceTimingBufferSize(4000);
         if (!localStorage.getItem(registryKey))
           for (const [key, value] of values) localStorage.setItem(key, value);
         localStorage.setItem(
@@ -328,8 +340,190 @@ function horizonAward(current) {
   assert.equal(current.cupCollection.cups.horizon.points, 75);
   assert.equal(current.cupCollection.cups.horizon.difficulty, 'hard');
 }
+function courseFinishFixture(mode) {
+  if (mode === 'freestyle')
+    return {
+      mode,
+      playerValid: true,
+      medal: 'Gold',
+      score: 30000,
+      bestChain: 5,
+      landed: 5,
+      clean: 5,
+      best: 30000,
+      improved: true,
+      saved: true,
+      legs: Array.from({ length: 5 }, (_, i) => ({
+        id: `transfer-${i + 1}`,
+        landed: true,
+        clean: true,
+        perfect: false,
+        reason: 'Clean banked catch',
+        tricks: [],
+        bank: 2000 * (i + 1),
+      })),
+    };
+  if (mode === 'eliminator') {
+    const event = createEliminatorEvent({ ids: RACE_ORDER });
+    event.step(
+      102,
+      RACE_ORDER.map((id, i) => ({ id, distance: 1000 - i * 20, valid: true })),
+    );
+    assert.equal(event.snapshot().result.won, true);
+    return event.snapshot().result;
+  }
+  const mission = createInterceptorEvent({
+    difficulty: 'easy',
+    escapeDistance: 8600,
+  });
+  for (let i = 0; i < 100 && mission.snapshot().health > 0; i++)
+    mission.hit({
+      source: 'player',
+      target: 'goliath',
+      kind: 'repulsor',
+      equipment: 'lance',
+      key: `fixture-${i}`,
+    });
+  mission.step(1 / 120, { targetDistance: 300, playerDistance: 0 });
+  assert.equal(mission.snapshot().result.won, true);
+  return mission.snapshot().result;
+}
 try {
   if (!responsive) {
+    await check(
+      'sequential mode completion opens and launches the next course without reload',
+      fixture({ starterCups: MODE_UNLOCKS.map(({ cupId }) => cupId) }),
+      async (page) => {
+        await page.goto(url());
+        await ready(page);
+        const documentMark = await page.evaluate(
+          () => (window.__releaseDocumentMark = crypto.randomUUID()),
+        );
+        for (const {
+          mode,
+          cupId,
+          levelIds: [first, next],
+        } of MODE_UNLOCKS) {
+          await page.locator(`[data-action="${mode}"]`).click();
+          await page.locator(`[data-level="${first}"]`).click();
+          assert.equal(
+            await page
+              .locator(`[data-level="${next}"]`)
+              .getAttribute('data-locked'),
+            'true',
+          );
+          const before = careerUnlockProgress((await state(page)).career.state);
+          assert.equal(before.total, 37);
+          assert.equal(
+            before.items.find(({ id }) => id === next).collected,
+            false,
+          );
+          await page.locator('[data-action="launch"]').click();
+          await page.waitForFunction(
+            (id) =>
+              window.__VN_FRONTEND.getState().loadedId === id &&
+              window.__VN_FRONTEND.getState().screen === 'race',
+            first,
+          );
+          // Classification fixtures exercise real settlement and menu state;
+          // this is deliberately not a native driving or combat simulation.
+          await page.evaluate(
+            (result) => window.__releaseRace.finishCourse(result),
+            courseFinishFixture(mode),
+          );
+          await page.waitForFunction(
+            () => window.__VN_FRONTEND.getState().screen === 'results',
+          );
+          assert.match(
+            await page.locator('.course-result-progress').textContent(),
+            /unlocked\./,
+          );
+          const profile = (await state(page)).career.state;
+          assert.ok(profile.finishedCourses.includes(first));
+          assert.equal(
+            profile.claims.includes(next),
+            false,
+            'course unlocks are derived, not equipment claims',
+          );
+          const after = careerUnlockProgress(profile);
+          assert.equal(after.total, 37);
+          assert.equal(after.courseCount, before.courseCount + 1);
+          assert.equal(
+            after.items.find(({ id }) => id === next).collected,
+            true,
+          );
+          await page.locator('[data-action="change"]').click();
+          assert.equal(
+            await page
+              .locator('.career-progress-bar')
+              .getAttribute('aria-valuenow'),
+            String(after.collected),
+          );
+          assert.equal(
+            await page
+              .locator(
+                `.career-progress-notch.is-earned[data-unlock="${next}"]`,
+              )
+              .count(),
+            1,
+          );
+          await page.locator('[data-action="career"]').click();
+          assert.equal(
+            await page
+              .locator(
+                `.career-course-card.is-completed[data-course="${first}"]`,
+              )
+              .count(),
+            1,
+          );
+          assert.equal(
+            await page
+              .locator(
+                `.career-course-card.is-available[data-course="${next}"]`,
+              )
+              .count(),
+            1,
+          );
+          assert.match(
+            await page.locator('.career-summary').textContent(),
+            new RegExp(`${after.collected} / 37 unlocks`),
+          );
+          await page.locator('.career-page [data-close]').click();
+          await page.locator(`[data-level="${next}"]`).click();
+          assert.equal(
+            await page.locator('[data-action="launch"]').isDisabled(),
+            false,
+          );
+          const entriesBefore = await page.evaluate(
+            () => window.__releaseGameEntries.length,
+          );
+          await page.locator('[data-action="launch"]').click();
+          await page.waitForFunction(
+            (id) =>
+              window.__VN_FRONTEND.getState().loadedId === id &&
+              window.__VN_FRONTEND.getState().screen === 'race',
+            next,
+          );
+          const entries = await page.evaluate(
+            () => window.__releaseGameEntries,
+          );
+          assert.equal(entries.length, entriesBefore + 1);
+          assert.equal(entries.at(-1).level, next);
+          assert.ok(entries.at(-1).access.cupWins.includes(cupId));
+          assert.ok(
+            entries.at(-1).access.finishedCourses.includes(first),
+            'the next world receives refreshed same-session access',
+          );
+          assert.equal(
+            await page.evaluate(() => window.__releaseDocumentMark),
+            documentMark,
+          );
+          await page.evaluate(() => window.__releaseRace.home());
+          await ready(page);
+        }
+      },
+      { game: true },
+    );
     await check(
       'fresh career hides three bonus tracks and fifth cup, including copied art URLs',
       fresh,
@@ -344,7 +538,7 @@ try {
         await page.waitForFunction(
           () => window.__VN_FRONTEND?.getState().error,
         );
-        assert.match((await state(page)).error, /28 career rewards/);
+        assert.match((await state(page)).error, /37 career unlocks/);
         assert.equal(await page.evaluate(() => !!window.__VN?.ready), false);
       },
     );
@@ -752,7 +946,7 @@ try {
             'credits fit horizontally',
           );
           const thanks = await page.locator('#completion-thanks').textContent();
-          assert.match(thanks, /Thx for playing, 3 new courses unlocked!/);
+          assert.match(thanks, /Thx for playing, 3 Encore courses unlocked!/);
           await page
             .getByRole('button', { name: /^Close/ })
             .scrollIntoViewIfNeeded();

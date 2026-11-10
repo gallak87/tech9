@@ -1,13 +1,13 @@
 # VECTOR//NOVA roadmap
 
-Main baseline checked on **2026-11-06**; event-branch status below remains subject to its separate integration review. This is open work, not authorization to restart completed art or critic campaigns. Implementation and automated checks do not replace human or physical-device approval.
+Current review direction checked on **2026-11-10**; the expanded modes still need human and release integration review. This is open work, not authorization to restart completed art or critic campaigns. Implementation and automated checks do not replace human or physical-device approval.
 
 ## Current baseline
 
 - Main has seventeen racing courses, four original championships plus the unlockable Encore Cup, four playable ships and a ten-racer field. Quick Race, Practice, continuous circuit Time Trials, sprint trials, saved bests and personal ghosts are implemented. Course details and shared rules live in [architecture](ARCHITECTURE.md) and the [level API](docs/LEVEL_API.md).
-- All 28 career rewards, six enhancement tracks, six equipped abilities, Quad Core, the live Garage, physical combat/contact and demo-to-full save transfer are implemented. Completing the original collection unlocks Oriel, Ravel and Nomad Procession, grouped in Encore Cup, and queues the Shatterline completion cinematic. Browser developer modes require `showcase=1` to preview that cinematic. The manual title screen, three named career slots, top-level navigation and shared audio controls are described in [entry and careers](docs/intro-and-profiles.md).
+- All 28 career rewards, six enhancement tracks, six equipped abilities, Quad Core, the live Garage, physical combat/contact and demo-to-full save transfer are implemented. The full collection now has 37 unlocks: those 28 items plus nine derived mode-course unlocks. Completing it opens the original Oriel, Ravel and Nomad Procession courses, Encore Cup and the Shatterline completion cinematic. Browser developer modes require `showcase=1` to preview that cinematic. The manual title screen, three named career slots, top-level navigation and shared audio controls are described in [entry and careers](docs/intro-and-profiles.md).
 - Eight songs, local music/SFX generation, browser publishing and offline Electron demo/full packages exist. Startup selects Blue Hour and honors the saved startup-pause preference. See [audio](docs/audio/README.md), [desktop builds](docs/steam/desktop.md) and the [release checklist](docs/steam/release.md).
-- Eliminator, Interceptor and Freestyle are playable in the consolidated `codex/nova-freestyle` review branch, **not merged into main or approved for release**. Their status and remaining design choices are in [events and rewards](docs/level-types-and-rewards.md#current-implementation-status).
+- Freestyle, Eliminator and Interceptor each have three standalone courses in the consolidated `codex/nova-freestyle` review branch, pending main integration and human release approval. Their status and remaining design choices are in [events and rewards](docs/level-types-and-rewards.md#current-implementation-status).
 
 ## Now
 
@@ -15,9 +15,9 @@ Main baseline checked on **2026-11-06**; event-branch status below remains subje
 
 - [ ] **Delete the obsolete developer launcher later (user request, 2026-11-02):** retire the old title/launch panel in `src/ui/index.js`, its launcher/title-panel styles in `src/ui/style.css`, and the legacy tool-entry routing in `src/frontend/index.js` (`capture`, `review`, `test=jump`). Move any necessary test entry controls to the current frontend first. Preserve the shared racing HUD, pause/input controls and current frontend; `src/ui/index.js` and its stylesheet also own active gameplay UI.
 
-- [ ] Review the cup-unlocked event rollout, release-menu grouping and packaged full-game course/asset policy. Founders opens Freestyle, Frontier opens Eliminator and Horizon opens Interceptor through existing cup wins. Preserve the demo boundary, original cup/reward requirements and the 28-reward bonus-course celebration.
+- [ ] Review the nine-course menu, sequential unlocks and unified 37-notch collection. Founders/Frontier/Horizon open the first Freestyle/Eliminator/Interceptor course; full Freestyle finishes and combat-mode wins open successors. Validate the full-game policy and borrowed assets without changing the four-item demo or original championship/item requirements.
 - [ ] Human playtest Eliminator cut pressure, Interceptor pursuit/boss balance and Freestyle torque, catches, five-transfer scoring and medals before production expansion or new mastery rewards.
-- [ ] **Freestyle presentation and courses:** review Skywell's connected water-district world-building pass, then scope its separate environment art pass, then consider three or four total transfer courses in selected biomes. Give each route distinct approaches and receivers and review its art separately; neither pass nor expansion is commissioned by the menu promotion.
+- [ ] **Mode-course presentation:** human review of Oriel Sunvault, Ravel Sailbreak, Glasswake Fracture, Saffron Ossuary and Nomad Last Convoy, including native world identity, clearances, rendering cost and current menu stills. Preserve Skywell and the three Interceptor encounters; completed critic loops remain closed.
 - [ ] Observe external players: braking/boost comprehension, finishing without coaching and voluntary replay. Separate control confusion, route readability, performance and difficulty before adding mechanics.
 - [ ] Playtest navigation across the whole game at windowed, fullscreen and ultrawide sizes. Refine grouping, D-pad/arrow movement, visible focus, scroll/focus retention and Back/Resume paths through setup, cups, records, Settings and inspection. Existing keyboard/controller coverage does not close this dedicated UX review.
 
@@ -27,6 +27,7 @@ Main baseline checked on **2026-11-06**; event-branch status below remains subje
 - [ ] Investigate the reported iPhone 13 graphics-context loss after Halcyon's countdown on a physical device. Test loading, countdown and sustained full-field racing before choosing the mobile default; the error alone does not identify the cause.
 - [ ] Finish hands-on phone/tablet and physical-gamepad driving checks: long flights, two-thumb ergonomics, mappings and responsive HUD/cameras. Browser emulation is not a per-device or per-level driving pass; the user's separate widening-campaign mobile review remains open.
 - [ ] Profile startup, frame pacing and memory on representative hardware, including the outstanding M1 pass. Earlier transmission removal, texture compression and targeted rendering fixes do not close this work.
+- [ ] Keep Vector boost-strip chevrons readable in Low: the yellow markings currently collapse into dark rectangles in matched Freestyle and Glasswake Fracture views.
 - [ ] Move the game and desktop CI into a private repository when ready; decide what remains publicly playable. Complete the remaining hardware, distribution and store gates in the [release checklist](docs/steam/release.md).
 
 ### Known course follow-ups
@@ -70,7 +71,7 @@ Main baseline checked on **2026-11-06**; event-branch status below remains subje
 
 ### Optional systems and content
 
-- [ ] **Bonus-map reuse:** evaluate Oriel, Ravel and Nomad Procession as later settings for Freestyle, Eliminator and Interceptor. Compare route suitability, recovery, boss/pack clearances and session pacing before assigning any map to a mode or changing the current event courses. The disciplines unlock through Founders/Frontier/Horizon wins; keep these bonus courses themselves behind the original 28-reward collection. This is future content planning, not a one-map-per-mode commitment.
+- [ ] **Further biome reuse:** review the authored Sunvault/Sailbreak/Last Convoy siblings before assigning more modes to Oriel, Ravel or Nomad. Keep the original racing courses behind 37/37 and mode variants on their cup/course chains. Future combinations need distinct pacing and clearance, not a mandatory mode trio.
 
 - [ ] Expand only the successful event/world combinations into selected sibling routes. Extract proven reusable art into Worldkit when those routes need it; there is no per-biome mode quota.
 - [ ] Consider themed championships or specialist series after measuring event duration and difficulty. Define compatible scoring/save identities and finite reward requirements; keep the original cups stable rather than automatically expanding them.

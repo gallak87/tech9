@@ -156,6 +156,7 @@ export async function menuCatalog({
       name: meta.name,
       length: track.finishDistance ?? track.length,
       closed: track.closed !== false,
+      ...(meta.freestyle ? { transfers: track.jumps.length } : {}),
       path:
         xy.map((p, i) => `${i ? 'L' : 'M'}${p.join(',')}`).join(' ') +
         (track.closed === false ? '' : ' Z'),

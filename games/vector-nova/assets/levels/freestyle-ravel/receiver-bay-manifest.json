@@ -1,0 +1,51 @@
+{
+  "id": "freestyle-ravel-receiver-service-bay-v1",
+  "generator": "Original project-authored background Blender geometry",
+  "rights": "Original editable project geometry and scalar PBR materials. Existing project-owned Ravel concepts are reference-only. No third-party assets or textures.",
+  "coordinates": "metres; +Y up; +Z mating/back at0; open front faces-Z; identity root",
+  "root": "receiver_service_bay",
+  "source": {
+    "file": "assets/levels/freestyle-ravel/build_receiver_bay.py",
+    "sha256": "a30d28685e003380f50892aeaeca77da78313e0b07db3c53d46e764f7c01ca38"
+  },
+  "blend": {
+    "file": "assets/levels/freestyle-ravel/receiver-bay.blend",
+    "sha256": "fab6817aaa3c0705d7fff4d15c22ea155654b0a5b52d10cd8d80c3bcfe0ffa49"
+  },
+  "runtimeAsset": {
+    "file": "public/assets/levels/freestyle-ravel/receiver-bay.glb",
+    "sha256": "8f8095d583414dace6ce5c8bdb729440cb75da6e60a44413b8d68abbb457a9ca",
+    "bytes": 125792
+  },
+  "referenceImages": [
+    {
+      "file": "assets/levels/ravel/reference/ravel-anchor-narrows-concept.png",
+      "sha256": "9d10cfba850da22fb6a01a92df0624af25dec7329e36c340df34e20454c13ea5"
+    },
+    {
+      "file": "assets/levels/ravel/reference/ravel-crown-fold-concept.png",
+      "sha256": "5f98830aacd2235dd2f4b742cadf861a08ea9c271f11f6a6eeb220bc87c6b969"
+    }
+  ],
+  "geometry": {
+    "triangles": 4356,
+    "materialRoles": [
+      "Copper / seated winding roller",
+      "Graphite / service bay load chassis",
+      "Titanium / formed service bay shell"
+    ],
+    "textures": [],
+    "bounds": {
+      "min": [-48.0, -11.429746627807617, -72.0],
+      "max": [48.0, 32.0, -0.0]
+    },
+    "workingFloorY": 0,
+    "floorThickness": 3,
+    "roofCarrierThickness": 4,
+    "construction": "One coherent heavy working bay, with genuine side apertures, a large roller seated into the floor, closed load cheeks and roof, and triangular underfloor returns to the mating plane. No cables, floating props, textures or painted recesses."
+  },
+  "anchors": {
+    "mating_root": [0, 0, 0],
+    "front_floor": [0, 0, -70]
+  }
+}

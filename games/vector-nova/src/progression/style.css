@@ -482,6 +482,92 @@
   display: grid;
   gap: 18px;
 }
+.career-collection {
+  margin-top: 22px;
+}
+.career-collection-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+.career-collection-heading h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 500;
+}
+.career-collection-heading h2 small,
+.career-collection-heading > span {
+  margin-left: 8px;
+  color: #999;
+  font-size: 11px;
+  font-weight: 400;
+}
+.career-collection-intro {
+  color: #aaa;
+  font-size: 11px;
+  line-height: 1.5;
+  margin: -4px 0 16px;
+}
+.career-course-group + .career-course-group {
+  margin-top: 16px;
+}
+.career-course-group h3 {
+  color: #bbb;
+  font-size: 11px;
+  font-weight: 500;
+  margin: 0 0 7px;
+}
+.career-course-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.career-course-card {
+  min-width: 0;
+  border: 1px solid #ffffff1c;
+  border-top: 2px solid #555;
+  padding: 12px;
+  background: #ffffff03;
+}
+.career-course-card > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: #888;
+  font-size: 9px;
+}
+.career-course-card > strong {
+  display: block;
+  color: #aaa;
+  font-size: 13px;
+  font-weight: 500;
+  margin-top: 10px;
+}
+.career-course-card > p {
+  color: #888;
+  font-size: 10px;
+  line-height: 1.5;
+  margin: 5px 0 0;
+}
+.career-course-card.is-available {
+  border-top-color: #bb8d5c;
+  background: linear-gradient(120deg, #bc87450d, transparent);
+}
+.career-course-card.is-completed {
+  border-top-color: #a9c6b0;
+  background: linear-gradient(120deg, #76b78b0d, transparent);
+}
+.career-course-card:is(.is-available, .is-completed) > strong {
+  color: #eee;
+}
+.career-course-card.is-available .career-course-status {
+  color: #d6b78f;
+}
+.career-course-card.is-completed .career-course-status {
+  color: #abd1b5;
+}
 .career-reward-group > header {
   display: flex;
   align-items: baseline;

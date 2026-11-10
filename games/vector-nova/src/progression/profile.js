@@ -1,6 +1,7 @@
 import { IS_DEMO, CAREER_SHIPS, FULL_CUPS, fullCupWins } from './edition.js';
 import { SHIPS } from '../ships/catalog.js';
 import { isCareerComplete } from './completion.js';
+import { COURSE_IDS, courseAvailable } from '../levels/access.js';
 import {
   REWARDS,
   ALL_REWARDS,
@@ -38,6 +39,7 @@ export function freshProfile() {
     raceClaims: [],
     cups: [],
     trialTracks: [],
+    finishedCourses: [],
     claims: [],
     exoticShip: null,
     completion: null,
@@ -63,6 +65,10 @@ export function validateProfile(value) {
     !strings(value.raceClaims, 20000) ||
     !strings(value.cups, cups.length, (id) => cups.includes(id)) ||
     !strings(value.trialTracks, 100) ||
+    (value.finishedCourses !== undefined &&
+      !strings(value.finishedCourses, COURSE_IDS.length, (id) =>
+        COURSE_IDS.includes(id),
+      )) ||
     !strings(value.claims, ALL_REWARDS.length, (id) =>
       ALL_REWARDS.some((reward) => reward.id === id),
     ) ||
@@ -83,6 +89,7 @@ export function validateProfile(value) {
     'exoticShip',
   ])
     next[key] = copy(value[key]);
+  next.finishedCourses = copy(value.finishedCourses ?? []);
   if (
     !Number.isSafeInteger(value.finishes) ||
     value.finishes < next.wins ||
@@ -115,8 +122,7 @@ export function validateProfile(value) {
       typeof completion.acknowledged !== 'boolean' ||
       Object.keys(completion).some(
         (key) => !['shipId', 'acknowledged'].includes(key),
-      ) ||
-      !ALL_REWARDS.every((reward) => next.claims.includes(reward.id))
+      )
     )
       return null;
     next.completion = {
@@ -350,6 +356,21 @@ export function createProfileStore(storage = () => localStorage) {
       const next = copy(state);
       next.trialTracks.push(track);
       return award(next);
+    },
+    recordCourseFinish(id) {
+      if (
+        !COURSE_IDS.includes(id) ||
+        state.finishedCourses.includes(id) ||
+        !courseAvailable(id, {
+          cupWins: state.cups,
+          finishedCourses: state.finishedCourses,
+        })
+      )
+        return false;
+      const next = copy(state);
+      next.finishedCourses.push(id);
+      persist(next);
+      return true;
     },
     equip(ship, slot, id) {
       if (

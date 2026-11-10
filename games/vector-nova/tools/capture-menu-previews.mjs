@@ -131,6 +131,40 @@ try {
           target.y -= 144;
           camera.fov = 72;
         }
+        if (id === 'freestyle-oriel' || id === 'freestyle-ravel') {
+          // Look from the open flight corridor toward a formed pipe arrival;
+          // the starting overview hides these courses' defining destinations.
+          const jump = track.jumps[id === 'freestyle-oriel' ? 0 : 1];
+          const departure = track.sample(jump.takeoff);
+          const receiver = track.sample(jump.landingStart);
+          camera.position
+            .copy(departure.position)
+            .lerp(receiver.position, 0.45)
+            .addScaledVector(departure.right, -24);
+          camera.position.y += 65;
+          target
+            .copy(track.sample(jump.landingStart + 100).position)
+            .addScaledVector(receiver.up, 14);
+          camera.fov = 70;
+        }
+        const eliminatorPreview = {
+          'eliminator-glasswake': 0.4,
+          'eliminator-saffron': 0.245,
+        }[id];
+        if (eliminatorPreview !== undefined) {
+          const station = track.length * eliminatorPreview - 110;
+          const frame = track.sample(station);
+          camera.position
+            .copy(frame.position)
+            .addScaledVector(frame.tangent, -30)
+            .addScaledVector(frame.right, -18)
+            .addScaledVector(frame.up, 25);
+          target
+            .copy(track.sample(station + 165).position)
+            .addScaledVector(frame.up, 10);
+          camera.up.copy(frame.up);
+          camera.fov = 64;
+        }
         // Frame the crown and exposed road, rather than aiming through the
         // monolith toward the route's interior-weighted average.
         if (id === 'vesper-forest') {
@@ -215,6 +249,21 @@ try {
           target.z += 140;
           camera.fov = 58;
         }
+        if (id === 'eliminator-nomad') {
+          // Explain the race on the actual decks at thumbnail size. The full
+          // convoy overview makes the drivable hold and receiver too small.
+          const transfer = track.jumps[0];
+          const frame = track.sample(transfer.takeoff - 140);
+          camera.position
+            .copy(frame.position)
+            .addScaledVector(frame.tangent, -32)
+            .addScaledVector(frame.up, 22);
+          target
+            .copy(track.sample(transfer.landingStart + 100).position)
+            .addScaledVector(frame.up, 8);
+          camera.up.copy(frame.up);
+          camera.fov = 64;
+        }
         if (id === 'oriel') {
           // Stay inside the habitat and show the inhabited ceiling, axial sun,
           // lakes and circumferential route together.
@@ -239,6 +288,11 @@ try {
             'interceptor',
             'interceptor-helion',
             'interceptor-nightweir',
+            'freestyle-oriel',
+            'freestyle-ravel',
+            'eliminator-glasswake',
+            'eliminator-saffron',
+            'eliminator-nomad',
           ].includes(id)
         )
           renderer.render(scene, camera);

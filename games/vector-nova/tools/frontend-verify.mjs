@@ -9,7 +9,11 @@ import {
 } from '../src/progression/careers.js';
 import { createProfileStore, PROFILE_KEY } from '../src/progression/profile.js';
 import { saveShipSelection } from '../src/ships/catalog.js';
-import { MODE_UNLOCKS, filterAvailableLevels } from '../src/levels/access.js';
+import {
+  COURSE_IDS,
+  MODE_UNLOCKS,
+  filterAvailableLevels,
+} from '../src/levels/access.js';
 import createHalcyonLevel from '../src/levels/halcyon/index.js';
 import { createVehicleState } from '../src/physics/index.js';
 import {
@@ -55,6 +59,12 @@ for (const cup of ['founders', 'frontier', 'horizon']) {
 }
 saveShipSelection('kestrel', careerStorage);
 const fleetSeed = [...careerValues];
+const courseSeeds = new Map();
+for (const id of COURSE_IDS) {
+  assert.equal(fleetProfile.recordCourseFinish(id), true);
+  courseSeeds.set(id, [...careerValues]);
+}
+const completedCourseSeed = [...careerValues];
 // A distinct complete career exercises bonus courses and the credits.
 for (let i = 0; i < 24; i++)
   fleetProfile.recordRace({ id: `endgame-fixture-${i}`, position: 1 });
@@ -84,6 +94,19 @@ const url = (query = '') => {
   return target.href;
 };
 const front = (page) => page.evaluate(() => window.__VN_FRONTEND.getState());
+const tapMenuPad = (page, name, index) =>
+  page.evaluate(
+    async ({ name, index }) => {
+      const pad = window[name];
+      // Release in the same frame as the poll that samples this press. Separate
+      // browser round trips can accidentally hold a D-pad through key-repeat.
+      pad.buttons[index] = { pressed: true, value: 1 };
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      pad.buttons[index] = { pressed: false, value: 0 };
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+    },
+    { name, index },
+  );
 const snapshot = (page) =>
   page.evaluate(() => (window.__VN_INSPECTOR ?? window.__VN).getSnapshot());
 const inspectorReady = (page) =>
@@ -727,26 +750,57 @@ try {
     );
   if (!flags.includes('--responsive')) {
     await check(
-      'cup mode gates derive from earned wins and survive reload before career completion',
+      'cup mode and sequential course gates allow locked previews without constructing worlds',
       async (page) => {
         const ready = () => page.waitForFunction(() => !!window.__VN_FRONTEND);
         const expectModes = async (wins) => {
           for (const { mode, cupId, cupName, label } of MODE_UNLOCKS) {
             const control = page.locator(`[data-action="${mode}"]`);
             assert.equal(
-              await control.getAttribute('aria-disabled'),
-              wins.includes(cupId) ? null : 'true',
-              `${mode} requires ${cupName}`,
+              await control.getAttribute('data-locked'),
+              String(!wins.includes(cupId)),
             );
-            assert.equal(await control.isVisible(), true);
+            assert.equal(
+              await control.isEnabled(),
+              true,
+              'locked modes remain selectable previews',
+            );
+            assert.equal(await control.getAttribute('aria-disabled'), null);
             assert.doesNotMatch(await control.textContent(), /pilot/i);
-            if (!wins.includes(cupId))
+            if (!wins.includes(cupId)) {
               assert.match(
                 await control.getAttribute('aria-label'),
                 new RegExp(`Win ${cupName} to unlock`),
               );
-            else assert.match(await control.textContent(), new RegExp(label));
+              assert.doesNotMatch(
+                await control.textContent(),
+                new RegExp(`Win ${cupName}`),
+                'visible unlock requirement belongs below Start',
+              );
+            } else assert.match(await control.textContent(), new RegExp(label));
           }
+        };
+        const expectLockedPreview = async (id, mode, message) => {
+          const state = await front(page);
+          assert.equal(state.screen, 'home');
+          assert.equal(state.selected, id);
+          assert.equal(state.intent, mode);
+          assert.equal(state.loadedId, null);
+          assert.equal(state.error, '');
+          assert.equal(
+            await page.locator('[data-action="launch"]').isDisabled(),
+            true,
+          );
+          assert.match(
+            await page.locator('#course-start-requirement').textContent(),
+            message,
+          );
+          assert.equal(await page.locator('.circuit-card').count(), 3);
+          assert.deepEqual(
+            await page.locator('.track-group-label').allTextContents(),
+            ['Easy', 'Medium', 'Hard'],
+          );
+          assert.equal(await page.evaluate(() => !!window.__VN), false);
         };
         await page.goto(url('level=halcyon&music=0'));
         await ready();
@@ -760,10 +814,10 @@ try {
           'freestyle',
         );
         await page.keyboard.press('Enter');
-        assert.equal(
-          (await front(page)).intent,
-          'race',
-          'locked button is discoverable but cannot select the mode',
+        await expectLockedPreview(
+          'launchworks',
+          'freestyle',
+          /Win Founders Cup/,
         );
         await page.evaluate(() => {
           window.__lockedModePad = {
@@ -771,60 +825,46 @@ try {
             index: 0,
             connected: true,
             mapping: 'standard',
-            axes: [0, 0],
+            axes: [0, 0, 0, 0],
             buttons: Array.from({ length: 17 }, () => ({
               pressed: false,
               value: 0,
             })),
           };
+          window.__lockedModePadReads = 0;
           Object.defineProperty(navigator, 'getGamepads', {
             configurable: true,
-            value: () => [window.__lockedModePad],
+            value: () => {
+              window.__lockedModePadReads++;
+              return [window.__lockedModePad];
+            },
           });
         });
-        for (const index of [15, 0]) {
-          for (const pressed of [true, false]) {
-            await page.evaluate(
-              ({ index, pressed }) => {
-                window.__lockedModePad.buttons[index] = {
-                  pressed,
-                  value: Number(pressed),
-                };
-              },
-              { index, pressed },
-            );
-            await page.evaluate(
-              () =>
-                new Promise((resolve) =>
-                  requestAnimationFrame(() => requestAnimationFrame(resolve)),
-                ),
-            );
-          }
-        }
+        await page.waitForFunction(() => window.__lockedModePadReads > 0);
+        await tapMenuPad(page, '__lockedModePad', 15);
         assert.equal(
           await page.evaluate(() => document.activeElement.dataset.action),
           'eliminator',
-          'D-pad reaches locked modes',
+          'one D-pad press moves to the next locked mode',
         );
+        await tapMenuPad(page, '__lockedModePad', 0);
         assert.equal(
-          (await front(page)).intent,
-          'race',
-          'controller activation cannot select a locked mode',
+          await page.evaluate(() => document.activeElement.dataset.action),
+          'eliminator',
         );
-        for (const { levelIds, cupName, label } of MODE_UNLOCKS) {
+        await expectLockedPreview(
+          'eliminator-glasswake',
+          'eliminator',
+          /Win Frontier Cup/,
+        );
+        for (const { mode, levelIds, cupName } of MODE_UNLOCKS) {
           for (const id of levelIds) {
             await page.goto(url(`level=${id}&music=0`));
             await ready();
-            const state = await front(page);
-            assert.equal(
-              state.screen,
-              'loading',
-              `${id} direct entry is blocked`,
-            );
-            assert.notEqual(state.selected, id);
-            assert.equal(state.loadedId, null);
-            assert.equal(state.error, `Win ${cupName} to unlock ${label}.`);
-            assert.equal(await page.evaluate(() => !!window.__VN), false);
+            await expectLockedPreview(id, mode, new RegExp(`Win ${cupName}`));
+            await page.locator(`[data-level="${id}"]`).focus();
+            await page.keyboard.press('Enter');
+            assert.equal((await front(page)).selected, id);
           }
         }
         const wins = [];
@@ -838,42 +878,150 @@ try {
           await ready();
           await expectModes(wins);
           assert.ok((await front(page)).career.state.claims.length < 28);
-          assert.equal((await front(page)).career.state.completion, null);
           await page.locator(`[data-action="${mode}"]`).press('Enter');
-          assert.equal((await front(page)).intent, mode);
           assert.equal((await front(page)).selected, levelIds[0]);
+          assert.equal(
+            await page.locator('[data-action="launch"]').isEnabled(),
+            true,
+          );
+          assert.equal(
+            await page.locator('#course-start-requirement').count(),
+            0,
+          );
           assert.deepEqual(
             await page
               .locator('.circuit-card .track-type-badge')
               .allTextContents(),
             levelIds.map(() => label),
           );
-          assert.equal(
-            await page.locator('.circuit-hero .track-type-badge').textContent(),
-            label,
-          );
-          assert.equal(await page.evaluate(() => !!window.__VN), false);
+          const firstName = await page
+            .locator(`[data-level="${levelIds[0]}"] .card-title`)
+            .textContent();
+          await page.locator(`[data-level="${levelIds[1]}"]`).click();
+          await expectLockedPreview(levelIds[1], mode, new RegExp(firstName));
           await page.reload();
           await ready();
-          assert.equal((await front(page)).intent, mode);
-          await expectModes(wins);
+          await expectLockedPreview(levelIds[1], mode, new RegExp(firstName));
+          await page.evaluate((entries) => {
+            for (const [key, value] of entries)
+              localStorage.setItem(key, value);
+          }, courseSeeds.get(levelIds[0]));
+          await page.reload();
+          await ready();
+          assert.equal(
+            await page.locator('[data-action="launch"]').isEnabled(),
+            true,
+          );
+          const nextName = await page
+            .locator(`[data-level="${levelIds[1]}"] .card-title`)
+            .textContent();
+          await page.locator(`[data-level="${levelIds[2]}"]`).click();
+          await expectLockedPreview(levelIds[2], mode, new RegExp(nextName));
         }
         await page.goto(url('level=oriel&music=0'));
         await ready();
-        assert.match((await front(page)).error, /28 career unlocks/);
-        assert.equal((await front(page)).loadedId, null);
-        // A remembered encounter cannot carry its availability into a new career.
+        assert.match((await front(page)).error, /37 career unlocks/);
         await page.evaluate((entries) => {
           for (const [key, value] of entries) localStorage.setItem(key, value);
         }, careerSeed);
-        await page.goto(url('music=0'));
+        await page.goto(url('level=freestyle-oriel&music=0'));
         await ready();
-        assert.equal((await front(page)).intent, 'race');
-        assert.equal((await front(page)).loadedId, null);
         await expectModes([]);
+        await expectLockedPreview(
+          'freestyle-oriel',
+          'freestyle',
+          /Win Founders Cup/,
+        );
       },
       { width: 1440, height: 900 },
       { reducedMotion: false },
+    );
+    await check(
+      'one 37-item career collection includes gear and derived course unlocks',
+      async (page) => {
+        await page.goto(url('level=halcyon&music=0'));
+        await page.locator('.career-progress-bar').waitFor();
+        assert.equal(await page.locator('.career-progress-notch').count(), 37);
+        assert.equal(await page.locator('.career-progress-bar').count(), 1);
+        assert.equal(
+          await page
+            .locator('.career-progress-bar')
+            .getAttribute('aria-valuemax'),
+          '37',
+        );
+        assert.equal(
+          await page
+            .locator('.career-progress-bar')
+            .getAttribute('aria-valuenow'),
+          '0',
+        );
+        assert.equal(await page.locator('.course-progress-bar').count(), 0);
+        await page.locator('[data-action="career"]').click();
+        assert.equal(await page.locator('.career-course-card').count(), 9);
+        assert.equal(
+          await page.locator('.career-course-card.is-locked').count(),
+          9,
+        );
+        assert.equal(await page.locator('.reward-milestone').count(), 28);
+        assert.match(
+          await page.locator('.career-summary').textContent(),
+          /0 \/ 37 unlocks/,
+        );
+        assert.match(
+          await page.locator('.career-courses').textContent(),
+          /Win Founders Cup/,
+        );
+        await page.keyboard.press('Escape');
+        assert.equal((await front(page)).screen, 'home');
+        await page.evaluate((entries) => {
+          for (const [key, value] of entries) localStorage.setItem(key, value);
+        }, completedCourseSeed);
+        await page.reload();
+        await page.locator('.career-progress-bar').waitFor();
+        assert.equal(
+          await page
+            .locator('.career-progress-bar')
+            .getAttribute('aria-valuenow'),
+          '14',
+        );
+        assert.equal(
+          await page.locator('.career-progress-notch.is-earned').count(),
+          14,
+        );
+        for (const id of COURSE_IDS)
+          assert.equal(
+            await page
+              .locator(`.career-progress-notch.is-earned[data-unlock="${id}"]`)
+              .count(),
+            1,
+          );
+        await page.locator('[data-action="career"]').click();
+        assert.equal(
+          await page.locator('.career-course-card.is-completed').count(),
+          9,
+        );
+        assert.match(
+          await page.locator('.career-courses').textContent(),
+          /9 \/ 9 unlocked/,
+        );
+        await page.keyboard.press('Escape');
+        for (const { mode, levelIds } of MODE_UNLOCKS) {
+          await page.locator(`[data-action="${mode}"]`).click();
+          for (const id of levelIds) {
+            await page.locator(`[data-level="${id}"]`).click();
+            assert.equal(
+              await page.locator('[data-action="launch"]').isEnabled(),
+              true,
+            );
+            assert.equal(
+              await page.locator('#course-start-requirement').count(),
+              0,
+            );
+          }
+        }
+        assert.equal((await front(page)).loadedId, null);
+        assert.equal(await page.evaluate(() => !!window.__VN), false);
+      },
     );
     await check(
       'completion credits celebrate bonus courses independently of cup mode unlocks',
@@ -888,6 +1036,13 @@ try {
         await page.locator('[data-completion-skip]').waitFor();
         const pending = await front(page);
         assert.equal(pending.career.state.claims.length, 28);
+        assert.equal(pending.career.state.finishedCourses.length, 9);
+        assert.match(
+          await page
+            .locator('.completion-loading .completion-eyebrow')
+            .textContent(),
+          /37 \/ 37 · CAREER COMPLETE/,
+        );
         assert.deepEqual(pending.career.state.completion, {
           shipId: 'shrike',
           acknowledged: false,
@@ -949,47 +1104,99 @@ try {
     for (const [id, mode, racers] of [
       ['halcyon', 'race', 10],
       ['launchworks', 'freestyle', 0],
-      ['crucible', 'eliminator', 10],
+      ['freestyle-oriel', 'freestyle', 0],
+      ['freestyle-ravel', 'freestyle', 0],
+      ['eliminator-glasswake', 'eliminator', 10],
+      ['eliminator-saffron', 'eliminator', 10],
+      ['eliminator-nomad', 'eliminator', 10],
       ['interceptor', 'interceptor', 5],
       ['interceptor-helion', 'interceptor', 5],
       ['interceptor-nightweir', 'interceptor', 5],
     ]) {
-      await fleetCheck(`cup-unlocked launch smoke ${id}`, async (page) => {
-        await page.goto(url(`level=${id}&music=0`));
-        await page.locator('[data-action="launch"]').click();
-        await page.waitForFunction(
-          () =>
-            window.__VN_FRONTEND?.getState().error ||
-            (window.__VN?.ready && window.__VN.getSnapshot().mode === 'racing'),
-          null,
-          { timeout: 90000 },
-        );
-        assert.equal(
-          (await front(page)).error,
-          '',
-          `${id} starts without a load error`,
-        );
-        const before = await snapshot(page);
-        assert.equal((await front(page)).loadedId, id);
-        assert.ok(before.track.length > 0);
-        assert.equal((await front(page)).intent, mode);
-        if (racers) assert.equal(before.competition.standings.length, racers);
-        await page.keyboard.down('KeyW');
-        await page.waitForTimeout(400);
-        await page.keyboard.up('KeyW');
-        if (mode === 'interceptor') {
-          assert.ok((await snapshot(page)).interceptor.health > 0);
-          await page.keyboard.down('KeyQ');
+      await check(
+        `course-unlocked launch smoke ${id}`,
+        async (page) => {
+          await page.goto(url(`level=${id}&music=0`));
+          await page.locator('[data-action="launch"]').click();
+          await page.waitForFunction(
+            () =>
+              window.__VN_FRONTEND?.getState().error ||
+              (window.__VN?.ready &&
+                window.__VN.getSnapshot().mode === 'racing'),
+            null,
+            { timeout: 90000 },
+          );
+          assert.equal(
+            (await front(page)).error,
+            '',
+            `${id} starts without a load error`,
+          );
+          const before = await snapshot(page);
+          assert.equal((await front(page)).loadedId, id);
+          assert.ok(before.track.length > 0);
+          assert.equal((await front(page)).intent, mode);
+          if (racers) assert.equal(before.competition.standings.length, racers);
+          if (id === 'eliminator-nomad') {
+            assert.equal(
+              await page.locator('.elim-identity').innerText(),
+              'ELIMINATOR / MOVING CONVOY',
+            );
+            assert.equal(
+              await page.locator('.elim-last').innerText(),
+              'Survive the cuts or finish first.',
+            );
+          }
+          if (mode === 'freestyle') {
+            assert.equal(
+              await page.locator('.freestyle-hud').isVisible(),
+              true,
+            );
+            assert.equal(
+              await page.locator('#interface .top-telemetry').isVisible(),
+              false,
+            );
+            assert.equal(
+              await page.locator('#interface #minimap').isVisible(),
+              false,
+            );
+          }
+          await page.keyboard.down('KeyW');
           await page.waitForTimeout(400);
-          await page.keyboard.up('KeyQ');
-        }
-        assert.ok((await snapshot(page)).tick > before.tick);
-        await page.keyboard.press('Escape');
-        await page.locator('#home').click();
-        assert.equal((await front(page)).screen, 'home');
-        assert.equal((await front(page)).intent, mode);
-      });
+          await page.keyboard.up('KeyW');
+          if (mode === 'interceptor') {
+            assert.ok((await snapshot(page)).interceptor.health > 0);
+            await page.keyboard.down('KeyQ');
+            await page.waitForTimeout(400);
+            await page.keyboard.up('KeyQ');
+          }
+          assert.ok((await snapshot(page)).tick > before.tick);
+          await page.keyboard.press('Escape');
+          await page.locator('#home').click();
+          assert.equal((await front(page)).screen, 'home');
+          assert.equal((await front(page)).intent, mode);
+        },
+        { width: 1440, height: 900 },
+        {},
+        1,
+        completedCourseSeed,
+      );
     }
+    await check(
+      'mode courses stay out of Time Trial record filters',
+      async (page) => {
+        await page.goto(url('level=freestyle-oriel&music=0'));
+        await page.locator('[data-action="records"]').click();
+        const options = await page
+          .locator('[data-record-filter="track"] option')
+          .evaluateAll((nodes) => nodes.map((node) => node.value));
+        assert.ok(options.includes('halcyon'));
+        assert.ok(COURSE_IDS.every((id) => !options.includes(id)));
+      },
+      { width: 1440, height: 900 },
+      {},
+      1,
+      completedCourseSeed,
+    );
     await check(
       'menu waves animate independently of tracks and respect reduced motion',
       async (page) => {
@@ -1094,23 +1301,7 @@ try {
           assert.equal(await focusedAction(), expected, `${code} focus`);
         };
         const tap = async (index, expected) => {
-          for (const pressed of [true, false]) {
-            await page.evaluate(
-              ({ index, pressed }) => {
-                window.__modeTestPad.buttons[index] = {
-                  pressed,
-                  value: Number(pressed),
-                };
-              },
-              { index, pressed },
-            );
-            await page.evaluate(
-              () =>
-                new Promise((resolve) =>
-                  requestAnimationFrame(() => requestAnimationFrame(resolve)),
-                ),
-            );
-          }
+          await tapMenuPad(page, '__modeTestPad', index);
           if (expected)
             assert.equal(await focusedAction(), expected, `Pad ${index} focus`);
         };
@@ -1186,7 +1377,7 @@ try {
         await page.locator('[data-action="freestyle"]').click();
         assert.equal((await front(page)).intent, 'freestyle');
         assert.equal((await front(page)).selected, 'launchworks');
-        assert.equal(await page.locator('.circuit-card').count(), 1);
+        assert.equal(await page.locator('.circuit-card').count(), 3);
         assert.equal(await page.locator('[data-difficulty]').count(), 0);
         assert.match(
           await page.locator('[data-action="launch"]').textContent(),
@@ -1506,6 +1697,63 @@ try {
         viewport,
       );
     }
+
+    for (const viewport of [
+      { width: 1440, height: 900 },
+      { width: 1280, height: 720 },
+      { width: 1024, height: 768 },
+    ])
+      await check(
+        `course previews and collection fit desktop ${viewport.width}×${viewport.height}`,
+        async (page) => {
+          await page.goto(url('level=halcyon&music=0'));
+          await page.locator('.career-progress-bar').waitFor();
+          for (const { mode, levelIds } of MODE_UNLOCKS) {
+            await page.locator(`[data-action="${mode}"]`).press('Enter');
+            assert.equal(await page.locator('.circuit-card').count(), 3);
+            for (const id of levelIds) {
+              await page.locator(`[data-level="${id}"]`).press('Enter');
+              assert.equal(
+                await page.locator('[data-action="launch"]').isDisabled(),
+                true,
+              );
+              assert.ok(
+                await page.locator('#course-start-requirement').isVisible(),
+              );
+              await menuFits(page);
+            }
+          }
+          assert.equal(
+            await page.locator('.career-progress-notch').count(),
+            37,
+          );
+          await page.locator('[data-action="career"]').press('Enter');
+          assert.equal(await page.locator('.career-course-card').count(), 9);
+          assert.match(
+            await page.locator('.career-summary').textContent(),
+            /0 \/ 37 unlocks/,
+          );
+          assert.ok(
+            await page
+              .locator('.career-course-card')
+              .last()
+              .evaluate((el) => {
+                el.scrollIntoView({ block: 'center' });
+                const box = el.getBoundingClientRect();
+                return (
+                  box.left >= 0 &&
+                  box.right <= innerWidth + 1 &&
+                  box.top >= 0 &&
+                  box.bottom <= innerHeight + 1
+                );
+              }),
+          );
+          await page.keyboard.press('Escape');
+          assert.equal((await front(page)).screen, 'home');
+          assert.equal(await page.evaluate(() => !!window.__VN), false);
+        },
+        viewport,
+      );
 
     await fleetCheck(
       'keyboard-only menu navigation and focus return',

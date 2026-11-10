@@ -40,7 +40,9 @@ export async function assertLevelContract(
   const pursuit = production.event?.type === 'interceptor';
   for (const kind of pursuit
     ? ['aegis', 'arc', 'repulsor']
-    : ['vector', 'aegis'])
+    : production.freestyle === true
+      ? ['vector']
+      : ['vector', 'aegis'])
     assert.ok(
       devices.some((device) => device.type === kind),
       `missing ${kind} layout`,

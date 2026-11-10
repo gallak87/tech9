@@ -27,15 +27,20 @@ function duration(value) {
 // Pure menu markup: world loading remains owned by the selected game session.
 export function eliminatorResultsView(
   result,
-  { courseName = 'Crucible Foundry' } = {},
+  { courseName = 'Eliminator' } = {},
 ) {
   const rows = Array.isArray(result?.standings) ? result.standings : [];
   const won = result?.won === true;
-  const heading = won
-    ? 'Last racer standing'
-    : `Eliminated · ${ordinal(result?.playerPosition)}`;
+  const atFinish = result?.reason === 'finish-line';
+  const heading = atFinish
+    ? won
+      ? 'First to the lead deck'
+      : `Convoy finished · ${ordinal(result?.playerPosition)}`
+    : won
+      ? 'Last racer standing'
+      : `Eliminated · ${ordinal(result?.playerPosition)}`;
   const survivors = rows.filter((row) => !row.eliminated).length;
-  return `<section class="result-panel eliminator-results"><div class="front-heading"><span class="kicker">ELIMINATOR / ${escape(courseName)}</span><h1 tabindex="-1">${heading}${result?.playerValid === false ? ' · Unranked' : ''}</h1></div><div class="eliminator-summary"><span><b>${ordinal(result?.playerPosition)}</b>place</span><span><b>${duration(result?.elapsed ?? result?.time)}</b>survived</span><span><b>${survivors}</b>${won ? 'racer remaining' : 'racers still active'}</span></div><ol aria-label="Eliminator classification">${rows.map((row) => `<li class="${row.id === 'player' ? 'is-player' : ''}" data-status="${escape(row.status)}"><b>${escape(row.position)}</b><span>${escape(row.name ?? row.id)}</span><small>${row.eliminated ? `Eliminated · ${duration(row.eliminatedAt)}` : row.status === 'winner' ? 'Last racer standing' : 'Surviving at your cut'}</small></li>`).join('')}</ol><p class="results-note">${won ? 'Every other racer was cut. You survived every cut.' : 'The last active racer is removed at each cut. The remaining field is shown at the moment of your elimination.'}${result?.playerValid === false ? ' This run is unranked.' : ''}</p><div class="front-actions results-actions"><button class="primary" data-action="retry-race">Retry Eliminator →</button><button data-action="change">Back to setup</button></div></section>`;
+  return `<section class="result-panel eliminator-results"><div class="front-heading"><span class="kicker">ELIMINATOR / ${escape(courseName)}</span><h1 tabindex="-1">${heading}${result?.playerValid === false ? ' · Unranked' : ''}</h1></div><div class="eliminator-summary"><span><b>${ordinal(result?.playerPosition)}</b>place</span><span><b>${duration(result?.elapsed ?? result?.time)}</b>${atFinish ? 'race time' : 'survived'}</span><span><b>${survivors}</b>${atFinish ? 'racers remaining' : won ? 'racer remaining' : 'racers still active'}</span></div><ol aria-label="Eliminator classification">${rows.map((row) => `<li class="${row.id === 'player' ? 'is-player' : ''}" data-status="${escape(row.status)}"><b>${escape(row.position)}</b><span>${escape(row.name ?? row.id)}</span><small>${row.eliminated ? `Eliminated · ${duration(row.eliminatedAt)}` : row.status === 'winner' ? (atFinish ? 'Reached the lead deck' : 'Last racer standing') : atFinish ? 'Still in the convoy' : 'Surviving at your cut'}</small></li>`).join('')}</ol><p class="results-note">${atFinish ? 'The lead carrier’s finish ended the race.' : won ? 'Every other racer was cut. You survived every cut.' : 'The last active racer is removed at each cut. The remaining field is shown at the moment of your elimination.'}${result?.playerValid === false ? ' This run is unranked.' : ''}</p><div class="front-actions results-actions"><button class="primary" data-action="retry-race">Retry Eliminator →</button><button data-action="change">Back to setup</button></div></section>`;
 }
 
 function createExtractionMarks(T, scene) {
@@ -111,15 +116,18 @@ function createExtractionMarks(T, scene) {
   };
 }
 
-export function createEliminatorPresentation({ host, scene }) {
+export function createEliminatorPresentation({
+  host,
+  scene,
+  finishAtCourseEnd = false,
+}) {
   const previousEvent = host.dataset.event;
   host.dataset.event = 'eliminator';
   const root = document.createElement('section');
   root.className = 'eliminator-hud';
   root.hidden = true;
   root.setAttribute('aria-label', 'Eliminator timing and position');
-  root.innerHTML =
-    '<span class="elim-identity">ELIMINATOR / LAST RACER STANDING</span><div class="elim-order"><strong>1 <small>/ 10</small></strong><span>ACTIVE POSITION</span></div><div class="elim-countdown"><span>NEXT CUT</span><b>22.0<small>s</small></b></div><div class="elim-risk"><span>AT RISK</span><b>—</b></div><p class="elim-last">Keep clear of last place.</p>';
+  root.innerHTML = `<span class="elim-identity">ELIMINATOR / ${finishAtCourseEnd ? 'MOVING CONVOY' : 'LAST RACER STANDING'}</span><div class="elim-order"><strong>1 <small>/ 10</small></strong><span>ACTIVE POSITION</span></div><div class="elim-countdown"><span>NEXT CUT</span><b>22.0<small>s</small></b></div><div class="elim-risk"><span>AT RISK</span><b>—</b></div><p class="elim-last">${finishAtCourseEnd ? 'Survive the cuts or finish first.' : 'Keep clear of last place.'}</p>`;
   host.append(root);
   const position = root.querySelector('.elim-order strong'),
     countdown = root.querySelector('.elim-countdown b'),
@@ -160,7 +168,9 @@ export function createEliminatorPresentation({ host, scene }) {
         ? `${lastCut.name} cut · ${lastCut.remaining} remain`
         : removed
           ? `${removed.name} cut · ${data.remaining} remain`
-          : 'First cut ahead. Keep clear of last place.';
+          : finishAtCourseEnd
+            ? 'Survive the cuts or finish first.'
+            : 'First cut ahead. Keep clear of last place.';
       visuals?.update(elapsed, !!frame.settings?.reducedMotion, !root.hidden);
     },
     trigger(event) {

@@ -103,6 +103,23 @@ test('ordinary race modules still require Vector strips', async () => {
   );
 });
 
+test('Freestyle modules advance with launch strips and no combat pickups', async () => {
+  const report = await assertLevelContract({
+    metadata,
+    createLevel: () => ({
+      ...createLevel(),
+      freestyle: true,
+      racing: {
+        createDevices: () =>
+          createLevel()
+            .racing.createDevices()
+            .filter(({ type }) => type === 'vector'),
+      },
+    }),
+  });
+  assert.equal(report.racing.devices, 1);
+});
+
 test('Interceptor modules require every shield and attack kind', async () => {
   const kinds = ['aegis', 'arc', 'repulsor'];
   for (const missing of kinds)

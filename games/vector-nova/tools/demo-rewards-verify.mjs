@@ -87,7 +87,7 @@ async function open(query) {
 const action = (page, id) => page.locator(`[data-action="${id}"]`).first();
 async function collection(page, collected) {
   const bar = page.locator('.race-menu').getByRole('progressbar', {
-    name: 'Collected career rewards',
+    name: 'Career unlocks',
   });
   await bar.waitFor();
   assert.equal(await bar.getAttribute('aria-valuemax'), '4');
@@ -392,7 +392,7 @@ try {
   await page.locator('[data-confirm-import]').click();
   assert.match(
     await page.locator('.career-summary strong').innerText(),
-    /4 \/ 4 rewards/,
+    /4 \/ 4 unlocks/,
   );
   await page.keyboard.press('Escape');
   await collection(page, 4);

@@ -1,4 +1,4 @@
-import createCrucibleLevel from '../crucible/index.js';
+import createCrucibleLevel from '../crucible/base.js';
 import { createInterceptorTrack } from './track/model.js';
 import { createInterceptorDevices } from './devices.js';
 import { createInterceptorEnvironment } from './environment.js';

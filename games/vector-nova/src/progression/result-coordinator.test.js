@@ -2,10 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createMemoryStorage } from './careers.js';
 import { createProfileStore } from './profile.js';
-import { createCupStore, cupChampion } from '../race/cup.js';
+import { createCupStore, cupChampion, cupDefinition } from '../race/cup.js';
 import { RACE_OPPONENTS } from '../race/roster.js';
 import { createCupCollection } from './cup-collection.js';
 import { settleRaceResult, settleTrialRecord } from './result-coordinator.js';
+import { MODE_UNLOCKS } from '../levels/access.js';
+import { careerUnlockProgress } from './completion.js';
 
 function stores(storage = createMemoryStorage()) {
   return {
@@ -65,9 +67,9 @@ function freestyleResult(medal = 'Gold', extra = {}) {
 }
 const freestyleContext = (attemptId, extra = {}) =>
   raceContext(attemptId, { sessionIntent: 'freestyle', ...extra });
-function prepareFinal(s) {
-  s.cupStore.start('horizon', 'bastion', 'hard');
-  for (let event = 0; event < 2; event++) {
+function prepareFinal(s, cupId = 'horizon') {
+  s.cupStore.start(cupId, 'bastion', 'hard');
+  for (let event = 0; event < cupDefinition(cupId).tracks.length - 1; event++) {
     const state = s.cupStore.snapshot().state;
     s.cupStore.finish(result(1, { mode: 'cup' }));
     s.profileStore.recordRace({ id: `${state.runId}:${event}`, position: 1 });
@@ -75,13 +77,22 @@ function prepareFinal(s) {
   }
   return s.cupStore.snapshot().state;
 }
-function nearComplete(s, { missingCup = null, missingTrial = null } = {}) {
+function completeCourses(s, except = null) {
+  for (const mode of MODE_UNLOCKS)
+    for (const id of mode.levelIds.slice(0, 2))
+      if (id !== except) s.profileStore.recordCourseFinish(id);
+}
+function nearComplete(
+  s,
+  { missingCup = null, missingTrial = null, missingCourse = null } = {},
+) {
   for (let i = 0; i < 24; i++)
     s.profileStore.recordRace({ id: `earned-${i}`, position: 1 });
   for (const id of ['founders', 'frontier', 'horizon', 'apex'])
     if (id !== missingCup) s.profileStore.recordCup(id);
   for (const id of ['halcyon', 'orbital'])
     if (id !== missingTrial) s.profileStore.recordTrial(id, true);
+  completeCourses(s, missingCourse);
 }
 
 test('valid race finishes award progression once per attempt and best-score improvements retain their delta', () => {
@@ -182,6 +193,7 @@ test('a valid Freestyle finish can earn the final existing reward and queue the 
     s.profileStore.recordCup(cup);
   for (const track of ['halcyon', 'orbital'])
     s.profileStore.recordTrial(track, true);
+  completeCourses(s);
   assert.equal(s.profileStore.snapshot().state.points, 118);
   assert.equal(s.profileStore.snapshot().state.claims.length, 27);
   const data = freestyleResult('Bronze', { shipId: 'needle' });
@@ -202,6 +214,44 @@ test('a valid Freestyle finish can earn the final existing reward and queue the 
   assert.deepEqual(s.profileStore.snapshot().state, profile);
 });
 
+for (const unlock of MODE_UNLOCKS) {
+  test(`the final ${unlock.label} course unlock settles before the thirty-seven-item finale is queued`, () => {
+    const s = stores();
+    const courseId = unlock.levelIds[1];
+    nearComplete(s, { missingCourse: courseId });
+    assert.equal(
+      careerUnlockProgress(s.profileStore.snapshot().state).collected,
+      36,
+    );
+    assert.equal(s.profileStore.queueCompletion('needle'), false);
+    const data =
+      unlock.mode === 'freestyle'
+        ? freestyleResult('Complete', { shipId: 'needle' })
+        : { ...result(1, { mode: unlock.mode, shipId: 'needle' }), won: true };
+    const context = raceContext(`last-course-${courseId}`, {
+      sessionIntent: unlock.mode,
+      courseId,
+    });
+    const outcome = settleRaceResult(s, data, context);
+    assert.deepEqual(
+      outcome.rewards,
+      [],
+      'a course unlock is not a fake equipment claim',
+    );
+    const profile = s.profileStore.snapshot().state;
+    assert.equal(profile.claims.length, 28);
+    assert.equal(careerUnlockProgress(profile).collected, 37);
+    assert.ok(profile.finishedCourses.includes(courseId));
+    assert.deepEqual(profile.completion, {
+      shipId: 'needle',
+      acknowledged: false,
+    });
+    settleRaceResult(s, data, context);
+    assert.deepEqual(s.profileStore.snapshot().state, profile);
+    assert.deepEqual(stores(s.storage).profileStore.snapshot().state, profile);
+  });
+}
+
 for (const [mode, position, won] of [
   ['interceptor', 1, true],
   ['interceptor', 10, false],
@@ -217,6 +267,7 @@ for (const [mode, position, won] of [
       s.profileStore.recordCup(cup);
     for (const track of ['halcyon', 'orbital'])
       s.profileStore.recordTrial(track, true);
+    completeCourses(s);
     assert.equal(s.profileStore.snapshot().state.points, 119);
     assert.equal(s.profileStore.snapshot().state.claims.length, 27);
     const data =
@@ -368,14 +419,14 @@ test('cup retry preserves the event claim and awards only improvement while a de
 
 test('overall championship completion can queue the finale without winning the final race', () => {
   const s = stores();
-  nearComplete(s, { missingCup: 'horizon' });
+  nearComplete(s, { missingCup: 'apex' });
   assert.equal(s.profileStore.snapshot().state.claims.length, 26);
-  prepareFinal(s);
+  prepareFinal(s, 'apex');
   const outcome = settleRaceResult(s, result(2, { mode: 'cup' }), cupContext);
-  assert.equal(cupChampion(s.cupStore.snapshot().state).points, 68);
+  assert.equal(cupChampion(s.cupStore.snapshot().state).points, 118);
   assert.deepEqual(
     outcome.rewards.map((reward) => reward.id),
-    ['ship-kestrel', 'exotic-slot'],
+    ['equipment-lance', 'exotic-slot'],
   );
   assert.equal(outcome.completionEligible, true);
   assert.deepEqual(s.profileStore.snapshot().state.completion, {

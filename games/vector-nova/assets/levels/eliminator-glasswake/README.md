@@ -1,0 +1,11 @@
+# Glasswake Fracture fault massif
+
+One original, independently authored Blender prototype for the new Eliminator course. The closed canonical Glasswake course, geometry and finishes remain unchanged. Its project-owned scene concept and exact prompt guide the broad glacial mass, real cobalt hollow and pale frost crown.
+
+Run `blender --background --factory-startup --python assets/levels/eliminator-glasswake/build_fault_massif.py` from the game directory. The editable `fault-massif.blend` retains the closed lofted geological body, unequal descending plateau shoulders, three broad creased stratum setbacks, five canonical scalar material roles and the live Boolean oblique-undercut tool. The export is `public/assets/levels/eliminator-glasswake/fault-massif.glb`, with one identity root `fracture_massif`.
+
+Coordinates are metres, +Y up, +X outboard and +Z along shore. The complete original founded foot is closed at Y=0 and preserved; the source body is approximately 230 m deep, 450 m tall and 360 m along shore. One wide off-centre oblique undercut opens toward -X, with unequal stepped lips and real planar returns into a thick remaining rear volume. The high plateau descends through staggered shoulders into a low connecting left mass. The asset contains no spherical bores, painted recesses, thin shelves, spikes, textures or runtime events.
+
+Reuse the existing canonical `consolidateIceParts` and `finishIceMaterial` with the owned ice tile. Exact material names are retained so colour/roughness/ice-role attributes follow the established contract. The owning new course must fit the foot into real geology and verify actual triangles, camera/road clearance, shadows and performance before any rollout. Source/export hashes, manifold checks, bounds, triangles and reference provenance are recorded in `fault-massif-manifest.json`.
+
+The crown uses constrained XZ boundary tessellation with interior height samples. Its build guard rejects reversed/degenerate projected cap triangles and opposed geometric/split normals. The accepted outer boundary and Y=0 footing remain fixed. Compact ice follows one complete formed stratum ending at creased ring 16; it is not assigned from per-corner height thresholds that create colour teeth.

@@ -152,7 +152,7 @@
       "id": "crucible-foundry-course",
       "source": "src/levels/crucible/",
       "creator": "VECTOR//NOVA project contributors",
-      "provenance": "Original banked dispatch-ring route, broad graphite deck, heat-exchanger crowns, supported factory districts and cut practicals. Reuses the Worldkit industrial geometry/material kit, Colossus cloud backdrop and registered shared device hardware. Course and event remain independent of approved Colossus Works.",
+      "provenance": "Original banked dispatch-ring route, broad graphite deck, heat-exchanger crowns, supported factory districts and cut practicals. Retired from the player Eliminator lineup; retained as shared source for Crucible Dispatch and developer inspection. Reuses the Worldkit industrial geometry/material kit, Colossus cloud backdrop and registered shared device hardware. The approved Colossus Works course remains unchanged.",
       "rights": "Project-authored and derived from registered project assets; original provenance and rights apply",
       "runtimeDependencies": ["three", "@worldkit/environment"]
     },
@@ -1012,6 +1012,240 @@
         "assets/levels/launchworks/arrival-art-manifest.json",
         "assets/levels/launchworks/terrace-art-manifest.json",
         "src/levels/launchworks/garden-finish.js"
+      ]
+    },
+    {
+      "id": "oriel-sunvault-course",
+      "source": "src/levels/freestyle-oriel/ and src/freestyle/course-track.js",
+      "creator": "VECTOR//NOVA project contributors",
+      "provenance": "Original five-transfer Freestyle route inside a separately composed Oriel habitat. The shared transfer factory retains native gaps, launch/catch geometry, gravity and scoring while course-owned headings, three pipe receivers and arrival placement establish a distinct route identity. Borrows the registered Oriel shell, civic/garden GLBs, axial daylight, mineral finish and public Worldkit Living Forest assets; the canonical racing course remains unchanged. The separately registered Sunvault civic-works kit retains original Blender construction sources. No new generated reference or runtime image assets.",
+      "rights": "Project-authored course code and composition; registered Oriel, Worldkit Living Forest and CC0 Concrete034 sources retain their existing provenance and rights.",
+      "runtimeDependencies": [
+        "three",
+        "@dimforge/rapier3d-compat",
+        "@worldkit/environment/living-forest"
+      ],
+      "borrowedAssets": [
+        "public/assets/levels/oriel/",
+        "public/assets/levels/helion/ceramic/"
+      ],
+      "provenanceRecords": [
+        "assets/levels/oriel/reference/provenance.json",
+        "assets/levels/oriel/blender/civic-kit-manifest.json",
+        "assets/levels/oriel/blender/ground/ground-provenance.json",
+        "assets/levels/freestyle-oriel/manifest.json",
+        "../../worldkit/modules/living-forest/assets/provenance.json",
+        "assets/levels/helion/ceramic/provenance.json"
+      ]
+    },
+    {
+      "id": "sunvault-civic-works",
+      "source": "assets/levels/freestyle-oriel/build_civic_works.py and sunvault-civic-works.blend",
+      "creator": "VECTOR//NOVA project contributors using Blender",
+      "provenance": "Original editable civic construction kit for founded Sunvault arrival courts and road supports, developed against the registered Oriel scene reference and retained exact prompt. Anchor piers, deep open-arcade terraces and fitted compression cradles export in game metres with identity glTF roots and three scalar limestone/recess/bronze material roles. The local manifest retains actual prototype bounds, sockets, triangle counts and source/export hashes. No third-party meshes, baked lighting, new images or driving/contact geometry.",
+      "rights": "Project-authored Blender geometry and scalar materials; the existing Oriel generated reference retains its registered provenance.",
+      "runtimeDependencies": ["three"],
+      "provenanceRecord": "assets/levels/freestyle-oriel/manifest.json",
+      "provenanceRecords": [
+        "assets/levels/freestyle-oriel/README.md",
+        "assets/levels/oriel/reference/provenance.json"
+      ],
+      "sourceAssets": [
+        "assets/levels/freestyle-oriel/build_civic_works.py",
+        "assets/levels/freestyle-oriel/sunvault-civic-works.blend"
+      ],
+      "runtimeAssets": [
+        "public/assets/levels/freestyle-oriel/sunvault-civic-works.glb"
+      ]
+    },
+    {
+      "id": "ravel-sailbreak-course",
+      "source": "src/levels/freestyle-ravel/ and src/freestyle/course-track.js",
+      "creator": "VECTOR//NOVA project contributors",
+      "provenance": "Original five-transfer Freestyle route through five authored folded-sail stations, including two pipe receivers. Socketed cradles, reels, rigging and an original Blender collector wing recompose the registered anchor fleet and tension gallery around the new transfer geometry rather than constructing the original circuit environment. Existing foil-height finish, analytic stellar backdrop and public Worldkit industrial geometry/materials retain their owners and provenance. No new downloaded models or generated runtime images.",
+      "rights": "Project-authored route, scenery and shaders; registered project-owned Ravel models, generated foil imagery and Worldkit industrial finishes retain their existing rights.",
+      "runtimeDependencies": [
+        "three",
+        "@dimforge/rapier3d-compat",
+        "@worldkit/environment/industrial"
+      ],
+      "borrowedAssets": [
+        "public/assets/levels/ravel/anchor-fleet.glb",
+        "public/assets/levels/ravel/tension-gallery.glb",
+        "public/assets/levels/ravel/sail-foil-height-v1.png"
+      ],
+      "provenanceRecords": [
+        "assets/levels/ravel/reference/provenance.json",
+        "assets/levels/ravel/blender/anchor-fleet-provenance.json",
+        "assets/levels/ravel/blender/tension-gallery-provenance.json",
+        "assets/levels/freestyle-ravel/receiver-wing-manifest.json",
+        "assets/levels/freestyle-ravel/receiver-jaw-manifest.json",
+        "assets/levels/freestyle-ravel/receiver-bay-manifest.json",
+        "assets/levels/ravel/materials/provenance.json",
+        "../../worldkit/modules/industrial/assets/provenance.json",
+        "../../worldkit/modules/industrial/assets/enamel-provenance.json"
+      ]
+    },
+    {
+      "id": "sailbreak-receiver-wing",
+      "source": "assets/levels/freestyle-ravel/build_receiver_wing.py and receiver-wing.blend",
+      "creator": "VECTOR//NOVA project contributors using Blender",
+      "provenance": "Original editable curled collector wing for Sailbreak's socketed receiver installations. The broad quad membrane has a closed rolled hem and exact inner/outer attachment sockets, guided by the registered Ravel concept images and retained prompts. The local manifest records actual bounds, triangle counts, UV/road-coordinate contract and source/export hashes. Runtime placements and rigging belong to the course; the canonical Ravel foil finish is borrowed independently. No third-party meshes, baked lighting, new textures or driving/contact geometry.",
+      "rights": "Project-authored Blender geometry and scalar fallback material; existing Ravel generated references and foil imagery retain their registered provenance.",
+      "runtimeDependencies": ["three"],
+      "provenanceRecord": "assets/levels/freestyle-ravel/receiver-wing-manifest.json",
+      "provenanceRecords": [
+        "assets/levels/freestyle-ravel/README.md",
+        "assets/levels/ravel/reference/provenance.json",
+        "assets/levels/ravel/materials/provenance.json"
+      ],
+      "sourceAssets": [
+        "assets/levels/freestyle-ravel/build_receiver_wing.py",
+        "assets/levels/freestyle-ravel/receiver-wing.blend"
+      ],
+      "runtimeAssets": [
+        "public/assets/levels/freestyle-ravel/receiver-wing.glb"
+      ]
+    },
+    {
+      "id": "sailbreak-receiver-jaw",
+      "source": "assets/levels/freestyle-ravel/build_receiver_jaw.py and receiver-jaw.blend",
+      "creator": "VECTOR//NOVA project contributors using Blender",
+      "provenance": "Original editable formed receiver saddle replacing private copies of plain cap housings while retaining the canonical reel pins and hardpoints. Bored load cheeks, open copper bearings, connected bridges and service balconies provide actual negative space. The local manifest records retained pin dimensions, bounds, sockets, triangle counts and source/export hashes. Runtime materials borrow the registered Worldkit industrial finish. No third-party meshes, new textures or driving/contact geometry.",
+      "rights": "Project-authored Blender geometry and scalar fallback materials; the registered Ravel concept images are reference-only.",
+      "runtimeDependencies": ["three", "@worldkit/environment/industrial"],
+      "provenanceRecord": "assets/levels/freestyle-ravel/receiver-jaw-manifest.json",
+      "sourceAssets": [
+        "assets/levels/freestyle-ravel/build_receiver_jaw.py",
+        "assets/levels/freestyle-ravel/receiver-jaw.blend"
+      ],
+      "runtimeAssets": ["public/assets/levels/freestyle-ravel/receiver-jaw.glb"]
+    },
+    {
+      "id": "sailbreak-receiver-service-bay",
+      "source": "assets/levels/freestyle-ravel/build_receiver_bay.py and receiver-bay.blend",
+      "creator": "VECTOR//NOVA project contributors using Blender",
+      "provenance": "Original editable working bay attached to the rigid receiver crescent. A continuous floor and roof, genuine side apertures, seated winding roller, formed load cheeks and underfloor returns create an open recessed volume with an exact mating plane. The local manifest retains bounds, sockets, triangle counts and source/export hashes. Runtime materials borrow the registered Worldkit industrial finish. No third-party meshes, new textures or driving/contact geometry.",
+      "rights": "Project-authored Blender geometry and scalar fallback materials; existing registered Ravel concepts are reference-only.",
+      "runtimeDependencies": ["three", "@worldkit/environment/industrial"],
+      "provenanceRecord": "assets/levels/freestyle-ravel/receiver-bay-manifest.json",
+      "sourceAssets": [
+        "assets/levels/freestyle-ravel/build_receiver_bay.py",
+        "assets/levels/freestyle-ravel/receiver-bay.blend"
+      ],
+      "runtimeAssets": ["public/assets/levels/freestyle-ravel/receiver-bay.glb"]
+    },
+    {
+      "id": "glasswake-fracture-course",
+      "source": "src/levels/eliminator-glasswake/ and src/events/eliminator-course.js",
+      "creator": "VECTOR//NOVA project contributors",
+      "provenance": "Original continuously supported Eliminator loop and crystal-canyon composition. Course-owned arches and founded canyon placements recompose the registered Glasswake GLB and its layered glacial finish around independent banking, clearances and cut timing. The separately registered original fault-massif kit supplies three unequal closed, recessed geological masses, each joined into real basal ice and an adjoining canyon shoulder. Private clear-pane frost bands and blue load ribs retain visible canyon depth; coarse spatial groups preserve source geometry and materials. The canonical aurora supplies the distant sky; original calving, weather and racing-runtime owners are not installed. No new downloaded media or generated runtime images.",
+      "rights": "Project-authored route and composition; borrowed project-authored/generated Glasswake assets retain their original registered provenance.",
+      "runtimeDependencies": ["three", "@dimforge/rapier3d-compat"],
+      "borrowedAssets": [
+        "public/assets/levels/glasswake/glasswake-environment-v5.glb",
+        "public/assets/levels/glasswake/ice-surface-v1.png",
+        "public/assets/levels/glasswake/aurora-sky-v1.png"
+      ],
+      "provenanceRecords": [
+        "assets/levels/glasswake/PROVENANCE.md",
+        "assets/levels/eliminator-glasswake/fault-massif-manifest.json"
+      ]
+    },
+    {
+      "id": "glasswake-fracture-fault-massif",
+      "source": "assets/levels/eliminator-glasswake/build_fault_massif.py and fault-massif.blend",
+      "creator": "VECTOR//NOVA project contributors using Blender",
+      "provenance": "Original editable closed glacial body for Glasswake Fracture, developed against the registered scene concept and exact prompt. Unequal sloping fault shoulders, stepped strata and a deep angular melt undercut retain genuine recessed geometry and a founded closed foot. Existing project-owned ice material roles and the registered triplanar ice finish are reused without embedded textures. The local manifest records source, Blender, export and reference hashes, actual bounds, manifold checks and triangle counts. No driving geometry, runtime events, third-party models or new imagery.",
+      "rights": "Project-authored Blender geometry; canonical project-owned Glasswake scalar recipes and generated reference retain their original registered provenance.",
+      "runtimeDependencies": ["three"],
+      "provenanceRecord": "assets/levels/eliminator-glasswake/fault-massif-manifest.json",
+      "provenanceRecords": [
+        "assets/levels/eliminator-glasswake/README.md",
+        "assets/levels/glasswake/PROVENANCE.md"
+      ],
+      "sourceAssets": [
+        "assets/levels/eliminator-glasswake/build_fault_massif.py",
+        "assets/levels/eliminator-glasswake/fault-massif.blend"
+      ],
+      "runtimeAssets": [
+        "public/assets/levels/eliminator-glasswake/fault-massif.glb"
+      ]
+    },
+    {
+      "id": "saffron-ossuary-course",
+      "source": "src/levels/eliminator-saffron/ and src/events/eliminator-course.js",
+      "creator": "VECTOR//NOVA project contributors",
+      "provenance": "Original supported Eliminator route through fossil passages and a continuous dune mantle. Canonical skull, rib, scapula, vertebra and outcrop prototypes form connected cortical galleries, buried sediment beds and an unequal return fan with full-perimeter foundations. The separately registered original cortical web joins the actual far-cheek and roof sockets inside the skull. Private cast-amber road finish, below-skin glass shoulders, pale cortex and warm marrow reuse the existing weathering/mineral volume and source highlight treatment. Borrows the existing Saffron panorama and Shatterline limestone image; original jump, moving sandfall and creature owners are not constructed. No new downloaded models or generated imagery.",
+      "rights": "Project-authored route, terrain and placement; registered project-authored/generated Saffron and Shatterline sources retain their original rights.",
+      "runtimeDependencies": ["three", "@dimforge/rapier3d-compat"],
+      "borrowedAssets": [
+        "public/assets/levels/saffron/leviathan-kit.glb",
+        "public/assets/levels/saffron/saffron-sky-v2.png",
+        "public/assets/levels/saffron/weathering-noise-v1.r8",
+        "public/assets/levels/shatterline/limestone-v1.png"
+      ],
+      "provenanceRecords": [
+        "assets/levels/saffron/PROVENANCE.md",
+        "assets/levels/shatterline/rock-provenance-v1.json",
+        "assets/levels/eliminator-saffron/cortical-web-manifest.json"
+      ]
+    },
+    {
+      "id": "saffron-ossuary-cortical-web",
+      "source": "assets/levels/eliminator-saffron/build_cortical_web.py and cortical-web.blend",
+      "creator": "VECTOR//NOVA project contributors using Blender",
+      "provenance": "Original closed branching cortical web, authored against the registered fossil-landscape concept and exact prompt using the project-owned cortical modeling language as a read-only technique reference. A fused unequal Y joins three surveyed cheek/roof triangles in the canonical skull, creating secondary upper apertures while preserving the road/camera envelope and bright exit. Broad tapered plates, real thickness and material cavity colouring use the canonical pale-fossil/chalk/marrow roles. The local manifest records source, Blend, export, reference and technique hashes, actual bounds, manifold/normal checks and attachment coordinates. No third-party mesh inputs, textures, new imagery or driving geometry.",
+      "rights": "Project-authored Blender geometry and cavity colouring; registered project-owned Saffron scalar material recipes, authoring techniques and generated reference retain their original provenance.",
+      "runtimeDependencies": ["three"],
+      "provenanceRecord": "assets/levels/eliminator-saffron/cortical-web-manifest.json",
+      "provenanceRecords": [
+        "assets/levels/eliminator-saffron/README.md",
+        "assets/levels/saffron/PROVENANCE.md"
+      ],
+      "sourceAssets": [
+        "assets/levels/eliminator-saffron/build_cortical_web.py",
+        "assets/levels/eliminator-saffron/cortical-web.blend"
+      ],
+      "runtimeAssets": [
+        "public/assets/levels/eliminator-saffron/cortical-web.glb"
+      ]
+    },
+    {
+      "id": "nomad-last-convoy-course",
+      "source": "src/levels/eliminator-nomad/ wrapping src/levels/nomad/index.js",
+      "creator": "VECTOR//NOVA project contributors",
+      "provenance": "Eliminator event and separate course/record identity over the complete project-authored Nomad Procession moving-carrier course. Reuses its real carrier-owned driving decks, open transfers, hull and ground collision, shared rigid-surface clock, AI receiver forecasts, native dynamics, scenery, wheels, dust, guidance, materials and panorama. Canonical route geometry and assets remain unchanged. No fixed road around stationary carriers, new downloaded models or generated imagery.",
+      "rights": "Project-authored mode wrapper; all borrowed project-owned Nomad/Worldkit models, finishes and generated panorama retain their registered provenance and rights.",
+      "runtimeDependencies": [
+        "three",
+        "@dimforge/rapier3d-compat",
+        "@worldkit/environment/industrial"
+      ],
+      "borrowedAssets": [
+        "public/assets/levels/nomad/carrier-kit.glb",
+        "public/assets/levels/nomad/companion-armour.glb",
+        "public/assets/levels/nomad/interior-freight.glb",
+        "public/assets/levels/nomad/nomad-sky-v1.png",
+        "public/assets/levels/nomad/receiver-crown.glb",
+        "public/assets/levels/nomad/route-supports.glb",
+        "public/assets/levels/nomad/salt-escarpments.glb",
+        "public/assets/levels/nomad/saltwind-gallery.glb",
+        "public/assets/levels/nomad/wallride-service.glb"
+      ],
+      "provenanceRecords": [
+        "../../worldkit/modules/industrial/assets/enamel-provenance.json",
+        "../../worldkit/modules/industrial/assets/provenance.json",
+        "assets/levels/nomad/blender/carrier-kit-provenance.json",
+        "assets/levels/nomad/blender/companion-armour/companion-armour-provenance.json",
+        "assets/levels/nomad/blender/interior-freight/interior-freight-provenance.json",
+        "assets/levels/nomad/blender/receiver-crown/receiver-crown-provenance.json",
+        "assets/levels/nomad/blender/route-supports-provenance.json",
+        "assets/levels/nomad/blender/salt-escarpments/salt-escarpments-provenance.json",
+        "assets/levels/nomad/blender/saltwind-gallery/saltwind-gallery-provenance.json",
+        "assets/levels/nomad/blender/wallride-service/wallride-service-provenance.json",
+        "assets/levels/nomad/reference/provenance.json",
+        "assets/levels/nomad/sky/provenance.json"
       ]
     },
     {

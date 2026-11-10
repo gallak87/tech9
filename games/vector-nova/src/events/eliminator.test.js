@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createEliminatorEvent } from './eliminator.js';
+import {
+  createEliminatorEvent,
+  qualifiedEliminatorFinishTime,
+} from './eliminator.js';
+import { createRace } from '../race/index.js';
 
 const ids = [
   'player',
@@ -174,4 +178,289 @@ test('invalid fields, missing physical states and incompatible snapshots fail wi
   assert.throws(() => event.restore({ ...saved, rulesId: 'different' }));
   assert.throws(() => event.restore({ ...saved, elapsed: 1000 }));
   assert.deepEqual(event.snapshot(), saved);
+});
+
+const sprintIds = ['player', 'rook', 'latch'];
+const sprintRows = (arrivals = {}) =>
+  sprintIds.map((id, index) => ({
+    id,
+    name: id,
+    distance: 900 - index * 100,
+    valid: true,
+    ...arrivals[id],
+  }));
+const sprintEvent = (options = {}) =>
+  createEliminatorEvent({
+    ids: sprintIds,
+    finishDistance: 1000,
+    ...options,
+  });
+
+test('a qualified player sprint finish ends before the next cut and classifies every remaining racer', () => {
+  const event = sprintEvent();
+  const events = event.step(
+    11,
+    sprintRows({
+      player: { distance: 1010, finishTime: 10.25 },
+    }),
+  );
+  assert.deepEqual(
+    events.map(({ type }) => type),
+    ['eliminator-complete'],
+  );
+  const { result } = event.snapshot();
+  assert.equal(result.won, true);
+  assert.equal(result.winnerId, 'player');
+  assert.equal(result.reason, 'finish-line');
+  assert.equal(result.elapsed, 10.25);
+  assert.equal(result.playerPosition, 1);
+  assert.ok(result.standings.every((row) => row.finished && !row.eliminated));
+  assert.deepEqual(
+    result.standings.map(({ position }) => position),
+    [1, 2, 3],
+  );
+  assert.equal(result.standings[0].distance, 1000);
+  const saved = event.snapshot(),
+    restored = sprintEvent();
+  restored.restore(JSON.parse(JSON.stringify(saved)));
+  assert.deepEqual(restored.snapshot(), saved);
+  assert.deepEqual(restored.step(100, []), []);
+});
+
+test('real player and continuous rival sprint races qualify with their exact terminal duration', () => {
+  const track = {
+    closed: false,
+    length: 1200,
+    finishDistance: 1000,
+    checkpoints: [{ distance: 0 }, { distance: 500 }, { distance: 1000 }],
+  };
+  for (const [id, continuous] of [
+    ['player', false],
+    ['rook', true],
+  ]) {
+    const progress = createRace(track, { continuous });
+    progress.step(0, 900, 9);
+    assert.equal(qualifiedEliminatorFinishTime(progress), null);
+    progress.step(900, 1100, 2, [], { grounded: true });
+    assert.equal(progress.complete, true);
+    assert.equal(progress.lastLap, 10);
+    assert.equal(qualifiedEliminatorFinishTime(progress), 10);
+    if (continuous) assert.equal(progress.totalElapsed, 0);
+    const event = sprintEvent();
+    event.step(
+      11,
+      sprintRows({
+        [id]: {
+          distance: 1100,
+          finishTime: qualifiedEliminatorFinishTime(progress),
+        },
+      }),
+    );
+    assert.equal(event.snapshot().result.winnerId, id);
+    assert.equal(event.snapshot().result.elapsed, 10);
+    assert.equal(event.snapshot().result.won, id === 'player');
+    progress.valid = false;
+    assert.equal(qualifiedEliminatorFinishTime(progress), null);
+  }
+});
+
+test('the earliest qualified rival wins; simultaneous arrivals use grid order independent of row order', () => {
+  const event = sprintEvent();
+  event.step(
+    20,
+    sprintRows({
+      player: { distance: 1100, finishTime: 18 },
+      rook: { distance: 1050, finishTime: 17 },
+    }),
+  );
+  assert.equal(event.snapshot().result.winnerId, 'rook');
+  assert.equal(event.snapshot().result.won, false);
+  assert.equal(event.snapshot().result.playerPosition, 2);
+  assert.equal(event.snapshot().result.standings[1].finished, true);
+  const order = ['rook', 'player', 'latch'];
+  const a = sprintEvent({ gridOrder: order }),
+    b = sprintEvent({ gridOrder: order });
+  const rows = sprintRows({
+    player: { distance: 1100, finishTime: 18 },
+    rook: { distance: 1050, finishTime: 18 },
+  });
+  assert.deepEqual(a.step(20, rows), b.step(20, rows.reverse()));
+  assert.equal(a.snapshot().result.winnerId, 'rook');
+});
+
+test('a scheduled cut wins an exact terminal tie, then any active arrival may finish', () => {
+  const event = sprintEvent({ firstCut: 2 });
+  const events = event.step(
+    3,
+    sprintRows({
+      player: { distance: 1100, finishTime: 2 },
+      rook: { distance: 1050, finishTime: 2 },
+      latch: { distance: 100 },
+    }),
+  );
+  assert.deepEqual(
+    events.map(({ type }) => type),
+    ['eliminator-cut', 'eliminator-complete'],
+  );
+  assert.equal(event.snapshot().eliminated[0].id, 'latch');
+  assert.equal(event.snapshot().result.winnerId, 'player');
+  assert.equal(event.snapshot().result.elapsed, 2);
+  const restored = sprintEvent({ firstCut: 2 });
+  restored.restore(event.snapshot());
+  assert.deepEqual(restored.snapshot(), event.snapshot());
+
+  const last = createEliminatorEvent({
+    ids: ['player', 'rook'],
+    firstCut: 2,
+    finishDistance: 1000,
+  });
+  last.step(
+    3,
+    sprintRows({
+      player: { distance: 1100, finishTime: 2 },
+      rook: { distance: 1050, finishTime: 2 },
+    }).slice(0, 2),
+  );
+  assert.equal(last.snapshot().result.reason, 'last-survivor');
+  const lastRestored = createEliminatorEvent({
+    ids: ['player', 'rook'],
+    firstCut: 2,
+    finishDistance: 1000,
+  });
+  lastRestored.restore(last.snapshot());
+  assert.deepEqual(lastRestored.snapshot(), last.snapshot());
+});
+
+test('finish/cut arbitration uses checkpoint crossing time rather than the tick endpoint', () => {
+  const before = sprintEvent({ firstCut: 2 });
+  before.step(
+    3,
+    sprintRows({
+      player: { distance: 1100, finishTime: 1.9 },
+      rook: { distance: 1500, finishTime: 2.1 },
+    }),
+  );
+  assert.equal(before.snapshot().result.reason, 'finish-line');
+  assert.equal(before.snapshot().result.elapsed, 1.9);
+  const after = sprintEvent({ firstCut: 2 });
+  after.step(
+    3,
+    sprintRows({
+      player: { distance: 1100, finishTime: 2.1 },
+      rook: { distance: 2000 },
+      latch: { distance: 1800 },
+    }),
+  );
+  assert.equal(after.snapshot().result.reason, 'eliminated');
+  assert.equal(after.snapshot().result.won, false);
+  assert.equal(after.snapshot().result.elapsed, 2);
+  const restored = sprintEvent({ firstCut: 2 });
+  restored.restore(after.snapshot());
+  assert.deepEqual(restored.snapshot(), after.snapshot());
+});
+
+test('display-distance crossings, airborne finishes and invalid transfers cannot claim a terminal', () => {
+  const event = sprintEvent();
+  event.step(1, sprintRows({ player: { distance: 5000 } }));
+  assert.equal(event.snapshot().result, null);
+  event.reset();
+  event.step(
+    1,
+    sprintRows({ player: { distance: 1100, finishTime: 0.5, valid: false } }),
+  );
+  assert.equal(event.snapshot().result, null);
+
+  const track = {
+    closed: false,
+    length: 1200,
+    finishDistance: 1000,
+    checkpoints: [{ distance: 0 }, { distance: 200 }, { distance: 1000 }],
+    jumps: [
+      {
+        id: 'transfer',
+        takeoff: 100,
+        landingStart: 200,
+        landingEnd: 300,
+        recovery: 250,
+      },
+    ],
+  };
+  const skipped = createRace(track);
+  skipped.step(0, 1100, 1);
+  assert.equal(skipped.valid, false);
+  const airborne = createRace({ ...track, jumps: [] });
+  airborne.step(0, 1100, 1, [], { grounded: false });
+  assert.equal(airborne.complete, false);
+  for (const progress of [skipped, airborne]) {
+    const candidate = sprintEvent();
+    candidate.step(
+      1,
+      sprintRows({
+        player: {
+          distance: 1100,
+          valid: progress.valid,
+          finishTime: qualifiedEliminatorFinishTime(progress),
+        },
+      }),
+    );
+    assert.equal(candidate.snapshot().result, null);
+  }
+});
+
+test('sprint snapshots resume cuts and reject malformed terminal/arrival state without mutation', () => {
+  for (const finishDistance of [0, -1, NaN, Infinity])
+    assert.throws(() => sprintEvent({ finishDistance }));
+  const event = sprintEvent();
+  const initial = event.snapshot();
+  const freshRestored = sprintEvent();
+  freshRestored.restore(initial);
+  assert.deepEqual(freshRestored.snapshot(), initial);
+  for (const finishTime of [0, NaN, Infinity, -1, 2])
+    assert.throws(() =>
+      event.step(1, sprintRows({ player: { distance: 1100, finishTime } })),
+    );
+  assert.throws(() =>
+    event.step(1, sprintRows({ player: { distance: 900, finishTime: 0.5 } })),
+  );
+  assert.deepEqual(event.snapshot(), initial);
+
+  event.step(23, sprintRows());
+  const resumed = sprintEvent();
+  resumed.restore(event.snapshot());
+  const next = sprintRows({ player: { distance: 1100, finishTime: 24 } });
+  assert.deepEqual(event.step(2, next), resumed.step(2, next));
+  const completed = event.snapshot();
+  const target = sprintEvent(),
+    untouched = target.snapshot();
+  const mutate = (change) => {
+    const saved = structuredClone(completed);
+    change(saved);
+    assert.throws(() => target.restore(saved));
+    assert.deepEqual(target.snapshot(), untouched);
+  };
+  mutate((saved) => {
+    delete saved.terminal;
+  });
+  mutate((saved) => {
+    saved.terminal.id = 'rook';
+  });
+  mutate((saved) => {
+    saved.terminal.at++;
+  });
+  mutate((saved) => {
+    saved.standings[0].valid = false;
+  });
+  mutate((saved) => {
+    saved.standings[0].finishTime = 25;
+  });
+  mutate((saved) => {
+    saved.standings[0].distance = 900;
+  });
+  mutate((saved) => {
+    saved.elapsed = 32;
+    saved.terminal.at = 32;
+    saved.standings[0].finishTime = 32;
+  });
+  target.restore(completed);
+  assert.deepEqual(target.snapshot(), completed);
 });

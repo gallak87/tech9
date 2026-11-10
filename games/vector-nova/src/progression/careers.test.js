@@ -11,6 +11,7 @@ import { createCupStore, CUP_STORAGE_KEY } from '../race/cup.js';
 import { createCupCollection, CUP_COLLECTION_KEY } from './cup-collection.js';
 import { createSaveTransfer, SAVE_BACKUP_KEY } from './save-transfer.js';
 import { createDeveloperSession } from './developer.js';
+import { careerUnlockProgress } from './completion.js';
 import { createRace } from '../race/index.js';
 import {
   createTimeTrial,
@@ -297,6 +298,11 @@ test('developer careers clone only the supplied slot and never mutate it', () =>
     28,
   );
   assert.equal(synthetic.getItem(SAVE_BACKUP_KEY), null);
+  assert.equal(
+    careerUnlockProgress(createProfileStore(() => synthetic).snapshot().state)
+      .collected,
+    37,
+  );
 });
 
 test('completion showcase uses a disposable completed career and leaves Encore unearned', () => {
@@ -309,6 +315,7 @@ test('completion showcase uses a disposable completed career and leaves Encore u
   ).storage();
   const store = createProfileStore(() => preview);
   assert.equal(store.snapshot().state.claims.length, 28);
+  assert.equal(careerUnlockProgress(store.snapshot().state).collected, 37);
   assert.deepEqual(store.snapshot().state.completion, {
     shipId: 'bastion',
     acknowledged: false,

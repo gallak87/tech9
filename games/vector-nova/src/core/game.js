@@ -6,7 +6,10 @@ import { finishFreestyle } from '../freestyle/records.js';
 import { freestylePracticeOutcome } from '../freestyle/feedback.js';
 import { withFreestyleCatchFeedback } from '../freestyle/catch-feedback.js';
 import { createRaceGrid, RACE_ORDER } from '../race/roster.js';
-import { createEliminatorEvent } from '../events/eliminator.js';
+import {
+  createEliminatorEvent,
+  qualifiedEliminatorFinishTime,
+} from '../events/eliminator.js';
 import { createEliminatorPresentation } from '../events/eliminator-view.js';
 import { createInterceptorEvent } from '../events/interceptor.js';
 import { createInterceptorPresentation } from '../events/interceptor-view.js';
@@ -162,12 +165,15 @@ export async function createGame({
       cupWins: Array.isArray(contentAccess.cupWins)
         ? [...contentAccess.cupWins]
         : [],
+      finishedCourses: Array.isArray(contentAccess.finishedCourses)
+        ? [...contentAccess.finishedCourses]
+        : [],
       developer:
         !import.meta.env?.VN_DESKTOP &&
         ['1', '2'].includes(parameters.get('dev')),
     };
     if (!levelAvailable(requestedLevel, access))
-      throw new Error(lockedLevelMessage(requestedLevel));
+      throw new Error(lockedLevelMessage(requestedLevel, access));
     const {
       metadata,
       definition,
@@ -177,14 +183,6 @@ export async function createGame({
     });
     const VERSION = definition.version;
     const freestyle = Boolean(definition.freestyle);
-    const eliminator =
-      !freestyle && definition.event?.type === 'eliminator'
-        ? createEliminatorEvent({
-            ids: RACE_ORDER,
-            gridOrder: RACE_ORDER,
-            ...definition.event,
-          })
-        : null;
     let eventPresentation = null,
       lastEliminationWarning = null;
     let interceptor = null;
@@ -195,6 +193,19 @@ export async function createGame({
       await createSimulationWorld(definition, { shape: blockout, signal }),
     );
     const { track, collisionWorld, dynamics } = simulation;
+    if (definition.event?.finishAtCourseEnd && track.closed !== false)
+      throw new Error('Eliminator terminal finishes require an open sprint');
+    const eliminator =
+      !freestyle && definition.event?.type === 'eliminator'
+        ? createEliminatorEvent({
+            ids: RACE_ORDER,
+            gridOrder: RACE_ORDER,
+            ...definition.event,
+            ...(definition.event.finishAtCourseEnd
+              ? { finishDistance: track.finishDistance }
+              : {}),
+          })
+        : null;
     const missionBoss =
       definition.event?.type === 'interceptor'
         ? interceptorBoss(definition.event.bossId ?? definition.event.targetId)
@@ -817,7 +828,23 @@ export async function createGame({
           playerRace: race,
           playerPose: runtime.pose(1),
         });
-        for (const event of eliminator.step(1 / 120, field.standings)) {
+        const rows = definition.event.finishAtCourseEnd
+          ? field.standings.map((row) => {
+              const progress =
+                row.id === 'player'
+                  ? race
+                  : racers.opponents.find(
+                      (opponent) => opponent.specification.id === row.id,
+                    )?.race;
+              return {
+                ...row,
+                // createRace alone validates checkpoint order, transfers and
+                // grounded terminal contact, and interpolates its exact time.
+                finishTime: qualifiedEliminatorFinishTime(progress),
+              };
+            })
+          : field.standings;
+        for (const event of eliminator.step(1 / 120, rows)) {
           if (event.type === 'eliminator-cut') {
             const rival = racers.opponents.find(
               (opponent) => opponent.specification.id === event.payload.id,
@@ -1698,7 +1725,11 @@ export async function createGame({
     );
     if (eliminator)
       eventPresentation = lifetime.own(
-        createEliminatorPresentation({ host: ui.root, scene }),
+        createEliminatorPresentation({
+          host: ui.root,
+          scene,
+          finishAtCourseEnd: definition.event.finishAtCourseEnd === true,
+        }),
       );
     if (interceptor)
       eventPresentation = lifetime.own(

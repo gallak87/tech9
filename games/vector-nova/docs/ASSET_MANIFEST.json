@@ -1444,12 +1444,13 @@
       "id": "vesper-ancient-oak",
       "source": "assets/levels/vesper-forest/ and ../../worldkit/modules/living-forest/art/ancient-oak/",
       "creator": "Worldkit and VECTOR//NOVA project contributors; Sapling Tree Gen contributors and Brad Chamberlain for the source Coast Live Oak preset",
-      "provenance": "Original authored solid growth graph with fused branch junctions, low buttresses and unequal ascending limbs. Worldkit's offline Blender builder carves Vesper's full-route clearance sweep from the solid wood and transfers metric bark UVs. Fresh native Sapling graphs form the fine branches and wind-attached leaf sprays. The derived consumer GLB contains separate bark, heartwood, twig and leaf meshes with no embedded images or materials; it borrows registered Worldkit bark and foliage images. Editable Blender sources, deterministic consumer route export and hashed build metadata are retained. No former hollow-shell geometry or crown mesh is an input.",
+      "provenance": "Original authored solid growth graph with fused branch junctions, low buttresses and unequal ascending limbs. Worldkit's offline Blender builder carves Vesper's full-route clearance sweep from the solid wood and transfers metric bark UVs. Fresh native Sapling graphs form the fine branches and wind-attached leaf sprays. The derived consumer GLB contains separate bark, heartwood, twig and leaf meshes with no embedded images or materials. The primary exterior uses the separately registered Vesper ancient-oak bark; fine branches, heartwood and foliage borrow registered Worldkit images. Editable Blender sources, deterministic consumer route export and hashed build metadata are retained. No former hollow-shell geometry or crown mesh is an input.",
       "rights": "Project-authored geometry and integration; Sapling Tree Gen is a GPL-3.0-or-later build tool and the adapted Coast Live Oak parameter recipe credits its GPL-3.0-only preset. Existing Worldkit image notices apply.",
       "runtimeDependencies": [
         "three",
         "@worldkit/environment/living-forest/ancient-tree",
-        "worldkit-forest-art"
+        "worldkit-forest-art",
+        "vesper-ancient-oak-bark"
       ],
       "runtimeAssets": ["assets/levels/vesper-forest/ancient-oak-v1.glb"],
       "provenanceRecords": [
@@ -1457,6 +1458,23 @@
         "assets/levels/vesper-forest/README.md",
         "../../worldkit/modules/living-forest/art/ancient-oak/README.md",
         "../../worldkit/modules/living-forest/art/sapling/README.md"
+      ]
+    },
+    {
+      "id": "vesper-ancient-oak-bark",
+      "source": "assets/levels/vesper-forest/bark-source/",
+      "creator": "Built-in imagegen and VECTOR//NOVA project contributors",
+      "provenance": "Original generated ancient-oak albedo with broad elongated bark plates. The original PNG, exact generation prompt and SHA-256 source/output records are retained. A local encoder produces a 1024px JPEG and a 512px grayscale luminance-derived filtered bump map. The consumer applies both at 52-metre scale only to the giant's primary bark mesh; ordinary grove, fine-branch, heartwood and leaf art stay canonical Worldkit assets.",
+      "rights": "Project-generated artwork and integration; no third-party source image",
+      "runtimeDependencies": ["three"],
+      "runtimeAssets": [
+        "assets/levels/vesper-forest/ancient-oak-bark-v1.jpg",
+        "assets/levels/vesper-forest/ancient-oak-bark-height-v1.png"
+      ],
+      "provenanceRecords": [
+        "assets/levels/vesper-forest/bark-source/asset.json",
+        "assets/levels/vesper-forest/bark-source/prompt.txt",
+        "assets/levels/vesper-forest/README.md"
       ]
     },
     {

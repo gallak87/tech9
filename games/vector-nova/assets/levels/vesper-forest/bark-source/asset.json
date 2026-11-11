@@ -1,0 +1,22 @@
+{
+  "source": "ancient-oak-bark-v1.png",
+  "sourceSHA256": "671d563e5adbe04a1b169b4ae68d8c243ee7b18e287b6204da6a89a45fa5afa5",
+  "generator": "Built-in imagegen",
+  "prompt": "prompt.txt",
+  "tileMetres": 52,
+  "height": "Approximate scalar relief from source luminance, 512px with a wrapped 3x3 low-pass filter; not measured displacement.",
+  "outputs": [
+    {
+      "file": "ancient-oak-bark-v1.jpg",
+      "dimensions": [1024, 1024],
+      "bytes": 402534,
+      "sha256": "01c058ffba13f1a9e0a57bc8a9b4f88133b6103286e92c74c8d54a5783f4b024"
+    },
+    {
+      "file": "ancient-oak-bark-height-v1.png",
+      "dimensions": [512, 512],
+      "bytes": 243913,
+      "sha256": "11af48f3dc071d9600063893b2a924d12460e28e9c75c7d3aef7ebfb17d98669"
+    }
+  ]
+}

@@ -17,6 +17,7 @@ import { createForestTerrain, randomSource } from './terrain.js';
 import { createForestRouteClearance } from './clearance.js';
 import { createLifetime } from '../../../core/lifecycle.js';
 import { createVesperPresentationClock } from './presentation-clock.js';
+import { createAncientOakBark } from './ancient-oak-material.js';
 
 const UP = new T.Vector3(0, 1, 0);
 const DETAIL_DISTANCE = { high: 330, low: 130 };
@@ -140,6 +141,10 @@ async function buildEnvironment(
   const foliageClearance = createForestRouteClearance(track, {
     margin: FOLIAGE_MOTION_MARGIN,
   });
+  const ancientBark = await createAncientOakBark({
+    lifetime,
+    wood: forestKit.materials.wood,
+  });
   const hollow = lifetime.own(
     await loadAncientTree({
       url: ANCIENT_OAK_URL,
@@ -150,6 +155,9 @@ async function buildEnvironment(
       },
     }),
   );
+  // The fine Sapling twigs keep the grove-scale bark. Only the giant's
+  // joined bole, primary forks and buttresses use its dedicated broad plates.
+  hollow.group.getObjectByName('AncientOak_Bark').material = ancientBark;
   hollow.group.position.fromArray(hollowData.center);
   group.add(hollow.group);
   kit.materials.wood.bumpScale = 0.75;

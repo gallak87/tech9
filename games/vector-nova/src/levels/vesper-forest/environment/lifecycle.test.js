@@ -85,7 +85,7 @@ test('a missing carved-tree asset releases the earlier grove, terrain and borrow
     if (url.endsWith('/ancient-oak-v1.glb')) throw cause;
     return allowedFetch(request, options);
   });
-  const maps = [new T.Texture(), new T.Texture()];
+  const maps = Array.from({ length: 4 }, () => new T.Texture());
   const mapCounts = watch(maps);
   t.mock.method(T.TextureLoader.prototype, 'loadAsync', async () =>
     maps.shift(),
@@ -107,6 +107,26 @@ test('a missing carved-tree asset releases the earlier grove, terrain and borrow
   );
   assertReleasedOnce(mapCounts);
   assertReleasedOnce(geometries);
+});
+
+test('a failed giant bark height load releases its albedo and earlier grove resources', async (t) => {
+  allowWorldkitAssetReads(t);
+  const maps = Array.from({ length: 3 }, () => new T.Texture());
+  const counts = watch(maps);
+  const cause = new Error('Ancient bark height unavailable');
+  t.mock.method(T.TextureLoader.prototype, 'loadAsync', async () => {
+    if (maps.length) return maps.shift();
+    throw cause;
+  });
+  await assert.rejects(
+    createVesperEnvironment({ track: createVesperTrack() }),
+    (error) => {
+      assert.match(error.message, /Ancient oak bark could not load/);
+      assert.equal(error.cause, cause);
+      return true;
+    },
+  );
+  assertReleasedOnce(counts);
 });
 
 test('a late construction failure releases loaded maps, partial instances and temporary root geometry', async (t) => {
@@ -159,6 +179,22 @@ test('the complete environment respects inherited reduced motion and owns shared
   });
   const resources = watch(sceneResources(environment.group));
   try {
+    const ancientBark =
+      environment.group.getObjectByName('AncientOak_Bark').material;
+    const groveBark =
+      environment.group.getObjectByName('AncientOak_Twigs').material;
+    const heartwood = environment.group.getObjectByName(
+      'AncientOak_Heartwood',
+    ).material;
+    assert.notEqual(ancientBark, groveBark);
+    assert.notEqual(ancientBark.map, groveBark.map);
+    assert.notEqual(ancientBark.map, heartwood.map);
+    assert.equal(ancientBark.map.colorSpace, T.SRGBColorSpace);
+    assert.equal(ancientBark.bumpMap.colorSpace, T.NoColorSpace);
+    assert.deepEqual(ancientBark.map.repeat.toArray(), [0.125, 0.125]);
+    assert.deepEqual(ancientBark.bumpMap.repeat.toArray(), [0.125, 0.125]);
+    assert.deepEqual(groveBark.map.repeat.toArray(), [1, 1]);
+    assert.deepEqual(heartwood.map.repeat.toArray(), [1, 1]);
     const water = environment.group.getObjectByName(
       'Living Forest / reflective floodplain',
     );

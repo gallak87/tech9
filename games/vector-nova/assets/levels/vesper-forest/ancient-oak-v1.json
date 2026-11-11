@@ -1,0 +1,259 @@
+{
+  "generator": "Worldkit joined ancient oak",
+  "blender": "5.2.3 LTS",
+  "units": "metres",
+  "axis": "+Y up",
+  "shape": "shape.json",
+  "shapeSHA256": "58550792f0e39e4a93e827aa191449247d80bd9a7596bc799cd8b057ffabe68d",
+  "passage": "clearance.json",
+  "passageSHA256": "8c687bb5fc6fabdb6edc24188224518c3167596244077f077f16b1462b2b37be",
+  "voxelSize": 2.6,
+  "passageFrames": 888,
+  "triangles": {
+    "growthSource": 394368,
+    "joined": 377064,
+    "carved": 252078,
+    "final": 218144,
+    "bareFinal": 164960
+  },
+  "topologyCleanup": {
+    "removedDanglingEars": 0,
+    "removedDetachedChips": 4,
+    "components": 1,
+    "boundaryEdges": 0,
+    "nonmanifoldEdges": 0
+  },
+  "meshes": [
+    {
+      "name": "AncientOak_Bark",
+      "triangles": 119722
+    },
+    {
+      "name": "AncientOak_Heartwood",
+      "triangles": 45238
+    },
+    {
+      "name": "AncientOak_Twigs",
+      "triangles": 40896
+    },
+    {
+      "name": "AncientOak_Leaves",
+      "triangles": 12288
+    }
+  ],
+  "glbBytes": 8083980,
+  "glbSHA256": "bf2ec8f5b7de234e3f8593810d0a4ad2edb621a970b7bdf698c6379a33f47292",
+  "buildSeconds": 142.35,
+  "canopyGenerator": "Sapling Tree Gen 1.0.0 / new native fine-branch graphs",
+  "canopyRecipe": "canopy.json",
+  "canopyRecipeSHA256": "03a2d7333a386791842b0d427a1002bf88e14fa07a51927dddc2ea10ee5ee9f3",
+  "canopyClusters": [
+    {
+      "parentPath": "Leaning bole and low west leader",
+      "seed": 12017,
+      "scale": 121.90768829849145,
+      "ratio": 0.046232566525972726,
+      "parentRadius": 19,
+      "rootRadius": 8.55,
+      "anchor": [-138.88018798828125, 415.70013427734375, 13.602272033691406],
+      "axis": [-0.6319803595542908, 0.7299880385398865, -0.26022714376449585],
+      "curves": 73,
+      "sprays": 64
+    },
+    {
+      "parentPath": "East counterweight fork",
+      "seed": 12154,
+      "scale": 131.5973564189523,
+      "ratio": 0.04002583962507635,
+      "parentRadius": 18,
+      "rootRadius": 8.1,
+      "anchor": [232.7313690185547, 387.5400390625, -64.80066680908203],
+      "axis": [0.5958525538444519, 0.5759947299957275, -0.5596336722373962],
+      "curves": 75,
+      "sprays": 64
+    },
+    {
+      "parentPath": "Forward open fork",
+      "seed": 12291,
+      "scale": 118.38270660207365,
+      "ratio": 0.04150425859505653,
+      "parentRadius": 20,
+      "rootRadius": 9.0,
+      "anchor": [26.040771484375, 430.1174011230469, 197.89276123046875],
+      "axis": [-0.6240772008895874, 0.6382607817649841, 0.4507225453853607],
+      "curves": 73,
+      "sprays": 64
+    },
+    {
+      "parentPath": "Off-center high leader",
+      "seed": 12428,
+      "scale": 132.89159500160886,
+      "ratio": 0.038520922231818897,
+      "parentRadius": 23,
+      "rootRadius": 10.35,
+      "anchor": [20.419536590576172, 469.8992004394531, -153.51954650878906],
+      "axis": [0.3780463635921478, 0.8450809717178345, -0.3780463933944702],
+      "curves": 75,
+      "sprays": 64
+    },
+    {
+      "parentPath": "West lower split",
+      "seed": 12565,
+      "scale": 119.62600349908948,
+      "ratio": 0.051058299240935884,
+      "parentRadius": 14,
+      "rootRadius": 6.3,
+      "anchor": [-170.4846649169922, 423.8583068847656, 124.09967803955078],
+      "axis": [-0.7715328335762024, 0.5891703367233276, 0.24003233015537262],
+      "curves": 75,
+      "sprays": 64
+    },
+    {
+      "parentPath": "West upper split",
+      "seed": 12702,
+      "scale": 149.51287136581425,
+      "ratio": 0.03906687544615039,
+      "parentRadius": 7,
+      "rootRadius": 3.1499999999999995,
+      "anchor": [-135.26271057128906, 493.89788818359375, -71.52130889892578],
+      "axis": [0.7662711143493652, 0.4702117443084717, -0.43786922097206116],
+      "curves": 75,
+      "sprays": 64
+    },
+    {
+      "parentPath": "West outer twig fork",
+      "seed": 12839,
+      "scale": 144.6006658365966,
+      "ratio": 0.03857330970439148,
+      "parentRadius": 3.5,
+      "rootRadius": 1.575,
+      "anchor": [-251.28775024414062, 485.91583251953125, 82.351806640625],
+      "axis": [-0.6112241744995117, 0.4584179222583771, -0.6451805830001831],
+      "curves": 75,
+      "sprays": 64
+    },
+    {
+      "parentPath": "East lower split",
+      "seed": 12976,
+      "scale": 138.7833522591852,
+      "ratio": 0.03748074481635165,
+      "parentRadius": 15,
+      "rootRadius": 6.75,
+      "anchor": [236.696533203125, 369.8392028808594, 68.67147827148438],
+      "axis": [0.8052259683609009, 0.5910799503326416, 0.047282226383686066],
+      "curves": 73,
+      "sprays": 64
+    },
+    {
+      "parentPath": "East upper split",
+      "seed": 13113,
+      "scale": 134.47222021695853,
+      "ratio": 0.043542922286853254,
+      "parentRadius": 9,
+      "rootRadius": 4.05,
+      "anchor": [222.6114959716797, 457.1304016113281, -159.93614196777344],
+      "axis": [-0.7011493444442749, 0.5019592046737671, -0.5063856840133667],
+      "curves": 74,
+      "sprays": 64
+    },
+    {
+      "parentPath": "East outer twig fork",
+      "seed": 13250,
+      "scale": 147.9613790333118,
+      "ratio": 0.046367985997314426,
+      "parentRadius": 4,
+      "rootRadius": 1.8,
+      "anchor": [283.901611328125, 466.88311767578125, 149.49838256835938],
+      "axis": [-0.34016087651252747, 0.8766875863075256, 0.34016087651252747],
+      "curves": 71,
+      "sprays": 64
+    },
+    {
+      "parentPath": "Forward east split",
+      "seed": 13387,
+      "scale": 111.44640238399892,
+      "ratio": 0.03554754777177445,
+      "parentRadius": 16,
+      "rootRadius": 7.2,
+      "anchor": [148.15554809570312, 427.12530517578125, 219.2379608154297],
+      "axis": [0.9144448637962341, 0.39747145771980286, 0.07620362937450409],
+      "curves": 73,
+      "sprays": 64
+    },
+    {
+      "parentPath": "Forward west split",
+      "seed": 13524,
+      "scale": 120.2251016257382,
+      "ratio": 0.03681049297837645,
+      "parentRadius": 7,
+      "rootRadius": 3.15,
+      "anchor": [-78.13358306884766, 474.3683776855469, 245.57766723632812],
+      "axis": [-0.7666417956352234, 0.5331640839576721, -0.3577660322189331],
+      "curves": 71,
+      "sprays": 64
+    },
+    {
+      "parentPath": "Forward outer twig fork",
+      "seed": 13661,
+      "scale": 132.2732714633976,
+      "ratio": 0.039819753682357004,
+      "parentRadius": 4,
+      "rootRadius": 1.8,
+      "anchor": [166.64718627929688, 514.0980834960938, 296.88177490234375],
+      "axis": [-0.7147180438041687, 0.6101933121681213, 0.3418218195438385],
+      "curves": 73,
+      "sprays": 64
+    },
+    {
+      "parentPath": "High west split",
+      "seed": 13798,
+      "scale": 111.64917298237096,
+      "ratio": 0.0380047596103581,
+      "parentRadius": 18,
+      "rootRadius": 8.1,
+      "anchor": [-109.31951904296875, 434.4762268066406, -189.75100708007812],
+      "axis": [-0.2880476713180542, 0.7423775792121887, -0.6049001216888428],
+      "curves": 71,
+      "sprays": 64
+    },
+    {
+      "parentPath": "High east split",
+      "seed": 13935,
+      "scale": 121.83219388008109,
+      "ratio": 0.03812520803687415,
+      "parentRadius": 13,
+      "rootRadius": 5.85,
+      "anchor": [104.20784759521484, 512.218505859375, -179.96897888183594],
+      "axis": [0.7992151975631714, 0.5281521081924438, 0.2868978679180145],
+      "curves": 74,
+      "sprays": 64
+    },
+    {
+      "parentPath": "High outer twig fork",
+      "seed": 14072,
+      "scale": 123.32667227400755,
+      "ratio": 0.0405017826321805,
+      "parentRadius": 5,
+      "rootRadius": 2.25,
+      "anchor": [-214.4989471435547, 509.39935302734375, -203.2259979248047],
+      "axis": [-0.6601051688194275, 0.4050649404525757, 0.6326006650924683],
+      "curves": 73,
+      "sprays": 64
+    }
+  ],
+  "canopyTriangles": 53184,
+  "foliageSprays": 1024,
+  "canopyBuildSeconds": 3.94,
+  "uvChartRepair": {
+    "AncientOak_Bark": {
+      "repairedFaces": 3716,
+      "largestStretchBefore": 386.0352768389574,
+      "largestStretchAfter": 8.099691156908735
+    },
+    "AncientOak_Heartwood": {
+      "repairedFaces": 620,
+      "largestStretchBefore": 190.22951622005382,
+      "largestStretchAfter": 18.29440269277069
+    }
+  }
+}

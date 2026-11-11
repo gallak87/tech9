@@ -76,6 +76,39 @@ test('a failed Sapling forest load releases the earlier caller-owned bark and fo
   assertReleasedOnce(counts);
 });
 
+test('a missing carved-tree asset releases the earlier grove, terrain and borrowed image owners', async (t) => {
+  allowWorldkitAssetReads(t);
+  const allowedFetch = globalThis.fetch;
+  const cause = new Error('Carved ancient oak unavailable');
+  t.mock.method(globalThis, 'fetch', async (request, options) => {
+    const url = typeof request === 'string' ? request : request.url;
+    if (url.endsWith('/ancient-oak-v1.glb')) throw cause;
+    return allowedFetch(request, options);
+  });
+  const maps = [new T.Texture(), new T.Texture()];
+  const mapCounts = watch(maps);
+  t.mock.method(T.TextureLoader.prototype, 'loadAsync', async () =>
+    maps.shift(),
+  );
+  const geometries = new Map();
+  const setAttribute = T.BufferGeometry.prototype.setAttribute;
+  t.mock.method(T.BufferGeometry.prototype, 'setAttribute', function (...args) {
+    if (!geometries.has(this)) {
+      geometries.set(this, 0);
+      this.addEventListener('dispose', () =>
+        geometries.set(this, geometries.get(this) + 1),
+      );
+    }
+    return setAttribute.apply(this, args);
+  });
+  await assert.rejects(
+    createVesperEnvironment({ track: createVesperTrack() }),
+    (error) => error === cause,
+  );
+  assertReleasedOnce(mapCounts);
+  assertReleasedOnce(geometries);
+});
+
 test('a late construction failure releases loaded maps, partial instances and temporary root geometry', async (t) => {
   allowWorldkitAssetReads(t);
   t.mock.method(

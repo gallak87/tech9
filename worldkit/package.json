@@ -64,6 +64,7 @@
     "./forest/kit": "./src/forest-kit.js",
     "./living-forest": "./src/living-forest.js",
     "./living-forest/sapling": "./src/living-forest-sapling.js",
+    "./living-forest/ancient-tree": "./src/living-forest-ancient-tree.js",
     "./industrial": "./src/industrial.js"
   },
   "peerDependencies": {
@@ -104,7 +105,13 @@
     "modules/living-forest/art/sapling/settings.json",
     "modules/living-forest/art/sapling/variants.json",
     "modules/living-forest/art/sapling/build_sapling.py",
+    "modules/living-forest/art/sapling/foliage.py",
     "modules/living-forest/art/sapling/asset.json",
+    "modules/living-forest/art/ancient-oak/README.md",
+    "modules/living-forest/art/ancient-oak/build_ancient_oak.py",
+    "modules/living-forest/art/ancient-oak/build_canopy.py",
+    "modules/living-forest/art/ancient-oak/shape.json",
+    "modules/living-forest/art/ancient-oak/canopy.json",
     "modules/industrial/src",
     "modules/industrial/README.md",
     "modules/industrial/assets"

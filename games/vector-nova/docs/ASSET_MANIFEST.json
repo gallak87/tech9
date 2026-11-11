@@ -1425,7 +1425,7 @@
       "id": "worldkit-sapling-forest",
       "source": "../../worldkit/modules/living-forest/art/sapling/",
       "creator": "Worldkit project contributors; Sapling Tree Gen contributors and Brad Chamberlain for the source Coast Live Oak preset",
-      "provenance": "Four grove forms, paired near/far meshes and a spreading oak crown module generated with Sapling Tree Gen 1.0.0 in Blender 5.2.3 LTS. The retained settings and reproducible build recipe export bounded wood and foliage parts from Sapling-grown curves, using the existing Living Forest bark and cutout foliage. Each spray retains Y-up branch anchors, deformation weights, gradients and stable phases for reusable Worldkit Weather wind; near/far attachments match. Vesper composes the full forest, reserves bounded foliage motion around the road/camera corridor, and fits crown forks into its tapered route-cut hollow. Other Living Forest consumers retain their existing tree families.",
+      "provenance": "Four grove forms, paired near/far meshes and a spreading oak crown module generated with Sapling Tree Gen 1.0.0 in Blender 5.2.3 LTS. The retained settings and reproducible build recipe export bounded wood and foliage parts from Sapling-grown curves, using the existing Living Forest bark and cutout foliage. Each spray retains Y-up branch anchors, deformation weights, gradients and stable phases for reusable Worldkit Weather wind; near/far attachments match. Vesper uses the four grove forms, reserves bounded foliage motion around the road/camera corridor, and skips this optional crown in favor of its independently carved ancient oak. Other Living Forest consumers retain their existing tree families.",
       "rights": "Sapling is a free GPL-3.0-or-later build tool; the adapted Coast Live Oak parameter recipe credits its GPL-3.0-only preset. Existing Worldkit image notices apply. No third-party tree mesh is imported.",
       "runtimeDependencies": [
         "three",
@@ -1441,6 +1441,25 @@
       ]
     },
     {
+      "id": "vesper-ancient-oak",
+      "source": "assets/levels/vesper-forest/ and ../../worldkit/modules/living-forest/art/ancient-oak/",
+      "creator": "Worldkit and VECTOR//NOVA project contributors; Sapling Tree Gen contributors and Brad Chamberlain for the source Coast Live Oak preset",
+      "provenance": "Original authored solid growth graph with fused branch junctions, low buttresses and unequal ascending limbs. Worldkit's offline Blender builder carves Vesper's full-route clearance sweep from the solid wood and transfers metric bark UVs. Fresh native Sapling graphs form the fine branches and wind-attached leaf sprays. The derived consumer GLB contains separate bark, heartwood, twig and leaf meshes with no embedded images or materials; it borrows registered Worldkit bark and foliage images. Editable Blender sources, deterministic consumer route export and hashed build metadata are retained. No former hollow-shell geometry or crown mesh is an input.",
+      "rights": "Project-authored geometry and integration; Sapling Tree Gen is a GPL-3.0-or-later build tool and the adapted Coast Live Oak parameter recipe credits its GPL-3.0-only preset. Existing Worldkit image notices apply.",
+      "runtimeDependencies": [
+        "three",
+        "@worldkit/environment/living-forest/ancient-tree",
+        "worldkit-forest-art"
+      ],
+      "runtimeAssets": ["assets/levels/vesper-forest/ancient-oak-v1.glb"],
+      "provenanceRecords": [
+        "assets/levels/vesper-forest/ancient-oak-v1.json",
+        "assets/levels/vesper-forest/README.md",
+        "../../worldkit/modules/living-forest/art/ancient-oak/README.md",
+        "../../worldkit/modules/living-forest/art/sapling/README.md"
+      ]
+    },
+    {
       "id": "vesper-forest",
       "source": "src/levels/vesper-forest/",
       "creator": "VECTOR//NOVA project contributors",
@@ -1450,7 +1469,8 @@
         "three",
         "@worldkit/environment",
         "worldkit-forest-art",
-        "worldkit-sapling-forest"
+        "worldkit-sapling-forest",
+        "vesper-ancient-oak"
       ],
       "provenanceRecords": [
         "../../worldkit/modules/living-forest/assets/provenance.json",

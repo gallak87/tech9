@@ -72,7 +72,13 @@ try {
     'modules/living-forest/art/sapling/settings.json',
     'modules/living-forest/art/sapling/variants.json',
     'modules/living-forest/art/sapling/build_sapling.py',
+    'modules/living-forest/art/sapling/foliage.py',
     'modules/living-forest/art/sapling/asset.json',
+    'modules/living-forest/art/ancient-oak/README.md',
+    'modules/living-forest/art/ancient-oak/build_ancient_oak.py',
+    'modules/living-forest/art/ancient-oak/build_canopy.py',
+    'modules/living-forest/art/ancient-oak/shape.json',
+    'modules/living-forest/art/ancient-oak/canopy.json',
   ])
     assert.ok(paths.has(notice), notice);
   assert.ok(
@@ -187,7 +193,8 @@ try {
     path.join(consumer, 'main.js'),
     `
     import {livingForestBarkURL, livingForestLeafURL, createLivingForestKit, createLivingHollow} from '@worldkit/environment/living-forest';
-    window.livingForestConsumer = {livingForestBarkURL, livingForestLeafURL, createLivingForestKit, createLivingHollow};
+    import {loadAncientTree} from '@worldkit/environment/living-forest/ancient-tree';
+    window.livingForestConsumer = {livingForestBarkURL, livingForestLeafURL, createLivingForestKit, createLivingHollow, loadAncientTree};
   `,
   );
   const living = await build({

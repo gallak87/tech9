@@ -1,12 +1,12 @@
 import * as T from 'three';
 import {
   createLivingForestKit,
-  createLivingHollow,
   createWoodGeometry,
   livingForestBarkURL,
   livingForestLeafURL,
 } from '@worldkit/environment/living-forest';
 import { loadSaplingForestKit } from '@worldkit/environment/living-forest/sapling';
+import { loadAncientTree } from '@worldkit/environment/living-forest/ancient-tree';
 import { createRiverWaterLayer } from '@worldkit/environment/water';
 import {
   createWeather,
@@ -15,11 +15,6 @@ import {
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { createForestTerrain, randomSource } from './terrain.js';
 import { createForestRouteClearance } from './clearance.js';
-import {
-  VESPER_BODY_PROFILE,
-  VESPER_CROWN_BEARINGS,
-  VESPER_FORK_TRANSITION,
-} from './forest-composition.js';
 import { createLifetime } from '../../../core/lifecycle.js';
 import { createVesperPresentationClock } from './presentation-clock.js';
 
@@ -28,6 +23,10 @@ const DETAIL_DISTANCE = { high: 330, low: 130 };
 const DRAW_DISTANCE = 1550;
 const DETAIL_REFRESH_DISTANCE = 30;
 const FOLIAGE_MOTION_MARGIN = 2.4;
+const ANCIENT_OAK_URL = new URL(
+  '../../../../assets/levels/vesper-forest/ancient-oak-v1.glb',
+  import.meta.url,
+).href;
 
 function createBatches(parts, placements, name, group, lifetime) {
   const meshes = parts.map(({ geometry, material }) => {
@@ -63,9 +62,15 @@ export async function createVesperEnvironment(context = {}) {
   const lifetime = createLifetime();
   try {
     const textures = await loadTextures(lifetime);
-    const forestKit = lifetime.own(await loadSaplingForestKit({ textures }));
+    const forestKit = lifetime.own(
+      await loadSaplingForestKit({ textures, includeCrown: false }),
+    );
     forestKit.materials.wood.bumpScale = 0.75;
-    return buildEnvironment({ ...context, forestKit }, textures, lifetime);
+    return await buildEnvironment(
+      { ...context, forestKit },
+      textures,
+      lifetime,
+    );
   } catch (error) {
     const failures = [error];
     try {
@@ -104,7 +109,7 @@ async function loadTextures(lifetime) {
   return { wood: { map: bark, bumpMap: relief }, leaf: { map: foliage } };
 }
 
-function buildEnvironment(
+async function buildEnvironment(
   { track, settings = {}, view, forestKit },
   textures,
   lifetime,
@@ -130,38 +135,22 @@ function buildEnvironment(
   inner.emissive.set('#3d2d1d');
   inner.emissiveIntensity = 0.08;
   inner.bumpScale = 0.65;
-  const rim = lifetime.own(kit.materials.wood.clone());
-  rim.name = 'Living Forest / pale rolled wound';
-  rim.color.set('#b39b78');
-  rim.bumpScale = 0.6;
   const hollowData = track.landmarks.hollow;
-  const route = [];
-  for (let s = 0; s < track.length; s += 6)
-    route.push(track.sample(s).position.clone());
-  route.push(route[0].clone());
   const routeClearance = createForestRouteClearance(track);
   const foliageClearance = createForestRouteClearance(track, {
     margin: FOLIAGE_MOTION_MARGIN,
   });
   const hollow = lifetime.own(
-    createLivingHollow({
-      center: hollowData.center,
-      radius: 185,
-      base: -112,
-      top: 260,
-      routePoints: route,
-      clearance: 34,
-      ageRelief: 1,
-      bodyProfile: VESPER_BODY_PROFILE,
-      fluteDepth: 6,
-      materials: { bark: kit.materials.wood, inner, rim },
-      crownParts: forestKit.crownParts,
-      crownBearings: VESPER_CROWN_BEARINGS,
-      forkTransition: VESPER_FORK_TRANSITION,
-      crownScale: 3.2,
-      crownMotionMargin: FOLIAGE_MOTION_MARGIN,
+    await loadAncientTree({
+      url: ANCIENT_OAK_URL,
+      materials: {
+        bark: forestKit.materials.wood,
+        inner,
+        leaf: forestKit.materials.leaf,
+      },
     }),
   );
+  hollow.group.position.fromArray(hollowData.center);
   group.add(hollow.group);
   kit.materials.wood.bumpScale = 0.75;
   const random = randomSource(37219),
@@ -319,19 +308,14 @@ function buildEnvironment(
     rootPieces.splice(0).forEach((g) => g.dispose());
   lifetime.defer(releaseRootPieces);
   hollow.group.updateMatrixWorld(true);
-  const innerShell = hollow.group.getObjectByName(
-    'Living Forest / living inner cambium',
-  );
+  const innerShell = hollow.group.getObjectByName('AncientOak_Heartwood');
   const raycaster = new T.Raycaster();
   let rejectedRoots = 0;
   for (let s = 24; s < track.length; s += 130) {
     if (track.isGap(s)) continue;
     const f = track.sample(s),
       inHollow = s > hollowData.entry && s < hollowData.exit;
-    const radial = f.position.clone().sub(center).setY(0).normalize();
-    for (const side of inHollow
-      ? [Math.sign(f.right.dot(radial)) || 1]
-      : [-1, 1]) {
+    for (const side of [-1, 1]) {
       const top = f.position
         .clone()
         .addScaledVector(f.right, side * 11)
@@ -346,14 +330,30 @@ function buildEnvironment(
         .clone()
         .addScaledVector(f.right, side * 32)
         .addScaledVector(f.up, -18);
-      let foot;
+      let foot, geometry;
       if (inHollow) {
-        const origin = top.clone().addScaledVector(f.up, -27);
-        raycaster.set(origin, radial);
-        raycaster.far = 300;
+        // The new solid tree has a real tunnel floor beneath each turn.
+        // Seat short roots there instead of reaching across an empty chamber.
+        raycaster.set(
+          top.clone().addScaledVector(f.up, -2),
+          f.up.clone().negate(),
+        );
+        raycaster.far = 100;
         const hit = raycaster.intersectObject(innerShell, false)[0];
         if (!hit) continue;
-        foot = hit.point.clone().addScaledVector(radial, 8);
+        foot = hit.point.clone().addScaledVector(f.up, -3);
+        geometry = createWoodGeometry(
+          [
+            foot,
+            foot
+              .clone()
+              .lerp(top, 0.5)
+              .addScaledVector(f.right, side * 1.5),
+            top,
+          ],
+          [3.2, 2.6, 2.2],
+          { segments: 12, sides: 10, fluting: 0.08, seed: s },
+        );
       } else {
         const outward = f.up
           .clone()
@@ -373,12 +373,12 @@ function buildEnvironment(
           .addScaledVector(outward, 78)
           .addScaledVector(f.tangent, -24);
         foot.y = terrain.surfaceHeight(foot.x, foot.z) - 8;
+        geometry = createWoodGeometry(
+          [foot, foot.clone().lerp(shoulder, 0.55), shoulder, neck, top],
+          [11, 7, 4.8, 3, 2.2],
+          { segments: 30, sides: 12, fluting: 0.2, seed: s },
+        );
       }
-      const geometry = createWoodGeometry(
-        [foot, foot.clone().lerp(shoulder, 0.55), shoulder, neck, top],
-        inHollow ? [2.6, 6, 4.2, 3, 2.2] : [11, 7, 4.8, 3, 2.2],
-        { segments: 30, sides: 12, fluting: 0.2, seed: s },
-      );
       // Test the real fluted tube triangles against all road layers, not a
       // handful of centerline samples or an exemption around this attachment.
       if (routeClearance.intersectsGeometry(geometry)) {
@@ -460,7 +460,7 @@ function buildEnvironment(
   // The mirror belongs to the real scene when rendered; the layer may own a group.
   // Current normals use metre-scaled ripples; the body tint stays visible at grazing angles.
   const metrics = {
-    recipe: 'living-forest-sapling-v1',
+    recipe: 'living-forest-carved-ancient-oak-v1',
     trees: accepted.length,
     treeForms: forestKit.prototypes.length,
     shrubs: shrubs.length,

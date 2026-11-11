@@ -89,7 +89,12 @@ function measure(parts) {
  * Geometry/materials are owned, supplied image maps are borrowed. Placement,
  * lighting, LOD selection and route/camera clearance remain consumer policies.
  */
-export async function loadSaplingForestKit({ textures } = {}) {
+export async function loadSaplingForestKit({
+  textures,
+  includeCrown = true,
+} = {}) {
+  if (typeof includeCrown !== 'boolean')
+    throw new TypeError('Sapling includeCrown must be boolean');
   const gltf = await new GLTFLoader().loadAsync(saplingForestURL);
   const geometries = new Set();
   let palette;
@@ -109,8 +114,8 @@ export async function loadSaplingForestKit({ textures } = {}) {
         ...measure([...treeParts, ...farParts]),
       };
     });
-    const crownParts = pair('Crown');
-    measure(crownParts);
+    const crownParts = includeCrown ? pair('Crown') : [];
+    if (crownParts.length) measure(crownParts);
     palette = createLivingForestMaterials({ textures });
     palette.wood.bumpScale = 0.75;
     const allParts = [

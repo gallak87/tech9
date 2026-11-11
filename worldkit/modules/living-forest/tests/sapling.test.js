@@ -59,6 +59,24 @@ function fixture({ leaf = true } = {}) {
   return { scene, scenes: [scene], meshes, texture, material };
 }
 
+test('grove-only consumers skip the optional crown and still release every imported part', async (t) => {
+  const source = fixture({ leaf: false });
+  const imported = source.meshes.map((mesh) => watch(mesh.geometry));
+  t.mock.method(GLTFLoader.prototype, 'loadAsync', async () => source);
+  const kit = await loadSaplingForestKit({ includeCrown: false });
+  try {
+    assert.equal(kit.prototypes.length, 4);
+    assert.deepEqual(kit.crownParts, []);
+    assert.ok(imported.every((state) => state.disposals === 1));
+  } finally {
+    kit.dispose();
+  }
+  await assert.rejects(
+    loadSaplingForestKit({ includeCrown: 'no' }),
+    /includeCrown/,
+  );
+});
+
 test('baked Sapling forest has four matched grove LODs and an attached crown module without texture requests', async (t) => {
   const bytes = await readFile(new URL(saplingForestURL));
   assert.equal(bytes.readUInt32LE(0), 0x46546c67);

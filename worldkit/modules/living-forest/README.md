@@ -109,9 +109,9 @@ longitudinal relief. Without a fork transition, the upper rim varies by at most
 8 metres. The supplied
 route still reserves the complete road/camera corridor before clipping openings.
 Consumers may close the unused upper cavity inward above that reserve to seat
-major forks in real wood while keeping the outer silhouette tapered. Vesper owns
-its shorter torso profile and three unequal fork placements. Omit `bodyProfile`
-to preserve the existing hollow geometry exactly.
+major forks in real wood while keeping the outer silhouette tapered. Consumers
+own the torso profile and fork placements. Omit `bodyProfile` to preserve the
+existing hollow geometry exactly.
 
 `forkTransition: { rise, crotchDrop, start, halfWidth }` continues an authored
 torso into unequal fork-bearing crests aligned with `crownBearings`, replacing
@@ -125,13 +125,37 @@ the full route and motion clearances. Carved portal lips retain the borrowed
 `materials.rim`; grown terminal fork surfaces use borrowed `materials.bark` in
 one additional material group/draw. No material or image ownership changes.
 
+## Sculpted solid landmarks
+
+`@worldkit/environment/living-forest/ancient-tree` exports
+`loadAncientTree({url, materials: {bark, inner, leaf}})`. The consumer supplies a
+derived GLB URL and owns its placement and material palette. The loader owns
+private geometry clones and exposes `{group, metrics, dispose}`. Imported
+transforms and wind attachment attributes are flattened together; borrowed maps
+use the normal TextureLoader UV convention. Disposal releases the geometry and
+import resources without disposing the caller's materials or images.
+
+The model has required `AncientOak_Bark` and `AncientOak_Heartwood` meshes, plus
+optional `AncientOak_Twigs` and `AncientOak_Leaves`. Leaves retain the Weather
+attachment attributes. Loading allocates no renderer or frame loop and performs
+no runtime carving.
+
+The [ancient oak source tools](art/ancient-oak/README.md) build a new solid tree
+from an authored growth graph, fuse its branch junctions, and subtract an optional
+consumer-owned swept passage. Worldkit owns the reusable anatomy and build
+machinery; consumers retain their route constraints and derived GLB/Blender
+assets. This pipeline is independent of `createLivingHollow` and its radial
+shell parameters.
+
 ## Baked Sapling forest
 
 The separate `@worldkit/environment/living-forest/sapling` entry exports
-`loadSaplingForestKit({ textures })` and `saplingForestURL`. It loads four baked
+`loadSaplingForestKit({ textures, includeCrown: true })` and `saplingForestURL`. It loads four baked
 Blender/Sapling grove forms and a branching crown module. The procedural
 `createLivingForestKit` entry remains unchanged for its existing consumers and
 does not emit this GLB.
+Set `includeCrown: false` when only the four groves are used; the legacy crown
+parts are then skipped rather than cloned into the runtime kit.
 
 The async result exposes:
 

@@ -4,7 +4,6 @@ import * as T from 'three';
 import { createVesperTrack } from '../track/model.js';
 import { createVesperEnvironment } from './index.js';
 import { allowWorldkitAssetReads } from './asset-test-utils.js';
-import { VESPER_CROWN_BEARINGS } from './forest-composition.js';
 import {
   createCollisionWorld,
   indexedTriangles,
@@ -25,28 +24,29 @@ test('actual forest supports and hollow triangles clear the entire driving width
   assert.ok(roots, 'rooted construction remains visible');
   environment.group.updateMatrixWorld(true);
   const hollow = environment.group.getObjectByName(
-    'Living Forest / ancient hollow cathedral',
-  );
-  assert.ok(
-    hollow.getObjectByName('Living Forest / attached Sapling crown wood'),
-    'the giant hollow retains its grown Sapling scaffold',
+    'Living Forest / sculpted ancient oak',
   );
   assert.equal(
-    hollow.getObjectByName('Living Forest / attached Sapling crown wood')
-      .userData.crownAttachments.length,
-    VESPER_CROWN_BEARINGS.length,
-    'every major limb and upper leader remains seated and clear of the route',
+    hollow.userData.metrics.source,
+    'sculpted-solid-ancient-oak',
+    'the giant loads its independently carved solid model',
   );
+  for (const name of [
+    'AncientOak_Bark',
+    'AncientOak_Heartwood',
+    'AncientOak_Twigs',
+    'AncientOak_Leaves',
+  ])
+    assert.ok(hollow.getObjectByName(name), `retained model part ${name}`);
+  const leaves = hollow.getObjectByName('AncientOak_Leaves');
   assert.ok(
-    hollow.getObjectByName('Living Forest / attached Sapling crown foliage'),
-    'the giant scaffold carries attached foliage',
+    leaves.geometry.attributes.windAnchor,
+    'the new canopy retains attached wind',
   );
-  assert.equal(
-    hollow.getObjectByName('Living Forest / attached ascending crown boughs'),
-    undefined,
-    'the giant uses the new scaffold instead of the old horn branches',
-  );
-  const triangles = [roots, ...hollow.children].flatMap((mesh) =>
+  const triangles = [
+    roots,
+    ...hollow.children.filter((mesh) => mesh !== leaves),
+  ].flatMap((mesh) =>
     indexedTriangles(
       mesh.geometry.attributes.position.array,
       mesh.geometry.index.array,
@@ -59,6 +59,17 @@ test('actual forest supports and hollow triangles clear the entire driving width
     version: 1,
     geometryId: 'actual-rendered-roots-and-hollow',
     triangles,
+  });
+  const leafWorld = createCollisionWorld({
+    id: 'ancient-oak-leaf-clearance',
+    version: 1,
+    geometryId: 'retained-new-leaf-cards',
+    triangles: indexedTriangles(
+      leaves.geometry.attributes.position.array,
+      leaves.geometry.index.array,
+      { id: leaves.name, kind: 'structure' },
+      leaves.matrixWorld,
+    ),
   });
   try {
     assert.ok(
@@ -81,9 +92,9 @@ test('actual forest supports and hollow triangles clear the entire driving width
       };
     };
     const hull = {
-      halfWidth: track.width / 2 + 2,
+      halfWidth: track.width / 2 + 4,
       hover: 13.5,
-      halfLength: 1.5,
+      halfLength: 2,
     };
     for (let s = 0; s < track.length; s += 4) {
       const hit = world.sweepHull(pose(s), pose(s + 4), hull);
@@ -92,9 +103,20 @@ test('actual forest supports and hollow triangles clear the entire driving width
         null,
         `support/hollow crosses driving/camera space at ${s.toFixed(1)}m: ${hit?.shape.id}`,
       );
+      const leafHit = leafWorld.sweepHull(pose(s), pose(s + 4), {
+        halfWidth: hull.halfWidth + 2.4,
+        hover: hull.hover + 2.4,
+        halfLength: hull.halfLength + 2.4,
+      });
+      assert.equal(
+        leafHit,
+        null,
+        `moving new canopy crosses road/camera space at ${s.toFixed(1)}m`,
+      );
     }
   } finally {
     world.dispose();
+    leafWorld.dispose();
     environment.dispose();
   }
 });

@@ -1,0 +1,549 @@
+{
+  "name": "AncientOak",
+  "version": 1,
+  "units": "metres",
+  "axis": "+Y up",
+  "voxelSize": 2.6,
+  "smoothIterations": 3,
+  "smoothFactor": 0.42,
+  "targetTriangles": 165000,
+  "barkTile": 6.5,
+  "sampleSpacing": 3,
+  "paths": [
+    {
+      "name": "Leaning bole and low west leader",
+      "points": [
+        {
+          "point": [0, -130, 0],
+          "radius": 154,
+          "ellipse": [1.04, 0.97]
+        },
+        {
+          "point": [-6, 10, 4],
+          "radius": 148
+        },
+        {
+          "point": [4, 70, 0],
+          "radius": 144
+        },
+        {
+          "point": [-7, 130, 6],
+          "radius": 138
+        },
+        {
+          "point": [-12, 180, 12],
+          "radius": 125
+        },
+        {
+          "point": [-22.4242, 240.75, 24.4627],
+          "radius": 91
+        },
+        {
+          "point": [-49.7883, 301.5, 39.1951],
+          "radius": 59
+        },
+        {
+          "point": [-98.4095, 362.25, 32.8032],
+          "radius": 38
+        },
+        {
+          "point": [-145.2, 423.0, 11.0],
+          "radius": 19
+        },
+        {
+          "point": [-182.6, 466.2, -4.4],
+          "radius": 3
+        }
+      ]
+    },
+    {
+      "name": "East counterweight fork",
+      "points": [
+        {
+          "point": [-6, 165, 8],
+          "radius": 90
+        },
+        {
+          "point": [55.0824, 242.1, 3.0601],
+          "radius": 72
+        },
+        {
+          "point": [113.9056, 294.75, -14.7655],
+          "radius": 53
+        },
+        {
+          "point": [184.9155, 348.75, -39.1586],
+          "radius": 33
+        },
+        {
+          "point": [238.6899, 393.3, -70.397],
+          "radius": 18
+        },
+        {
+          "point": [275.0, 428.4, -104.5],
+          "radius": 2
+        }
+      ]
+    },
+    {
+      "name": "Forward open fork",
+      "points": [
+        {
+          "point": [2.0022, 193.5, 12.0135],
+          "radius": 84
+        },
+        {
+          "point": [36.4236, 274.5, 78.0505],
+          "radius": 60
+        },
+        {
+          "point": [49.2047, 362.25, 148.7077],
+          "radius": 37
+        },
+        {
+          "point": [19.8, 436.5, 202.4],
+          "radius": 20
+        },
+        {
+          "point": [-19.8, 477.0, 231.0],
+          "radius": 3
+        }
+      ]
+    },
+    {
+      "name": "Off-center high leader",
+      "points": [
+        {
+          "point": [-17.1115, 213.75, 20.1312],
+          "radius": 75
+        },
+        {
+          "point": [-32.6662, 293.4, -46.3649],
+          "radius": 62
+        },
+        {
+          "point": [-13.1966, 389.25, -106.6722],
+          "radius": 39
+        },
+        {
+          "point": [24.2, 478.35, -157.3],
+          "radius": 23
+        },
+        {
+          "point": [55.0, 547.2, -188.1],
+          "radius": 3
+        }
+      ]
+    },
+    {
+      "name": "Low east buttress",
+      "points": [
+        {
+          "point": [15, 98, -8],
+          "radius": 22
+        },
+        {
+          "point": [92, 52, -30],
+          "radius": 38
+        },
+        {
+          "point": [162, 24, -61],
+          "radius": 24
+        },
+        {
+          "point": [205, -6, -78],
+          "radius": 8
+        },
+        {
+          "point": [237, -35, -90],
+          "radius": 1
+        }
+      ],
+      "ellipse": [0.7, 1.3]
+    },
+    {
+      "name": "Low west buttress",
+      "points": [
+        {
+          "point": [-25, 105, 10],
+          "radius": 25
+        },
+        {
+          "point": [-95, 50, 35],
+          "radius": 40
+        },
+        {
+          "point": [-165, 25, 79],
+          "radius": 25
+        },
+        {
+          "point": [-209, -9, 104],
+          "radius": 9
+        },
+        {
+          "point": [-235, -36, 118],
+          "radius": 1
+        }
+      ],
+      "ellipse": [0.7, 1.3]
+    },
+    {
+      "name": "Forward buttress",
+      "points": [
+        {
+          "point": [5, 92, 20],
+          "radius": 21
+        },
+        {
+          "point": [34, 47, 112],
+          "radius": 32
+        },
+        {
+          "point": [58, 20, 178],
+          "radius": 22
+        },
+        {
+          "point": [68, -9, 220],
+          "radius": 8
+        },
+        {
+          "point": [74, -36, 247],
+          "radius": 1
+        }
+      ],
+      "ellipse": [0.7, 1.3]
+    },
+    {
+      "name": "Rear narrow buttress",
+      "points": [
+        {
+          "point": [-18, 88, -13],
+          "radius": 20
+        },
+        {
+          "point": [-48, 42, -106],
+          "radius": 31
+        },
+        {
+          "point": [-75, 14, -178],
+          "radius": 20
+        },
+        {
+          "point": [-92, -13, -214],
+          "radius": 7
+        },
+        {
+          "point": [-103, -36, -237],
+          "radius": 1
+        }
+      ],
+      "ellipse": [0.7, 1.3]
+    },
+    {
+      "name": "Southeast buttress",
+      "points": [
+        {
+          "point": [20, 98, 15],
+          "radius": 22
+        },
+        {
+          "point": [105, 48, 81],
+          "radius": 35
+        },
+        {
+          "point": [174, 20, 148],
+          "radius": 22
+        },
+        {
+          "point": [206, -11, 174],
+          "radius": 8
+        },
+        {
+          "point": [228, -37, 189],
+          "radius": 1
+        }
+      ],
+      "ellipse": [0.7, 1.3]
+    },
+    {
+      "name": "Northwest buttress",
+      "points": [
+        {
+          "point": [-4, 100, 8],
+          "radius": 22
+        },
+        {
+          "point": [-83, 44, -71],
+          "radius": 36
+        },
+        {
+          "point": [-150, 15, -140],
+          "radius": 21
+        },
+        {
+          "point": [-189, -12, -181],
+          "radius": 8
+        },
+        {
+          "point": [-211, -36, -201],
+          "radius": 1
+        }
+      ],
+      "ellipse": [0.7, 1.3]
+    },
+    {
+      "name": "West lower split",
+      "points": [
+        {
+          "point": [-82.5176, 344.7, 33.6585],
+          "radius": 34
+        },
+        {
+          "point": [-125.3881, 391.95, 87.9917],
+          "radius": 25
+        },
+        {
+          "point": [-178.2, 429.75, 126.5],
+          "radius": 14
+        },
+        {
+          "point": [-227.7, 467.55, 141.9],
+          "radius": 2
+        }
+      ]
+    },
+    {
+      "name": "West upper split",
+      "points": [
+        {
+          "point": [-129.8, 404.1, 16.5],
+          "radius": 24
+        },
+        {
+          "point": [-137.5, 456.75, -33.0],
+          "radius": 16
+        },
+        {
+          "point": [-127.6, 498.6, -75.9],
+          "radius": 7
+        },
+        {
+          "point": [-96.8, 517.5, -93.5],
+          "radius": 1.3
+        }
+      ]
+    },
+    {
+      "name": "West outer twig fork",
+      "points": [
+        {
+          "point": [-177.1, 427.05, 124.3],
+          "radius": 14
+        },
+        {
+          "point": [-222.2, 456.75, 104.5],
+          "radius": 10
+        },
+        {
+          "point": [-257.4, 490.5, 75.9],
+          "radius": 3.5
+        },
+        {
+          "point": [-277.2, 505.35, 55.0],
+          "radius": 1
+        }
+      ]
+    },
+    {
+      "name": "East lower split",
+      "points": [
+        {
+          "point": [126.818, 310.95, -21.314],
+          "radius": 39
+        },
+        {
+          "point": [177.4831, 337.95, 34.6309],
+          "radius": 27
+        },
+        {
+          "point": [244.7488, 375.75, 69.1443],
+          "radius": 15
+        },
+        {
+          "point": [303.6, 418.95, 72.6],
+          "radius": 2
+        }
+      ]
+    },
+    {
+      "name": "East upper split",
+      "points": [
+        {
+          "point": [201.0049, 359.55, -49.1588],
+          "radius": 28
+        },
+        {
+          "point": [225.5, 412.2, -112.2],
+          "radius": 19
+        },
+        {
+          "point": [215.6, 462.15, -165.0],
+          "radius": 9
+        },
+        {
+          "point": [176.0, 490.5, -193.6],
+          "radius": 1.5
+        }
+      ]
+    },
+    {
+      "name": "East outer twig fork",
+      "points": [
+        {
+          "point": [245.8463, 375.75, 69.1443],
+          "radius": 15
+        },
+        {
+          "point": [271.7, 427.05, 123.2],
+          "radius": 10
+        },
+        {
+          "point": [280.5, 475.65, 152.9],
+          "radius": 4
+        },
+        {
+          "point": [269.5, 504.0, 163.9],
+          "radius": 1
+        }
+      ]
+    },
+    {
+      "name": "Forward east split",
+      "points": [
+        {
+          "point": [46.5667, 339.3, 124.5388],
+          "radius": 45
+        },
+        {
+          "point": [96.7509, 386.55, 182.5075],
+          "radius": 30
+        },
+        {
+          "point": [157.3, 431.1, 220.0],
+          "radius": 16
+        },
+        {
+          "point": [210.1, 454.05, 224.4],
+          "radius": 2
+        }
+      ]
+    },
+    {
+      "name": "Forward west split",
+      "points": [
+        {
+          "point": [28.6, 410.85, 188.1],
+          "radius": 25
+        },
+        {
+          "point": [-36.3, 440.55, 227.7],
+          "radius": 17
+        },
+        {
+          "point": [-85.8, 479.7, 242.0],
+          "radius": 7
+        },
+        {
+          "point": [-118.8, 502.65, 226.6],
+          "radius": 1.4
+        }
+      ]
+    },
+    {
+      "name": "Forward outer twig fork",
+      "points": [
+        {
+          "point": [156.2, 429.75, 218.9],
+          "radius": 16
+        },
+        {
+          "point": [166.1, 479.7, 270.6],
+          "radius": 11
+        },
+        {
+          "point": [159.5, 520.2, 300.3],
+          "radius": 4
+        },
+        {
+          "point": [134.2, 541.8, 312.4],
+          "radius": 1
+        }
+      ]
+    },
+    {
+      "name": "High west split",
+      "points": [
+        {
+          "point": [-22.8558, 350.1, -87.0698],
+          "radius": 47
+        },
+        {
+          "point": [-71.5, 400.05, -138.6],
+          "radius": 32
+        },
+        {
+          "point": [-112.2, 441.9, -195.8],
+          "radius": 18
+        },
+        {
+          "point": [-134.2, 498.6, -242.0],
+          "radius": 2
+        }
+      ]
+    },
+    {
+      "name": "High east split",
+      "points": [
+        {
+          "point": [-2.2, 421.65, -123.2],
+          "radius": 33
+        },
+        {
+          "point": [56.1, 467.55, -152.9],
+          "radius": 23
+        },
+        {
+          "point": [112.2, 517.5, -177.1],
+          "radius": 13
+        },
+        {
+          "point": [155.1, 545.85, -161.7],
+          "radius": 2
+        }
+      ]
+    },
+    {
+      "name": "High outer twig fork",
+      "points": [
+        {
+          "point": [-111.1, 441.9, -195.8],
+          "radius": 18
+        },
+        {
+          "point": [-176.0, 477.0, -204.6],
+          "radius": 12
+        },
+        {
+          "point": [-221.1, 513.45, -196.9],
+          "radius": 5
+        },
+        {
+          "point": [-247.5, 529.65, -171.6],
+          "radius": 1
+        }
+      ]
+    }
+  ],
+  "sides": 96,
+  "description": "A low tunnelled ancient bole with unequal ascending forks and broad secondary branches; upper growth extends independently of the passage."
+}

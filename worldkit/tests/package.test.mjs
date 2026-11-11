@@ -11,6 +11,7 @@ import {
   loadSaplingForestKit,
   saplingForestURL,
 } from '@worldkit/environment/living-forest/sapling';
+import { loadAncientTree } from '@worldkit/environment/living-forest/ancient-tree';
 import * as THREE from 'three';
 import * as worldkit from '@worldkit/environment';
 import {
@@ -28,6 +29,7 @@ test('public entry points import without a browser or scene and use the consumer
   assert.equal(typeof worldkit.createLandscape, 'function');
   assert.equal(typeof worldkit.createWeather, 'function');
   assert.equal(typeof loadSaplingForestKit, 'function');
+  assert.equal(typeof loadAncientTree, 'function');
   assert.ok(saplingForestURL.endsWith('/sapling-forest-v1.glb'));
   const coast = createIslandCoast({ radius: 40 });
   assert.equal(typeof coast.terrainHeight, 'function');

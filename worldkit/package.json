@@ -63,6 +63,7 @@
     "./package.json": "./package.json",
     "./forest/kit": "./src/forest-kit.js",
     "./living-forest": "./src/living-forest.js",
+    "./living-forest/sapling": "./src/living-forest-sapling.js",
     "./industrial": "./src/industrial.js"
   },
   "peerDependencies": {
@@ -99,6 +100,10 @@
     "modules/living-forest/src",
     "modules/living-forest/README.md",
     "modules/living-forest/assets",
+    "modules/living-forest/art/sapling/README.md",
+    "modules/living-forest/art/sapling/settings.json",
+    "modules/living-forest/art/sapling/build_sapling.py",
+    "modules/living-forest/art/sapling/asset.json",
     "modules/industrial/src",
     "modules/industrial/README.md",
     "modules/industrial/assets"

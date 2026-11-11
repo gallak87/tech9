@@ -10,6 +10,10 @@ import { createRiverWaterLayer } from '@worldkit/environment/water';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { createForestTerrain, randomSource } from './terrain.js';
 import { createForestRouteClearance } from './clearance.js';
+import {
+  saplingPreviewRequested,
+  placeSaplingPreview,
+} from './sapling-preview.js';
 import { createLifetime } from '../../../core/lifecycle.js';
 
 const UP = new T.Vector3(0, 1, 0);
@@ -51,7 +55,18 @@ export async function createVesperEnvironment(context = {}) {
   const lifetime = createLifetime();
   try {
     const textures = await loadTextures(lifetime);
-    return buildEnvironment(context, textures, lifetime);
+    let saplingPrototype;
+    if (saplingPreviewRequested(context)) {
+      const { loadSaplingTree } =
+        await import('@worldkit/environment/living-forest/sapling');
+      saplingPrototype = lifetime.own(await loadSaplingTree({ textures }));
+      saplingPrototype.materials.wood.bumpScale = 0.75;
+    }
+    return buildEnvironment(
+      { ...context, saplingPrototype },
+      textures,
+      lifetime,
+    );
   } catch (error) {
     const failures = [error];
     try {
@@ -90,7 +105,11 @@ async function loadTextures(lifetime) {
   return { wood: { map: bark, bumpMap: relief }, leaf: { map: foliage } };
 }
 
-function buildEnvironment({ track, settings = {}, view }, textures, lifetime) {
+function buildEnvironment(
+  { track, settings = {}, view, saplingPrototype },
+  textures,
+  lifetime,
+) {
   const group = new T.Group();
   group.name = 'Vesper Forest / new Living Forest world';
   lifetime.defer(() => group.clear());
@@ -221,6 +240,21 @@ function buildEnvironment({ track, settings = {}, view }, textures, lifetime) {
         pz = z + (random() - 0.5) * 90;
       addTree(px, pz, 190 + random() * 155, Math.floor(random() * 3));
     }
+  const saplingItem = saplingPrototype
+    ? placeSaplingPreview({
+        prototype: saplingPrototype,
+        stands,
+        routeClearance,
+      })
+    : null;
+  const saplingMeshes = saplingItem
+    ? batches(
+        saplingPrototype.treeParts,
+        [saplingItem],
+        'Living Forest / one Sapling comparison tree',
+        group,
+      )
+    : [];
   const treeLods = [];
   for (let v = 0; v < 3; v++) {
     const near = batches(
@@ -433,6 +467,16 @@ function buildEnvironment({ track, settings = {}, view }, textures, lifetime) {
     rejectedRoots,
     oldAssetDependencies: 0,
     loadState: 'ready',
+    ...(saplingItem
+      ? {
+          treePrototype: {
+            source: 'Worldkit Sapling comparison',
+            replacements: 1,
+            position: saplingItem.position.toArray(),
+            height: saplingItem.height,
+          },
+        }
+      : {}),
   };
   group.userData.metrics = metrics;
   let disposed = false,
@@ -448,6 +492,12 @@ function buildEnvironment({ track, settings = {}, view }, textures, lifetime) {
     if (!changed) return;
     lastCamera.copy(camera.position);
     lastQuality = quality;
+    for (const mesh of saplingMeshes)
+      mesh.count =
+        camera.position.distanceToSquared(saplingItem.detailCenter) <
+        DRAW_DISTANCE ** 2
+          ? 1
+          : 0;
     for (const lod of treeLods) {
       let n = 0,
         f = 0;

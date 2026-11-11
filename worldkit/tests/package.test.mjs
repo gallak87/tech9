@@ -3,7 +3,14 @@ import assert from 'node:assert/strict';
 import { readFile, stat } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
-import { livingForestBarkURL, livingForestLeafURL } from '@worldkit/environment/living-forest';
+import {
+  livingForestBarkURL,
+  livingForestLeafURL,
+} from '@worldkit/environment/living-forest';
+import {
+  loadSaplingTree,
+  saplingTreeURL,
+} from '@worldkit/environment/living-forest/sapling';
 import * as THREE from 'three';
 import * as worldkit from '@worldkit/environment';
 import {
@@ -20,6 +27,8 @@ test('public entry points import without a browser or scene and use the consumer
   assert.equal(typeof worldkit.createComposedLandscape, 'function');
   assert.equal(typeof worldkit.createLandscape, 'function');
   assert.equal(typeof worldkit.createWeather, 'function');
+  assert.equal(typeof loadSaplingTree, 'function');
+  assert.ok(saplingTreeURL.endsWith('/sapling-oak-study-v1.glb'));
   const coast = createIslandCoast({ radius: 40 });
   assert.equal(typeof coast.terrainHeight, 'function');
   assert.equal(typeof createShoreline().terrainHeight, 'function');
@@ -87,14 +96,30 @@ test('prepared parts own geometry/materials and borrow kit textures until final 
 });
 
 test('generated Living Forest images retain their intact bytes and provenance', async () => {
-  const records = JSON.parse(await readFile(new URL('../modules/living-forest/assets/provenance.json', import.meta.url), 'utf8')).assets;
-  for (const [file, url] of [['silver-bark-color-v1.png', livingForestBarkURL], ['leaf-spray-v1.png', livingForestLeafURL]]) {
-    const image = await readFile(new URL(url)), provenance = records.find(record=>record.file===file);
+  const records = JSON.parse(
+    await readFile(
+      new URL(
+        '../modules/living-forest/assets/provenance.json',
+        import.meta.url,
+      ),
+      'utf8',
+    ),
+  ).assets;
+  for (const [file, url] of [
+    ['silver-bark-color-v1.png', livingForestBarkURL],
+    ['leaf-spray-v1.png', livingForestLeafURL],
+  ]) {
+    const image = await readFile(new URL(url)),
+      provenance = records.find((record) => record.file === file);
     assert.equal(image.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
     assert.equal(image.readUInt32BE(16), provenance.width);
     assert.equal(image.readUInt32BE(20), provenance.height);
-    assert.equal(createHash('sha256').update(image).digest('hex'), provenance.sha256);
+    assert.equal(
+      createHash('sha256').update(image).digest('hex'),
+      provenance.sha256,
+    );
     assert.deepEqual(provenance.transformations, []);
-    if (file.includes('leaf')) assert.equal(image[25], 6, 'Leaf PNG stores true RGBA channels');
+    if (file.includes('leaf'))
+      assert.equal(image[25], 6, 'Leaf PNG stores true RGBA channels');
   }
 });

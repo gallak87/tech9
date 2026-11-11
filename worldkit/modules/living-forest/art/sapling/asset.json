@@ -1,0 +1,10 @@
+{
+  "generator": "Sapling Tree Gen 1.0.0",
+  "seed": 37,
+  "saplingCurves": 236,
+  "foliageSites": 310,
+  "woodTriangles": 37812,
+  "leafTriangles": 3720,
+  "glbBytes": 1344960,
+  "glbSHA256": "906df240af55a38691172facf387d3c4036e816b39e40b7950fa2613227bc668"
+}

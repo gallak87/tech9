@@ -69,3 +69,21 @@ bays, eroded crossing arches and uneven rolled wound lips. Relief ranges from
 0 (the existing shape) to 1, carves away from the protected cavity, and reuses
 the same shell tessellation. Games still own heartwood/rim materials and the
 route points that establish portal clearances.
+
+## Sapling oak study
+
+The separate `@worldkit/environment/living-forest/sapling` entry exports
+`loadSaplingTree({ textures })` and `saplingTreeURL`. It loads one baked,
+metre-scale Blender/Sapling tree for an opt-in comparison; it does not replace
+the three procedural forms or emit its GLB through the regular kit entry.
+
+The async result exposes two `treeParts` (`wood` and `leaf`), `bounds`, `height`,
+`radius`, shared `materials`, and an idempotent `dispose()`. Each part contains
+owned geometry with flattened source transforms and an owned material. Supply
+the same `textures.wood` / `textures.leaf` maps used by the procedural kit to
+compare structure under the same surface finish. The loader borrows those maps;
+they use the regular TextureLoader `flipY: true` convention, and the loader
+converts the baked glTF UVs back to that convention on its owned geometry.
+Dispose its result before releasing the caller's textures. Loading allocates no
+renderer, scene, frame loop or placement policy. Consumers own tree placement,
+visibility, scaling and road/camera clearance.

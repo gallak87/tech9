@@ -37,6 +37,25 @@
       },
       "notes": "Stored byte-for-byte as generated. No image processing. The private package grants no new licence to project art.",
       "prompt": "Use case: photorealistic-natural\nAsset type: transparent foliage cutout for alpha-tested 3D canopy cards in a real-time game.\nPrimary request: one dense, irregular broadleaf branch spray, with many small oval pointed leaves on fine branching woody twigs, photographed straight-on. A lush asymmetric cluster with overlapping leaves and many small holes showing transparency between them. All foliage connected to plausible fine branches. Rich muted jade, dark olive and sage green leaves, a few pale newer leaves; delicate natural veins.\nComposition: one isolated branch spray spreading from the bottom center toward top and both sides, roughly square overall silhouette, close crop with small transparent margin, no pot or trunk or ground. Leaf sizes varied, 40\u201370 leaves total, no large palm fronds. Enough foliage coverage to make a solid canopy mass when several sprays overlap.\nLighting: soft even overcast illumination, restrained highlights, no cast shadow or baked strong direction. Realistic leaf texture.\nConstraints: actual transparent background, transparent gaps, clean non-white edges. No text, no scenery, no border, no diagram, no multiple panels."
+    },
+    {
+      "file": "sapling-oak-study-v1.glb",
+      "type": "experimental-generated-tree-mesh",
+      "source": "Sapling Tree Gen 1.0.0 in Blender 5.2.3 LTS; adapted Coast Live Oak parameters. One review candidate, not a bulk forest replacement.",
+      "toolURL": "https://extensions.blender.org/add-ons/sapling-tree-gen/",
+      "toolLicense": "GPL-3.0-or-later",
+      "toolArchiveSHA256": "65a1ae7ab3a73a675a2de7370e27a6186e889f2e396fd27af0a44666bc3b9a9a",
+      "presetAttribution": "Coast Live Oak preset by Brad Chamberlain (2026), GPL-3.0-only.",
+      "sourceRecipe": "../art/sapling/build_sapling.py",
+      "settings": "../art/sapling/settings.json",
+      "editableSource": "../art/sapling/sapling-oak-study.blend",
+      "seed": 37,
+      "bytes": 1344960,
+      "sha256": "906df240af55a38691172facf387d3c4036e816b39e40b7950fa2613227bc668",
+      "woodTriangles": 37812,
+      "leafTriangles": 3720,
+      "textures": ["silver-bark-color-v1.png", "leaf-spray-v1.png"],
+      "notes": "Sapling supplies growth curves. Original export recipe creates adaptive mesh rings, metre-scaled bark UVs and attached cutout foliage. No embedded images or imported third-party tree mesh."
     }
   ]
 }

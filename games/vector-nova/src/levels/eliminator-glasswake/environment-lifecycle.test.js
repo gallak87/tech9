@@ -49,7 +49,7 @@ test('a failed massif observes all settled acquisitions and releases every succe
     createGlasswakeEliminatorEnvironment({}),
     /Massif fixture failure/,
   );
-  assert.equal(releases.size, 3);
+  assert.equal(releases.size, 5);
   for (const count of releases.values()) assert.equal(count, 1);
   assert.ok(scenes.every((scene) => scene.children.length === 0));
 });

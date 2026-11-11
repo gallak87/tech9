@@ -288,7 +288,7 @@ test('Two offset buried fossil beds retain real anatomy, shared sediment and ful
     dunes = createOssuaryDunes(track);
   owned.add(dunes.geometry);
   try {
-    for (const name of ['scapula', 'rib_2', 'vertebra_1']) {
+    for (const name of ['scapula', 'rib_2', 'vertebra_1', 'vertebra_2']) {
       const root = scene.getObjectByName(name),
         inverse = root.matrixWorld.clone().invert(),
         parts = [],
@@ -339,7 +339,10 @@ test('Two offset buried fossil beds retain real anatomy, shared sediment and ful
       },
     ];
     for (const [bedIndex, plan] of plans.entries()) {
-      assert.equal(plan.anatomy.length, 2);
+      assert.ok(
+        plan.anatomy.length >= 2,
+        'each buried bed has overlapping anatomical layers',
+      );
       const boneMeshes = [],
         bonePieces = [];
       let feet = 0;

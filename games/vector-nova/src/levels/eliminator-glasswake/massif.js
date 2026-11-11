@@ -55,6 +55,14 @@ export function createFractureMassifPlan(
       'Fracture massif requires the original massif, shoulder and basal bounds',
     );
   const stations = SITES.map((site, index) => {
+    // Source-guide generation intentionally supplies the two original kits
+    // only. Production adds the separately acquired replacement prototype;
+    // both paths retain this exact native authoring frame.
+    const prototype =
+      index === 0 && templates.has('fracture_glacier_sector')
+        ? 'fracture_glacier_sector'
+        : 'fracture_massif';
+    const body = templates.get(prototype);
     const matrix = new T.Matrix4().fromArray(site.matrix);
     matrix.elements[13] = floorY - 15;
     const shoulder = templates.get(site.shoulder);
@@ -81,11 +89,11 @@ export function createFractureMassifPlan(
     };
     foundation.bounds = basal.bounds.clone().applyMatrix4(foundation.matrix);
     const placement = {
-      prototype: 'fracture_massif',
+      prototype,
       matrix,
       kind: 'massif',
       distance: track.length * site.fraction,
-      bounds: massif.bounds.clone().applyMatrix4(matrix),
+      bounds: body.bounds.clone().applyMatrix4(matrix),
     };
     // A lower, wider source fault enters the massif's left side. Its closed
     // body overlaps the hero rather than sitting beside it as another prop;

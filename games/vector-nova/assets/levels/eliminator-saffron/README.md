@@ -1,5 +1,8 @@
 # Saffron Ossuary cortical web
 
+Retained as an editor reference. The live course now uses the connected
+[cranio-thoracic landscape](cranio-thoracic/README.md).
+
 `build_cortical_web.py` authors one original fused, closed branching cortical
 web for the existing skull encounter. It follows the original Saffron fossil
 concept and the project's `cranial_webs.py` modeling language without modifying

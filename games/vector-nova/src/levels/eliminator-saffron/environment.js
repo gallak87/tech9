@@ -21,6 +21,7 @@ import {
   createOssuaryBuriedBeds,
 } from './gallery.js';
 import { finishOssuaryGlass, finishOssuaryCortex } from './finish.js';
+import { attachOssuaryCranioThoracic } from './cranio-thoracic.js';
 
 /** An independent supported route through the approved fossil kit. Original
  * jump, moving sandfall and creature owners are deliberately not constructed. */
@@ -47,7 +48,7 @@ export async function createSaffronEliminatorEnvironment({ track, road }) {
       ),
       finish.ready,
       new GLTFLoader().loadAsync(
-        assetURL('assets/levels/eliminator-saffron/cortical-web.glb'),
+        assetURL('assets/levels/eliminator-saffron/cranio-thoracic.glb'),
       ),
     ]);
     for (const index of [0, 2])
@@ -55,23 +56,32 @@ export async function createSaffronEliminatorEnvironment({ track, road }) {
         resources.collect(results[index].value.scene);
     const failed = results.find((result) => result.status === 'rejected');
     if (failed) throw failed.reason;
-    const sources = [results[0].value.scene, results[2].value.scene];
-    for (const source of sources) source.updateMatrixWorld(true);
-    const corticalRoot = sources[1].getObjectByName('cortical_web');
-    const corticalJoints = ['A', 'B', 'C'].map((name) => {
-      const socket = corticalRoot.getObjectByName(`cortical_socket_${name}`);
-      const point = socket.getWorldPosition(new T.Vector3());
-      const frame = track.sample(0.245 * track.length + point.z * 1.2);
-      return frame.position
-        .clone()
-        .addScaledVector(frame.right, point.x * 1.2)
-        .addScaledVector(frame.up, point.y * 1.2);
-    });
+    const source = results[0].value.scene;
+    source.updateMatrixWorld(true);
     const templates = new Map(),
       treated = new Set();
+    function styleMaterial(material, name) {
+      if (treated.has(material)) return;
+      treated.add(material);
+      if (/outcrop/.test(name))
+        applyGeologicalWeathering(material, finish.weatheringTexture);
+      else
+        applyFossilWeathering(
+          material,
+          finish.weatheringTexture,
+          finish.mineralSurface,
+        );
+      if (/pale_fossil/.test(material.name))
+        material.color.setRGB(0.7, 0.63, 0.49);
+      if (/chalk_edges/.test(material.name))
+        material.color.setRGB(0.83, 0.8, 0.67);
+      if (/marrow_ochre/.test(material.name))
+        material.color.setRGB(0.23, 0.125, 0.055);
+      if (!/outcrop/.test(name)) finishOssuaryCortex(material);
+      material.envMapIntensity = 0.35;
+    }
     for (const name of [
       'skull',
-      'cortical_web',
       'scapula',
       'rib',
       'rib_1',
@@ -82,9 +92,7 @@ export async function createSaffronEliminatorEnvironment({ track, road }) {
       'outcrop',
       'outcrop_1',
     ]) {
-      const root = sources
-        .map((source) => source.getObjectByName(name))
-        .find(Boolean);
+      const root = source.getObjectByName(name);
       if (!root) throw new Error(`Saffron Ossuary is missing ${name}`);
       const inverse = root.matrixWorld.clone().invert(),
         parts = [],
@@ -99,29 +107,7 @@ export async function createSaffronEliminatorEnvironment({ track, road }) {
         geometry.computeBoundingBox();
         bounds.union(geometry.boundingBox);
         for (const material of [object.material].flat())
-          if (!treated.has(material)) {
-            treated.add(material);
-            if (/outcrop/.test(name))
-              applyGeologicalWeathering(material, finish.weatheringTexture);
-            else
-              applyFossilWeathering(
-                material,
-                finish.weatheringTexture,
-                finish.mineralSurface,
-              );
-            if (/pale_fossil/.test(material.name))
-              material.color.setRGB(0.7, 0.63, 0.49);
-            if (/chalk_edges/.test(material.name))
-              material.color.setRGB(0.83, 0.8, 0.67);
-            if (/marrow_ochre/.test(material.name))
-              material.color.setRGB(0.23, 0.125, 0.055);
-            if (!/outcrop/.test(name))
-              finishOssuaryCortex(
-                material,
-                name === 'cortical_web' ? corticalJoints : [],
-              );
-            material.envMapIntensity = 0.35;
-          }
+          styleMaterial(material, name);
         parts.push({ geometry, material: object.material });
       });
       templates.set(name, { parts, bounds });
@@ -132,8 +118,17 @@ export async function createSaffronEliminatorEnvironment({ track, road }) {
     terrain.name = 'Ossuary / continuous stratified saffron dune mantle';
     terrain.receiveShadow = true;
     group.add(terrain);
+    attachOssuaryCranioThoracic(results[2].value.scene, {
+      group,
+      resources,
+      styleMaterial,
+      sedimentMaterial: finish.bedrock,
+    });
     const gallery = createOssuaryGalleryPlan(track, templates, dunes);
-    for (const passage of OSSUARY_PASSAGES)
+    const passages = OSSUARY_PASSAGES.filter(
+      (passage) => passage.prototype !== 'cortical_web',
+    );
+    for (const passage of passages)
       for (const part of templates.get(passage.prototype).parts) {
         const geometry = resources.geometry(
           createOssuaryPassageGeometry(
@@ -342,8 +337,8 @@ export async function createSaffronEliminatorEnvironment({ track, road }) {
     group.userData.ossuary = {
       asset: 'assets/levels/saffron/leviathan-kit.glb',
       staticWorld: true,
-      corticalWeb: 'assets/levels/eliminator-saffron/cortical-web.glb',
-      passages: OSSUARY_PASSAGES,
+      cranioThoracic: 'assets/levels/eliminator-saffron/cranio-thoracic.glb',
+      passages,
       sceneryCount: plan.placements.length,
       supports: forks.length / 3,
       clearHalfWidth: 54,

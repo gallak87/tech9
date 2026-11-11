@@ -1018,7 +1018,7 @@
       "id": "oriel-sunvault-course",
       "source": "src/levels/freestyle-oriel/ and src/freestyle/course-track.js",
       "creator": "VECTOR//NOVA project contributors",
-      "provenance": "Original five-transfer Freestyle route inside a separately composed Oriel habitat. The shared transfer factory retains native gaps, launch/catch geometry, gravity and scoring while course-owned headings, three pipe receivers and arrival placement establish a distinct route identity. Borrows the registered Oriel shell, civic/garden GLBs, axial daylight, mineral finish and public Worldkit Living Forest assets; the canonical racing course remains unchanged. The separately registered Sunvault civic-works kit retains original Blender construction sources. No new generated reference or runtime image assets.",
+      "provenance": "Original five-transfer Freestyle route inside a separately composed Oriel habitat. The shared transfer factory retains native gaps, launch/catch geometry, gravity and scoring while course-owned headings, three pipe receivers and arrival placement establish a distinct route identity. Borrows the registered Oriel shell, civic/garden GLBs, axial daylight, mineral finish and public Worldkit Living Forest assets. A complete canonical water-garden quarter is rigidly re-seated as an upright course-private district, retaining its actual planting sockets and using formed piers from real lower limestone bearings to the habitat shell. The canonical racing course and assets remain unchanged. The separately registered Sunvault civic-works kit retains original Blender construction sources. No new generated reference or runtime image assets.",
       "rights": "Project-authored course code and composition; registered Oriel, Worldkit Living Forest and CC0 Concrete034 sources retain their existing provenance and rights.",
       "runtimeDependencies": [
         "three",
@@ -1033,6 +1033,7 @@
         "assets/levels/oriel/reference/provenance.json",
         "assets/levels/oriel/blender/civic-kit-manifest.json",
         "assets/levels/oriel/blender/ground/ground-provenance.json",
+        "assets/levels/oriel/blender/garden-quarter/manifest.json",
         "assets/levels/freestyle-oriel/manifest.json",
         "../../worldkit/modules/living-forest/assets/provenance.json",
         "assets/levels/helion/ceramic/provenance.json"
@@ -1139,7 +1140,7 @@
       "id": "glasswake-fracture-course",
       "source": "src/levels/eliminator-glasswake/ and src/events/eliminator-course.js",
       "creator": "VECTOR//NOVA project contributors",
-      "provenance": "Original continuously supported Eliminator loop and crystal-canyon composition. Course-owned arches and founded canyon placements recompose the registered Glasswake GLB and its layered glacial finish around independent banking, clearances and cut timing. The separately registered original fault-massif kit supplies three unequal closed, recessed geological masses, each joined into real basal ice and an adjoining canyon shoulder. Private clear-pane frost bands and blue load ribs retain visible canyon depth; coarse spatial groups preserve source geometry and materials. The canonical aurora supplies the distant sky; original calving, weather and racing-runtime owners are not installed. No new downloaded media or generated runtime images.",
+      "provenance": "Original continuously supported Eliminator loop and crystal-canyon composition. Course-owned arches and founded canyon placements recompose the registered Glasswake GLB and its layered glacial finish around independent banking, clearances and cut timing. The separately registered fault-massif kit supplies unequal closed, recessed geological masses joined into real basal ice and adjoining canyon shoulders. A private crown-sector replacement adds thick faulted shear masses, offset cobalt galleries and an embedded mineral core under the same founded native placement; the other two massif sites remain unchanged. Private clear-pane frost bands and blue load ribs retain visible canyon depth; coarse spatial groups preserve source geometry and materials. The canonical aurora supplies the distant sky; original calving, weather and racing-runtime owners are not installed. No new downloaded media or generated runtime images.",
       "rights": "Project-authored route and composition; borrowed project-authored/generated Glasswake assets retain their original registered provenance.",
       "runtimeDependencies": ["three", "@dimforge/rapier3d-compat"],
       "borrowedAssets": [
@@ -1149,7 +1150,8 @@
       ],
       "provenanceRecords": [
         "assets/levels/glasswake/PROVENANCE.md",
-        "assets/levels/eliminator-glasswake/fault-massif-manifest.json"
+        "assets/levels/eliminator-glasswake/fault-massif-manifest.json",
+        "assets/levels/eliminator-glasswake/glacier-sector/manifest.json"
       ]
     },
     {
@@ -1173,10 +1175,32 @@
       ]
     },
     {
+      "id": "glasswake-fracture-crown-sector",
+      "source": "assets/levels/eliminator-glasswake/glacier-sector/build_glacier_sector.py and glacier-sector.blend",
+      "creator": "VECTOR//NOVA project contributors using Blender",
+      "provenance": "Original editable closed geological body replacing only the crown-fault host. Thick unequal shear masses, tapered fault planes and offset cobalt galleries retain a founded foot under the original production transform. A registered private derivative selects only the project-owned canonical dark mineral primitive, excluding its ornamental rings, and adds broad cleavage faces inside the new body. Exact source road, geology and native camera guides remain editor-only; the native identity runtime export contains no guides, lights, textures or gameplay surfaces. The local manifest records source, Blender, runtime and reference hashes, semantic guide identity, closedness, mineral containment and route/foundation checks.",
+      "rights": "Project-authored Blender geometry and tools; registered project-owned Glasswake mineral geometry, scalar material recipes and generated reference retain their existing provenance.",
+      "runtimeDependencies": ["three"],
+      "provenanceRecord": "assets/levels/eliminator-glasswake/glacier-sector/manifest.json",
+      "provenanceRecords": [
+        "assets/levels/eliminator-glasswake/glacier-sector/README.md",
+        "assets/levels/glasswake/PROVENANCE.md"
+      ],
+      "sourceAssets": [
+        "assets/levels/eliminator-glasswake/glacier-sector/build_glacier_sector.py",
+        "assets/levels/eliminator-glasswake/glacier-sector/glacier-sector.blend",
+        "assets/levels/eliminator-glasswake/export-sector-guides.mjs",
+        "assets/levels/eliminator-glasswake/authoring-views.json"
+      ],
+      "runtimeAssets": [
+        "public/assets/levels/eliminator-glasswake/glacier-sector.glb"
+      ]
+    },
+    {
       "id": "saffron-ossuary-course",
       "source": "src/levels/eliminator-saffron/ and src/events/eliminator-course.js",
       "creator": "VECTOR//NOVA project contributors",
-      "provenance": "Original supported Eliminator route through fossil passages and a continuous dune mantle. Canonical skull, rib, scapula, vertebra and outcrop prototypes form connected cortical galleries, buried sediment beds and an unequal return fan with full-perimeter foundations. The separately registered original cortical web joins the actual far-cheek and roof sockets inside the skull. Private cast-amber road finish, below-skin glass shoulders, pale cortex and warm marrow reuse the existing weathering/mineral volume and source highlight treatment. Borrows the existing Saffron panorama and Shatterline limestone image; original jump, moving sandfall and creature owners are not constructed. No new downloaded models or generated imagery.",
+      "provenance": "Original supported Eliminator route through fossil passages and a continuous dune mantle. Canonical skull, rib, scapula, vertebra and outcrop prototypes form connected cortical galleries, buried sediment beds and an unequal return fan with full-perimeter foundations. A separately registered original cranio-thoracic extension joins the actual far cheeks to a connected, daylit buried shoulder; the earlier cortical web is retained only as an authoring reference. Private cast-amber road finish, below-skin glass shoulders, pale cortex and warm marrow reuse the existing weathering/mineral volume and source highlight treatment. Borrows the existing Saffron panorama and Shatterline limestone image; original jump, moving sandfall and creature owners are not constructed. No new downloaded models or generated imagery.",
       "rights": "Project-authored route, terrain and placement; registered project-authored/generated Saffron and Shatterline sources retain their original rights.",
       "runtimeDependencies": ["three", "@dimforge/rapier3d-compat"],
       "borrowedAssets": [
@@ -1188,14 +1212,15 @@
       "provenanceRecords": [
         "assets/levels/saffron/PROVENANCE.md",
         "assets/levels/shatterline/rock-provenance-v1.json",
-        "assets/levels/eliminator-saffron/cortical-web-manifest.json"
+        "assets/levels/eliminator-saffron/cortical-web-manifest.json",
+        "assets/levels/eliminator-saffron/cranio-thoracic/manifest.json"
       ]
     },
     {
       "id": "saffron-ossuary-cortical-web",
       "source": "assets/levels/eliminator-saffron/build_cortical_web.py and cortical-web.blend",
       "creator": "VECTOR//NOVA project contributors using Blender",
-      "provenance": "Original closed branching cortical web, authored against the registered fossil-landscape concept and exact prompt using the project-owned cortical modeling language as a read-only technique reference. A fused unequal Y joins three surveyed cheek/roof triangles in the canonical skull, creating secondary upper apertures while preserving the road/camera envelope and bright exit. Broad tapered plates, real thickness and material cavity colouring use the canonical pale-fossil/chalk/marrow roles. The local manifest records source, Blend, export, reference and technique hashes, actual bounds, manifold/normal checks and attachment coordinates. No third-party mesh inputs, textures, new imagery or driving geometry.",
+      "provenance": "Retained authoring reference, superseded in the live course by the connected cranio-thoracic landscape. Original closed branching cortical web, authored against the registered fossil-landscape concept and exact prompt using the project-owned cortical modeling language as a read-only technique reference. A fused unequal Y joins three surveyed cheek/roof triangles in the canonical skull, creating secondary upper apertures while preserving the road/camera envelope and bright exit. Broad tapered plates, real thickness and material cavity colouring use the canonical pale-fossil/chalk/marrow roles. The local manifest records source, Blend, export, reference and technique hashes, actual bounds, manifold/normal checks and attachment coordinates. No third-party mesh inputs, textures, new imagery or driving geometry.",
       "rights": "Project-authored Blender geometry and cavity colouring; registered project-owned Saffron scalar material recipes, authoring techniques and generated reference retain their original provenance.",
       "runtimeDependencies": ["three"],
       "provenanceRecord": "assets/levels/eliminator-saffron/cortical-web-manifest.json",
@@ -1209,6 +1234,28 @@
       ],
       "runtimeAssets": [
         "public/assets/levels/eliminator-saffron/cortical-web.glb"
+      ]
+    },
+    {
+      "id": "saffron-ossuary-cranio-thoracic-landscape",
+      "source": "assets/levels/eliminator-saffron/cranio-thoracic/build_cranio_thoracic.py and cranio-thoracic.blend",
+      "creator": "VECTOR//NOVA project contributors using Blender",
+      "provenance": "Original course-private connected cortical landscape extending the fitted canonical skull into a daylit buried shoulder. Thick unequal galleries, folded fenestrated fans, recessed marrow and a mineral collar follow the registered fossil-landscape concept. Exact route, dune triangles, fitted fossil references and native cameras are retained as editor-only guides; only the original anatomy and sediment export in identity world coordinates. The local manifest records source, Blend, runtime and reference hashes, closed components, actual skull contact, terrain burial and road/camera clearance. Existing Saffron material roles and mineral/weathering sources are reused. No new imagery, third-party mesh, driving surface or collision geometry.",
+      "rights": "Project-authored geometry and source tools; registered project-owned Saffron concept, material recipes and editor reference assets retain their existing provenance.",
+      "runtimeDependencies": ["three"],
+      "provenanceRecord": "assets/levels/eliminator-saffron/cranio-thoracic/manifest.json",
+      "provenanceRecords": [
+        "assets/levels/eliminator-saffron/cranio-thoracic/README.md",
+        "assets/levels/saffron/PROVENANCE.md"
+      ],
+      "sourceAssets": [
+        "assets/levels/eliminator-saffron/cranio-thoracic/build_cranio_thoracic.py",
+        "assets/levels/eliminator-saffron/cranio-thoracic/cranio-thoracic.blend",
+        "assets/levels/eliminator-saffron/export-authoring-guides.mjs",
+        "assets/levels/eliminator-saffron/authoring-views.json"
+      ],
+      "runtimeAssets": [
+        "public/assets/levels/eliminator-saffron/cranio-thoracic.glb"
       ]
     },
     {

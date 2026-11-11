@@ -20,6 +20,9 @@ export default function createLevel() {
     }),
     renderer: {
       world: 'oriel-sunvault',
+      // This five-times-scale habitat needs enough depth precision for the
+      // distant formed facades, while retaining the close native hull.
+      near: 2,
       background: '#b5cbd0',
       fog: { color: '#b5cbd0', density: 0.000045 },
       reflectionFar: 18000,

@@ -1,0 +1,133 @@
+{
+  "id": "glasswake-glacier-sector-v1",
+  "root": "fracture_glacier_sector",
+  "stage": "Retained crown-only layered glacier sector with broad fault planes and an embedded cleaved mineral",
+  "source": {
+    "file": "assets/levels/eliminator-glasswake/glacier-sector/build_glacier_sector.py",
+    "sha256": "9825f8fbec0b118aa5ef19080ebd73106f542055ecc42d8f383a0ee23316de04"
+  },
+  "blend": {
+    "file": "assets/levels/eliminator-glasswake/glacier-sector/glacier-sector.blend",
+    "sha256": "c6a7333fe14b89f86fe93b4cd4ef84a9ca31846a3e39a313a351225ee02326f8"
+  },
+  "runtimeAsset": {
+    "file": "public/assets/levels/eliminator-glasswake/glacier-sector.glb",
+    "sha256": "e26218220bbfa33c872ed7902b99ed2e64b9d6ea6979ad63413db9cb7427f130",
+    "bytes": 726888
+  },
+  "guide": {
+    "rebuildHelper": "assets/levels/eliminator-glasswake/export-sector-guides.mjs",
+    "semanticGeometrySha256": "b5f70dbbc7e22769039a6dd7fd3746f7f7ac47da0eeeb32c878e912ac23d53c0",
+    "semanticViewsSha256": "fe3d28575b05e4f7b589db73a9582f0fc348cb08a1f2fdf0d8f1d1cca7d65f20",
+    "inputHashSnapshot": [
+      {
+        "file": "src/levels/eliminator-glasswake/track/model.js",
+        "sha256": "7fd4dc6c4ec95b1de1a7e7fe12688bd6fa8631a1fb3e2cae2bf63dd36d6b5a16"
+      },
+      {
+        "file": "src/events/eliminator-track.js",
+        "sha256": "19cb6ffa3c3787c463abc1b5ddb486ac02832cf5462bb0e76a4e10bde628e6d3"
+      },
+      {
+        "file": "src/events/eliminator-road.js",
+        "sha256": "82c91b97d87c325d240e1ae77133a2b0622842f01280a2e17121ee02e466b016"
+      },
+      {
+        "file": "src/levels/eliminator-glasswake/scenery.js",
+        "sha256": "4c895afde77666fa403bb80807429e9d7dc5d98e1bbfa99c871678eee368cca4"
+      },
+      {
+        "file": "src/levels/eliminator-glasswake/massif.js",
+        "sha256": "56cd338ec8a1e8970274a5a13179e9ebbed229f28dc35f8cfe0c9d86ce54a0de"
+      },
+      {
+        "file": "public/assets/levels/glasswake/glasswake-environment-v5.glb",
+        "sha256": "6a11c2ddc97ccd0560ab28aba3003884e5c8cfb9450bdee6411c97cd0be91cf6"
+      },
+      {
+        "file": "public/assets/levels/eliminator-glasswake/fault-massif.glb",
+        "sha256": "30822eb68c4e3f63dcf690eb92ebf97667291ceb3a1f67eb87207e9728513013"
+      },
+      {
+        "file": "assets/levels/eliminator-glasswake/authoring-views.json",
+        "sha256": "1db5f10bd6c8d17fb503225009ec1970f55bb7f4426344aa1ee0dc9d0981265b"
+      },
+      {
+        "file": "assets/levels/glasswake/scene-reference.png",
+        "sha256": "053c638d5f7798dfe80f5b0234a0c8656de19fde9bd0769a782e01375df97ca8"
+      },
+      {
+        "file": "assets/levels/glasswake/scene-prompt.txt",
+        "sha256": "1b9b40b11ae85cbbe1d8bc4014cd13e46f920d4585166d9fe95da5137172d2a9"
+      },
+      {
+        "file": "assets/levels/eliminator-glasswake/export-sector-guides.mjs",
+        "sha256": "5ac2b2f2b66d6a752845b242e0a8907025fe93f65eafbf652a752cff8b6387ec"
+      }
+    ],
+    "runtimeDependency": false
+  },
+  "geometry": {
+    "triangles": 23054,
+    "bodyTriangles": 21134,
+    "mineralTriangles": 1920,
+    "bounds": {
+      "min": [-23.16492462158203, 0.0, -180.0],
+      "max": [233.10772705078125, 456.4483337402344, 180.0]
+    },
+    "closedVolumes": {
+      "body": {
+        "boundaryEdges": 0,
+        "nonmanifoldEdges": 0,
+        "signedVolume": 29714622.28712385
+      },
+      "mineral": {
+        "boundaryEdges": 0,
+        "nonmanifoldEdges": 0,
+        "signedVolume": 216091.4521760825
+      }
+    },
+    "foundedY0Vertices": 754,
+    "nativeFootY": 0,
+    "formedFaults": "Broad asymmetric piecewise shear facets and tapered ends above nativeY240; exact founded foot unchanged",
+    "productionFootY": -145,
+    "basalFloorY": -130,
+    "footBurialMetres": 15,
+    "allRouteFrames": 1225,
+    "protectedVolume": {
+      "min": [-42, -12, -16],
+      "max": [42, 90, 16],
+      "note": "Retained broad banked road/camera clearance, overlapping every four route metres; never relax this volume to fit artwork"
+    },
+    "actualTriangleSATChecks": 0,
+    "blockers": 0,
+    "mineralContainedVertices": 787,
+    "mineralVertices": 962,
+    "mineralContainedFraction": 0.818087318087318,
+    "materialRoles": [
+      "Trapped meteoric inclusion",
+      "Pale fractured wind-polished ice",
+      "Blue compact ice planes",
+      "Cobalt buried blue-black core",
+      "Opaque frost crust"
+    ],
+    "editorMeshesExported": 0
+  },
+  "derivation": {
+    "canonicalAsset": "public/assets/levels/glasswake/glasswake-environment-v5.glb",
+    "canonicalAssetSha256": "6a11c2ddc97ccd0560ab28aba3003884e5c8cfb9450bdee6411c97cd0be91cf6",
+    "root": "dark_inclusion",
+    "selectedMaterial": "Trapped meteoric inclusion",
+    "selectedPrimitiveIndices": [0],
+    "privateCleavage": "Two broad exposed front facets, followed by the same coherent geological shear as the containing body",
+    "ornamentalPaleToriSelected": false,
+    "purpose": "Project-owned broad mineral core deeply encased in original new geological body"
+  },
+  "reference": {
+    "file": "assets/levels/glasswake/scene-reference.png",
+    "sha256": "053c638d5f7798dfe80f5b0234a0c8656de19fde9bd0769a782e01375df97ca8",
+    "prompt": "assets/levels/glasswake/scene-prompt.txt",
+    "promptSha256": "1b9b40b11ae85cbbe1d8bc4014cd13e46f920d4585166d9fe95da5137172d2a9"
+  },
+  "rights": "Original project-authored editable shear masses and galleries; intentional registered derivation of the project-owned canonical mineral core. No third-party art, textures, light or motion assets."
+}

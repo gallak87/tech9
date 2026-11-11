@@ -2,6 +2,8 @@
 
 One original, independently authored Blender prototype for the new Eliminator course. The closed canonical Glasswake course, geometry and finishes remain unchanged. Its project-owned scene concept and exact prompt guide the broad glacial mass, real cobalt hollow and pale frost crown.
 
+The live crown-fault site uses the separate [layered glacier sector](glacier-sector/README.md). This original prototype remains in the other two sites and supplies the retained native authoring frame.
+
 Run `blender --background --factory-startup --python assets/levels/eliminator-glasswake/build_fault_massif.py` from the game directory. The editable `fault-massif.blend` retains the closed lofted geological body, unequal descending plateau shoulders, three broad creased stratum setbacks, five canonical scalar material roles and the live Boolean oblique-undercut tool. The export is `public/assets/levels/eliminator-glasswake/fault-massif.glb`, with one identity root `fracture_massif`.
 
 Coordinates are metres, +Y up, +X outboard and +Z along shore. The complete original founded foot is closed at Y=0 and preserved; the source body is approximately 230 m deep, 450 m tall and 360 m along shore. One wide off-centre oblique undercut opens toward -X, with unequal stepped lips and real planar returns into a thick remaining rear volume. The high plateau descends through staggered shoulders into a low connecting left mass. The asset contains no spherical bores, painted recesses, thin shelves, spikes, textures or runtime events.

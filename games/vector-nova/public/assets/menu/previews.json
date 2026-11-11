@@ -204,7 +204,7 @@
       "width": 640,
       "height": 400,
       "preset": "route-overview-v1",
-      "sourceRevision": "3a276fbef1fbeec067658f436dffc9161d3e20ef",
+      "sourceRevision": "06c502b9a2c5ef53de9b5ced28e541e4722f513a",
       "sourceDirty": true,
       "routeSignature": "80aaf4bd23e3cb80"
     },
@@ -222,7 +222,7 @@
       "width": 640,
       "height": 400,
       "preset": "route-overview-v1",
-      "sourceRevision": "3a276fbef1fbeec067658f436dffc9161d3e20ef",
+      "sourceRevision": "06c502b9a2c5ef53de9b5ced28e541e4722f513a",
       "sourceDirty": true,
       "routeSignature": "2ddcf9f54829d68a"
     },
@@ -231,7 +231,7 @@
       "width": 640,
       "height": 400,
       "preset": "route-overview-v1",
-      "sourceRevision": "3a276fbef1fbeec067658f436dffc9161d3e20ef",
+      "sourceRevision": "06c502b9a2c5ef53de9b5ced28e541e4722f513a",
       "sourceDirty": true,
       "routeSignature": "6ea85cbb4d3f1359"
     },

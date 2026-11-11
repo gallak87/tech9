@@ -49,8 +49,11 @@ export async function createGlasswakeEliminatorEnvironment({
       new GLTFLoader().loadAsync(
         assetURL('assets/levels/eliminator-glasswake/fault-massif.glb'),
       ),
+      new GLTFLoader().loadAsync(
+        assetURL('assets/levels/eliminator-glasswake/glacier-sector.glb'),
+      ),
     ]);
-    for (const index of [0, 2])
+    for (const index of [0, 2, 3])
       if (loaded[index].status === 'fulfilled') {
         const source = loaded[index].value.scene;
         source.traverse((object) => {
@@ -64,13 +67,21 @@ export async function createGlasswakeEliminatorEnvironment({
     if (loaded[1].status === 'fulfilled') ice = loaded[1].value;
     const failed = loaded.find((result) => result.status === 'rejected');
     if (failed) throw failed.reason;
+    if (!loaded[3].value.scene.getObjectByName('fracture_glacier_sector'))
+      throw new Error(
+        'Glasswake Fracture is missing its glacier-sector prototype',
+      );
     ice.colorSpace = T.SRGBColorSpace;
     ice.wrapS = ice.wrapT = T.RepeatWrapping;
     ice.anisotropy = Math.min(
       4,
       view?.renderer?.capabilities.getMaxAnisotropy() ?? 4,
     );
-    const sources = [loaded[0].value.scene, loaded[2].value.scene];
+    const sources = [
+      loaded[0].value.scene,
+      loaded[2].value.scene,
+      loaded[3].value.scene,
+    ];
     for (const source of sources) source.updateMatrixWorld(true);
     const composite = new T.MeshStandardMaterial({
       name: 'Glasswake Fracture / canonical layered glacial ice',
@@ -240,6 +251,7 @@ export async function createGlasswakeEliminatorEnvironment({
       assets: [
         'assets/levels/glasswake/glasswake-environment-v5.glb',
         'assets/levels/eliminator-glasswake/fault-massif.glb',
+        'assets/levels/eliminator-glasswake/glacier-sector.glb',
       ],
       placements: plan.placements.map(
         ({ prototype, matrix, kind, distance }) => ({

@@ -12,6 +12,8 @@ import {
 import { finishSunvaultShell } from './shell-finish.js';
 import { createSunvaultGardens } from './gardens.js';
 import { finishHabitatMaterial } from '../oriel/environment/habitat.js';
+import { createGardenQuarter } from '../oriel/environment/garden-quarter.js';
+import { createSunvaultQuarterPlan } from './quarter-plan.js';
 
 // The original continuous inhabited shell is a world asset, not another road.
 // Scale around its axial sun (y=1000); its radial material/light convention is
@@ -23,10 +25,11 @@ export async function createOrielFreestyleEnvironment(context) {
     'Oriel Sunvault / the inhabited cylinder and five arrival courts';
   lifetime.defer(() => group.clear());
   try {
+    const sourceTrack = createOrielTrack();
     const shell = lifetime.own(
       await createOrielEnvironment({
         ...context,
-        track: createOrielTrack(),
+        track: sourceTrack,
         road: null,
       }),
     );
@@ -38,6 +41,40 @@ export async function createOrielFreestyleEnvironment(context) {
     const shellFinish = finishSunvaultShell(shell.group, lifetime, kit, maps);
     const works = await createSunvaultWorks(lifetime, maps);
     const finishes = new Set([...works.materials, ...shellFinish.materials]);
+    const quarter = await createGardenQuarter({
+      track: sourceTrack,
+      lifetime,
+      stoneMaps: maps,
+    });
+    const quarterPlan = createSunvaultQuarterPlan({
+      track: context.track,
+      sourceGroup: quarter.group,
+      pierParts: works.prototypes.anchor_pier,
+    });
+    quarter.group.applyMatrix4(quarterPlan.matrix);
+    quarter.group.name = 'Sunvault / continuous inhabited water-garden quarter';
+    group.add(quarter.group);
+    for (const material of quarter.materials) {
+      if (/warm limestone/.test(material.name)) {
+        material.color.multiplyScalar(0.9);
+        material.roughness = 0.86;
+        material.normalScale.set(0.28, 0.28);
+      }
+      if (/pale honed coping/.test(material.name))
+        material.color.multiplyScalar(0.94);
+      if (/blue-green glazing and channel/.test(material.name))
+        material.envMapIntensity = 0.8;
+      finishes.add(material);
+    }
+    const quarterRotation = new T.Quaternion().setFromRotationMatrix(
+      quarterPlan.matrix,
+    );
+    const quarterAnchors = quarter.plantingAnchors.map((anchor) => ({
+      kind: anchor.kind,
+      position: anchor.position.clone().applyMatrix4(quarterPlan.matrix),
+      quaternion: anchor.quaternion.clone().premultiply(quarterRotation),
+      scale: anchor.scale.clone(),
+    }));
     const radialFinished = new Set();
     const radial = (material, bounce = 0.12) => {
       if (radialFinished.has(material)) return;
@@ -118,7 +155,7 @@ export async function createOrielFreestyleEnvironment(context) {
       waterfront: [],
     };
     const assemblies = {
-      anchor_pier: [],
+      anchor_pier: [...quarterPlan.foundations],
       arrival_terrace: [],
       load_cradle: [],
     };
@@ -316,10 +353,15 @@ export async function createOrielFreestyleEnvironment(context) {
       civicKit: kit,
       placements,
       stone,
+      quarterAnchors,
     });
     group.add(gardens.group);
     for (const material of gardens.materials) finishes.add(material);
     group.userData.sunvault = {
+      waterGarden: {
+        matrix: quarterPlan.matrix.toArray(),
+        ...quarterPlan.provenance,
+      },
       assemblies: Object.fromEntries(
         Object.entries(assemblies).map(([name, matrices]) => [
           name,

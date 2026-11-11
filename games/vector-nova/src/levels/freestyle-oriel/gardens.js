@@ -11,6 +11,7 @@ export function createSunvaultGardens({
   civicKit,
   placements,
   stone,
+  quarterAnchors = [],
 }) {
   const group = new T.Group();
   group.name = 'Sunvault / planted courts and calm roof reservoirs';
@@ -31,8 +32,10 @@ export function createSunvaultGardens({
       textures: { wood: { map: bark }, leaf: { map: leaves } },
     }),
   );
-  forest.materials.wood.color.set('#7c8066');
-  forest.materials.leaf.color.set('#78985f');
+  forest.materials.wood.color.set('#a19b83');
+  // The borrowed bark/leaf maps already contain their dark natural colour.
+  // A light neutral tint preserves readable green canopies without emission.
+  forest.materials.leaf.color.set('#b4c3a8');
   forest.materials.leaf.roughness = 0.82;
   forest.materials.leaf.emissiveIntensity = 0;
   // The HDR composer target does not supply hardware MSAA coverage. Preserve
@@ -68,9 +71,21 @@ export function createSunvaultGardens({
   };
   water.customProgramCacheKey = () => 'sunvault-quiet-civic-water-v1';
   const trees = [[], []],
+    quarterShrubs = [],
     basins = [],
     pools = [];
   let seed = 0;
+  // Retain the canonical quarter's actual soil sockets and mature planting
+  // scales, transformed with the complete district rather than a separate grid.
+  for (const anchor of quarterAnchors) {
+    const matrix = new T.Matrix4().compose(
+      anchor.position,
+      anchor.quaternion,
+      anchor.scale,
+    );
+    if (anchor.kind === 'shrub') quarterShrubs.push(matrix);
+    else trees[1].push(matrix);
+  }
   for (const [category, matrices] of Object.entries(placements)) {
     const anchors = civicKit.plantingAnchors[category] ?? [];
     for (const matrix of matrices) {
@@ -136,6 +151,14 @@ export function createSunvaultGardens({
         'Sunvault / rooted Worldkit courtyard and roof groves',
         false,
       );
+  for (const part of forest.shrubParts)
+    add(
+      part.geometry,
+      part.material,
+      quarterShrubs,
+      'Sunvault / continuous quarter soil-seated Worldkit planting',
+      false,
+    );
   const basinGeometry = lifetime.own(new T.BoxGeometry(1, 1, 1));
   const waterGeometry = lifetime.own(
     new T.PlaneGeometry(1, 1).rotateX(-Math.PI / 2),

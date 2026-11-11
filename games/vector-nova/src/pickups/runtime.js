@@ -10,7 +10,12 @@ import {
   readRuntimeFrame,
   runtimeIdentity,
 } from '../core/session-runtime.js';
-import { isCombatDevice, COMBAT_RULES } from './combat.js';
+import {
+  isCombatDevice,
+  COMBAT_RULES,
+  combatHitBounds,
+  validateCombatResistance,
+} from './combat.js';
 import {
   createPickupSimulation,
   PICKUP_STATE_VERSION,
@@ -29,10 +34,38 @@ export function createDeviceRuntime({
   scenarios = {},
   combat = null,
   combatId = 'player',
+  team,
+  hitBounds,
+  combatResistance = 0,
+  damageDuringGrace = false,
+  equipmentTuning = {},
+  equipmentEnabled = true,
+  beforeCombat,
 }) {
+  if (typeof equipmentEnabled !== 'boolean')
+    throw new Error('Equipment enabled must be a boolean');
+  if (team != null && typeof team !== 'string')
+    throw new Error('Combat team must be a string');
+  if (beforeCombat !== undefined && typeof beforeCombat !== 'function')
+    throw new Error('Combat preparation must be a function');
+  if (typeof damageDuringGrace !== 'boolean')
+    throw new Error('Damage during grace must be a boolean');
+  const actorTeam = team?.trim() || null;
+  const actorBounds = combatHitBounds(hitBounds);
+  const resistance = validateCombatResistance(combatResistance);
+  const tuning = structuredClone(equipmentTuning);
+  const actorIdentity = {
+    ...(equipmentEnabled ? {} : { equipmentEnabled: false }),
+    ...(actorTeam ? { team: actorTeam } : {}),
+    ...(actorBounds ? { hitBounds: actorBounds } : {}),
+    ...(resistance ? { combatResistance: resistance } : {}),
+    ...(damageDuringGrace ? { damageDuringGrace: true } : {}),
+    ...(Object.keys(tuning).length ? { equipmentTuning: tuning } : {}),
+  };
   const makeEquipment = () =>
-    createEquipmentSystem({ motion, combat, actorId: combatId });
-  let equipment = combatId === 'player' ? makeEquipment() : null;
+    createEquipmentSystem({ motion, combat, actorId: combatId, tuning });
+  let equipment =
+    combatId === 'player' && equipmentEnabled ? makeEquipment() : null;
   const equipmentPose = () => motion.pose(1);
   const equipmentCombat = () => combat?.view?.() ?? null;
   const equipmentJumpSafe =
@@ -86,7 +119,7 @@ export function createDeviceRuntime({
         0,
         0,
         disruption.speedLimit - state.speed,
-      ).applyQuaternion(pose.quaternion);
+      ).applyQuaternion(pose.drivingQuaternion ?? pose.quaternion);
       motion.applyImpulse(state, impulse);
     } else state.speed = disruption.speedLimit;
   }
@@ -95,11 +128,15 @@ export function createDeviceRuntime({
     combat.bind(
       combatId,
       {
+        ...(actorTeam ? { team: actorTeam } : {}),
+        ...(actorBounds ? { hitBounds: actorBounds } : {}),
+        ...(resistance ? { combatResistance: resistance } : {}),
+        ...(damageDuringGrace ? { damageDuringGrace: true } : {}),
         state,
         pose: () => motion.pose(1),
         notify: (event) => pending.push(event),
         disrupt: (disruption) => applyDisruption(state, disruption),
-        hit({ source, kind, impulse, cost }) {
+        hit({ source, kind, impulse, cost, damageOnly = false }) {
           if (equipment?.absorbHit()) {
             const position = combat.pose(source)?.position?.toArray();
             pending.push({
@@ -117,6 +154,7 @@ export function createDeviceRuntime({
             pending.push(shield);
             return true;
           }
+          if (damageOnly) return false;
           motion.applyImpulse?.(
             state,
             impulse.clone().multiplyScalar(1 - toughness(state)),
@@ -185,12 +223,16 @@ export function createDeviceRuntime({
     rulesId:
       ownIdentity.rulesId +
       `:pickups-v${PICKUP_STATE_VERSION}` +
-      (combat ? ':combat:' + JSON.stringify(COMBAT_RULES) : ''),
+      (combat ? ':combat:' + JSON.stringify(COMBAT_RULES) : '') +
+      (Object.keys(actorIdentity).length
+        ? ':actor:' + JSON.stringify(actorIdentity)
+        : ''),
     ...(combat && combatId === 'player'
       ? {
           advanceInteractions(dt) {
             if (!enabled) return [];
             const start = pending.length;
+            beforeCombat?.(dt);
             combat.step(dt);
             return pending.slice(start);
           },
@@ -330,7 +372,7 @@ export function createDeviceRuntime({
       motion.reset(context);
       simulation.reset(context);
       if (combatId !== 'player') {
-        if (context?.state?.equipment?.some(Boolean))
+        if (equipmentEnabled && context?.state?.equipment?.some(Boolean))
           equipment ??= makeEquipment();
         else equipment = null;
       }
@@ -375,6 +417,8 @@ export function createDeviceRuntime({
         equipment: expectedEquipment = state?.equipment,
       } = {},
     ) {
+      if (!equipmentEnabled && data?.equipment)
+        throw new Error('Equipment is disabled for this actor.');
       if (combatId !== 'player' && expectedEquipment !== undefined) {
         if (
           !Array.isArray(expectedEquipment) ||

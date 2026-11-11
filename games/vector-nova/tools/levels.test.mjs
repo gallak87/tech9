@@ -55,6 +55,49 @@ test('catalog lists metadata eagerly but loads only the selected implementation'
   assert.equal(calls.length, 1);
 });
 
+test('retired encounter links load their new biome without adding duplicate course cards', async () => {
+  const destinations = ['interceptor-helion', 'interceptor-nightweir'];
+  const calls = [];
+  const catalog = createCatalog(
+    {
+      ...metadata,
+      ...Object.fromEntries(
+        destinations.map((id, index) => [
+          `./${id}/metadata.js`,
+          { ...halcyon, id, name: id, order: 43 + index },
+        ]),
+      ),
+    },
+    {
+      ...modules,
+      ...Object.fromEntries(
+        destinations.map((id) => [
+          `./${id}/index.js`,
+          async () => {
+            calls.push(id);
+            return { default: createHalcyon };
+          },
+        ]),
+      ),
+    },
+  );
+  for (const [oldId, newId] of [
+    ['interceptor-orbital', destinations[0]],
+    ['interceptor-halcyon', destinations[1]],
+  ]) {
+    assert.equal((await catalog.load(oldId)).metadata.id, newId);
+    const url = circuitURL('http://localhost/', oldId);
+    assert.equal(url.searchParams.get('level'), newId);
+  }
+  assert.deepEqual(calls, destinations);
+  assert.ok(
+    catalog.list.every(
+      (entry) =>
+        !['interceptor-orbital', 'interceptor-halcyon'].includes(entry.id),
+    ),
+  );
+});
+
 test('unknown, incomplete and malformed circuit entries fail deliberately', async () => {
   assert.throws(
     () =>

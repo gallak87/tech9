@@ -1,4 +1,100 @@
 export const RACE_SAMPLES = {
+  'bulwark-charge': new URL(
+    '../../assets/audio/sfx/bosses/bulwark-charge.wav',
+    import.meta.url,
+  ).href,
+  'bulwark-lock': new URL(
+    '../../assets/audio/sfx/bosses/bulwark-lock.wav',
+    import.meta.url,
+  ).href,
+  'bulwark-turn': new URL(
+    '../../assets/audio/sfx/bosses/bulwark-turn.wav',
+    import.meta.url,
+  ).href,
+  'bulwark-fire': new URL(
+    '../../assets/audio/sfx/bosses/bulwark-fire.wav',
+    import.meta.url,
+  ).href,
+  'bulwark-counter': new URL(
+    '../../assets/audio/sfx/bosses/bulwark-counter.wav',
+    import.meta.url,
+  ).href,
+  'bulwark-expose': new URL(
+    '../../assets/audio/sfx/bosses/bulwark-expose.wav',
+    import.meta.url,
+  ).href,
+  'bulwark-core-hit': new URL(
+    '../../assets/audio/sfx/bosses/bulwark-core-hit.wav',
+    import.meta.url,
+  ).href,
+  'bulwark-disable': new URL(
+    '../../assets/audio/sfx/bosses/bulwark-disable.wav',
+    import.meta.url,
+  ).href,
+  'wraith-charge': new URL(
+    '../../assets/audio/sfx/bosses/wraith-charge.wav',
+    import.meta.url,
+  ).href,
+  'wraith-lock': new URL(
+    '../../assets/audio/sfx/bosses/wraith-lock.wav',
+    import.meta.url,
+  ).href,
+  'wraith-turn': new URL(
+    '../../assets/audio/sfx/bosses/wraith-turn.wav',
+    import.meta.url,
+  ).href,
+  'wraith-fire': new URL(
+    '../../assets/audio/sfx/bosses/wraith-fire.wav',
+    import.meta.url,
+  ).href,
+  'wraith-counter': new URL(
+    '../../assets/audio/sfx/bosses/wraith-counter.wav',
+    import.meta.url,
+  ).href,
+  'wraith-expose': new URL(
+    '../../assets/audio/sfx/bosses/wraith-expose.wav',
+    import.meta.url,
+  ).href,
+  'wraith-core-hit': new URL(
+    '../../assets/audio/sfx/bosses/wraith-core-hit.wav',
+    import.meta.url,
+  ).href,
+  'wraith-disable': new URL(
+    '../../assets/audio/sfx/bosses/wraith-disable.wav',
+    import.meta.url,
+  ).href,
+  'goliath-charge': new URL(
+    '../../assets/audio/sfx/bosses/goliath-charge.wav',
+    import.meta.url,
+  ).href,
+  'goliath-turn': new URL(
+    '../../assets/audio/sfx/bosses/goliath-turn.wav',
+    import.meta.url,
+  ).href,
+  'goliath-fire': new URL(
+    '../../assets/audio/sfx/bosses/goliath-fire.wav',
+    import.meta.url,
+  ).href,
+  'goliath-expose': new URL(
+    '../../assets/audio/sfx/bosses/goliath-expose.wav',
+    import.meta.url,
+  ).href,
+  'goliath-recover': new URL(
+    '../../assets/audio/sfx/bosses/goliath-recover.wav',
+    import.meta.url,
+  ).href,
+  'goliath-core-hit': new URL(
+    '../../assets/audio/sfx/bosses/goliath-core-hit.wav',
+    import.meta.url,
+  ).href,
+  'goliath-lock': new URL(
+    '../../assets/audio/sfx/bosses/goliath-lock.wav',
+    import.meta.url,
+  ).href,
+  'goliath-disable': new URL(
+    '../../assets/audio/sfx/bosses/goliath-disable.wav',
+    import.meta.url,
+  ).href,
   'cup-champion': new URL(
     '../../assets/audio/sfx/cup-champion.wav',
     import.meta.url,
@@ -29,6 +125,38 @@ export const RACE_SAMPLES = {
 
 export function raceSample(event) {
   switch (event?.type) {
+    case 'interceptor-cue': {
+      const levels = {
+        charge: 0.74,
+        turn: 0.82,
+        fire: 0.9,
+        expose: 0.74,
+        recover: 0.82,
+        lock: 0.9,
+        return: 0.55,
+        disable: 0.95,
+        counter: 0.9,
+      };
+      const { bossId, cue } = event.payload ?? {};
+      const id = `${bossId}-${cue === 'return' ? 'turn' : cue}`;
+      return Object.hasOwn(levels, cue) && Object.hasOwn(RACE_SAMPLES, id)
+        ? { id, gain: levels[cue] }
+        : null;
+    }
+    case 'interceptor-hit': {
+      const { bossId, target, source, weakPoint } = event.payload ?? {};
+      const id = `${bossId ?? target}-core-hit`;
+      return source === 'player' &&
+        weakPoint === true &&
+        target === (bossId ?? target) &&
+        Object.hasOwn(RACE_SAMPLES, id)
+        ? { id, gain: 0.88 }
+        : null;
+    }
+    case 'eliminator-cut':
+      return event.payload?.id === 'player'
+        ? null
+        : { id: 'race-finisher', gain: 0.35 };
     case 'cup-champion':
       return { id: 'cup-champion', gain: 0.85 };
     case 'lap':

@@ -3,7 +3,16 @@ import { createDeviceRuntime } from './runtime.js';
 
 export function createCircuitDeviceRuntime(
   context,
-  { motion, devices, identity, scenarios },
+  {
+    motion,
+    devices,
+    identity,
+    scenarios,
+    team = context.team,
+    hitBounds = context.hitBounds,
+    equipmentTuning = context.equipmentTuning,
+    beforeCombat = context.beforeCombat,
+  },
 ) {
   let presentation;
   try {
@@ -15,6 +24,10 @@ export function createCircuitDeviceRuntime(
       identity,
       scenarios,
       presentation,
+      team,
+      hitBounds,
+      equipmentTuning,
+      beforeCombat,
     });
   } catch (error) {
     presentation?.dispose();

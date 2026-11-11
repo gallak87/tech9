@@ -33,7 +33,7 @@ export function createCompletionCinematic({
   element.dataset.reducedMotion = String(reduced());
   element.setAttribute('role', 'dialog');
   element.setAttribute('aria-modal', 'true');
-  element.setAttribute('aria-label', 'Career complete');
+  element.setAttribute('aria-label', 'Career collection complete');
   element.setAttribute(
     'aria-description',
     'Your racer takes Shatterline’s last jump, crosses the finish, and drifts to a stop. Skip leads to the completion credits.',
@@ -44,7 +44,7 @@ export function createCompletionCinematic({
     <div class="completion-wordmark" aria-hidden="true">VECTOR<span>//</span>NOVA</div>
     <button type="button" class="completion-skip" data-completion-skip>Skip cinematic <span aria-hidden="true">↗</span></button>
     <div class="completion-loading" role="status" aria-live="polite">
-      <span class="completion-eyebrow">28 / 28 · CAREER COMPLETE</span>
+      <span class="completion-eyebrow">37 / 37 · CAREER COMPLETE</span>
       <h1>Loading…</h1>
       <progress max="1" value="0" aria-label="Loading"></progress>
       <span class="completion-progress" aria-hidden="true">0%</span>
@@ -53,7 +53,7 @@ export function createCompletionCinematic({
       <div class="completion-card">
         <div class="completion-medal" aria-hidden="true"><i></i><b>V</b><i></i></div>
         <span class="completion-eyebrow">THE NEXT CHAPTER</span>
-        <h1 id="completion-thanks">Thx for playing, 3 new courses unlocked!</h1>
+        <h1 id="completion-thanks">Thx for playing, 3 Encore courses unlocked!</h1>
         <p class="completion-next">Oriel <span>·</span> Ravel <span>·</span> Nomad</p>
         <div class="completion-credit-lines">
           <p><span>DEV</span><strong>George Allakhverdyan</strong><small>Studio name TBD</small></p>

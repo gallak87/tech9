@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "source": "build_terrace_art.py; skywell-garden-terrace.blend",
+  "coordinateConvention": "Metres; canonical island-grand local X/Z, Y0 cultivated top; identity glTF node transforms",
+  "reference": {
+    "file": "../zephyr/zephyr-scene-reference.png",
+    "promptSource": "../zephyr/asset-manifest.json#concept",
+    "measuredCanonicalSource": "public/assets/levels/zephyr/island-grand.glb"
+  },
+  "provenance": "Original Blender geometry/materials/vertex finish. Canonical island imported read-only as dimensional reference; no canonical geometry is exported. No downloaded media, textures, lights or driving surfaces.",
+  "construction": {
+    "rx": 143.0,
+    "rz": 120.0,
+    "bayCount": 28,
+    "arcDegrees": [
+      [-164.0, -94.0],
+      [-54.0, -25.0],
+      [0.0, 115.0],
+      [140.0, 173.0]
+    ],
+    "formedRockAnchorsDegrees": [-143, -105, -40, 24, 80, 151],
+    "topBoundaryRadiusRange": [0.6414688110351563, 1.018708038330078],
+    "outerPromenadeRule": "Gentle .625radius with broad .009/.004 offsets, limited by actual upward y0 top boundary-.020; inward walking ribbon .086radius wide",
+    "seating": "Promenade foundation y-.65..+.65; four-role assembly copies actual selected island matrix"
+  },
+  "assets": [
+    {
+      "file": "garden-terrace-grand.glb",
+      "boundsMetres": {
+        "min": [-142.59490966796875, -43.900001525878906, -102.87969207763672],
+        "max": [143.27792358398438, 10.600000381469727, 117.50567626953125]
+      },
+      "triangles": 15152,
+      "materialDraws": 4,
+      "bytes": 1020376,
+      "sha256": "a89c9a23981f645d1b0b2e1a0592fa6712df04ce72c0bc66526fdefbf8ebb41b"
+    }
+  ]
+}

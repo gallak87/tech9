@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createAudio } from './index.js';
+import { createLandingAudio, LANDING_AUDIO_RULES } from './landing.js';
+import { createFreestyleAudio } from '../freestyle/audio.js';
 import { createPropulsion } from './propulsion.js';
 import { createPickupAudio } from '../pickups/audio.js';
 import { DEVICE_SAMPLES, deviceSample } from '../pickups/sample-cues.js';
@@ -143,6 +145,941 @@ function sampleContext(durations = {}) {
   };
   return context;
 }
+
+test('neutral landing voices require confirmed presentation events, dedupe contacts and never queue past the voice cap', () => {
+  const context = new Context(),
+    destination = {};
+  const landing = createLandingAudio(context, destination);
+  const contact = (at, strength = 1) => ({
+    type: 'landing-catch',
+    payload: { id: 'course-jump', at, strength },
+  });
+  assert.equal(
+    landing.trigger(contact(1)),
+    false,
+    'does not resume suspended audio',
+  );
+  context.state = 'running';
+  for (const event of [
+    { type: 'jump-transfer', payload: { outcome: 'landed' } },
+    { type: 'jump-transfer', payload: { outcome: 'recovered' } },
+    { type: 'freestyle-bank', payload: { landed: true } },
+    { type: 'landing-catch', payload: { at: 1 } },
+    contact(NaN),
+    contact(-1),
+    contact(1, NaN),
+    contact(1, 0),
+  ])
+    assert.equal(landing.trigger(event), false);
+  assert.equal(landing.trigger(contact(1, 0.5)), true);
+  assert.equal(landing.trigger(contact(1, 0.5)), false);
+  assert.equal(landing.trigger(contact(2, 3)), true);
+  assert.equal(landing.trigger(contact(3)), false);
+  const sources = () => context.nodes.filter((node) => node.kind === 'buffer');
+  assert.equal(sources().length, LANDING_AUDIO_RULES.maxVoices);
+  for (const [index, source] of sources().entries()) {
+    assert.equal(source.destination.destination, destination);
+    assert.equal(
+      source.destination.gain.value,
+      LANDING_AUDIO_RULES.gain * (index ? 1 : 0.5),
+    );
+    assert.equal(source.stops[0], context.currentTime + source.buffer.duration);
+  }
+  sources()[0].onended();
+  assert.equal(
+    landing.trigger(contact(3)),
+    false,
+    'a dropped cue cannot play late',
+  );
+  assert.equal(landing.trigger(contact(4)), true);
+  landing.stop();
+  assert.equal(landing.getPresentation().activeVoices, 0);
+  assert.ok(sources().every((source) => source.disconnected));
+  assert.equal(
+    landing.trigger(contact(1)),
+    false,
+    'pause keeps contact dedupe',
+  );
+  landing.reset();
+  assert.equal(
+    landing.trigger(contact(1)),
+    true,
+    'a fresh attempt may reuse contact identity',
+  );
+  landing.dispose();
+  assert.equal(landing.trigger(contact(5)), false);
+  assert.equal(landing.getPresentation().activeVoices, 0);
+});
+
+test('common landing cues compose with biome audio and obey unlock, mute, pause, results, retry and disposal', async () => {
+  const context = new Context();
+  let destination,
+    biomeEvents = 0,
+    biomeDisposed = 0;
+  const audio = createAudio({
+    createContext: () => context,
+    engine: false,
+    samples: {},
+    environment: (_context, bus) => {
+      destination = bus;
+      return {
+        trigger() {
+          biomeEvents++;
+        },
+        stop() {},
+        dispose() {
+          biomeDisposed++;
+        },
+      };
+    },
+  });
+  const contact = (at) => ({
+    type: 'landing-catch',
+    payload: { id: 'jump', at, strength: 0.75 },
+  });
+  assert.equal(audio.event(contact(1)), false);
+  assert.equal(context.resumes, 0);
+  await audio.unlock();
+  assert.equal(
+    audio.event(contact(1)),
+    false,
+    'unlock alone is not active driving',
+  );
+  audio.update(state, 0.5, true);
+  audio.event({ type: 'biome-ambience' });
+  assert.equal(biomeEvents, 1);
+  assert.equal(audio.event(contact(1)), true);
+  const source = context.nodes.find((node) => node.kind === 'buffer');
+  assert.equal(
+    source.destination.destination,
+    destination,
+    'same biome/effects bus',
+  );
+  assert.equal(
+    biomeEvents,
+    1,
+    'the common cue does not duplicate into a biome owner',
+  );
+  assert.equal(audio.getStatus().landing.triggerCount, 1);
+  for (const options of [
+    { running: false },
+    { running: false, countdown: true },
+    { running: false, results: true },
+    { running: true, volume: 0 },
+  ]) {
+    audio.update(state, options.volume ?? 0.5, options.running, options);
+    assert.equal(audio.getStatus().landing.activeVoices, 0);
+    assert.equal(audio.event(contact(2)), false);
+    audio.update(state, 0.5, true);
+    assert.equal(
+      audio.event(contact(1)),
+      false,
+      'resuming cannot replay the old contact',
+    );
+  }
+  assert.equal(audio.event(contact(2)), true);
+  audio.resetEnvironment();
+  assert.equal(audio.getStatus().landing.activeVoices, 0);
+  assert.equal(audio.event(contact(1)), true);
+  await audio.dispose();
+  assert.equal(biomeDisposed, 1);
+  assert.equal(audio.getStatus().landing.activeVoices, 0);
+  assert.equal(audio.event(contact(3)), false);
+});
+
+test('Freestyle retains its one graded landing voice without also playing the common cue', async () => {
+  const context = new Context();
+  const audio = createAudio({
+    createContext: () => context,
+    engine: false,
+    samples: {},
+    environment: createFreestyleAudio,
+  });
+  await audio.unlock();
+  audio.update(state, 0.5, true);
+  audio.event({
+    type: 'jump-transfer',
+    payload: { id: 'transfer-1', outcome: 'landed' },
+  });
+  const event = {
+    type: 'freestyle-bank',
+    payload: { id: 'transfer-1', at: 1, landed: true },
+  };
+  audio.event(event);
+  audio.event(event);
+  assert.equal(
+    context.nodes.filter((node) => node.kind === 'buffer').length,
+    1,
+  );
+  assert.equal(audio.getPresentation().lastGrade, 'good');
+  assert.equal(audio.getStatus().landing.triggerCount, 0);
+  await audio.dispose();
+});
+
+test('boss critical audio follows real player core damage and cancels without replay on pause', async () => {
+  const context = sampleContext();
+  const audio = createAudio({ createContext: () => context, fetchAudio });
+  await audio.unlock();
+  audio.update(state, 0.35, true);
+  const critical = { target: 'goliath', source: 'player', weakPoint: true };
+  const samples = () =>
+    context.nodes.filter(
+      (node) => node.kind === 'buffer' && node.buffer?.sampleUrl,
+    );
+  for (const payload of [
+    { ...critical, source: 'rook' },
+    { ...critical, weakPoint: false },
+    { ...critical, target: 'player' },
+  ])
+    audio.event({ type: 'interceptor-hit', payload });
+  assert.equal(
+    samples().length,
+    0,
+    'ordinary and allied hits do not claim a critical',
+  );
+  audio.event({ type: 'interceptor-hit', payload: critical });
+  assert.equal(samples().length, 1);
+  assert.equal(samples()[0].buffer.sampleUrl, RACE_SAMPLES['goliath-core-hit']);
+  audio.update(state, 0.35, false);
+  assert.ok(samples()[0].stops.length > 0);
+  audio.update(state, 0.35, true);
+  assert.equal(samples().length, 1, 'resume never replays an old critical');
+  await audio.dispose();
+});
+
+test('a boss lane lock ducks only its charging voice and the return reuses the magnetic turn', async () => {
+  const context = sampleContext({ [RACE_SAMPLES['goliath-charge']]: 1.4 });
+  const audio = createAudio({ createContext: () => context, fetchAudio });
+  await audio.unlock();
+  audio.update(state, 0.35, true);
+  const cue = (value) => ({
+    type: 'interceptor-cue',
+    payload: { bossId: 'goliath', cue: value },
+  });
+  audio.event(cue('charge'));
+  const sources = () =>
+    context.nodes.filter(
+      (node) => node.kind === 'buffer' && node.buffer?.sampleUrl,
+    );
+  const charge = sources()[0];
+  context.currentTime = 1;
+  audio.event(cue('lock'));
+  assert.equal(sources()[1].buffer.sampleUrl, RACE_SAMPLES['goliath-lock']);
+  const duck = charge.destination.gain.automation.find(
+    (entry) => entry.type === 'linear' && Math.abs(entry.time - 1.015) < 1e-9,
+  );
+  assert.ok(duck);
+  assert.equal(duck.value, 0.74 * 0.25);
+  assert.equal(
+    charge.stops.length,
+    1,
+    'charging body fades down without a hard stop',
+  );
+  context.currentTime = 4.2;
+  audio.event(cue('return'));
+  assert.equal(sources().at(-1).buffer.sampleUrl, RACE_SAMPLES['goliath-turn']);
+  assert.ok(
+    sources()
+      .at(-1)
+      .destination.gain.automation.some(
+        (entry) => entry.type === 'set' && entry.value === 0.55,
+      ),
+  );
+  await audio.dispose();
+});
+
+test('Bulwark exposes eight authored moving-vault cues and only confirmed player shoulder hits', () => {
+  const entries = soundEffects.filter(
+    ({ group }) => group === 'Interceptor · Bulwark',
+  );
+  assert.equal(entries.length, 8);
+  assert.equal(
+    new Set(entries.map(({ event }) => raceSample(event)?.id)).size,
+    8,
+  );
+  for (const { event, bus } of entries) {
+    assert.equal(bus, 'race');
+    assert.ok(RACE_SAMPLES[raceSample(event)?.id]);
+  }
+  assert.deepEqual(
+    raceSample({
+      type: 'interceptor-cue',
+      payload: {
+        bossId: 'bulwark',
+        cue: 'return',
+      },
+    }),
+    { id: 'bulwark-turn', gain: 0.55 },
+  );
+  const critical = {
+    bossId: 'bulwark',
+    target: 'bulwark',
+    source: 'player',
+    weakPoint: true,
+  };
+  assert.deepEqual(raceSample({ type: 'interceptor-hit', payload: critical }), {
+    id: 'bulwark-core-hit',
+    gain: 0.88,
+  });
+  for (const payload of [
+    { ...critical, source: 'rook' },
+    { ...critical, weakPoint: false },
+    { ...critical, target: 'player' },
+  ])
+    assert.equal(raceSample({ type: 'interceptor-hit', payload }), null);
+});
+
+test('Bulwark rupture hands its shoulder thud and shutter tails to the counter while preserving other bosses', async () => {
+  const context = sampleContext();
+  const audio = createAudio({
+    createContext: () => context,
+    engine: false,
+    fetchAudio,
+  });
+  await audio.unlock();
+  audio.update(state, 0.35, true);
+  audio.event({
+    type: 'interceptor-cue',
+    payload: { bossId: 'goliath', cue: 'fire' },
+  });
+  audio.event({
+    type: 'interceptor-cue',
+    payload: { bossId: 'bulwark', cue: 'expose' },
+  });
+  audio.event({
+    type: 'interceptor-hit',
+    payload: {
+      bossId: 'bulwark',
+      target: 'bulwark',
+      source: 'player',
+      weakPoint: true,
+    },
+  });
+  const sources = () => context.nodes.filter((node) => node.buffer?.sampleUrl);
+  const old = sources();
+  const other = structuredClone(old[0].destination.gain.automation);
+  audio.event({
+    type: 'interceptor-cue',
+    payload: { bossId: 'bulwark', cue: 'counter' },
+  });
+  assert.equal(
+    sources().at(-1).buffer.sampleUrl,
+    RACE_SAMPLES['bulwark-counter'],
+  );
+  for (const [index, gain] of [
+    [1, 0.74],
+    [2, 0.88],
+  ]) {
+    const duck = old[index].destination.gain.automation.find(
+      (entry) => entry.type === 'linear' && entry.time === 0.015,
+    );
+    assert.equal(duck?.value, gain * 0.25);
+  }
+  assert.deepEqual(old[0].destination.gain.automation, other);
+  audio.resetEnvironment();
+  assert.ok(sources().every((voice) => voice.disconnected));
+  await audio.dispose();
+});
+
+test('Bulwark breakwater cadence, quieter return and complete defeat release survive their real phase windows', async () => {
+  const durations = {
+    charge: 1.6,
+    lock: 0.25,
+    turn: 0.9,
+    fire: 0.45,
+    counter: 0.55,
+    expose: 0.6,
+    'core-hit': 0.35,
+    disable: 1.4,
+  };
+  const context = sampleContext(
+    Object.fromEntries(
+      Object.entries(durations).map(([cue, seconds]) => [
+        RACE_SAMPLES[`bulwark-${cue}`],
+        seconds,
+      ]),
+    ),
+  );
+  const audio = createAudio({
+    createContext: () => context,
+    engine: false,
+    fetchAudio,
+  });
+  await audio.unlock();
+  audio.update(state, 0.35, true);
+  const sources = () => context.nodes.filter((node) => node.buffer?.sampleUrl);
+  for (const [elapsed, cue] of [
+    [0, 'charge'],
+    [1, 'expose'],
+    [1.4, 'core-hit'],
+    [1.4, 'counter'],
+    [4.3, 'lock'],
+    [5.3, 'turn'],
+    [6.2, 'fire'],
+    [7.2, 'fire'],
+    [8.2, 'return'],
+    [12, 'disable'],
+  ]) {
+    context.currentTime = elapsed;
+    for (const source of sources())
+      if (!source.disconnected && source.stops[0] <= elapsed)
+        source.onended?.();
+    const before = sources().length;
+    audio.event(
+      cue === 'core-hit'
+        ? {
+            type: 'interceptor-hit',
+            payload: {
+              bossId: 'bulwark',
+              target: 'bulwark',
+              source: 'player',
+              weakPoint: true,
+            },
+          }
+        : {
+            type: 'interceptor-cue',
+            payload: { bossId: 'bulwark', cue, elapsed },
+          },
+    );
+    assert.equal(
+      sources().length,
+      before + 1,
+      `${cue} has room in the race voice budget`,
+    );
+    assert.equal(
+      sources().at(-1).buffer.sampleUrl,
+      RACE_SAMPLES[`bulwark-${cue === 'return' ? 'turn' : cue}`],
+    );
+    if (cue === 'disable') {
+      const disable = sources().at(-1);
+      assert.equal(disable.stops[0], 13.41);
+      audio.update(state, 0.35, false, { results: true });
+      assert.equal(disable.disconnected, false);
+      audio.update(state, 0, false, { results: true });
+      assert.equal(
+        disable.disconnected,
+        true,
+        'mute still cancels the victory tail',
+      );
+    }
+  }
+  await audio.dispose();
+});
+
+test('Wraith exposes eight distinct authored auditions, its return alias and only real player capacitor hits', () => {
+  const entries = soundEffects.filter(
+    ({ group }) => group === 'Interceptor · Wraith',
+  );
+  assert.equal(entries.length, 8);
+  assert.equal(
+    new Set(entries.map(({ event }) => raceSample(event)?.id)).size,
+    8,
+  );
+  for (const { event, bus } of entries) {
+    assert.equal(bus, 'race');
+    assert.ok(RACE_SAMPLES[raceSample(event)?.id]);
+  }
+  assert.deepEqual(
+    raceSample({
+      type: 'interceptor-cue',
+      payload: {
+        bossId: 'wraith',
+        cue: 'return',
+      },
+    }),
+    { id: 'wraith-turn', gain: 0.55 },
+  );
+  const critical = {
+    bossId: 'wraith',
+    target: 'wraith',
+    source: 'player',
+    weakPoint: true,
+  };
+  assert.deepEqual(raceSample({ type: 'interceptor-hit', payload: critical }), {
+    id: 'wraith-core-hit',
+    gain: 0.88,
+  });
+  for (const payload of [
+    { ...critical, source: 'rook' },
+    { ...critical, weakPoint: false },
+    { ...critical, target: 'player' },
+  ])
+    assert.equal(raceSample({ type: 'interceptor-hit', payload }), null);
+  assert.equal(
+    raceSample({
+      type: 'interceptor-cue',
+      payload: {
+        bossId: 'wraith',
+        cue: 'recover',
+      },
+    }),
+    null,
+    'Goliath recharge does not borrow a Wraith sound',
+  );
+});
+
+test('a successful Wraith counter hands off its own warning tails without ducking Goliath or player Lance', async (t) => {
+  for (const phase of ['charge', 'lock', 'turn'])
+    await t.test(phase, async () => {
+      const context = sampleContext();
+      const playerContext = sampleContext();
+      const audio = createAudio({
+        createContext: () => context,
+        engine: false,
+        fetchAudio,
+      });
+      const pickups = createPickupAudio({
+        createContext: () => playerContext,
+        fetchAudio,
+      });
+      await audio.unlock();
+      await pickups.unlock();
+      audio.update(state, 0.35, true);
+      pickups.update({ volume: 0.35 }, true);
+      pickups.event({
+        type: 'combat-fire',
+        payload: { equipment: 'lance', kind: 'lance' },
+      });
+      audio.event({
+        type: 'interceptor-cue',
+        payload: { bossId: 'goliath', cue: 'fire' },
+      });
+      audio.event({ type: 'impact' });
+      const warning = {
+        type: 'interceptor-cue',
+        payload: { bossId: 'wraith', cue: phase },
+      };
+      audio.event(warning);
+      const sources = () =>
+        context.nodes.filter((node) => node.buffer?.sampleUrl);
+      const old = sources();
+      const playerLance = playerContext.nodes.find(
+        (node) => node.buffer?.sampleUrl === DEVICE_SAMPLES['lance-fire'],
+      );
+      assert.ok(playerLance);
+      const unchanged = [old[0], old[1], playerLance].map((voice) =>
+        structuredClone(voice.destination.gain.automation),
+      );
+      context.currentTime = 0.1;
+      audio.event({
+        type: 'interceptor-cue',
+        payload: { bossId: 'wraith', cue: 'counter' },
+      });
+      assert.equal(
+        sources().at(-1).buffer.sampleUrl,
+        RACE_SAMPLES['wraith-counter'],
+      );
+      const duck = old[2].destination.gain.automation.find(
+        (entry) =>
+          entry.type === 'linear' && Math.abs(entry.time - 0.115) < 1e-9,
+      );
+      assert.equal(duck?.value, raceSample(warning).gain * 0.25);
+      for (const [index, voice] of [old[0], old[1], playerLance].entries())
+        assert.deepEqual(voice.destination.gain.automation, unchanged[index]);
+      audio.update(state, 0.35, false);
+      assert.ok(sources().every((voice) => voice.disconnected));
+      await audio.dispose();
+      await pickups.dispose();
+    });
+});
+
+test('Wraith disable owns a full results tail and retry silences it before the next encounter', async () => {
+  const context = sampleContext({ [RACE_SAMPLES['wraith-disable']]: 1.2 });
+  const audio = createAudio({
+    createContext: () => context,
+    engine: false,
+    fetchAudio,
+  });
+  await audio.unlock();
+  audio.update(state, 0.35, true);
+  audio.event({
+    type: 'interceptor-cue',
+    payload: { bossId: 'wraith', cue: 'fire' },
+  });
+  audio.update(state, 0.35, false, { results: true });
+  audio.event({
+    type: 'interceptor-cue',
+    payload: { bossId: 'wraith', cue: 'disable' },
+  });
+  const sources = () => context.nodes.filter((node) => node.buffer?.sampleUrl);
+  const quench = sources().at(-1);
+  assert.equal(quench.buffer.sampleUrl, RACE_SAMPLES['wraith-disable']);
+  assert.equal(quench.stops[0], 1.21);
+  audio.update(state, 0.35, false, { results: true });
+  assert.equal(quench.disconnected, false);
+  audio.event({
+    type: 'interceptor-cue',
+    payload: { bossId: 'wraith', cue: 'fire' },
+  });
+  assert.equal(sources().length, 2, 'results reject stale ion shots');
+  audio.resetEnvironment();
+  assert.ok(sources().every((voice) => voice.disconnected));
+  audio.update(state, 0.35, true);
+  assert.equal(sources().length, 2, 'retry never replays the quench');
+  audio.event({
+    type: 'interceptor-cue',
+    payload: { bossId: 'wraith', cue: 'charge' },
+  });
+  assert.equal(sources().length, 3);
+  await audio.dispose();
+});
+
+test('boss recovery ducks its own active cannon tail while retaining other cues and approved player Lance', async () => {
+  const context = sampleContext({ [RACE_SAMPLES['goliath-fire']]: 0.7 });
+  const playerContext = sampleContext();
+  const audio = createAudio({
+    createContext: () => context,
+    engine: false,
+    fetchAudio,
+  });
+  const pickups = createPickupAudio({
+    createContext: () => playerContext,
+    fetchAudio,
+  });
+  await audio.unlock();
+  await pickups.unlock();
+  audio.update(state, 0.35, true);
+  pickups.update({ volume: 0.35 }, true);
+  pickups.event({
+    type: 'combat-fire',
+    payload: { kind: 'lance', equipment: 'lance' },
+  });
+  const playerLance = playerContext.nodes.find(
+    (node) => node.buffer?.sampleUrl === DEVICE_SAMPLES['lance-fire'],
+  );
+  assert.ok(playerLance, 'exercise the actual approved player fire sample');
+  audio.event({
+    type: 'interceptor-cue',
+    payload: { bossId: 'goliath', cue: 'fire' },
+  });
+  audio.event({ type: 'impact' });
+  audio.event({
+    type: 'interceptor-hit',
+    payload: {
+      bossId: 'goliath',
+      source: 'player',
+      target: 'goliath',
+      weakPoint: true,
+    },
+  });
+  const sources = context.nodes.filter((node) => node.buffer?.sampleUrl);
+  const fire = sources[0];
+  const unchanged = [...sources, playerLance].map((voice) =>
+    structuredClone(voice.destination.gain.automation),
+  );
+  context.currentTime = 1 / 60;
+  audio.event({
+    type: 'interceptor-cue',
+    payload: { bossId: 'wraith', cue: 'recover' },
+  });
+  assert.deepEqual(
+    fire.destination.gain.automation,
+    unchanged[0],
+    'another boss cannot duck Goliath',
+  );
+  audio.event({
+    type: 'interceptor-cue',
+    payload: { bossId: 'goliath', cue: 'recover' },
+  });
+  const duck = fire.destination.gain.automation.find(
+    (entry) =>
+      entry.type === 'linear' && Math.abs(entry.time - (1 / 60 + 0.015)) < 1e-9,
+  );
+  assert.equal(duck?.value, 0.9 * 0.5);
+  assert.equal(
+    fire.stops.length,
+    1,
+    'retain the original fire attack and fade its remaining body',
+  );
+  for (const [index, voice] of [...sources, playerLance].entries())
+    if (voice !== fire)
+      assert.deepEqual(
+        voice.destination.gain.automation,
+        unchanged[index],
+        'other and player envelopes stay untouched',
+      );
+  audio.resetEnvironment();
+  assert.ok(sources.every((voice) => voice.disconnected));
+  assert.equal(
+    playerLance.disconnected,
+    false,
+    'race retry does not own the player device bus',
+  );
+  await audio.dispose();
+  await pickups.dispose();
+});
+
+test('a real boss disable quench survives results while ending attack voices and still obeys mute', async () => {
+  const context = sampleContext({ [RACE_SAMPLES['goliath-disable']]: 1.2 });
+  const audio = createAudio({ createContext: () => context, fetchAudio });
+  await audio.unlock();
+  audio.update(state, 0.35, true);
+  const event = (cue) => ({
+    type: 'interceptor-cue',
+    payload: { bossId: 'goliath', cue },
+  });
+  const sources = () =>
+    context.nodes.filter(
+      (node) => node.kind === 'buffer' && node.buffer?.sampleUrl,
+    );
+  audio.event(event('charge'));
+  const charge = sources()[0];
+  audio.event(event('disable'));
+  const disable = sources()[1];
+  assert.equal(disable.buffer.sampleUrl, RACE_SAMPLES['goliath-disable']);
+  assert.equal(charge.stops.length, 2, 'defeat ends an unfinished attack');
+  audio.update(state, 0.35, false, { results: true });
+  assert.equal(
+    disable.stops.length,
+    1,
+    'results retain the full quench release',
+  );
+  audio.event(event('disable'));
+  audio.event(event('fire'));
+  assert.equal(
+    sources().length,
+    2,
+    'neither duplicate defeat nor attack plays in results',
+  );
+  audio.update(state, 0, false, { results: true });
+  assert.equal(disable.stops.length, 2, 'mute still silences the finish voice');
+  audio.update(state, 0.35, false, { results: true });
+  assert.equal(
+    sources().length,
+    2,
+    'restoring volume does not replay the quench',
+  );
+  await audio.dispose();
+});
+
+test('captured Goliath clean and recovered attack cadences reach every authored cue without exhausting voices', async (t) => {
+  const durations = {
+    charge: 1.4,
+    lock: 0.3,
+    turn: 0.8,
+    fire: 0.7,
+    expose: 1.1,
+    recover: 0.6,
+    'core-hit': 0.5,
+    disable: 1.2,
+  };
+  // Actual accepted events from the R07 hard clean/camp browser captures.
+  const sequences = {
+    clean: [
+      [6.8624, 'charge'],
+      [7.8624, 'lock'],
+      [8.2624, 'turn'],
+      [9.075, 'fire'],
+      [10.075, 'fire'],
+      [11.0624, 'return'],
+      [11.8624, 'expose'],
+      [12.6333, 'core-hit'],
+      [13.35, 'core-hit'],
+      [39.2917, 'disable'],
+    ],
+    recovered: [
+      [22.0775, 'charge'],
+      [23.0775, 'lock'],
+      [23.4775, 'turn'],
+      [24.2917, 'fire'],
+      [24.3083, 'recover'],
+      [25.2917, 'fire'],
+      [26.2775, 'return'],
+      [74.8833, 'disable'],
+    ],
+  };
+  for (const [branch, sequence] of Object.entries(sequences))
+    await t.test(branch, async () => {
+      const context = sampleContext(
+        Object.fromEntries(
+          Object.entries(durations).map(([cue, seconds]) => [
+            RACE_SAMPLES[`goliath-${cue}`],
+            seconds,
+          ]),
+        ),
+      );
+      const audio = createAudio({
+        createContext: () => context,
+        engine: false,
+        fetchAudio,
+      });
+      await audio.unlock();
+      audio.update(state, 0.35, true);
+      const sources = () =>
+        context.nodes.filter(
+          (node) => node.kind === 'buffer' && node.buffer?.sampleUrl,
+        );
+      for (const [elapsed, cue] of sequence) {
+        context.currentTime = elapsed;
+        for (const source of sources())
+          if (!source.disconnected && source.stops[0] <= elapsed)
+            source.onended?.();
+        const before = sources().length;
+        audio.event(
+          cue === 'core-hit'
+            ? {
+                type: 'interceptor-hit',
+                payload: {
+                  source: 'player',
+                  target: 'goliath',
+                  bossId: 'goliath',
+                  weakPoint: true,
+                },
+              }
+            : {
+                type: 'interceptor-cue',
+                payload: { bossId: 'goliath', cue, elapsed },
+              },
+        );
+        assert.equal(
+          sources().length,
+          before + 1,
+          `${branch}: ${cue} is audible`,
+        );
+        const source = sources().at(-1);
+        const id = `goliath-${cue === 'return' ? 'turn' : cue}`;
+        assert.equal(source.buffer.sampleUrl, RACE_SAMPLES[id]);
+        assert.equal(source.startTimes[0], elapsed, 'no stale deferred attack');
+        assert.ok(sources().filter((voice) => !voice.disconnected).length <= 4);
+        if (cue === 'disable') {
+          audio.update(state, 0.35, false, { results: true });
+          assert.equal(
+            source.disconnected,
+            false,
+            'results keep the dedicated quench',
+          );
+        }
+      }
+      await audio.dispose();
+      assert.ok(sources().every((source) => source.disconnected));
+    });
+});
+
+test('boss disable may arrive on the results frame, then pause, mute, retry and disposal clear it without replay', async (t) => {
+  for (const cancel of ['pause', 'mute', 'retry', 'dispose'])
+    await t.test(cancel, async () => {
+      const context = sampleContext({ [RACE_SAMPLES['goliath-disable']]: 1.2 });
+      const audio = createAudio({
+        createContext: () => context,
+        engine: false,
+        fetchAudio,
+      });
+      await audio.unlock();
+      audio.update(state, 0.35, true);
+      audio.update(state, 0.35, false, { results: true });
+      const disableEvent = {
+        type: 'interceptor-cue',
+        payload: { bossId: 'goliath', cue: 'disable' },
+      };
+      audio.event(disableEvent);
+      const sources = () =>
+        context.nodes.filter(
+          (node) => node.kind === 'buffer' && node.buffer?.sampleUrl,
+        );
+      const disable = sources()[0];
+      assert.ok(
+        disable,
+        'the actual win is heard even after results becomes active',
+      );
+      assert.equal(disable.stops[0], 1.21, 'the complete quench is scheduled');
+      context.currentTime = 0.2;
+      if (cancel === 'pause') audio.update(state, 0.35, false);
+      else if (cancel === 'mute')
+        audio.update(state, 0, false, { results: true });
+      else if (cancel === 'retry') audio.resetEnvironment();
+      else await audio.dispose();
+      assert.equal(disable.disconnected, true);
+      assert.equal(disable.destination.disconnected, true);
+      if (cancel === 'dispose') {
+        audio.update(state, 0.35, true);
+        audio.event(disableEvent);
+        assert.equal(await audio.unlock(), false);
+        assert.equal(context.closes, 1);
+      } else {
+        audio.update(state, 0.35, true, { countdown: cancel === 'retry' });
+        assert.equal(
+          sources().length,
+          1,
+          'resuming never replays the cancelled win',
+        );
+        audio.event({
+          type: 'interceptor-cue',
+          payload: { bossId: 'goliath', cue: 'charge' },
+        });
+        assert.equal(
+          sources().length,
+          2,
+          'a new encounter has no stale finish guard',
+        );
+      }
+      await audio.dispose();
+    });
+});
+
+test('a mid-attack retry clears overlapping boss voices before the next countdown without reloading audio', async () => {
+  const context = sampleContext();
+  const audio = createAudio({
+    createContext: () => context,
+    engine: false,
+    fetchAudio,
+  });
+  await audio.unlock();
+  audio.update(state, 0.35, true);
+  for (const cue of ['charge', 'fire'])
+    audio.event({
+      type: 'interceptor-cue',
+      payload: { bossId: 'goliath', cue },
+    });
+  audio.event({
+    type: 'interceptor-hit',
+    payload: {
+      source: 'player',
+      target: 'goliath',
+      bossId: 'goliath',
+      weakPoint: true,
+    },
+  });
+  const sources = () =>
+    context.nodes.filter(
+      (node) => node.kind === 'buffer' && node.buffer?.sampleUrl,
+    );
+  const old = sources();
+  assert.equal(old.length, 3);
+  const loaded = audio.getStatus().loadedSamples;
+  audio.resetEnvironment();
+  assert.ok(
+    old.every((voice) => voice.disconnected && voice.destination.disconnected),
+  );
+  assert.equal(
+    context.state,
+    'running',
+    'retry retains the unlocked audio device',
+  );
+  assert.deepEqual(
+    audio.getStatus().loadedSamples,
+    loaded,
+    'decoded cues remain cached',
+  );
+  audio.update(state, 0.35, false, { countdown: true });
+  audio.event({ type: 'countdown-beep', payload: { step: 3 } });
+  assert.equal(
+    sources().length,
+    3,
+    'the new countdown never replays stale attacks',
+  );
+  audio.update(state, 0.35, true);
+  audio.event({
+    type: 'interceptor-cue',
+    payload: { bossId: 'goliath', cue: 'charge' },
+  });
+  assert.equal(
+    sources().length,
+    4,
+    'fresh attacks remain available after retry',
+  );
+  assert.equal(sources().at(-1).disconnected, false);
+  await audio.dispose();
+});
 
 test('Master scales race and device cues exactly once and Tunes remains independent', async () => {
   for (const id of ['countdown-go', 'repulsor-fire']) {

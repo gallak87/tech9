@@ -34,13 +34,81 @@ test('demo contains two worlds and one player ship; shared materials do not ship
   assert.throws(() => editionPolicy('unlocked'));
 });
 test('full packages every original and bonus course without exposing bonus content in the demo', () => {
-  assert.equal(editionPolicy('full').levels.length, 17);
+  assert.equal(editionPolicy('full').levels.length, 26);
   for (const id of ['ravel', 'nomad', 'oriel']) {
     assert.equal(editionPolicy('full').levels.includes(id), true);
     assert.equal(includePublic(`assets/menu/${id}.webp`, 'full'), true);
     assert.equal(includePublic(`assets/levels/${id}/world.glb`, 'full'), true);
     assert.equal(includePublic(`assets/levels/${id}/world.glb`, 'demo'), false);
   }
+});
+test('the full policy includes all nine sequential mode courses and their runtime stills, while the demo excludes them', () => {
+  const expected = [
+    'launchworks',
+    'freestyle-oriel',
+    'freestyle-ravel',
+    'eliminator-glasswake',
+    'eliminator-saffron',
+    'eliminator-nomad',
+    'interceptor',
+    'interceptor-helion',
+    'interceptor-nightweir',
+  ];
+  const full = editionPolicy('full');
+  assert.equal(new Set(full.levels).size, full.levels.length);
+  for (const id of expected) {
+    assert.equal(full.levels.includes(id), true, id);
+    assert.equal(editionPolicy('demo').levels.includes(id), false, id);
+    for (const path of [
+      `assets/menu/${id}.webp`,
+      `assets/levels/${id}/runtime.glb`,
+      `assets/levels/${id}/finish.png`,
+    ]) {
+      assert.equal(includePublic(path, 'full'), true, path);
+      assert.equal(includePublic(path, 'demo'), false, path);
+    }
+    for (const path of [
+      `assets/levels/${id}/source.blend`,
+      `assets/levels/${id}/build.py`,
+      `assets/levels/${id}/README.md`,
+    ])
+      assert.equal(includePublic(path, 'full'), false, path);
+  }
+  assert.equal(full.levels.includes('crucible'), false);
+  assert.equal(includePublic('assets/menu/crucible.webp', 'full'), false);
+  assert.equal(
+    includePublic('assets/levels/crucible/world.glb', 'full'),
+    false,
+  );
+});
+test('mode courses retain their borrowed canonical biome exports without pulling the worlds into the demo', () => {
+  for (const path of [
+    'assets/levels/launchworks/arrival-beacon-crown.glb',
+    'assets/levels/launchworks/veil-spill-lip.glb',
+    'assets/levels/zephyr/cathedral-facade.glb',
+    'assets/levels/zephyr/zephyr-limestone-v1.png',
+    'assets/levels/oriel/oriel-civic-kit.glb',
+    'assets/levels/ravel/anchor-fleet.glb',
+    'assets/levels/glasswake/glasswake-environment-v5.glb',
+    'assets/levels/saffron/leviathan-kit.glb',
+    'assets/levels/nomad/carrier-kit.glb',
+    'assets/levels/colossus/colossus-sky-v1.png',
+    'assets/levels/nightweir/nightweir-city.glb.gz',
+    'assets/levels/shatterline/limestone-v1.png',
+    'assets/levels/helion/thermal-observatory.glb',
+  ]) {
+    assert.equal(includePublic(path, 'full'), true, path);
+    assert.equal(includePublic(path, 'demo'), false, path);
+  }
+  // The demo's existing tiny material borrow remains an individual-file rule.
+  assert.equal(
+    includePublic('assets/levels/nightweir/fired-brick-v1.png', 'demo'),
+    true,
+  );
+  assert.equal(
+    includePublic('assets/levels/helion/ceramic/normal.ktx2', 'demo'),
+    true,
+  );
 });
 test('only the four final native finale records and provenance manifest ship in the full edition', () => {
   for (const file of [

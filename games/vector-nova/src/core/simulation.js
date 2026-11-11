@@ -96,7 +96,10 @@ function wrapDeviceRuntime(context, { motion, devices, identity, scenarios }) {
 
 // Acquire this phase after live road/ship presentation, so actors are released
 // before their borrowed scene resources and before the separately owned world.
-export function createSimulationActors(world, { settings = {}, signal } = {}) {
+export function createSimulationActors(
+  world,
+  { settings = {}, signal, forceCombat = false, combatOptions = {} } = {},
+) {
   const { definition, track, collisionWorld, dynamics, racingEnabled } = world;
   const lifetime = createLifetime();
   let devices,
@@ -126,11 +129,16 @@ export function createSimulationActors(world, { settings = {}, signal } = {}) {
     alive();
     if (devices) return { devices, combat };
     devices = racingEnabled ? definition.racing.createDevices(track) : [];
-    combat = devices.some((device) =>
-      ['repulsor', 'arc', 'ion'].includes(device.type),
-    )
-      ? createCombatSimulation({ track, collisionWorld, dynamics })
-      : null;
+    combat =
+      forceCombat ||
+      devices.some((device) => ['repulsor', 'arc', 'ion'].includes(device.type))
+        ? createCombatSimulation({
+            track,
+            collisionWorld,
+            dynamics,
+            ...combatOptions,
+          })
+        : null;
     return { devices, combat };
   }
   const contextFor = (context) => ({
@@ -140,15 +148,19 @@ export function createSimulationActors(world, { settings = {}, signal } = {}) {
     settings,
     ...context,
   });
-  async function createPlayer(context = {}, { wrap = wrapDeviceRuntime } = {}) {
+  async function createPlayer(
+    context = {},
+    {
+      wrap = wrapDeviceRuntime,
+      motionFactory = definition.createRuntime ?? createMagneticRuntime,
+    } = {},
+  ) {
     alive();
     let motion,
       transferred = false;
     try {
       const runtimeContext = contextFor(context);
-      motion = await (definition.createRuntime ?? createMagneticRuntime)(
-        runtimeContext,
-      );
+      motion = await motionFactory(runtimeContext);
       alive();
       prepareRacing();
       runtimeContext.combat = combat;
@@ -193,7 +205,11 @@ export function createSimulationActors(world, { settings = {}, signal } = {}) {
       return fail(error);
     }
   }
-  async function createField() {
+  async function createField({
+    continuous = false,
+    field = null,
+    createRuntime: createFieldRuntime,
+  } = {}) {
     alive();
     if (!racingEnabled) return null;
     const partial = createLifetime();
@@ -203,8 +219,10 @@ export function createSimulationActors(world, { settings = {}, signal } = {}) {
       prepareRacing();
       const { createRacers } = await import('../race/racers.js');
       alive();
-      const field = createRacers({
+      const racers = createRacers({
         track,
+        continuous,
+        field,
         devices,
         dynamics,
         createRuntime(specification, { validation = false } = {}) {
@@ -212,20 +230,27 @@ export function createSimulationActors(world, { settings = {}, signal } = {}) {
             validation && combat
               ? createCombatSimulation({ track, collisionWorld, dynamics })
               : combat;
-          const motion = (
-            definition.racing.createMotion ?? createMagneticRuntime
-          )({
-            track,
-            collisionWorld,
-            dynamics,
-            settings,
-            equipment: true,
+          const context = contextFor({
             presentation: false,
+            ...(createFieldRuntime ? {} : { equipment: true }),
           });
-          const runtime = wrapDeviceRuntime(
-            { track, combat: actorCombat, combatId: specification.id },
-            { motion, devices, identity: definition.racing.identity },
-          );
+          let runtime;
+          if (createFieldRuntime)
+            runtime = createFieldRuntime(specification, {
+              context,
+              combat: actorCombat,
+              devices,
+              validation,
+            });
+          else {
+            const motion = (
+              definition.racing.createMotion ?? createMagneticRuntime
+            )(context);
+            runtime = wrapDeviceRuntime(
+              { track, combat: actorCombat, combatId: specification.id },
+              { motion, devices, identity: definition.racing.identity },
+            );
+          }
           if (!validation)
             partial.defer(() => {
               if (!fieldOwnsRuntimes) runtime.dispose();
@@ -233,9 +258,9 @@ export function createSimulationActors(world, { settings = {}, signal } = {}) {
           return runtime;
         },
       });
-      lifetime.own(field);
+      lifetime.own(racers);
       fieldOwnsRuntimes = true;
-      return field;
+      return racers;
     } catch (error) {
       return fail(error);
     }

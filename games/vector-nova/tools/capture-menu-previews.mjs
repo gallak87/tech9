@@ -1,5 +1,5 @@
 import { chromium } from 'playwright';
-import { BONUS_LEVEL_IDS } from '../src/levels/access.js';
+import { levelAvailable } from '../src/levels/access.js';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { execFileSync } from 'node:child_process';
@@ -69,7 +69,7 @@ try {
       const page = await context.newPage();
       await page.goto(
         new URL(
-          `?level=${route.id}&capture=1&music=0${BONUS_LEVEL_IDS.includes(route.id) ? '&dev=1' : ''}`,
+          `?level=${route.id}&capture=1&music=0${levelAvailable(route.id) ? '' : '&dev=1'}`,
           base,
         ).href,
       );
@@ -116,6 +116,55 @@ try {
         camera.up.set(0, 1, 0);
         camera.fov = 58;
         camera.clearViewOffset();
+        if (id === 'launchworks') {
+          // Crown's flight corridor reveals the court and receiving bank;
+          // the generic starting overview is blocked by a foreground shore.
+          const frame = track.sample(track.jumps[0].takeoff);
+          const forward = frame.tangent.clone().setY(0).normalize();
+          const right = forward.clone().set(forward.z, 0, -forward.x);
+          camera.position
+            .copy(frame.position)
+            .addScaledVector(forward, 314.8)
+            .addScaledVector(right, -2.3);
+          camera.position.y += 10.1;
+          target.copy(frame.position).addScaledVector(forward, 997.6);
+          target.y -= 144;
+          camera.fov = 72;
+        }
+        if (id === 'freestyle-oriel' || id === 'freestyle-ravel') {
+          // Look from the open flight corridor toward a formed pipe arrival;
+          // the starting overview hides these courses' defining destinations.
+          const jump = track.jumps[id === 'freestyle-oriel' ? 0 : 1];
+          const departure = track.sample(jump.takeoff);
+          const receiver = track.sample(jump.landingStart);
+          camera.position
+            .copy(departure.position)
+            .lerp(receiver.position, 0.45)
+            .addScaledVector(departure.right, -24);
+          camera.position.y += 65;
+          target
+            .copy(track.sample(jump.landingStart + 100).position)
+            .addScaledVector(receiver.up, 14);
+          camera.fov = 70;
+        }
+        const eliminatorPreview = {
+          'eliminator-glasswake': 0.4,
+          'eliminator-saffron': 0.245,
+        }[id];
+        if (eliminatorPreview !== undefined) {
+          const station = track.length * eliminatorPreview - 110;
+          const frame = track.sample(station);
+          camera.position
+            .copy(frame.position)
+            .addScaledVector(frame.tangent, -30)
+            .addScaledVector(frame.right, -18)
+            .addScaledVector(frame.up, 25);
+          target
+            .copy(track.sample(station + 165).position)
+            .addScaledVector(frame.up, 10);
+          camera.up.copy(frame.up);
+          camera.fov = 64;
+        }
         // Frame the crown and exposed road, rather than aiming through the
         // monolith toward the route's interior-weighted average.
         if (id === 'vesper-forest') {
@@ -155,6 +204,23 @@ try {
             .addScaledVector(frame.up, 22);
           camera.fov = 62;
         }
+        if (id === 'interceptor' || id === 'interceptor-helion') {
+          // The generic rear overview sits inside Dispatch's new galleries.
+          // Keep a clear road approach; Helion's exposed vault exit reveals
+          // its defining stellar limb instead of a near shield's back face.
+          const station = track.length * (id === 'interceptor' ? 0.04 : 0.15);
+          const frame = track.sample(station);
+          camera.position
+            .copy(frame.position)
+            .addScaledVector(frame.tangent, -30)
+            .addScaledVector(frame.up, 14);
+          target
+            .copy(track.sample(station + 115).position)
+            .addScaledVector(frame.up, 5);
+          camera.up.copy(frame.up);
+          camera.fov = 62;
+        }
+
         if (id === 'ravel') {
           const station = (track.braid.splitEnd + track.braid.mergeStart) / 2;
           const frame = track.sample(station);
@@ -183,6 +249,21 @@ try {
           target.z += 140;
           camera.fov = 58;
         }
+        if (id === 'eliminator-nomad') {
+          // Explain the race on the actual decks at thumbnail size. The full
+          // convoy overview makes the drivable hold and receiver too small.
+          const transfer = track.jumps[0];
+          const frame = track.sample(transfer.takeoff - 140);
+          camera.position
+            .copy(frame.position)
+            .addScaledVector(frame.tangent, -32)
+            .addScaledVector(frame.up, 22);
+          target
+            .copy(track.sample(transfer.landingStart + 100).position)
+            .addScaledVector(frame.up, 8);
+          camera.up.copy(frame.up);
+          camera.fov = 64;
+        }
         if (id === 'oriel') {
           // Stay inside the habitat and show the inhabited ceiling, axial sun,
           // lakes and circumferential route together.
@@ -198,8 +279,22 @@ try {
           requestAnimationFrame(() => requestAnimationFrame(done)),
         );
         game.setSuspended(true);
-        // Preserve the ordinary composer result for owned water/cloud passes.
-        if (!['nightweir', 'worldspire'].includes(id))
+        // Preserve the ordinary composer result for owned water/cloud passes
+        // and the mission worlds’ authored presentation.
+        if (
+          ![
+            'nightweir',
+            'worldspire',
+            'interceptor',
+            'interceptor-helion',
+            'interceptor-nightweir',
+            'freestyle-oriel',
+            'freestyle-ravel',
+            'eliminator-glasswake',
+            'eliminator-saffron',
+            'eliminator-nomad',
+          ].includes(id)
+        )
           renderer.render(scene, camera);
         const canvas = document.createElement('canvas');
         canvas.width = 640;

@@ -2572,7 +2572,7 @@ select {
   z-index: 5;
   white-space: nowrap;
 }
-#sprint-finish-actions button {
+#sprint-finish-actions button:not(.primary) {
   background: rgba(15, 24, 31, 0.92);
 }
 

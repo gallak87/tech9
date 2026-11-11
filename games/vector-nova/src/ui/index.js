@@ -36,6 +36,7 @@ export function createUI(
   const listeners = new AbortController();
   root.id = 'interface';
   root.dataset.level = metadata.id;
+  root.dataset.freestyle = String(metadata.freestyle === true);
   root.classList.toggle('jump-playtest', Boolean(playtest));
   host.append(root);
   root.innerHTML = `<header class="masthead"><a class="wordmark" href="#" aria-label="Vector Nova home">VECTOR<span>//</span>NOVA</a><div class="edition"><i></i> <span></span></div><button class="quiet" id="pause-button" aria-label="Pause">Ⅱ</button></header>
@@ -69,10 +70,22 @@ export function createUI(
     const finishActions = document.createElement('div');
     finishActions.id = 'sprint-finish-actions';
     finishActions.className = 'actions hidden';
-    finishActions.innerHTML = `<button id="sprint-retry">R · ${playtest ? 'REPEAT CASE' : 'RETRY DESCENT'}</button><button id="sprint-home">ESC · PADDOCK</button>`;
+    finishActions.innerHTML = `<button id="sprint-home" class="primary">Race setup →</button><button id="sprint-retry">R · ${playtest ? 'REPEAT CASE' : 'RETRY DESCENT'}</button>`;
     root.append(finishActions);
     $('sprint-retry').onclick = actions.restart;
     $('sprint-home').onclick = actions.home;
+  }
+  if (metadata.freestyle) {
+    $('restart').textContent = 'Retry Freestyle';
+    $('start').firstChild.textContent = 'START FREESTYLE ';
+  }
+  if (metadata.eventType === 'eliminator') {
+    $('restart').textContent = 'Retry Eliminator';
+    $('start').firstChild.textContent = 'START ELIMINATOR ';
+  }
+  if (metadata.eventType === 'interceptor') {
+    $('restart').textContent = 'Retry Interceptor';
+    $('start').firstChild.textContent = 'START INTERCEPTOR ';
   }
   let casePicker = null;
   if (playtest?.cases?.length > 1) {
@@ -687,6 +700,7 @@ export function createUI(
       motion = null,
       {
         practice = false,
+        freestylePractice = null,
         gamepad = false,
         competition = null,
         lastResults = null,
@@ -695,18 +709,25 @@ export function createUI(
       } = {},
     ) {
       currentCompetition = competition;
-      retainedResults = lastResults;
+      // Solo and mission outcomes have no race roster to show in the paddock.
+      retainedResults = Array.isArray(lastResults?.standings)
+        ? lastResults
+        : null;
       $('pause-race-settings')?.classList.toggle(
         'hidden',
         !competition?.enabled || !!cup,
       );
       updateControlHints(gamepad);
       if (!playtest)
-        $('restart').textContent = sprint
-          ? 'Restart sprint'
-          : competition?.enabled
-            ? 'Restart race'
-            : 'Restart practice';
+        $('restart').textContent = metadata.freestyle
+          ? freestylePractice
+            ? 'Retry transfer'
+            : 'Restart full chain'
+          : sprint
+            ? 'Restart sprint'
+            : competition?.enabled
+              ? 'Restart race'
+              : 'Restart practice';
       updateRoster();
       $('sprint-finish-actions')?.classList.toggle(
         'hidden',
@@ -784,8 +805,8 @@ export function createUI(
       $('best').textContent = sprint
         ? r.complete
           ? r.valid
-            ? 'RESULT RECORDED · R TO RETRY'
-            : 'UNTIMED RESULT · R TO RETRY'
+            ? 'RESULT RECORDED'
+            : 'UNTIMED RESULT'
           : r.valid
             ? (copy.courseLabel ?? 'SUMMIT → RECEIVING ARRAY')
             : 'UNTIMED RUN'
@@ -797,6 +818,8 @@ export function createUI(
             ? `BEST ${fmt(r.best)}`
             : 'SET YOUR FIRST CLEAN LAP';
       $('home').textContent = cup ? 'Cup hub · progress kept' : 'Race setup';
+      if ($('sprint-home'))
+        $('sprint-home').textContent = cup ? 'Cup hub →' : 'Race setup →';
       if (cup) {
         $('restart').textContent = 'Retry cup race · earlier scores kept';
         root.querySelector('.lap > span').textContent =
@@ -889,7 +912,7 @@ export function createUI(
       }
       if (competition?.enabled) {
         for (const rival of competition.standings.filter(
-          (entry) => entry.id !== 'player',
+          (entry) => entry.id !== 'player' && !entry.eliminated,
         )) {
           const frame = track.sample(rival.distance);
           const surface = track.mapPaths

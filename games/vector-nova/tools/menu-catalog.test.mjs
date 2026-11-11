@@ -8,6 +8,7 @@ import { editionPolicy } from './desktop/policy.mjs';
 import { ALL_CUPS, availableCups } from '../src/race/cup.js';
 import {
   BONUS_LEVEL_IDS,
+  COURSE_IDS,
   filterAvailableLevels,
 } from '../src/levels/access.js';
 import { ALL_REWARDS } from '../src/progression/catalog.js';
@@ -92,6 +93,33 @@ test('saved previews survive source/artifact changes and stale routes; only miss
   await assert.rejects(menuCatalog(options), /Invalid menu preview record/);
 });
 
+test('Freestyle transfer summaries come from each CPU route without loading its world', async (t) => {
+  const root = await mkdtemp(join(tmpdir(), 'vector-nova-transfers-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await mkdir(join(root, 'src/levels/example'), { recursive: true });
+  await writeFile(join(root, 'src/levels/example/metadata.js'), '// metadata');
+  let transfers = 3;
+  const options = {
+    root,
+    warn() {},
+    loadModule: async (path) =>
+      path.endsWith('metadata.js')
+        ? { default: { id: 'example', name: 'Example', freestyle: true } }
+        : {
+            createExampleTrack: () => ({
+              length: 100,
+              jumps: Array.from({ length: transfers }, () => ({})),
+              sample: (distance) => ({
+                position: { clone: () => ({ x: distance, z: distance }) },
+              }),
+            }),
+          },
+  };
+  assert.equal((await menuCatalog(options))[0].transfers, 3);
+  transfers = 5;
+  assert.equal((await menuCatalog(options))[0].transfers, 5);
+});
+
 test('WebP headers report dimensions and reject incomplete or unrelated files', () => {
   assert.deepEqual(webpSize(header()), { width: 640, height: 400 });
   assert.throws(() => webpSize(Buffer.from('not an image')), /Invalid/);
@@ -111,7 +139,7 @@ test('Orbital menu records use the production identity rather than its shape stu
 test('the full desktop catalogue and every championship resolve to the active worlds', async () => {
   const policy = editionPolicy('full');
   const routes = await menuCatalog({ levelIds: policy.levels, warn() {} });
-  assert.equal(routes.length, 17);
+  assert.equal(routes.length, 26);
   assert.deepEqual(
     new Set(policy.levels),
     new Set(routes.map((route) => route.id)),
@@ -133,7 +161,7 @@ test('the full desktop catalogue and every championship resolve to the active wo
   );
   assert.deepEqual(
     new Set(fullCups.flatMap((cup) => cup.tracks)),
-    new Set(policy.levels),
+    new Set(policy.levels.filter((id) => !COURSE_IDS.includes(id))),
   );
 });
 
@@ -169,10 +197,25 @@ test('shipped bonus courses and Encore remain gated by career completion or deve
   const claims = ALL_REWARDS.map((reward) => reward.id);
   for (const [profile, developer, courseCount, cupCount] of [
     [{ claims: claims.slice(0, -1) }, false, 14, 4],
-    [{ claims }, false, 17, 5],
-    [{ claims: [] }, true, 17, 5],
+    [{ claims }, false, 14, 4],
+    [
+      {
+        claims,
+        cups: ['founders', 'frontier', 'horizon'],
+        finishedCourses: COURSE_IDS,
+      },
+      false,
+      26,
+      5,
+    ],
+    [{ claims: [] }, true, 26, 5],
   ]) {
-    const access = { complete: isCareerComplete(profile), developer };
+    const access = {
+      complete: isCareerComplete(profile),
+      developer,
+      cupWins: profile.cups,
+      finishedCourses: profile.finishedCourses,
+    };
     const available = filterAvailableLevels(routes, access);
     const cups = availableCups(access);
     assert.equal(available.length, courseCount);
@@ -180,7 +223,7 @@ test('shipped bonus courses and Encore remain gated by career completion or deve
     for (const id of BONUS_LEVEL_IDS)
       assert.equal(
         available.some((route) => route.id === id),
-        courseCount === 17,
+        cupCount === 5,
       );
     assert.equal(
       cups.some((cup) => cup.id === 'encore'),

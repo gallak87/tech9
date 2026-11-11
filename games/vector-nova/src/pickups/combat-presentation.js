@@ -156,7 +156,10 @@ function createDetailedCombatPresentation(scene, combat, projection) {
       flashes.forEach(({ group, impact, upright, crown, pressure }, index) => {
         const flash = state.flashes[index];
         group.visible =
-          !!flash && !isLanceFlash(flash) && !roadPulse?.handles(flash);
+          !!flash &&
+          !isLanceFlash(flash) &&
+          !flash.signature &&
+          !roadPulse?.handles(flash);
         if (!group.visible) return;
         group.position.fromArray(flash.position);
         group.quaternion.fromArray(flash.quaternion);
@@ -214,7 +217,7 @@ function createDetailedCombatPresentation(scene, combat, projection) {
       });
       shots.forEach((mesh, index) => {
         const shot = state.shots[index];
-        mesh.visible = !!shot && !shot.heavy;
+        mesh.visible = !!shot && !shot.heavy && !shot.signature;
         if (!mesh.visible) return;
         mesh.position.fromArray(shot.position);
         mesh.quaternion.fromArray(shot.quaternion);

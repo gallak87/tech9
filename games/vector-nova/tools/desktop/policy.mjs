@@ -1,4 +1,5 @@
 import { DEMO_REQUIREMENTS } from '../../src/progression/edition.js';
+import { COURSE_IDS } from '../../src/levels/access.js';
 
 export const demoLevels = ['halcyon', 'nacre'];
 export const fullLevels = [
@@ -19,6 +20,7 @@ export const fullLevels = [
   'ravel',
   'nomad',
   'oriel',
+  ...COURSE_IDS,
 ];
 export function editionPolicy(edition) {
   if (!['demo', 'full'].includes(edition))

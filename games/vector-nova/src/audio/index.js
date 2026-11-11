@@ -1,6 +1,7 @@
 import { createPropulsion, smooth } from './propulsion.js';
 import { createNacreThunder } from './nacre-thunder.js';
 import { createImmersionMix } from './immersion.js';
+import { createLandingAudio } from './landing.js';
 import { createSampleBank } from './sample-bank.js';
 import { RACE_SAMPLES, raceSample } from './sample-cues.js';
 
@@ -33,6 +34,7 @@ export function createAudio({
     owned.propulsion?.dispose();
     owned.thunder?.dispose();
     owned.environment?.dispose();
+    owned.landing.dispose();
     for (const shot of owned.shots) shot.stop();
     owned.shots.clear();
     owned.bus.disconnect();
@@ -103,6 +105,7 @@ export function createAudio({
                   })
                 : null,
               environment: environment?.(context, bus),
+              landing: createLandingAudio(context, bus),
               shots: new Set(),
             };
           }
@@ -155,6 +158,7 @@ export function createAudio({
       smooth(propulsionBus.gain, running ? 1 : 0, context.currentTime, 0.012);
       if (running) propulsion?.update(state);
       if (!environmentActive) {
+        resources.landing.stop();
         resources.environment?.stop();
         resources.thunder?.stop();
       }
@@ -165,14 +169,13 @@ export function createAudio({
         }
     },
     resetEnvironment() {
+      resources?.landing.reset();
       resources?.thunder?.stop();
       resources?.environment?.stop();
-      if (resources)
-        for (const shot of resources.shots)
-          if (shot.finish) {
-            shot.stop();
-            resources.shots.delete(shot);
-          }
+      if (resources) {
+        for (const shot of resources.shots) shot.stop();
+        resources.shots.clear();
+      }
     },
     setImmersion(submerged) {
       resources?.immersion?.update(submerged);
@@ -188,6 +191,7 @@ export function createAudio({
         loadedSamples: resources?.samples.loaded() ?? [],
         missingSamples: resources?.samples.missing() ?? Object.keys(samples),
         immersion: resources?.immersion?.getStatus() ?? null,
+        landing: resources?.landing.getPresentation() ?? null,
       };
     },
     getPresentation() {
@@ -202,6 +206,11 @@ export function createAudio({
       return sample ? (resources?.samples.get(sample.id)?.duration ?? 0) : 0;
     },
     event(event) {
+      if (event?.type === 'landing-catch') {
+        return resources && !disposed && environmentActive
+          ? resources.landing.trigger(event)
+          : false;
+      }
       if (resources && !disposed && environmentActive)
         resources.environment?.trigger?.(event);
       if (event?.type === 'nacre-thunder') {
@@ -210,17 +219,49 @@ export function createAudio({
         return;
       }
       const champion = event?.type === 'cup-champion';
-      if (!resources || disposed || !audible || (resultsActive && !champion))
+      const sample = raceSample(event);
+      const bossDisabled =
+        event?.type === 'interceptor-cue' &&
+        event.payload?.cue === 'disable' &&
+        sample !== null;
+      if (
+        !resources ||
+        disposed ||
+        !audible ||
+        (resultsActive && !champion && !bossDisabled)
+      )
         return;
       const { context, bus, cueBus, shots } = resources;
-      const sample = raceSample(event);
       const buffer = sample && resources.samples.get(sample.id);
       const countdown =
         event?.type === 'countdown-beep' || event?.type === 'countdown-go';
       // Countdown retains its original tones; authored cues have no fallback.
       if (!buffer && !countdown) return;
-      const finish = event.type === 'player-race-complete' || champion;
+      const finish =
+        event.type === 'player-race-complete' || champion || bossDisabled;
       if (champion && [...shots].some((shot) => shot.champion)) return;
+      if (bossDisabled && [...shots].some((shot) => shot.bossDisabled)) return;
+      if (event?.type === 'interceptor-cue' && event.payload?.cue === 'lock')
+        for (const shot of shots)
+          if (shot.sampleId === `${event.payload.bossId}-charge`)
+            shot.duck?.(0.25);
+      if (event?.type === 'interceptor-cue' && event.payload?.cue === 'recover')
+        for (const shot of shots)
+          if (shot.sampleId === `${event.payload.bossId}-fire`)
+            shot.duck?.(0.5);
+      if (event?.type === 'interceptor-cue' && event.payload?.cue === 'counter')
+        for (const shot of shots)
+          if (
+            [
+              'charge',
+              'lock',
+              'turn',
+              ...(event.payload.bossId === 'bulwark'
+                ? ['core-hit', 'expose']
+                : []),
+            ].some((cue) => shot.sampleId === `${event.payload.bossId}-${cue}`)
+          )
+            shot.duck?.(0.25);
       const finalLap = event.type === 'final-lap';
       if (finish || finalLap)
         for (const shot of shots)
@@ -275,7 +316,22 @@ export function createAudio({
       const shot = {
         finish,
         champion,
+        bossDisabled,
+        sampleId: sample?.id,
         endsAt: time + end + 0.01,
+        duck(factor) {
+          const now = context.currentTime;
+          if (now >= time + end) return;
+          const level = (sample?.gain ?? 0) * factor;
+          const reached = Math.min(now + 0.015, time + end);
+          envelope.gain.cancelAndHoldAtTime(now);
+          envelope.gain.linearRampToValueAtTime(level, reached);
+          envelope.gain.setValueAtTime(
+            level,
+            Math.max(reached, time + end - 0.01),
+          );
+          envelope.gain.linearRampToValueAtTime(0, time + end);
+        },
         stop() {
           if (ended) return;
           ended = true;

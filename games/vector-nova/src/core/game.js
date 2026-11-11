@@ -2,9 +2,37 @@ import { createEquipmentPresentation } from '../equipment/presentation.js';
 import { buildIdentity } from '../progression/profile.js';
 import { vehicleHandling } from '../ships/catalog.js';
 import { createCupFinish } from './cup-finish.js';
+import { finishFreestyle } from '../freestyle/records.js';
+import { freestylePracticeOutcome } from '../freestyle/feedback.js';
+import { withFreestyleCatchFeedback } from '../freestyle/catch-feedback.js';
+import {
+  createLandingFeedback,
+  withLandingFeedback,
+} from '../presentation/landing-feedback.js';
+import { createLandingVfx } from '../presentation/landing-vfx.js';
+import { createRaceGrid, RACE_ORDER } from '../race/roster.js';
+import {
+  createEliminatorEvent,
+  qualifiedEliminatorFinishTime,
+} from '../events/eliminator.js';
+import { createEliminatorPresentation } from '../events/eliminator-view.js';
+import { createInterceptorEvent } from '../events/interceptor.js';
+import { createInterceptorPresentation } from '../events/interceptor-view.js';
+import { createInterceptorField } from '../events/interceptor-field.js';
+import { createInterceptorMotion } from '../events/interceptor-motion.js';
+import { createInterceptorChaseMotion } from '../events/interceptor-chase.js';
+import { createInterceptorEffects } from '../events/interceptor-effects.js';
+import {
+  aimWraithScissors,
+  aimBulwarkSlab,
+} from '../events/interceptor-aim.js';
+import { interceptorBoss } from '../events/interceptor-bosses.js';
+import {
+  PURSUIT_EQUIPMENT,
+  PURSUIT_TUNING,
+} from '../events/interceptor-loadout.js';
 import { createCupClassification } from './cup-classification.js';
 import { raceRivalBuild, replayRivalBuild } from './rival-setup.js';
-import { createRaceGrid } from '../race/roster.js';
 import { interpolateSurfaceLateral } from '../track/surface.js';
 import * as T from 'three';
 import { createFleetShip } from '../ships/fleet.js';
@@ -42,7 +70,11 @@ import { artPassURL } from './art-pass.js';
 
 import { createStartCountdown } from './start-countdown.js';
 import { discoverLevels } from '../levels/catalog.js';
-import { levelAvailable, filterAvailableLevels } from '../levels/access.js';
+import {
+  levelAvailable,
+  filterAvailableLevels,
+  lockedLevelMessage,
+} from '../levels/access.js';
 import { circuitURL } from '../levels/contract.js';
 import { createLevelPresentation } from '../levels/presentation.js';
 import { createLifetime } from './lifecycle.js';
@@ -52,6 +84,7 @@ import {
   restoreSimulationCheckpoint,
 } from './simulation-checkpoint.js';
 import {
+  createMagneticRuntime,
   readRuntimeFrame,
   runtimeIdentity,
   compatibleRuntime,
@@ -135,12 +168,18 @@ export async function createGame({
       (parameters.get('test') === 'jump' ? 'saffron' : undefined);
     const access = {
       complete: contentAccess.complete === true,
+      cupWins: Array.isArray(contentAccess.cupWins)
+        ? [...contentAccess.cupWins]
+        : [],
+      finishedCourses: Array.isArray(contentAccess.finishedCourses)
+        ? [...contentAccess.finishedCourses]
+        : [],
       developer:
         !import.meta.env?.VN_DESKTOP &&
         ['1', '2'].includes(parameters.get('dev')),
     };
     if (!levelAvailable(requestedLevel, access))
-      throw new Error('Complete all 28 career unlocks to open this circuit.');
+      throw new Error(lockedLevelMessage(requestedLevel, access));
     const {
       metadata,
       definition,
@@ -149,12 +188,63 @@ export async function createGame({
       review: !import.meta.env?.VN_DESKTOP ? parameters.get('review') : null,
     });
     const VERSION = definition.version;
+    const freestyle = Boolean(definition.freestyle);
+    let eventPresentation = null,
+      lastEliminationWarning = null;
+    let interceptor = null;
+    const pendingMissionFire = [];
     const settings = loadSettings();
     await checkpoint('Preparing route');
     const simulation = lifetime.own(
       await createSimulationWorld(definition, { shape: blockout, signal }),
     );
     const { track, collisionWorld, dynamics } = simulation;
+    if (definition.event?.finishAtCourseEnd && track.closed !== false)
+      throw new Error('Eliminator terminal finishes require an open sprint');
+    const eliminator =
+      !freestyle && definition.event?.type === 'eliminator'
+        ? createEliminatorEvent({
+            ids: RACE_ORDER,
+            gridOrder: RACE_ORDER,
+            ...definition.event,
+            ...(definition.event.finishAtCourseEnd
+              ? { finishDistance: track.finishDistance }
+              : {}),
+          })
+        : null;
+    const missionBoss =
+      definition.event?.type === 'interceptor'
+        ? interceptorBoss(definition.event.bossId ?? definition.event.targetId)
+        : null;
+    const newInterceptor = (difficulty = settings.difficulty) =>
+      createInterceptorEvent({
+        targetId: definition.event.targetId,
+        bossId: missionBoss.id,
+        health: definition.event.health,
+        difficulty,
+        routeLength: track.length,
+        escapeDistance: track.length * definition.event.escapeLaps,
+      });
+    if (!freestyle && definition.event?.type === 'interceptor')
+      interceptor = newInterceptor();
+    const raceField = interceptor
+      ? createInterceptorField({
+          track,
+          bossId: missionBoss.id,
+          getCounterattack: () => interceptor.snapshot().counterattack,
+        })
+      : null;
+    const eventIdentity = () =>
+      eliminator
+        ? { ...definition.event, rulesId: eliminator.rulesId }
+        : interceptor
+          ? {
+              ...definition.event,
+              rulesId: interceptor.rulesId,
+              issuedEquipment: PURSUIT_EQUIPMENT,
+              equipmentTuning: PURSUIT_TUNING,
+            }
+          : null;
     const playtestName = parameters.get('test');
     const playtest =
       !import.meta.env?.VN_DESKTOP &&
@@ -193,6 +283,15 @@ export async function createGame({
         settings,
         checkpoint,
         developer: access.developer,
+        ...(freestyle && access.developer
+          ? {
+              freestyleActions: {
+                practiceTransfer: (id) => practiceFreestyleTransfer(id),
+                startFullRun: () => startFreestyleRun(),
+                getPractice: () => structuredClone(freestylePractice),
+              },
+            }
+          : {}),
       }),
     );
     const { road, environment } = world;
@@ -267,12 +366,14 @@ export async function createGame({
     let rivalSetup = null;
     const playerState = (stock = false) => ({
       ...createVehicleState(ship.selected.id),
-      ...(!stock && buildIdentity(playerBuild)
-        ? {
-            enhancements: { ...playerBuild.enhancements },
-            equipment: [...playerBuild.equipment],
-          }
-        : {}),
+      ...(interceptor
+        ? { enhancements: {}, equipment: [...PURSUIT_EQUIPMENT] }
+        : !stock && !freestyle && buildIdentity(playerBuild)
+          ? {
+              enhancements: { ...playerBuild.enhancements },
+              equipment: [...playerBuild.equipment],
+            }
+          : {}),
     });
     let state = playerState(),
       prev = { ...state },
@@ -287,6 +388,7 @@ export async function createGame({
       time = 0,
       raf = 0,
       active = true,
+      freestylePractice = null,
       inspectionTime = 0,
       inspectionLayout = null;
     const inputLog = [],
@@ -295,6 +397,15 @@ export async function createGame({
       effects = lifetime.own(createEffects(scene, definition.effects));
     let rig = createCameraRig(camera, definition.camera, inspectionBounds);
     const raceFeedback = createRaceFeedback();
+    const landingFeedback = freestyle ? null : createLandingFeedback();
+    const landingVfx = freestyle
+      ? null
+      : lifetime.own(createLandingVfx({ track }));
+    if (landingVfx) scene.add(landingVfx.group);
+    function resetLandingFeedback() {
+      landingFeedback?.reset(state.time);
+      landingVfx?.reset();
+    }
     let inspectionTab = 'fleet',
       inspectedRival = RIVAL_SHIPS[0],
       rivalPreview = null,
@@ -327,9 +438,26 @@ export async function createGame({
       if (e.type === 'jump-transfer' || e.type === 'road-recovery')
         prev = { ...state };
       raceFeedback.event(event);
+      landingFeedback?.event(event);
+      if (
+        freestylePractice &&
+        e.type === 'jump-launch' &&
+        e.payload?.id === freestylePractice.id
+      )
+        freestylePractice.launchSpeed = e.payload.speed;
+      if (
+        freestylePractice &&
+        !freestylePractice.outcome &&
+        e.payload?.id === freestylePractice.id &&
+        ['freestyle-bank', 'jump-miss'].includes(e.type)
+      )
+        freestylePractice.outcome = freestylePracticeOutcome(e);
       try {
         if (e.type === 'lap' && competition) {
-          if (race.history.length === 1) audio.event({ type: 'final-lap' });
+          if (!eliminator && race.history.length === 1)
+            audio.event({ type: 'final-lap' });
+        } else if (e.type === 'eliminator-warning') {
+          audio.event({ type: 'countdown-beep', payload: e.payload });
         } else audio.event(event);
       } catch {
         /* Decorative audio must not interrupt physics. */
@@ -367,19 +495,114 @@ export async function createGame({
       settings,
       emit,
       audioImmersion: definition.audio?.immersion,
-      equipment: true,
+      equipmentEnabled: !freestyle,
+      ...(interceptor
+        ? {
+            team: 'hunters',
+            equipmentTuning: PURSUIT_TUNING,
+            beforeCombat: drainMissionFire,
+          }
+        : {}),
     };
     const simulationActors = lifetime.own(
-      createSimulationActors(simulation, { settings, signal }),
+      createSimulationActors(simulation, {
+        settings,
+        signal,
+        forceCombat: !!interceptor,
+        ...(interceptor
+          ? {
+              combatOptions: {
+                onHit(payload) {
+                  const target = racers?.opponents.find(
+                    (entry) => entry.specification.id === missionBoss.id,
+                  );
+                  const pose = target?.runtime.pose(1);
+                  const hitLocal =
+                    pose && payload.position
+                      ? new T.Vector3()
+                          .fromArray(payload.position)
+                          .sub(pose.position)
+                          .applyQuaternion(pose.quaternion.clone().invert())
+                          .toArray()
+                      : null;
+                  for (const hit of interceptor.hit({
+                    ...payload,
+                    hitLocal,
+                    key: `${payload.hitId}:${payload.source}:${payload.target}`,
+                  })) {
+                    if (hit.type === 'interceptor-breakwater')
+                      combat.stopIon(missionBoss.id);
+                    emit(hit);
+                  }
+                },
+              },
+            }
+          : {}),
+      }),
     );
     const wrapPlayer = racingEnabled
       ? (await import('../pickups/index.js')).createCircuitDeviceRuntime
       : undefined;
     const { runtime } = await simulationActors.createPlayer(runtimeContext, {
       wrap: wrapPlayer,
+      ...(interceptor
+        ? {
+            motionFactory: (context) =>
+              createInterceptorChaseMotion(context, {
+                createMotion: definition.createRuntime ?? createMagneticRuntime,
+                getTarget: () =>
+                  racers?.opponents.find(
+                    (opponent) => opponent.specification.id === missionBoss.id,
+                  ),
+              }),
+          }
+        : {}),
     });
     const { combat } = simulationActors.prepareRacing();
-    const racers = await simulationActors.createField();
+    const { createDeviceRuntime } = interceptor
+      ? await import('../pickups/runtime.js')
+      : {};
+    const racers = await simulationActors.createField({
+      continuous: !!eliminator || !!interceptor,
+      field: raceField,
+      ...(interceptor
+        ? {
+            createRuntime(specification, { context, combat, devices }) {
+              const motion =
+                specification.id === missionBoss.id
+                  ? createInterceptorMotion(context, {
+                      createMotion:
+                        definition.racing.createMotion ?? createMagneticRuntime,
+                      getYaw: () => interceptor.snapshot().counterattack.yaw,
+                    })
+                  : (definition.racing.createMotion ?? createMagneticRuntime)(
+                      context,
+                    );
+              try {
+                return createDeviceRuntime({
+                  combat,
+                  combatId: specification.id,
+                  team: specification.team,
+                  hitBounds: specification.hitBounds,
+                  ...(specification.id === missionBoss.id
+                    ? { combatResistance: 0.9, damageDuringGrace: true }
+                    : {}),
+                  track,
+                  devices:
+                    specification.id === missionBoss.id
+                      ? devices.filter((device) => device.type === 'aegis')
+                      : devices,
+                  identity: definition.racing.identity,
+                  motion,
+                });
+              } catch (error) {
+                motion.dispose();
+                throw error;
+              }
+            },
+          }
+        : {}),
+    });
     const racerModule = racers ? await import('../race/racers.js') : null;
     const racerPresentation = racers
       ? lifetime.own(
@@ -389,6 +612,19 @@ export async function createGame({
             track,
             combat,
             settings,
+            loadRival: definition.racing.loadRival,
+          }),
+        )
+      : null;
+    const interceptorEffects = interceptor
+      ? lifetime.own(
+          createInterceptorEffects({
+            scene,
+            track,
+            bossId: missionBoss.id,
+            boss: racerPresentation.getShip(missionBoss.id).group,
+            racers,
+            combat,
           }),
         )
       : null;
@@ -421,10 +657,24 @@ export async function createGame({
       createRace(track, {
         rulesId: `${runtime.rulesId}:ship-${ship.selected.id}-v${ship.selected.version}${competition ? `:difficulty-${raceDifficulty}` : ''}`,
         untimed: Boolean(playtest),
-        laps: timeTrial && track.closed === false ? 1 : Infinity,
+        laps: freestyle || (timeTrial && track.closed === false) ? 1 : Infinity,
         continuous: timeTrial && track.closed !== false,
       });
     const resetRuntime = (reason) => {
+      pendingMissionFire.length = 0;
+      if (reason === 'manual-recover') {
+        eliminator?.invalidate();
+        interceptor?.invalidate();
+      } else {
+        eliminator?.reset();
+        if (interceptor) {
+          if (interceptor.snapshot().difficulty !== raceDifficulty)
+            interceptor = newInterceptor(raceDifficulty);
+          else interceptor.reset();
+        }
+        eventPresentation?.reset();
+        lastEliminationWarning = null;
+      }
       if (reason !== 'manual-recover') {
         finishAt = null;
         cupFinish?.dispose();
@@ -462,6 +712,7 @@ export async function createGame({
       audio.resetEnvironment();
       effects.reset();
       raceFeedback.reset();
+      resetLandingFeedback();
       world.reset();
     };
     const advance = (control) => {
@@ -497,13 +748,177 @@ export async function createGame({
       };
     }
     function advanceTick(control) {
+      if (
+        (freestyle && runtime.snapshot().freestyle?.result) ||
+        eliminator?.snapshot().result ||
+        interceptor?.snapshot().result
+      )
+        return;
       prev = { ...state };
       if (!import.meta.env?.VN_DESKTOP) {
         inputLog.push({ tick, input: { ...control } });
         if (inputLog.length > 36000) inputLog.shift();
       }
       advance(control);
+      if (landingFeedback) {
+        const support = runtime.pose(1);
+        const cue = landingFeedback.sample({
+          clock: state.time,
+          grounded: support?.grounded,
+          recovering: support?.recovering,
+        });
+        if (cue && mode === 'racing') {
+          try {
+            audio.event(cue);
+          } catch {
+            /* Decorative audio must not interrupt physics. */
+          }
+        }
+      }
       tick++;
+      if (freestylePractice?.outcome && !freestylePractice.notified) {
+        freestylePractice.notified = true;
+        pause();
+        return;
+      }
+      const freestyleResult = freestyle && runtime.snapshot().freestyle?.result;
+      if (freestyleResult && lastResults?.mode !== 'freestyle') {
+        lastResults = finishFreestyle(
+          freestyleResult,
+          `${track.id}:${VERSION}:${runtime.rulesId}:${ship.selected.id}:${ship.selected.version}`,
+          trialStorage,
+        );
+        input.clear();
+        mode = 'results';
+        ui.setResultsAvailable(true);
+        ui.setMode(mode);
+        audio.event({
+          type: 'player-race-complete',
+          payload: { valid: lastResults.playerValid, position: 1 },
+        });
+        onResults?.(lastResults);
+        return;
+      }
+      if (interceptor && competition) {
+        const target = racers.opponents.find(
+          (opponent) => opponent.specification.id === missionBoss.id,
+        );
+        for (const event of interceptor.step(1 / 120, {
+          targetDistance: target.state.distance,
+          playerDistance: state.distance,
+          playerLateral: state.lateral,
+          targetLateral: target.state.lateral,
+          playerBoost: !!control.boost,
+          playerBoosting: !!state.boosting,
+          playerValid: race.valid,
+        })) {
+          if (event.type === 'interceptor-fire')
+            pendingMissionFire.push(event.payload);
+          else {
+            if (event.type === 'interceptor-wake-stop')
+              combat.stopIon(missionBoss.id);
+            emit(event);
+          }
+        }
+        const status = interceptor.snapshot();
+        if (status.result) {
+          lastResults = {
+            ...status.result,
+            difficulty: raceDifficulty,
+            shipId: state.shipId,
+          };
+          input.clear();
+          mode = 'results';
+          ui.setResultsAvailable(true);
+          ui.setMode(mode);
+          if (
+            lastResults.won &&
+            ['goliath', 'wraith', 'bulwark'].includes(missionBoss.id)
+          )
+            emit({
+              type: 'interceptor-cue',
+              payload: {
+                bossId: missionBoss.id,
+                cue: 'disable',
+                elapsed: state.time,
+              },
+            });
+          else
+            audio.event({
+              type: 'player-race-complete',
+              payload: {
+                valid: lastResults.won && lastResults.playerValid,
+                position: lastResults.won ? 1 : 10,
+              },
+            });
+          onResults?.(lastResults);
+          return;
+        }
+      }
+      if (eliminator && competition) {
+        const field = racers.snapshot({
+          playerState: state,
+          playerRace: race,
+          playerPose: runtime.pose(1),
+        });
+        const rows = definition.event.finishAtCourseEnd
+          ? field.standings.map((row) => {
+              const progress =
+                row.id === 'player'
+                  ? race
+                  : racers.opponents.find(
+                      (opponent) => opponent.specification.id === row.id,
+                    )?.race;
+              return {
+                ...row,
+                // createRace alone validates checkpoint order, transfers and
+                // grounded terminal contact, and interpolates its exact time.
+                finishTime: qualifiedEliminatorFinishTime(progress),
+              };
+            })
+          : field.standings;
+        for (const event of eliminator.step(1 / 120, rows)) {
+          if (event.type === 'eliminator-cut') {
+            const rival = racers.opponents.find(
+              (opponent) => opponent.specification.id === event.payload.id,
+            );
+            const position = rival?.runtime.pose(1)?.position?.toArray();
+            eventPresentation?.trigger({
+              ...event,
+              payload: { ...event.payload, position },
+            });
+            if (rival) racers.setEliminated(event.payload.id);
+          }
+          emit(event);
+        }
+        const status = eliminator.snapshot();
+        const warning = Math.ceil(status.nextCut - status.elapsed);
+        if (
+          !status.result &&
+          warning > 0 &&
+          warning <= 3 &&
+          warning !== lastEliminationWarning
+        ) {
+          emit({ type: 'eliminator-warning', payload: { seconds: warning } });
+        }
+        lastEliminationWarning = warning;
+        if (status.result) {
+          lastResults = { ...status.result, difficulty: raceDifficulty };
+          input.clear();
+          mode = 'results';
+          ui.setResultsAvailable(true);
+          ui.setMode(mode);
+          audio.event({
+            type: 'player-race-complete',
+            payload: {
+              valid: lastResults.won && lastResults.playerValid,
+              position: lastResults.playerPosition,
+            },
+          });
+          onResults?.(lastResults);
+          return;
+        }
+      }
       const trialResult =
         !trial?.result && trial?.capture(trialPose(), 1 / 120);
       if (ghostSamples !== trial?.reference?.samples) {
@@ -556,16 +971,136 @@ export async function createGame({
         enabled,
         difficulty: raceDifficulty,
         gridOrder: cupRace?.gridOrder,
-        fieldBuild: enabled
-          ? (fieldBuild ??
-            raceRivalBuild({
-              build: playerBuild,
-              rivals: rivalSetup,
-              difficulty: raceDifficulty,
-              seed: Math.floor(Math.random() * 0x100000000),
-            }))
-          : null,
+        fieldBuild:
+          enabled && !raceField
+            ? (fieldBuild ??
+              raceRivalBuild({
+                build: playerBuild,
+                rivals: rivalSetup,
+                difficulty: raceDifficulty,
+                seed: Math.floor(Math.random() * 0x100000000),
+              }))
+            : null,
       });
+    }
+    function drainMissionFire() {
+      if (!interceptor || !competition || interceptor.snapshot().result) {
+        pendingMissionFire.length = 0;
+        return;
+      }
+      const target = racers.opponents.find(
+        (opponent) => opponent.specification.id === missionBoss.id,
+      );
+      for (const command of pendingMissionFire.splice(0)) {
+        if (command.source === missionBoss.id) {
+          if (
+            command.kind === 'lance' ||
+            (command.kind === 'arc' && command.muzzle)
+          ) {
+            let fired;
+            if (Number.isFinite(command.aimLane) && command.muzzle) {
+              const physical = target.runtime.pose(1);
+              const origin = new T.Vector3()
+                .fromArray(command.muzzle)
+                .applyQuaternion(physical.quaternion)
+                .add(physical.position);
+              const ahead = track.sample(state.distance);
+              const destination = ahead.position
+                .clone()
+                .addScaledVector(ahead.right, command.aimLane)
+                .addScaledVector(ahead.up, 1.8);
+              const direction = destination.sub(origin).normalize();
+              const quaternion = new T.Quaternion().setFromRotationMatrix(
+                new T.Matrix4().lookAt(
+                  new T.Vector3(),
+                  direction.clone().negate(),
+                  ahead.up,
+                ),
+              );
+              const shot = {
+                pose: { position: origin, quaternion },
+                signature:
+                  command.kind === 'arc'
+                    ? 'wraith-scissor'
+                    : missionBoss.id === 'bulwark'
+                      ? 'bulwark-slab'
+                      : 'goliath-pressure',
+              };
+              if (command.kind === 'arc' || missionBoss.id === 'bulwark') {
+                const aimed = (
+                  command.kind === 'arc' ? aimWraithScissors : aimBulwarkSlab
+                )({
+                  track,
+                  bossPose: physical,
+                  muzzle: command.muzzle,
+                  player: state,
+                  aimLane: command.aimLane,
+                  sourceSpeed: target.state.speed,
+                });
+                shot.pose = {
+                  position: aimed.position,
+                  quaternion: aimed.quaternion,
+                };
+              }
+              fired =
+                command.kind === 'arc'
+                  ? combat.fireArc(missionBoss.id, shot)
+                  : combat.fireLance(missionBoss.id, shot);
+            } else fired = combat.fireLance(missionBoss.id);
+            if (fired)
+              emit({
+                type: 'interceptor-cue',
+                payload: {
+                  bossId: missionBoss.id,
+                  cue: 'fire',
+                  elapsed: state.time,
+                  attackIndex: command.attackIndex,
+                  shotIndex: command.shotIndex,
+                },
+              });
+          } else
+            combat.request(missionBoss.id, {
+              type: 'pickup-activate',
+              payload: {
+                kind: command.kind,
+                deviceId: `${missionBoss.id}-countermeasure`,
+                ...(missionBoss.id === 'bulwark' && command.kind === 'ion'
+                  ? { wakeMuzzle: [0, 0.15, -10.4] }
+                  : {}),
+                fraction: 0,
+              },
+            });
+        } else {
+          const source = racers.opponents.find(
+            (opponent) => opponent.specification.id === command.source,
+          );
+          const gap = target.state.distance - source.state.distance;
+          if (
+            gap > 25 &&
+            gap < 500 &&
+            Math.abs(source.state.lateral - target.state.lateral) < 12 &&
+            source.runtime.pose(1)?.grounded !== false
+          )
+            combat.fireLance(command.source);
+        }
+      }
+    }
+    function missionSnapshot() {
+      if (!interceptor) return null;
+      const snapshot = interceptor.snapshot();
+      const target = racers.opponents.find(
+        (opponent) => opponent.specification.id === missionBoss.id,
+      );
+      return {
+        ...snapshot,
+        targetDistance: target.state.distance,
+        playerDistance: state.distance,
+        gap: target.state.distance - state.distance,
+        escapeProgress: Math.max(
+          0,
+          Math.min(1, target.state.distance / snapshot.escapeDistance),
+        ),
+      };
     }
     race = makeRace();
     resetRacers(false);
@@ -657,17 +1192,21 @@ export async function createGame({
         return;
       }
       if (newRun) {
+        freestylePractice = null;
         sessionActive = true;
         onAttempt?.();
         ui.setFinish(null);
         ui.setResultsAvailable(false);
         raceDifficulty = settings.difficulty;
         timeTrial = false;
-        competition = racingEnabled;
+        competition = !freestyle && racingEnabled;
         scenario = 'staging';
         state = playerState(timeTrial);
         if (competition)
-          Object.assign(state, createRaceGrid(cupRace?.gridOrder).player);
+          Object.assign(
+            state,
+            raceField?.grid.player ?? createRaceGrid(cupRace?.gridOrder).player,
+          );
         prev = { ...state };
         race = makeRace();
         resetRacers();
@@ -763,12 +1302,15 @@ export async function createGame({
       sceneShip();
       timeTrial = Boolean(trialMode);
       if (timeTrial || cupRace) seed = 7;
-      competition = !timeTrial && racingEnabled && compete;
+      competition = !freestyle && !timeTrial && racingEnabled && compete;
       if (withCountdown)
         raceDifficulty = cupRace?.difficulty ?? settings.difficulty;
       state = playerState(timeTrial);
       if (competition)
-        Object.assign(state, createRaceGrid(cupRace?.gridOrder).player);
+        Object.assign(
+          state,
+          raceField?.grid.player ?? createRaceGrid(cupRace?.gridOrder).player,
+        );
       prev = { ...state };
       race = makeRace();
       resetRacers(competition, fieldBuild);
@@ -793,6 +1335,47 @@ export async function createGame({
         parameters.get('finish') === '1'
       )
         api.devSetup({ finish: true, place: parameters.get('place') ?? 1 });
+    }
+    function practiceFreestyleTransfer(id) {
+      if (!freestyle || !access.developer || shipLoading) return false;
+      const index = track.jumps.findIndex((jump) => jump.id === id);
+      if (index < 0) return false;
+      const jump = track.jumps[index];
+      const scenarioId = jump.approachScenario ?? `jump${index + 1}-approach`;
+      const approach = track.scenarios[scenarioId];
+      if (!approach) return false;
+      restart(false, false, false);
+      freestylePractice = {
+        id,
+        label: jump.label,
+        outcome: null,
+        notified: false,
+      };
+      scenario = scenarioId;
+      Object.assign(state, approach);
+      race = makeRace();
+      race.placeScenario(state.distance);
+      resetRuntime('freestyle-practice');
+      initial = !import.meta.env?.VN_DESKTOP
+        ? captureInitial(state, runtime, dynamics)
+        : null;
+      prev = { ...state };
+      input.clear();
+      rig.reset();
+      ui.setMode(mode);
+      audio.unlock().catch(() => {});
+      return true;
+    }
+    function startFreestyleRun() {
+      if (!freestyle || !access.developer || shipLoading) return;
+      freestylePractice = null;
+      restart(false, true, false);
+      audio.unlock().catch(() => {});
+    }
+    function retrySession() {
+      if (freestylePractice)
+        return practiceFreestyleTransfer(freestylePractice.id);
+      return playtest ? repeatPlaytest() : restart(competition, true);
     }
     function repeatPlaytest() {
       window.__VN.loadScenario(selectedPlaytestCase.scenario, 7);
@@ -1114,8 +1697,7 @@ export async function createGame({
           },
           pause,
           resume,
-          restart: () =>
-            playtest ? repeatPlaytest() : restart(competition, true),
+          restart: retrySession,
           ...(!import.meta.env?.VN_DESKTOP
             ? {
                 repeatPlaytest: () => repeatPlaytest(),
@@ -1185,6 +1767,18 @@ export async function createGame({
         },
       ),
     );
+    if (eliminator)
+      eventPresentation = lifetime.own(
+        createEliminatorPresentation({
+          host: ui.root,
+          scene,
+          finishAtCourseEnd: definition.event.finishAtCourseEnd === true,
+        }),
+      );
+    if (interceptor)
+      eventPresentation = lifetime.own(
+        createInterceptorPresentation({ host: ui.root }),
+      );
     let appliedQuality = settings.quality,
       appliedMotion = settings.reducedMotion;
     lifetime.defer(
@@ -1273,11 +1867,13 @@ export async function createGame({
         (command) => {
           if (
             !suspended &&
-            timeTrial &&
+            (timeTrial || freestyle || eliminator || interceptor) &&
             command === 'restart' &&
             !['fly', 'results'].includes(mode)
           ) {
-            restart(false, true, true);
+            if (freestylePractice)
+              practiceFreestyleTransfer(freestylePractice.id);
+            else restart(!!eliminator || !!interceptor, true, timeTrial);
             return;
           }
           if (suspended || mode === 'results' || mode === 'fly') return;
@@ -1305,17 +1901,21 @@ export async function createGame({
         },
         pause,
         () => settings,
+        { freestyle },
       ),
     );
     input.bindTouch(ui.root);
     const equipmentPresentation = lifetime.own(
-      createEquipmentPresentation({
-        host,
-        scene,
-        activate: (slot) => {
-          if (mode === 'racing' && !suspended) input.activateEquipment(slot);
-        },
-      }),
+      freestyle
+        ? { update() {}, reset() {}, dispose() {} }
+        : createEquipmentPresentation({
+            host,
+            scene,
+            activate: (slot) => {
+              if (mode === 'racing' && !suspended)
+                input.activateEquipment(slot);
+            },
+          }),
     );
     const equipmentEvents = [];
     if (runtime.observePresentation)
@@ -1463,7 +2063,12 @@ export async function createGame({
         ui.setCountdown(null);
         goUntil = 0;
       }
-      if (mode === 'racing' || mode === 'results') {
+      if (
+        (mode === 'racing' || mode === 'results') &&
+        !(freestyle && lastResults?.mode === 'freestyle') &&
+        !eliminator?.snapshot().result &&
+        !interceptor?.snapshot().result
+      ) {
         accumulator += dt;
         const control =
           mode === 'results' || finishing
@@ -1492,7 +2097,7 @@ export async function createGame({
         mode !== 'fly' && (mode !== 'inspection' || inspectionTab === 'fleet');
       const motionFeedback = readRuntimeFrame(runtime) ?? {};
       const thermal = motionFeedback.motion ?? motionFeedback;
-      const feedback = raceFeedback.update({
+      let feedback = raceFeedback.update({
         state: s,
         mode,
         reducedMotion: settings.reducedMotion,
@@ -1504,6 +2109,17 @@ export async function createGame({
               ? 0.6
               : 0,
       });
+      if (freestyle)
+        feedback = withFreestyleCatchFeedback(
+          feedback,
+          motionFeedback.freestyle ?? motionFeedback.motion?.freestyle,
+          { reducedMotion: settings.reducedMotion, mode },
+        );
+      else
+        feedback = withLandingFeedback(feedback, landingFeedback.read(), {
+          reducedMotion: settings.reducedMotion,
+          mode,
+        });
       if (mode === 'inspection') {
         if (inspectionPreview.autoRotate && !settings.reducedMotion)
           inspectionTime += dt;
@@ -1608,6 +2224,31 @@ export async function createGame({
             ship.group.position.clone().addScaledVector(f.tangent, 5),
           );
           camera.updateProjectionMatrix();
+        } else if (
+          mode === 'results' &&
+          ['wraith', 'bulwark'].includes(missionBoss?.id) &&
+          interceptor.snapshot().result
+        ) {
+          // A long-range takedown still deserves a readable view of the actual
+          // target. Only the camera cuts; the recorded pursuit stays untouched.
+          const target = racers.opponents.find(
+            (r) => r.specification.id === missionBoss.id,
+          );
+          const body = target.runtime.pose(1);
+          const up = new T.Vector3(0, 1, 0).applyQuaternion(body.quaternion);
+          const forward = new T.Vector3(0, 0, 1).applyQuaternion(
+            body.quaternion,
+          );
+          const right = new T.Vector3(1, 0, 0).applyQuaternion(body.quaternion);
+          camera.position
+            .copy(body.position)
+            .addScaledVector(forward, -26)
+            .addScaledVector(up, 6)
+            .addScaledVector(right, -6);
+          camera.up.copy(up);
+          camera.fov = 55;
+          camera.lookAt(body.position.clone().addScaledVector(up, 1));
+          view.follow(body.position);
         } else
           rig.update(track, s, dt, {
             mode: cameraMode,
@@ -1621,16 +2262,41 @@ export async function createGame({
               ? T.MathUtils.smoothstep(state.time - finishAt, 0, 1.8)
               : 0,
           });
+        // Keep the target hull in the clear part of the results composition.
+        // This is projection only: results and earned progress remain immediate.
+        if (mode === 'results' && interceptor?.snapshot().result) {
+          camera.setViewOffset(
+            innerWidth,
+            innerHeight,
+            innerWidth * 0.2,
+            0,
+            innerWidth,
+            innerHeight,
+          );
+          camera.updateProjectionMatrix();
+        }
       }
       const frame = {
         state: s,
-        dt: mode === 'racing' || mode === 'results' ? dt : 0,
+        dt:
+          mode === 'racing' ||
+          (mode === 'results' && !freestyle && !eliminator && !interceptor)
+            ? dt
+            : 0,
+        presentationDt: mode === 'results' ? dt : 0,
         time: s.time,
         mode,
         camera,
         settings,
         ship,
         motion: motionFeedback,
+        ...(landingFeedback ? { landing: landingFeedback.read() } : {}),
+        eliminator: competition ? eliminator?.snapshot() : null,
+        interceptor: competition ? missionSnapshot() : null,
+        gamepad: input.gamepadPresent,
+        ...(freestyle
+          ? { freestylePractice: structuredClone(freestylePractice) }
+          : {}),
         reviewing: mode === 'overview' || (blockout && mode === 'title'),
       };
       audio.setImmersion(
@@ -1638,6 +2304,8 @@ export async function createGame({
       );
       runtime.update?.(frame);
       audio.setEnvironment(frame);
+      landingVfx?.update(frame);
+      eventPresentation?.update(frame);
       equipmentPresentation.update({
         equipment: runtime.equipment?.(),
         pose: runtime.pose(alpha),
@@ -1657,7 +2325,9 @@ export async function createGame({
         alpha,
         mode,
         settings,
+        interceptor: frame.interceptor,
       });
+      interceptorEffects?.update(frame);
       view.setRacingFeedback?.({
         mode,
         speed: s.speed,
@@ -1704,9 +2374,13 @@ export async function createGame({
         gamepad: input.gamepadPresent,
         trial: trial?.snapshot(),
         cup: cupRace,
+        freestylePractice,
       });
       if (
         onResults &&
+        !freestyle &&
+        !eliminator &&
+        !interceptor &&
         !timeTrial &&
         !playtest &&
         !resultsDismissed &&
@@ -1774,6 +2448,8 @@ export async function createGame({
                 { track, state, race, runtime, racers, timeTrial },
                 options,
               );
+              resetLandingFeedback();
+              audio.resetEnvironment();
               prev = { ...state };
               initial = captureInitial(state, runtime, dynamics);
               input.clear();
@@ -2055,9 +2731,7 @@ export async function createGame({
       clearInput: () => input.clear(),
       inspect: (options) => setCamera('inspection', options),
       selectShip,
-      restartRace() {
-        restart(competition, true);
-      },
+      restartRace: retrySession,
       ...(!import.meta.env?.VN_DESKTOP
         ? {
             getTrack: () => track,
@@ -2086,6 +2760,11 @@ export async function createGame({
                   : {}),
                 ship: { id: ship.selected.id, version: ship.selected.version },
                 runtime: runtimeIdentity(runtime),
+                ...(eventIdentity()
+                  ? {
+                      event: eventIdentity(),
+                    }
+                  : {}),
                 build: timeTrial ? null : buildIdentity(playerBuild),
                 initial: JSON.parse(JSON.stringify(initial)),
                 seed,
@@ -2109,8 +2788,14 @@ export async function createGame({
                 replay.version !== VERSION ||
                 replay.trackId !== track.id ||
                 replay.physicsVersion !== 3 ||
+                JSON.stringify(replay.event ?? null) !==
+                  JSON.stringify(eventIdentity()) ||
                 (replay.competition &&
-                  (!racingEnabled || !racers || !replay.field?.rivalBuild)) ||
+                  (!racingEnabled ||
+                    !racers ||
+                    (!raceField && !replay.field?.rivalBuild))) ||
+                (interceptor &&
+                  replay.difficulty !== interceptor.snapshot().difficulty) ||
                 (track.closed === false &&
                   JSON.stringify(replay.course) !==
                     JSON.stringify(courseIdentity(track))) ||
@@ -2124,11 +2809,13 @@ export async function createGame({
               if (replay.competition) {
                 if (!['easy', 'medium', 'hard'].includes(replay.difficulty))
                   throw new Error('Replay difficulty mismatch');
-                fieldBuild = replayRivalBuild(replay.field?.rivalBuild, {
-                  build: playerBuild,
-                  rivals: rivalSetup,
-                  difficulty: replay.difficulty,
-                });
+                fieldBuild = raceField
+                  ? null
+                  : replayRivalBuild(replay.field?.rivalBuild, {
+                      build: playerBuild,
+                      rivals: rivalSetup,
+                      difficulty: replay.difficulty,
+                    });
                 if (
                   JSON.stringify(replay.field) !==
                   JSON.stringify(racers.identityForBuild(fieldBuild))
@@ -2164,6 +2851,10 @@ export async function createGame({
                   racers,
                   dynamics,
                 }),
+                eliminator: eliminator?.snapshot(),
+                interceptor: interceptor?.snapshot(),
+                pendingMissionFire: structuredClone(pendingMissionFire),
+                lastEliminationWarning,
                 competition,
                 lastResults,
                 raceDifficulty,
@@ -2239,12 +2930,22 @@ export async function createGame({
                   racers,
                   dynamics,
                 });
+                if (eliminator) eliminator.restore(retained.eliminator);
+                if (interceptor) interceptor.restore(retained.interceptor);
+                pendingMissionFire.splice(
+                  0,
+                  pendingMissionFire.length,
+                  ...retained.pendingMissionFire,
+                );
+                lastEliminationWarning = retained.lastEliminationWarning;
                 countdown.restore(retained.countdown);
                 if (mode === 'countdown')
                   ui.setCountdown(retained.countdown.step ?? 3);
                 if (mode === 'countdown' && !retained.countdown.running)
                   armCountdown(true);
                 world.reset();
+                resetLandingFeedback();
+                audio.resetEnvironment();
                 inputLog.splice(0, inputLog.length, ...retained.inputs);
                 events.splice(0, events.length, ...retained.events);
                 if (mode === 'inspection') inspectionScene.add(ship.group);
@@ -2266,6 +2967,8 @@ export async function createGame({
               for (const entry of replay.inputs) {
                 advanceTick(entry.input);
               }
+              resetLandingFeedback();
+              audio.resetEnvironment();
               pause();
               return this.getSnapshot();
             },
@@ -2279,6 +2982,9 @@ export async function createGame({
           mode,
           scenario,
           sessionActive,
+          ...(freestyle
+            ? { freestylePractice: structuredClone(freestylePractice) }
+            : {}),
           timeTrial: trial?.snapshot() ?? null,
           cup: cupRace
             ? { ...structuredClone(cupRace), final: !!cupFinalResult }
@@ -2291,6 +2997,8 @@ export async function createGame({
             ...vehicleHandling(state),
           },
           runtime: { ...runtimeIdentity(runtime), state: runtime.snapshot() },
+          ...(eliminator ? { eliminator: eliminator.snapshot() } : {}),
+          ...(interceptor ? { interceptor: missionSnapshot() } : {}),
           trackFrame: {
             surface: surface
               ? {
@@ -2382,6 +3090,7 @@ export async function createGame({
           },
           environment: {
             ...world.getPresentation(),
+            ...(landingVfx ? { landing: landingVfx.getPresentation() } : {}),
             storm: view.getPresentation(),
             thunder: audio.getPresentation(),
             audio: audio.getStatus(),

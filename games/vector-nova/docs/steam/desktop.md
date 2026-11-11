@@ -4,14 +4,14 @@ Run from `games/vector-nova` with Node 22.13+ and npm. Browser/Vite commands are
 
 ## Editions
 
-|             | Demo                                                       | Full game                                            |
-| ----------- | ---------------------------------------------------------- | ---------------------------------------------------- |
-| Content     | Kestrel; Halcyon and Nacre; unlimited play                 | Four ships; 14 initial + 3 bonus courses             |
-| Modes       | Quick Race, Practice, Time Trial/ghosts, two-race Demo Cup | Same core modes; four initial + Encore championships |
-| Racing      | Nine AI rivals; solo Practice/Time Trial                   | Same                                                 |
-| Save folder | `vector-nova-demo`                                         | `vector-nova-full`                                   |
+|             | Demo                                                       | Full game                                                                           |
+| ----------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Content     | Kestrel; Halcyon and Nacre; unlimited play                 | Four ships; 17 racing courses + 9 mode courses                                      |
+| Modes       | Quick Race, Practice, Time Trial/ghosts, two-race Demo Cup | Core modes; Freestyle, Eliminator, Interceptor; four initial + Encore championships |
+| Racing      | Nine AI rivals; solo Practice/Time Trial                   | Same                                                                                |
+| Save folder | `vector-nova-demo`                                         | `vector-nova-full`                                                                  |
 
-Completing all 28 career rewards opens Ravel, Nomad and Oriel and their Encore Cup. Those courses ship in the full package but remain hidden from incomplete careers; development query parameters do not bypass the desktop gate.
+The full career collection has 37 unlocks: 28 reward items and nine mode-course unlocks. Founders, Frontier and Horizon open Freestyle, Eliminator and Interceptor respectively; completing or winning each starter opens its successor. Completing the collection opens the original Ravel, Nomad and Oriel racing courses and their Encore Cup. Locked mode courses remain selectable as previews. All full-game courses ship in the full package; development query parameters do not bypass desktop launch gates.
 
 The demo omits excluded player hulls/worlds from its catalog and package. Shared materials are explicitly allowlisted, not playable worlds. Edition selection is build-time; no runtime unlock switch exists. See the [edition policy](../../tools/desktop/policy.mjs).
 

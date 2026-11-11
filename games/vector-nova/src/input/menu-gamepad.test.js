@@ -6,6 +6,7 @@ import { sampleGamepad } from './gamepad.js';
 function harness(t, specifications = [{}]) {
   const originals = new Map(
     [
+      'window',
       'document',
       'navigator',
       'KeyboardEvent',
@@ -14,6 +15,7 @@ function harness(t, specifications = [{}]) {
     ].map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]),
   );
   let callback;
+  const window = new EventTarget();
   const pad = {
     id: 'Menu regression controller',
     index: 0,
@@ -61,6 +63,7 @@ function harness(t, specifications = [{}]) {
   document.body = root;
   document.activeElement = controls[0];
   for (const [key, value] of Object.entries({
+    window,
     document,
     navigator: { getGamepads: () => (device ? [device] : []) },
     KeyboardEvent: class extends Event {
@@ -91,6 +94,7 @@ function harness(t, specifications = [{}]) {
     root,
     controls,
     document,
+    window,
     life,
     frame(now) {
       callback(now);
@@ -103,6 +107,32 @@ function harness(t, specifications = [{}]) {
     },
   };
 }
+
+test('R3 sends a camera action only on driving edges without synthesizing C', (t) => {
+  const h = harness(t);
+  let camera = 0;
+  h.window.addEventListener('vn-camera-toggle', () => camera++);
+  h.controls[0].dispatchEvent = () => {
+    throw new Error('camera must never synthesize a held keyboard key');
+  };
+  h.root.shown = false;
+  h.press(11, true);
+  bindMenuGamepad(h.life.signal);
+  h.frame(0);
+  assert.equal(camera, 0, 'held R3 on connect requires release');
+  h.press(11, false);
+  h.frame(20);
+  h.press(11, true);
+  h.frame(40);
+  h.frame(60);
+  assert.equal(camera, 1, 'one camera command per press');
+  h.press(11, false);
+  h.frame(80);
+  h.root.shown = true;
+  h.press(11, true);
+  h.frame(100);
+  assert.equal(camera, 1, 'menus do not toggle the driving camera');
+});
 
 test('Y secondary actions are menu-only edges and require release on reconnect', (t) => {
   const h = harness(t);

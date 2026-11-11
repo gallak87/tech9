@@ -2,8 +2,13 @@ import { EQUIPMENT_CONTROLS } from '../equipment/controls.js';
 import { createGamepadReader } from './gamepad.js';
 import { createTouchControls } from './touch.js';
 
-export function createInput(onCommand, onBlur, getSettings) {
-  const gamepad = createGamepadReader(getSettings);
+export function createInput(
+  onCommand,
+  onBlur,
+  getSettings,
+  { freestyle = false } = {},
+) {
+  const gamepad = createGamepadReader(getSettings, undefined, freestyle);
   const keys = new Set(),
     abort = new AbortController();
   let gamepadPresent = false,
@@ -21,7 +26,9 @@ export function createInput(onCommand, onBlur, getSettings) {
     'ShiftLeft',
     'ShiftRight',
     'Space',
-    ...EQUIPMENT_CONTROLS.map(({ key }) => key),
+    ...(freestyle
+      ? ['KeyQ', 'KeyE']
+      : EQUIPMENT_CONTROLS.map(({ key }) => key)),
   ];
   const equipmentPulses = EQUIPMENT_CONTROLS.map(() => false);
   const clear = () => {
@@ -40,7 +47,7 @@ export function createInput(onCommand, onBlur, getSettings) {
         e.preventDefault();
         keys.add(e.code);
         const slot = EQUIPMENT_CONTROLS.findIndex(({ key }) => key === e.code);
-        if (slot >= 0 && !e.repeat) equipmentPulses[slot] = true;
+        if (!freestyle && slot >= 0 && !e.repeat) equipmentPulses[slot] = true;
       }
       if (!e.repeat) {
         const commands = {
@@ -61,6 +68,13 @@ export function createInput(onCommand, onBlur, getSettings) {
   window.addEventListener('keyup', (e) => keys.delete(e.code), {
     signal: abort.signal,
   });
+  window.addEventListener(
+    'vn-camera-toggle',
+    () => {
+      if (enabled && !document.hidden) onCommand('camera');
+    },
+    { signal: abort.signal },
+  );
   window.addEventListener('resize', () => touch.clear(), {
     signal: abort.signal,
   });
@@ -83,11 +97,14 @@ export function createInput(onCommand, onBlur, getSettings) {
     { signal: abort.signal },
   );
   const down = (...k) => k.some((v) => keys.has(v));
+  const drivingKey = (letter, arrow) =>
+    down(letter) || (!freestyle && down(arrow));
   return {
     clear,
     activateEquipment(slot) {
       if (
         enabled &&
+        !freestyle &&
         Number.isInteger(slot) &&
         slot >= 0 &&
         slot < equipmentPulses.length
@@ -107,11 +124,11 @@ export function createInput(onCommand, onBlur, getSettings) {
     sample() {
       const t = touch.sample();
       let i = {
-        throttle: down('ArrowUp', 'KeyW') ? 1 : t.throttle,
-        brake: down('ArrowDown', 'KeyS') ? 1 : t.brake,
+        throttle: drivingKey('KeyW', 'ArrowUp') ? 1 : t.throttle,
+        brake: drivingKey('KeyS', 'ArrowDown') ? 1 : t.brake,
         steer:
-          Number(down('ArrowRight', 'KeyD')) -
-            Number(down('ArrowLeft', 'KeyA')) || t.steer,
+          Number(drivingKey('KeyD', 'ArrowRight')) -
+            Number(drivingKey('KeyA', 'ArrowLeft')) || t.steer,
         boost: down('ShiftLeft', 'ShiftRight') || t.boost,
         airbrake: down('Space') || t.airbrake,
         ...Object.fromEntries(
@@ -131,6 +148,41 @@ export function createInput(onCommand, onBlur, getSettings) {
         i.airbrake ||= pad.airbrake;
         for (let slot = 1; slot <= EQUIPMENT_CONTROLS.length; slot++)
           i[`equipment${slot}`] ||= pad[`equipment${slot}`];
+      }
+      if (freestyle) {
+        const active = enabled && !document.hidden;
+        const clamp = (value) => Math.max(-1, Math.min(1, value));
+        // Driving and attitude stay separate for the entire discipline. The
+        // flight controller ignores attitude on support, so a held arrow can
+        // never turn into steering when the ship touches down.
+        // Pulling down/back raises the nose; pushing up pitches forward.
+        i.aerialPitch = active
+          ? clamp(
+              Number(down('ArrowUp')) -
+                Number(down('ArrowDown')) -
+                (pad.aerialStickY ?? 0),
+            )
+          : 0;
+        i.aerialRoll = active
+          ? clamp(
+              Number(down('ArrowRight')) -
+                Number(down('ArrowLeft')) +
+                (pad.aerialStickX ?? 0),
+            )
+          : 0;
+        // Positive local yaw turns the nose left in the rear chase view.
+        i.aerialYaw = active
+          ? clamp(
+              Number(down('KeyQ')) -
+                Number(down('KeyE')) +
+                Number(pad.equipment1) -
+                Number(pad.equipment2),
+            )
+          : 0;
+        // These buttons belong to attitude control in this discipline. No
+        // keyboard pulse, touch activation or pad input can arm equipment.
+        for (let slot = 1; slot <= EQUIPMENT_CONTROLS.length; slot++)
+          i[`equipment${slot}`] = false;
       }
       // Equipment taps survive observation and frames without a physics tick.
       return i;

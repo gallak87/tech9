@@ -79,6 +79,59 @@ test('rivals follow their own speed, boost/Vector, simulation clock and live gra
   }
 });
 
+test('an eliminated rival hides propulsion, pickup fields and hull contact feedback in racing and pause', async () => {
+  const frames = [],
+    group = new Group();
+  const geometry = new BoxGeometry(),
+    material = new MeshBasicMaterial();
+  group.add(new Mesh(geometry, material));
+  const opponent = {
+    specification: { id: 'rook', name: 'Rook' },
+    eliminated: false,
+    state: { steer: 0, speed: 100, time: 4, boosting: true, energy: 80 },
+    runtime: {
+      snapshot: () => ({ aegisRemaining: 2, vectorActive: true }),
+      pose: () => ({ position: new Vector3(), quaternion: new Quaternion() }),
+    },
+  };
+  const presentation = await createRacerPresentation({
+    racers: { enabled: true, opponents: [opponent] },
+    scene: new Scene(),
+    combat: {
+      view: () => ({
+        time: 4,
+        flashes: [{ target: 'rook', kind: 'arc', age: 0.08 }],
+      }),
+      ionContact: () => 0,
+    },
+    loadRival: async () => ({
+      group,
+      update: (frame) => frames.push(frame),
+      dispose() {
+        geometry.dispose();
+        material.dispose();
+        group.removeFromParent();
+      },
+    }),
+  });
+  try {
+    presentation.update({ mode: 'racing' });
+    assert.equal(group.visible, true);
+    opponent.eliminated = true;
+    for (const mode of ['racing', 'paused']) {
+      presentation.update({ mode });
+      assert.equal(group.visible, false);
+      assert.equal(frames.at(-1).visible, false);
+      assert.equal(
+        group.getObjectByName('Combat / hull hit outline').visible,
+        false,
+      );
+    }
+  } finally {
+    presentation.dispose();
+  }
+});
+
 test('racing applies the shared Arc glow to the struck rival, preserves pause, and clears it on exit', async () => {
   const scene = new Scene();
   const groups = [];

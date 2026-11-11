@@ -60,7 +60,7 @@ export async function createRenderer(
     await backdrop.ready;
     graphics.check();
     const far = backdrop.far ?? 14000;
-    const camera = new T.PerspectiveCamera(64, 1, 0.2, far);
+    const camera = new T.PerspectiveCamera(64, 1, options.near ?? 0.2, far);
     const backgroundGroup = backdrop.group;
     scene.add(backgroundGroup);
     const frame = {

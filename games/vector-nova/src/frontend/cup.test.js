@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cupView, cupWaitingView } from './cup.js';
-import { createCupStore, availableCups } from '../race/cup.js';
+import { cupView, cupWaitingView, cupLaunch } from './cup.js';
+import { createCupStore, availableCups, cupDefinition } from '../race/cup.js';
 import {
   cupCabinet,
   cupCard,
@@ -12,15 +12,16 @@ import {
 import { assetURL } from '../assets/url.js';
 import { RACE_OPPONENTS } from '../race/roster.js';
 
-function resultAt(
+function stateAt(
   position,
-  { complete = false, valid = true, notice = '' } = {},
+  { complete = false, valid = true, cupId = 'founders' } = {},
 ) {
   const ids = RACE_OPPONENTS.map((row) => row.id);
   ids.splice(position - 1, 0, 'player');
   const store = createCupStore(() => ({ getItem: () => null, setItem() {} }));
-  store.start('founders', 'kestrel', 'easy');
-  for (let event = 0; event < (complete ? 3 : 1); event++) {
+  store.start(cupId, 'kestrel', 'easy');
+  const events = complete ? cupDefinition(cupId).tracks.length : 1;
+  for (let event = 0; event < events; event++) {
     store.finish({
       standings: ids.map((id, i) => ({
         id,
@@ -29,11 +30,14 @@ function resultAt(
         totalTime: 100 + i,
       })),
     });
-    if (complete && event < 2) store.next();
+    if (event < events - 1) store.next();
   }
+  return store.snapshot().state;
+}
+function resultAt(position, options = {}) {
   return cupView({
-    state: store.snapshot().state,
-    notice,
+    state: stateAt(position, options),
+    notice: options.notice ?? '',
     catalog: [],
     routes: [],
   });
@@ -126,6 +130,45 @@ test('Encore uses the same runtime trophy export in cards, cabinet, hero and vic
     );
   assert.match(cupArt('encore').background, /^data:image\/svg\+xml,/);
 });
+
+for (const [cupId, mode] of [
+  ['founders', 'Freestyle'],
+  ['frontier', 'Eliminator'],
+  ['horizon', 'Interceptor'],
+]) {
+  test(`${cupId} setup and championship award explain the ${mode} unlock`, () => {
+    const cup = cupDefinition(cupId);
+    const card = cupCard(cup, cupId, {});
+    assert.match(card, new RegExp(`class="cup-card-unlock">Unlocks ${mode}`));
+    assert.match(card, new RegExp(`aria-label="[^"]*, Unlocks ${mode}"`));
+    assert.match(card, /<button[^>]*data-cup=/);
+    const setup = cupView({ cupId, catalog: [], routes: [] });
+    assert.match(setup, new RegExp(`class="cup-mode-unlock">Unlocks ${mode}`));
+    const collection = { [cupId]: { earnedAt: 1 } };
+    assert.match(
+      cupHero(cup, cup.name, collection),
+      new RegExp(`class="cup-mode-unlock">${mode} unlocked`),
+    );
+    const state = stateAt(1, { cupId, complete: true });
+    for (const fresh of [true, false]) {
+      const victory = cupVictoryView(state, { fresh });
+      assert.match(
+        victory,
+        new RegExp(`class="cup-victory-unlock">${mode} unlocked`),
+      );
+      assert.match(victory, /data-action="cup-standings"/);
+      assert.match(victory, /data-action="cup-hub"/);
+    }
+  });
+}
+
+test('Apex and Encore presentation does not promise another event mode', () => {
+  for (const cupId of ['apex', 'encore']) {
+    const cup = cupDefinition(cupId);
+    assert.doesNotMatch(cupCard(cup, cupId, {}), /cup-card-unlock/);
+    assert.doesNotMatch(cupHero(cup, cup.name, {}), /cup-mode-unlock/);
+  }
+});
 for (const [position, expected] of [
   [1, [1, 2, 3]],
   [2, [1, 2, 3, 4]],
@@ -147,6 +190,57 @@ test('final standings include the complete field', () => {
     html,
     /data-action="cup-(?:abandon|retry|restart|confirm)"/,
   );
+});
+test('cup results keep the next race primary until the championship is complete', () => {
+  for (const { id: cupId } of availableCups({ complete: true })) {
+    for (const complete of [false, true]) {
+      for (const valid of [false, true]) {
+        const state = stateAt(5, { cupId, complete, valid });
+        const html = cupView({ state, catalog: [], routes: [] });
+        const action = complete ? 'cup-hub' : 'cup-next';
+        assert.deepEqual(
+          [
+            ...html.matchAll(/<button data-action="([^"]+)" class="primary">/g),
+          ].map((match) => match[1]),
+          [action],
+          `${cupId}: ${complete ? 'completed' : 'intermediate'} results`,
+        );
+        assert.equal(cupLaunch(state, cupId).action, action);
+        if (!complete) {
+          assert.match(html, /data-action="cup-retry" class="">Retry race/);
+          assert.ok(
+            html.indexOf('data-action="cup-next"') <
+              html.indexOf('data-action="cup-retry"'),
+          );
+        }
+      }
+    }
+  }
+});
+test('waiting for cup classification offers the cup hub before a secondary retry', () => {
+  for (const playerValid of [false, true]) {
+    const html = cupWaitingView({
+      playerValid,
+      playerTotalTime: 120,
+      courseFormat: 'circuit',
+      remaining: 9,
+      standings: [
+        {
+          id: 'player',
+          position: 1,
+          finished: true,
+          valid: playerValid,
+          totalTime: 120,
+        },
+      ],
+    });
+    assert.match(
+      html,
+      /<div class="front-actions"><button data-action="cup-hub" class="primary">/,
+    );
+    assert.match(html, /data-action="cup-retry" class="">Retry this race/);
+    assert.doesNotMatch(html, /data-action="cup-next"/);
+  }
 });
 test('results explain the earned next grid instead of promising pole after a win', () => {
   assert.match(resultAt(1), /Next grid: P03 \/ 10/);

@@ -1,6 +1,161 @@
 {
-  "policy": "Project-owned geometry/materials, generated sky/material imagery and explicitly registered CC0 material scans; detailed sources, licences and prompts retained in per-asset provenance. No copied reference-game artwork.",
+  "policy": "Project-owned geometry/materials, generated sky/material imagery and explicitly registered CC0 material scans; sources, licences and prompts retained in per-asset provenance. Track current exports and their required sources; remove superseded iterations. No copied reference-game artwork.",
   "assets": [
+    {
+      "id": "interceptor-bulwark-sfx",
+      "source": "assets/audio/sfx/bosses/",
+      "creator": "VECTOR//NOVA project contributors with Stable Audio 3 Small-SFX",
+      "provenance": "Eight locally generated Bulwark moving-vault cues: shield bulkhead load, vault latch, heavy gyro turn, contained pressure slab, shoulder emitter rupture, shoulder shutter opening, critical shoulder thud and shield-collapse drive rundown. Generated strictly sequentially with the pinned official MLX Small-SFX runtime without reference audio. Current prompts, source/master hashes and exact onset trims, filtering, body compression and smooth release recipes are retained. Real phase, accepted fire and shoulder-hit events use the shared race effects bus; return aliases the quieter Bulwark turn. Goliath, Wraith and approved player Lance recordings remain unchanged. Integrated for encounter critique; human listening approval pending.",
+      "rights": "AI-generated output. Runtime code is MIT; model weights use the Stability AI Community License and the T5Gemma encoder carries Gemma terms. See docs/audio/sfx.md.",
+      "runtimeDependencies": [],
+      "provenanceRecord": "assets/audio/sfx/bosses/provenance.json",
+      "generationConfigs": [
+        "assets/audio/sfx/bosses/bulwark-charge.json",
+        "assets/audio/sfx/bosses/bulwark-lock.json",
+        "assets/audio/sfx/bosses/bulwark-turn.json",
+        "assets/audio/sfx/bosses/bulwark-fire.json",
+        "assets/audio/sfx/bosses/bulwark-counter.json",
+        "assets/audio/sfx/bosses/bulwark-expose.json",
+        "assets/audio/sfx/bosses/bulwark-core-hit.json",
+        "assets/audio/sfx/bosses/bulwark-disable.json"
+      ],
+      "runtimeAssets": [
+        "assets/audio/sfx/bosses/bulwark-charge.wav",
+        "assets/audio/sfx/bosses/bulwark-lock.wav",
+        "assets/audio/sfx/bosses/bulwark-turn.wav",
+        "assets/audio/sfx/bosses/bulwark-fire.wav",
+        "assets/audio/sfx/bosses/bulwark-counter.wav",
+        "assets/audio/sfx/bosses/bulwark-expose.wav",
+        "assets/audio/sfx/bosses/bulwark-core-hit.wav",
+        "assets/audio/sfx/bosses/bulwark-disable.wav"
+      ]
+    },
+    {
+      "id": "interceptor-wraith-sfx",
+      "source": "assets/audio/sfx/bosses/",
+      "creator": "VECTOR//NOVA project contributors with Stable Audio 3 Small-SFX",
+      "provenance": "Eight locally generated Wraith cues: twin capacitor charge, target ion lock, paired reverse thrust, ion scissors discharge, lock rupture counter, exposed capacitor vent, critical capacitor hit and twin-drive quench. Generated sequentially with the pinned official MLX Small-SFX runtime without reference audio. Current prompts, source/master hashes and exact onset trims, filters, compression and smooth release recipes are retained. Boss events use the shared race effects bus; the return aliases the quieter Wraith turn. Goliath and approved player Lance recordings remain unchanged. Integrated for encounter critique; human listening approval pending.",
+      "rights": "AI-generated output. Runtime code is MIT; model weights use the Stability AI Community License and the T5Gemma encoder carries Gemma terms. See docs/audio/sfx.md.",
+      "runtimeDependencies": [],
+      "provenanceRecord": "assets/audio/sfx/bosses/provenance.json",
+      "generationConfigs": [
+        "assets/audio/sfx/bosses/wraith-charge.json",
+        "assets/audio/sfx/bosses/wraith-lock.json",
+        "assets/audio/sfx/bosses/wraith-turn.json",
+        "assets/audio/sfx/bosses/wraith-fire.json",
+        "assets/audio/sfx/bosses/wraith-counter.json",
+        "assets/audio/sfx/bosses/wraith-expose.json",
+        "assets/audio/sfx/bosses/wraith-core-hit.json",
+        "assets/audio/sfx/bosses/wraith-disable.json"
+      ],
+      "runtimeAssets": [
+        "assets/audio/sfx/bosses/wraith-charge.wav",
+        "assets/audio/sfx/bosses/wraith-lock.wav",
+        "assets/audio/sfx/bosses/wraith-turn.wav",
+        "assets/audio/sfx/bosses/wraith-fire.wav",
+        "assets/audio/sfx/bosses/wraith-counter.wav",
+        "assets/audio/sfx/bosses/wraith-expose.wav",
+        "assets/audio/sfx/bosses/wraith-core-hit.wav",
+        "assets/audio/sfx/bosses/wraith-disable.wav"
+      ]
+    },
+    {
+      "id": "interceptor-boss-sfx",
+      "source": "assets/audio/sfx/bosses/",
+      "creator": "VECTOR//NOVA project contributors with Stable Audio 3 Small-SFX",
+      "provenance": "Eight locally generated Goliath cues: pressure charge, magnetic yaw, siege cannon discharge, exposed vent release, cannon energy recovery, critical core hit, target lane latch and disabled core quench. Generated sequentially with the pinned official MLX Small-SFX runtime without reference audio. Current JSON prompts and source/master hashes are retained; master.py trims each action, gently filters its extremes, gently compresses the body, normalizes peaks and applies click-free raised-cosine releases. Boss events use the shared race effects bus. Approved player Lance recordings remain unchanged. Integrated for encounter critique; human listening approval pending.",
+      "rights": "AI-generated output. Runtime code is MIT; model weights use the Stability AI Community License and the T5Gemma encoder carries Gemma terms. See docs/audio/sfx.md.",
+      "runtimeDependencies": [],
+      "provenanceRecord": "assets/audio/sfx/bosses/provenance.json",
+      "generationConfigs": [
+        "assets/audio/sfx/bosses/goliath-charge.json",
+        "assets/audio/sfx/bosses/goliath-turn.json",
+        "assets/audio/sfx/bosses/goliath-fire.json",
+        "assets/audio/sfx/bosses/goliath-expose.json",
+        "assets/audio/sfx/bosses/goliath-recover.json",
+        "assets/audio/sfx/bosses/goliath-core-hit.json",
+        "assets/audio/sfx/bosses/goliath-lock.json",
+        "assets/audio/sfx/bosses/goliath-disable.json"
+      ],
+      "runtimeAssets": [
+        "assets/audio/sfx/bosses/goliath-charge.wav",
+        "assets/audio/sfx/bosses/goliath-turn.wav",
+        "assets/audio/sfx/bosses/goliath-fire.wav",
+        "assets/audio/sfx/bosses/goliath-expose.wav",
+        "assets/audio/sfx/bosses/goliath-recover.wav",
+        "assets/audio/sfx/bosses/goliath-core-hit.wav",
+        "assets/audio/sfx/bosses/goliath-lock.wav",
+        "assets/audio/sfx/bosses/goliath-disable.wav"
+      ]
+    },
+    {
+      "id": "interceptor-mission-worlds",
+      "source": "src/levels/interceptor/, src/levels/interceptor-helion/ and src/levels/interceptor-nightweir/",
+      "creator": "VECTOR//NOVA project contributors",
+      "provenance": "Original mission-local process districts, connected observatory infrastructure and closed hydroelectric basin city. Dispatch reuses the registered Colossus quarry/mountain constructors, industrial kit/finish and sky without changing the approved course. Breach retains the registered Helion observatory, sky, ceramic maps and thermal world with a separate placement recipe. Lockdown composes new terrain, streets, machinery and water from registered Nightweir finishes/sky and selected rock textures; it does not load the original merged city. No new external models or generated runtime images.",
+      "rights": "Project-authored geometry and shaders; borrowed project imagery and CC0 sources retain their registered provenance.",
+      "runtimeDependencies": ["three", "@worldkit/environment"],
+      "borrowedAssets": [
+        "public/assets/levels/colossus/",
+        "public/assets/levels/helion/",
+        "public/assets/levels/nightweir/fired-brick-v1.png",
+        "public/assets/levels/nightweir/zinc-roof-v1.png",
+        "public/assets/levels/nightweir/gorge-strata-v1.png",
+        "public/assets/levels/nightweir/damp-scree-v1.png",
+        "public/assets/levels/shatterline/limestone-v1.png"
+      ]
+    },
+    {
+      "id": "interceptor-boss-art-concepts-v1",
+      "source": "docs/art/bosses/",
+      "creator": "Built-in imagegen tool, prompted by VECTOR//NOVA project",
+      "provenance": "Three original concept sheets for Goliath, Wraith and Bulwark, generated separately from project-owned blockout and approved fleet references. Exact prompts, image hashes and reference roles retained. Modeling references only; runtime ships use original authored geometry and material maps.",
+      "rights": "Generated for this project from project-owned references",
+      "runtimeDependencies": [],
+      "provenanceRecord": "docs/art/bosses/provenance.json"
+    },
+    {
+      "id": "interceptor-specialist-bosses",
+      "source": "src/ships/wraith-target.js, src/ships/bulwark-target.js, src/ships/boss-hulls.js and shared boss art helpers",
+      "creator": "VECTOR//NOVA project contributors",
+      "provenance": "Original formed Wraith split-prong cutter and Bulwark shield barge, built around the registered project-generated concept sheets. Shaped ceramic skins, graphite carriers, genuine intake/service recesses, machined fittings and original clean procedural material maps. Frozen contact proxies, measured bounds and exhaust origins are validated independently from the render skins. No generated concept pixels or external model assets are used at runtime.",
+      "rights": "Project-owned geometry and materials",
+      "runtimeDependencies": ["Three.js", "shared rival propulsion"]
+    },
+    {
+      "id": "goliath-courier-concept",
+      "source": "docs/levels/interceptor/",
+      "creator": "Built-in imagegen tool, prompted by VECTOR//NOVA project",
+      "provenance": "Original selected armored heavy-courier concept for the large Interceptor target. Considered silhouettes, exact prompt, selected image and image hash are retained. Reference only; no concept pixels are used as runtime ship textures.",
+      "rights": "Generated for this project; no third-party reference artwork supplied",
+      "runtimeDependencies": [],
+      "provenanceRecord": "docs/levels/interceptor/provenance.json"
+    },
+    {
+      "id": "goliath-interceptor-target",
+      "source": "src/ships/interceptor-target.js and src/ships/interceptor-target-hull.js",
+      "creator": "VECTOR//NOVA project contributors",
+      "provenance": "Original source-authored 40 × 16 × 6 metre AI courier with twelve frozen structural contact parts, concept-guided formed ceramic skins, fitted graphite and metal assemblies, a pressure cargo spine and three recessed ion drives. Visual skins retain measured bounds and exhaust origins while the validated numeric contact hull remains unchanged. Original clean procedural finish maps and scoped boss propulsion are project-authored; generated concepts remain references only.",
+      "rights": "Project-authored and derived from registered project assets; original provenance and rights apply",
+      "runtimeDependencies": ["three"]
+    },
+    {
+      "id": "crucible-foundry-concept",
+      "source": "docs/levels/crucible/",
+      "creator": "Built-in imagegen tool, prompted by VECTOR//NOVA project",
+      "provenance": "Original selected concept for a colossal industrial Eliminator circuit. Considered course directions, exact generation prompt and selected image hash are retained. Reference art only; the runtime is authored geometry and existing project assets.",
+      "rights": "Generated for this project; no third-party reference artwork supplied",
+      "runtimeDependencies": [],
+      "provenanceRecord": "docs/levels/crucible/provenance.json"
+    },
+    {
+      "id": "crucible-foundry-course",
+      "source": "src/levels/crucible/",
+      "creator": "VECTOR//NOVA project contributors",
+      "provenance": "Original banked dispatch-ring route, broad graphite deck, heat-exchanger crowns, supported factory districts and cut practicals. Retired from the player Eliminator lineup; retained as shared source for Crucible Dispatch and developer inspection. Reuses the Worldkit industrial geometry/material kit, Colossus cloud backdrop and registered shared device hardware. The approved Colossus Works course remains unchanged.",
+      "rights": "Project-authored and derived from registered project assets; original provenance and rights apply",
+      "runtimeDependencies": ["three", "@worldkit/environment"]
+    },
     {
       "id": "career-completion-cinematic",
       "source": "src/frontend/completion-cinematic.js and src/frontend/completion-stage.js",
@@ -237,49 +392,10 @@
       ]
     },
     {
-      "id": "reward-icons-v1",
-      "source": "assets/rewards/icons-v1/source/",
-      "creator": "Built-in imagegen tool, prompted by VECTOR//NOVA project",
-      "provenance": "28 original transparent reward icons: six stat families in green/blue/purple tiers, six equipment items, three epic hull unlocks and gold Quad Core. One generation per icon; exact prompts, original outputs and SHA-256 hashes retained. Runtime PNGs mechanically resized to 128px with alpha.",
-      "rights": "Generated for this project; no third-party reference artwork supplied",
-      "runtimeDependencies": [],
-      "provenanceRecord": "assets/rewards/icons-v1/provenance.json",
-      "runtimeAssets": [
-        "public/assets/rewards/icons-v1/speed-1.png",
-        "public/assets/rewards/icons-v1/speed-2.png",
-        "public/assets/rewards/icons-v1/speed-3.png",
-        "public/assets/rewards/icons-v1/acceleration-1.png",
-        "public/assets/rewards/icons-v1/acceleration-2.png",
-        "public/assets/rewards/icons-v1/acceleration-3.png",
-        "public/assets/rewards/icons-v1/handling-1.png",
-        "public/assets/rewards/icons-v1/handling-2.png",
-        "public/assets/rewards/icons-v1/handling-3.png",
-        "public/assets/rewards/icons-v1/braking-1.png",
-        "public/assets/rewards/icons-v1/braking-2.png",
-        "public/assets/rewards/icons-v1/braking-3.png",
-        "public/assets/rewards/icons-v1/boost-1.png",
-        "public/assets/rewards/icons-v1/boost-2.png",
-        "public/assets/rewards/icons-v1/boost-3.png",
-        "public/assets/rewards/icons-v1/toughness-1.png",
-        "public/assets/rewards/icons-v1/toughness-2.png",
-        "public/assets/rewards/icons-v1/toughness-3.png",
-        "public/assets/rewards/icons-v1/equipment-jump.png",
-        "public/assets/rewards/icons-v1/equipment-injector.png",
-        "public/assets/rewards/icons-v1/equipment-slipstream.png",
-        "public/assets/rewards/icons-v1/equipment-deflector.png",
-        "public/assets/rewards/icons-v1/equipment-stabilizer.png",
-        "public/assets/rewards/icons-v1/equipment-lance.png",
-        "public/assets/rewards/icons-v1/ship-bastion.png",
-        "public/assets/rewards/icons-v1/ship-needle.png",
-        "public/assets/rewards/icons-v1/ship-kestrel.png",
-        "public/assets/rewards/icons-v1/exotic-slot.png"
-      ]
-    },
-    {
       "id": "reward-icons-v2",
       "source": "assets/rewards/icons-v2/",
       "creator": "Built-in imagegen tool, prompted by VECTOR//NOVA project",
-      "provenance": "Current 28-icon reward set. Revised all 18 stat tiers plus Jump and Lance into plausible mounted ship modules; reused the remaining eight v1 icons. Exact edit prompts, project-owned image references, original PNGs and hashes retained. v1 is retained as source history; runtime uses v2 only.",
+      "provenance": "Current 28-icon reward set with self-contained original source PNGs, exact generation/edit prompts and source/runtime hashes. Stat tiers, equipment, hull unlocks and Quad Core share the same transparent artwork across progression views. Runtime PNGs are mechanically resized to 128px with alpha.",
       "rights": "Generated for this project using its own generated reward art as references. No third-party artwork supplied.",
       "runtimeDependencies": [],
       "provenanceRecord": "assets/rewards/icons-v2/provenance.json",
@@ -853,6 +969,340 @@
       "provenance": "Original induction cassette deck materials, open magnetic lattice spans, full-color neon treatment, taller U containment frames, integrated practical-light housings, portal/signage and service construction. Adapts project-owned sweep/beam/seal/stable-fixture helpers; no copied reference assets.",
       "rights": "Project-authored; no third-party asset restrictions",
       "runtimeDependencies": ["three"]
+    },
+    {
+      "id": "zephyr-skywell",
+      "source": "src/levels/launchworks/",
+      "creator": "VECTOR//NOVA project contributors",
+      "provenance": "Original source-authored Zephyr Skywell five-transfer route, banked receivers and descending water-garden composition. Reuses registered canonical Zephyr islands, cathedral/abbey/chapel/tower/halo/aqueduct/waterfall GLBs, the Blender-authored open aqueduct bay, limestone image, road weave, material/water/lighting helpers and sky backdrop. Skywell owns stacked shores, close architectural precinct compositions, connected stepped water streets and bounded receiving cisterns. Its local metric deck finish adds fitted cassette joints and restrained satin coating; garden-finish.js wraps the canonical mineral finish with broad muted cultivated courts using existing noise/relief and no new images. The separately registered original arrival kit supplies formed bronze beacons and underside carriages, while the original garden-terrace kit constructs the Crown, Counterbank and Last Light receiving shores. Other private island clones retain natural mineral bodies with old loose ornament roles hidden. Cultivated groves use the public Worldkit Living Forest kit and its canonical bark/leaf images, ray-seated on actual terrace triangles; package assets retain their existing provenance. The short receiving tube shares Shatterline tube-surface.js and tube-tessellation.js geometry/contact mechanics; three powered approaches reuse shared Vector hardware. Good, Great and Perfect magnetic catches and completed-trick ticks use original deterministic runtime synthesis in src/freestyle/audio.js through the shared effects mixer. No new downloaded media or runtime image assets.",
+      "rights": "Derived from this project's registered Zephyr and equipment assets, project-authored Shatterline geometry mechanics and Worldkit Living Forest assets; their original provenance and rights apply",
+      "runtimeDependencies": ["three", "@worldkit/environment/living-forest"],
+      "provenanceRecords": [
+        "../../worldkit/modules/living-forest/assets/provenance.json",
+        "../../worldkit/NOTICE.md",
+        "assets/levels/zephyr/asset-manifest.json",
+        "assets/levels/launchworks/README.md",
+        "assets/levels/launchworks/arrival-art-manifest.json",
+        "assets/levels/launchworks/terrace-art-manifest.json",
+        "src/levels/launchworks/garden-finish.js"
+      ]
+    },
+    {
+      "id": "freestyle-receiver-collision",
+      "source": "tools/bake-freestyle-scenery.mjs and tools/freestyle-scenery-geometry.mjs",
+      "creator": "VECTOR//NOVA project contributors",
+      "provenance": "Current CPU collision geometry derived from each Freestyle course's actual composed receiving scenery. Bounded banked receiver corridors retain opaque structural faces; water, alpha foliage and decorative glows are excluded. Welded, error-tolerant index simplification retains real openings and the exact placed transforms without enclosing boxes. Small fittings use a 0.025 m simplifier budget and large bodies a 0.25 m budget, with a conservative transform norm and half-budget solver margin. Each data file identifies its current source GLBs, route identity and collision fingerprint. Rendering, approved road geometry, controls and landing rules are unchanged.",
+      "rights": "Project-authored derivation of the registered Zephyr, Oriel, Ravel, Worldkit and private Freestyle sources; their existing licences and provenance remain applicable.",
+      "runtimeDependencies": ["three", "@dimforge/rapier3d-compat"],
+      "sourceAssets": [
+        "src/levels/launchworks/landing-solids.json",
+        "src/levels/freestyle-oriel/landing-solids.json",
+        "src/levels/freestyle-ravel/landing-solids.json",
+        "tools/bake-freestyle-scenery.mjs",
+        "tools/freestyle-scenery-geometry.mjs"
+      ]
+    },
+    {
+      "id": "oriel-sunvault-course",
+      "source": "src/levels/freestyle-oriel/ and src/freestyle/course-track.js",
+      "creator": "VECTOR//NOVA project contributors",
+      "provenance": "Original five-transfer Freestyle route inside a separately composed Oriel habitat. The shared transfer factory retains native gaps, launch/catch geometry, gravity and scoring while course-owned headings, three pipe receivers and arrival placement establish a distinct route identity. Borrows the registered Oriel shell, civic/garden GLBs, axial daylight, mineral finish and public Worldkit Living Forest assets. A complete canonical water-garden quarter is rigidly re-seated as an upright course-private district, retaining its actual planting sockets and using formed piers from real lower limestone bearings to the habitat shell. The canonical racing course and assets remain unchanged. The separately registered Sunvault civic-works kit retains original Blender construction sources. No new generated reference or runtime image assets.",
+      "rights": "Project-authored course code and composition; registered Oriel, Worldkit Living Forest and CC0 Concrete034 sources retain their existing provenance and rights.",
+      "runtimeDependencies": [
+        "three",
+        "@dimforge/rapier3d-compat",
+        "@worldkit/environment/living-forest"
+      ],
+      "borrowedAssets": [
+        "public/assets/levels/oriel/",
+        "public/assets/levels/helion/ceramic/"
+      ],
+      "provenanceRecords": [
+        "assets/levels/oriel/reference/provenance.json",
+        "assets/levels/oriel/blender/civic-kit-manifest.json",
+        "assets/levels/oriel/blender/ground/ground-provenance.json",
+        "assets/levels/oriel/blender/garden-quarter/manifest.json",
+        "assets/levels/freestyle-oriel/manifest.json",
+        "../../worldkit/modules/living-forest/assets/provenance.json",
+        "assets/levels/helion/ceramic/provenance.json"
+      ]
+    },
+    {
+      "id": "sunvault-civic-works",
+      "source": "assets/levels/freestyle-oriel/build_civic_works.py and sunvault-civic-works.blend",
+      "creator": "VECTOR//NOVA project contributors using Blender",
+      "provenance": "Original editable civic construction kit for founded Sunvault arrival courts and road supports, developed against the registered Oriel scene reference and retained exact prompt. Anchor piers, deep open-arcade terraces and fitted compression cradles export in game metres with identity glTF roots and three scalar limestone/recess/bronze material roles. The local manifest retains actual prototype bounds, sockets, triangle counts and source/export hashes. No third-party meshes, baked lighting, new images or driving/contact geometry.",
+      "rights": "Project-authored Blender geometry and scalar materials; the existing Oriel generated reference retains its registered provenance.",
+      "runtimeDependencies": ["three"],
+      "provenanceRecord": "assets/levels/freestyle-oriel/manifest.json",
+      "provenanceRecords": [
+        "assets/levels/freestyle-oriel/README.md",
+        "assets/levels/oriel/reference/provenance.json"
+      ],
+      "sourceAssets": [
+        "assets/levels/freestyle-oriel/build_civic_works.py",
+        "assets/levels/freestyle-oriel/sunvault-civic-works.blend"
+      ],
+      "runtimeAssets": [
+        "public/assets/levels/freestyle-oriel/sunvault-civic-works.glb"
+      ]
+    },
+    {
+      "id": "ravel-sailbreak-course",
+      "source": "src/levels/freestyle-ravel/ and src/freestyle/course-track.js",
+      "creator": "VECTOR//NOVA project contributors",
+      "provenance": "Original five-transfer Freestyle route through five authored folded-sail stations, including two pipe receivers. Socketed cradles, reels, rigging and an original Blender collector wing recompose the registered anchor fleet and tension gallery around the new transfer geometry rather than constructing the original circuit environment. Existing foil-height finish, analytic stellar backdrop and public Worldkit industrial geometry/materials retain their owners and provenance. No new downloaded models or generated runtime images.",
+      "rights": "Project-authored route, scenery and shaders; registered project-owned Ravel models, generated foil imagery and Worldkit industrial finishes retain their existing rights.",
+      "runtimeDependencies": [
+        "three",
+        "@dimforge/rapier3d-compat",
+        "@worldkit/environment/industrial"
+      ],
+      "borrowedAssets": [
+        "public/assets/levels/ravel/anchor-fleet.glb",
+        "public/assets/levels/ravel/tension-gallery.glb",
+        "public/assets/levels/ravel/sail-foil-height-v1.png"
+      ],
+      "provenanceRecords": [
+        "assets/levels/ravel/reference/provenance.json",
+        "assets/levels/ravel/blender/anchor-fleet-provenance.json",
+        "assets/levels/ravel/blender/tension-gallery-provenance.json",
+        "assets/levels/freestyle-ravel/receiver-wing-manifest.json",
+        "assets/levels/freestyle-ravel/receiver-jaw-manifest.json",
+        "assets/levels/freestyle-ravel/receiver-bay-manifest.json",
+        "assets/levels/ravel/materials/provenance.json",
+        "../../worldkit/modules/industrial/assets/provenance.json",
+        "../../worldkit/modules/industrial/assets/enamel-provenance.json"
+      ]
+    },
+    {
+      "id": "sailbreak-receiver-wing",
+      "source": "assets/levels/freestyle-ravel/build_receiver_wing.py and receiver-wing.blend",
+      "creator": "VECTOR//NOVA project contributors using Blender",
+      "provenance": "Original editable curled collector wing for Sailbreak's socketed receiver installations. The broad quad membrane has a closed rolled hem and exact inner/outer attachment sockets, guided by the registered Ravel concept images and retained prompts. The local manifest records actual bounds, triangle counts, UV/road-coordinate contract and source/export hashes. Runtime placements and rigging belong to the course; the canonical Ravel foil finish is borrowed independently. No third-party meshes, baked lighting, new textures or driving/contact geometry.",
+      "rights": "Project-authored Blender geometry and scalar fallback material; existing Ravel generated references and foil imagery retain their registered provenance.",
+      "runtimeDependencies": ["three"],
+      "provenanceRecord": "assets/levels/freestyle-ravel/receiver-wing-manifest.json",
+      "provenanceRecords": [
+        "assets/levels/freestyle-ravel/README.md",
+        "assets/levels/ravel/reference/provenance.json",
+        "assets/levels/ravel/materials/provenance.json"
+      ],
+      "sourceAssets": [
+        "assets/levels/freestyle-ravel/build_receiver_wing.py",
+        "assets/levels/freestyle-ravel/receiver-wing.blend"
+      ],
+      "runtimeAssets": [
+        "public/assets/levels/freestyle-ravel/receiver-wing.glb"
+      ]
+    },
+    {
+      "id": "sailbreak-receiver-jaw",
+      "source": "assets/levels/freestyle-ravel/build_receiver_jaw.py and receiver-jaw.blend",
+      "creator": "VECTOR//NOVA project contributors using Blender",
+      "provenance": "Original editable formed receiver saddle replacing private copies of plain cap housings while retaining the canonical reel pins and hardpoints. Bored load cheeks, open copper bearings, connected bridges and service balconies provide actual negative space. The local manifest records retained pin dimensions, bounds, sockets, triangle counts and source/export hashes. Runtime materials borrow the registered Worldkit industrial finish. No third-party meshes, new textures or driving/contact geometry.",
+      "rights": "Project-authored Blender geometry and scalar fallback materials; the registered Ravel concept images are reference-only.",
+      "runtimeDependencies": ["three", "@worldkit/environment/industrial"],
+      "provenanceRecord": "assets/levels/freestyle-ravel/receiver-jaw-manifest.json",
+      "sourceAssets": [
+        "assets/levels/freestyle-ravel/build_receiver_jaw.py",
+        "assets/levels/freestyle-ravel/receiver-jaw.blend"
+      ],
+      "runtimeAssets": ["public/assets/levels/freestyle-ravel/receiver-jaw.glb"]
+    },
+    {
+      "id": "sailbreak-receiver-service-bay",
+      "source": "assets/levels/freestyle-ravel/build_receiver_bay.py and receiver-bay.blend",
+      "creator": "VECTOR//NOVA project contributors using Blender",
+      "provenance": "Original editable working bay attached to the rigid receiver crescent. A continuous floor and roof, genuine side apertures, seated winding roller, formed load cheeks and underfloor returns create an open recessed volume with an exact mating plane. The local manifest retains bounds, sockets, triangle counts and source/export hashes. Runtime materials borrow the registered Worldkit industrial finish. No third-party meshes, new textures or driving/contact geometry.",
+      "rights": "Project-authored Blender geometry and scalar fallback materials; existing registered Ravel concepts are reference-only.",
+      "runtimeDependencies": ["three", "@worldkit/environment/industrial"],
+      "provenanceRecord": "assets/levels/freestyle-ravel/receiver-bay-manifest.json",
+      "sourceAssets": [
+        "assets/levels/freestyle-ravel/build_receiver_bay.py",
+        "assets/levels/freestyle-ravel/receiver-bay.blend"
+      ],
+      "runtimeAssets": ["public/assets/levels/freestyle-ravel/receiver-bay.glb"]
+    },
+    {
+      "id": "glasswake-fracture-course",
+      "source": "src/levels/eliminator-glasswake/ and src/events/eliminator-course.js",
+      "creator": "VECTOR//NOVA project contributors",
+      "provenance": "Original continuously supported Eliminator loop and crystal-canyon composition. Course-owned arches and founded canyon placements recompose the registered Glasswake GLB and its layered glacial finish around independent banking, clearances and cut timing. The separately registered fault-massif kit supplies unequal closed, recessed geological masses joined into real basal ice and adjoining canyon shoulders. A private crown-sector replacement adds thick faulted shear masses, offset cobalt galleries and an embedded mineral core under the same founded native placement; the other two massif sites remain unchanged. Private clear-pane frost bands and blue load ribs retain visible canyon depth; coarse spatial groups preserve source geometry and materials. The canonical aurora supplies the distant sky; original calving, weather and racing-runtime owners are not installed. No new downloaded media or generated runtime images.",
+      "rights": "Project-authored route and composition; borrowed project-authored/generated Glasswake assets retain their original registered provenance.",
+      "runtimeDependencies": ["three", "@dimforge/rapier3d-compat"],
+      "borrowedAssets": [
+        "public/assets/levels/glasswake/glasswake-environment-v5.glb",
+        "public/assets/levels/glasswake/ice-surface-v1.png",
+        "public/assets/levels/glasswake/aurora-sky-v1.png"
+      ],
+      "provenanceRecords": [
+        "assets/levels/glasswake/PROVENANCE.md",
+        "assets/levels/eliminator-glasswake/fault-massif-manifest.json",
+        "assets/levels/eliminator-glasswake/glacier-sector/manifest.json"
+      ]
+    },
+    {
+      "id": "glasswake-fracture-fault-massif",
+      "source": "assets/levels/eliminator-glasswake/build_fault_massif.py and fault-massif.blend",
+      "creator": "VECTOR//NOVA project contributors using Blender",
+      "provenance": "Original editable closed glacial body for Glasswake Fracture, developed against the registered scene concept and exact prompt. Unequal sloping fault shoulders, stepped strata and a deep angular melt undercut retain genuine recessed geometry and a founded closed foot. Existing project-owned ice material roles and the registered triplanar ice finish are reused without embedded textures. The local manifest records source, Blender, export and reference hashes, actual bounds, manifold checks and triangle counts. No driving geometry, runtime events, third-party models or new imagery.",
+      "rights": "Project-authored Blender geometry; canonical project-owned Glasswake scalar recipes and generated reference retain their original registered provenance.",
+      "runtimeDependencies": ["three"],
+      "provenanceRecord": "assets/levels/eliminator-glasswake/fault-massif-manifest.json",
+      "provenanceRecords": [
+        "assets/levels/eliminator-glasswake/README.md",
+        "assets/levels/glasswake/PROVENANCE.md"
+      ],
+      "sourceAssets": [
+        "assets/levels/eliminator-glasswake/build_fault_massif.py",
+        "assets/levels/eliminator-glasswake/fault-massif.blend"
+      ],
+      "runtimeAssets": [
+        "public/assets/levels/eliminator-glasswake/fault-massif.glb"
+      ]
+    },
+    {
+      "id": "glasswake-fracture-crown-sector",
+      "source": "assets/levels/eliminator-glasswake/glacier-sector/build_glacier_sector.py and glacier-sector.blend",
+      "creator": "VECTOR//NOVA project contributors using Blender",
+      "provenance": "Original editable closed geological body replacing only the crown-fault host. Thick unequal shear masses, tapered fault planes and offset cobalt galleries retain a founded foot under the original production transform. A registered private derivative selects only the project-owned canonical dark mineral primitive, excluding its ornamental rings, and adds broad cleavage faces inside the new body. Exact source road, geology and native camera guides remain editor-only; the native identity runtime export contains no guides, lights, textures or gameplay surfaces. The local manifest records source, Blender, runtime and reference hashes, semantic guide identity, closedness, mineral containment and route/foundation checks.",
+      "rights": "Project-authored Blender geometry and tools; registered project-owned Glasswake mineral geometry, scalar material recipes and generated reference retain their existing provenance.",
+      "runtimeDependencies": ["three"],
+      "provenanceRecord": "assets/levels/eliminator-glasswake/glacier-sector/manifest.json",
+      "provenanceRecords": [
+        "assets/levels/eliminator-glasswake/glacier-sector/README.md",
+        "assets/levels/glasswake/PROVENANCE.md"
+      ],
+      "sourceAssets": [
+        "assets/levels/eliminator-glasswake/glacier-sector/build_glacier_sector.py",
+        "assets/levels/eliminator-glasswake/glacier-sector/glacier-sector.blend",
+        "assets/levels/eliminator-glasswake/export-sector-guides.mjs",
+        "assets/levels/eliminator-glasswake/authoring-views.json"
+      ],
+      "runtimeAssets": [
+        "public/assets/levels/eliminator-glasswake/glacier-sector.glb"
+      ]
+    },
+    {
+      "id": "saffron-ossuary-course",
+      "source": "src/levels/eliminator-saffron/ and src/events/eliminator-course.js",
+      "creator": "VECTOR//NOVA project contributors",
+      "provenance": "Original supported Eliminator route through fossil passages and a continuous dune mantle. Canonical skull, rib, scapula, vertebra and outcrop prototypes form connected cortical galleries, buried sediment beds and an unequal return fan with full-perimeter foundations. A separately registered original cranio-thoracic extension joins the actual far cheeks to a connected, daylit buried shoulder. Private cast-amber road finish, below-skin glass shoulders, pale cortex and warm marrow reuse the existing weathering/mineral volume and source highlight treatment. Borrows the existing Saffron panorama and Shatterline limestone image; original jump, moving sandfall and creature owners are not constructed. No new downloaded models or generated imagery.",
+      "rights": "Project-authored route, terrain and placement; registered project-authored/generated Saffron and Shatterline sources retain their original rights.",
+      "runtimeDependencies": ["three", "@dimforge/rapier3d-compat"],
+      "borrowedAssets": [
+        "public/assets/levels/saffron/leviathan-kit.glb",
+        "public/assets/levels/saffron/saffron-sky-v2.png",
+        "public/assets/levels/saffron/weathering-noise-v1.r8",
+        "public/assets/levels/shatterline/limestone-v1.png"
+      ],
+      "provenanceRecords": [
+        "assets/levels/saffron/PROVENANCE.md",
+        "assets/levels/shatterline/rock-provenance-v1.json",
+        "assets/levels/eliminator-saffron/cranio-thoracic/manifest.json"
+      ]
+    },
+    {
+      "id": "saffron-ossuary-cranio-thoracic-landscape",
+      "source": "assets/levels/eliminator-saffron/cranio-thoracic/build_cranio_thoracic.py and cranio-thoracic.blend",
+      "creator": "VECTOR//NOVA project contributors using Blender",
+      "provenance": "Original course-private connected cortical landscape extending the fitted canonical skull into a daylit buried shoulder. Thick unequal galleries, folded fenestrated fans, recessed marrow and a mineral collar follow the registered fossil-landscape concept. Exact route, dune triangles, fitted fossil references and native cameras are retained as editor-only guides; only the original anatomy and sediment export in identity world coordinates. The local manifest records source, Blend, runtime and reference hashes, closed components, actual skull contact, terrain burial and road/camera clearance. Existing Saffron material roles and mineral/weathering sources are reused. No new imagery, third-party mesh, driving surface or collision geometry.",
+      "rights": "Project-authored geometry and source tools; registered project-owned Saffron concept, material recipes and editor reference assets retain their existing provenance.",
+      "runtimeDependencies": ["three"],
+      "provenanceRecord": "assets/levels/eliminator-saffron/cranio-thoracic/manifest.json",
+      "provenanceRecords": [
+        "assets/levels/eliminator-saffron/cranio-thoracic/README.md",
+        "assets/levels/saffron/PROVENANCE.md"
+      ],
+      "sourceAssets": [
+        "assets/levels/eliminator-saffron/cranio-thoracic/build_cranio_thoracic.py",
+        "assets/levels/eliminator-saffron/cranio-thoracic/cranio-thoracic.blend",
+        "assets/levels/eliminator-saffron/export-authoring-guides.mjs",
+        "assets/levels/eliminator-saffron/authoring-views.json"
+      ],
+      "runtimeAssets": [
+        "public/assets/levels/eliminator-saffron/cranio-thoracic.glb"
+      ]
+    },
+    {
+      "id": "nomad-last-convoy-course",
+      "source": "src/levels/eliminator-nomad/ wrapping src/levels/nomad/index.js",
+      "creator": "VECTOR//NOVA project contributors",
+      "provenance": "Eliminator event and separate course/record identity over the complete project-authored Nomad Procession moving-carrier course. Reuses its real carrier-owned driving decks, open transfers, hull and ground collision, shared rigid-surface clock, AI receiver forecasts, native dynamics, scenery, wheels, dust, guidance, materials and panorama. Canonical route geometry and assets remain unchanged. No fixed road around stationary carriers, new downloaded models or generated imagery.",
+      "rights": "Project-authored mode wrapper; all borrowed project-owned Nomad/Worldkit models, finishes and generated panorama retain their registered provenance and rights.",
+      "runtimeDependencies": [
+        "three",
+        "@dimforge/rapier3d-compat",
+        "@worldkit/environment/industrial"
+      ],
+      "borrowedAssets": [
+        "public/assets/levels/nomad/carrier-kit.glb",
+        "public/assets/levels/nomad/companion-armour.glb",
+        "public/assets/levels/nomad/interior-freight.glb",
+        "public/assets/levels/nomad/nomad-sky-v1.png",
+        "public/assets/levels/nomad/receiver-crown.glb",
+        "public/assets/levels/nomad/route-supports.glb",
+        "public/assets/levels/nomad/salt-escarpments.glb",
+        "public/assets/levels/nomad/saltwind-gallery.glb",
+        "public/assets/levels/nomad/wallride-service.glb"
+      ],
+      "provenanceRecords": [
+        "../../worldkit/modules/industrial/assets/enamel-provenance.json",
+        "../../worldkit/modules/industrial/assets/provenance.json",
+        "assets/levels/nomad/blender/carrier-kit-provenance.json",
+        "assets/levels/nomad/blender/companion-armour/companion-armour-provenance.json",
+        "assets/levels/nomad/blender/interior-freight/interior-freight-provenance.json",
+        "assets/levels/nomad/blender/receiver-crown/receiver-crown-provenance.json",
+        "assets/levels/nomad/blender/route-supports-provenance.json",
+        "assets/levels/nomad/blender/salt-escarpments/salt-escarpments-provenance.json",
+        "assets/levels/nomad/blender/saltwind-gallery/saltwind-gallery-provenance.json",
+        "assets/levels/nomad/blender/wallride-service/wallride-service-provenance.json",
+        "assets/levels/nomad/reference/provenance.json",
+        "assets/levels/nomad/sky/provenance.json"
+      ]
+    },
+    {
+      "id": "skywell-arrival-kit",
+      "source": "assets/levels/launchworks/build_arrival_art.py and skywell-arrival-kit.blend; src/levels/launchworks/arrival-art.js",
+      "creator": "VECTOR//NOVA project contributors",
+      "provenance": "Original editable Blender-authored Gothic-bronze arrival furniture, derived from this project's selected Zephyr scene reference and its retained exact imagegen prompt. Tall Crown and separately proportioned small beacons use tapered formed exoskeletons, real recessed twin induction lancets, ivory stone anchor shoes, fitted collars and fasteners. Matching deep bronze terrace saddles retain stone bearing pads outside the approved road corridor; four tapered bronze pickup webs connect their formed spine to seated flanges beneath the unchanged keel, with an editable non-exported keel reference retained for inspection. A compact closed Veil distributor adds carved source cheeks, deep recesses, fitted coping and four actual open mouths aligned to the unchanged curtain strands; it copies that curtain's world matrix without adding water geometry or changing opacity. Exported GLBs use game metres, Y up and +Z forward, with baked identity node transforms, actual bevel geometry, four or fewer merged material-role meshes and restrained original vertex-color finish. Skywell spatially instances the private asset library without adding driving surfaces, colliders, hoops or point lights. The rebuild script, editable source, exact mesh bounds, triangle counts and runtime hashes are retained; no downloaded meshes, texture images, fonts or generated runtime imagery are used.",
+      "rights": "Project-authored geometry, materials and vertex finish; no third-party model or texture inputs. The existing registered Zephyr concept reference retains its original provenance.",
+      "runtimeDependencies": ["three"],
+      "provenanceRecord": "assets/levels/launchworks/arrival-art-manifest.json",
+      "provenanceRecords": [
+        "assets/levels/launchworks/README.md",
+        "assets/levels/launchworks/build_arrival_art.py",
+        "assets/levels/launchworks/skywell-arrival-kit.blend",
+        "assets/levels/zephyr/asset-manifest.json",
+        "assets/levels/zephyr/zephyr-scene-reference.png"
+      ],
+      "runtimeAssets": [
+        "public/assets/levels/launchworks/arrival-beacon-crown.glb",
+        "public/assets/levels/launchworks/arrival-beacon-small.glb",
+        "public/assets/levels/launchworks/terrace-saddle.glb",
+        "public/assets/levels/launchworks/veil-spill-lip.glb"
+      ]
+    },
+    {
+      "id": "skywell-garden-terrace",
+      "source": "assets/levels/launchworks/build_terrace_art.py and skywell-garden-terrace.blend; src/levels/launchworks/terrace-art.js",
+      "creator": "VECTOR//NOVA project contributors",
+      "provenance": "Original editable Blender-authored limestone garden promenade, with continuous fitted coping, twenty-eight real pointed-arch balustrade bays, open canal and walking entrances, and six formed bronze straps. The canonical island-grand GLB is imported unchanged as a dimensional reference: Blender BVH rays measure its actual upward mineral top and fit the anchor straps to its eroded sides. Only the four original merged limestone, pale coping, bronze and recess meshes are exported; canonical mineral geometry remains owned by the registered Zephyr kit. The local helper copies selected private island matrices and replaces only their decorative rim roles, retaining the mineral surface. Game-local metres, identity glTF transforms and restrained original vertex finish are retained alongside the editable blend, rebuild script, exact bounds, triangle count and runtime hash. No downloaded media, new textures, lights or driving surfaces.",
+      "rights": "Project-authored geometry, materials and vertex finish; the project-owned Zephyr dimensional reference and selected concept retain their existing registered provenance.",
+      "runtimeDependencies": ["three"],
+      "provenanceRecord": "assets/levels/launchworks/terrace-art-manifest.json",
+      "provenanceRecords": [
+        "assets/levels/launchworks/README.md",
+        "assets/levels/launchworks/build_terrace_art.py",
+        "assets/levels/launchworks/skywell-garden-terrace.blend",
+        "assets/levels/zephyr/asset-manifest.json",
+        "assets/levels/zephyr/zephyr-scene-reference.png"
+      ],
+      "borrowedAssets": ["public/assets/levels/zephyr/island-grand.glb"],
+      "runtimeAssets": [
+        "public/assets/levels/launchworks/garden-terrace-grand.glb"
+      ]
     },
     {
       "id": "asterion-deck-finish",

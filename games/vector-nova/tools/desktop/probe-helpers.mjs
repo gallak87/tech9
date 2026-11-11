@@ -3,6 +3,7 @@ import {
   createMemoryStorage,
 } from '../../src/progression/careers.js';
 import { createProfileStore } from '../../src/progression/profile.js';
+import { COURSE_IDS } from '../../src/levels/access.js';
 import {
   createCupStore,
   cupStandings,
@@ -52,6 +53,7 @@ export function unlockedCareerSave({ complete = false } = {}) {
     cupStore.abandon();
   }
   if (complete) {
+    for (const id of COURSE_IDS) profileStore.recordCourseFinish(id);
     for (let i = 0; i < 24; i++)
       profileStore.recordRace({ id: `release-check-${i}`, won: true });
     profileStore.recordTrial('halcyon', true);

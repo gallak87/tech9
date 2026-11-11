@@ -22,15 +22,6 @@
       "dimensions": [1774, 887]
     },
     {
-      "id": "mineral",
-      "sourceImageInGitHistory": "mineral-v1.png",
-      "originalOutput": "/Users/g/.codex/generated_images/01a1385a-030f-7631-9e5d-cccf0f3b5c75/exec-650126fd-cee2-4731-8041-41f2af0168ce.png",
-      "promptRecord": "mineral-prompt-v1.txt",
-      "imageSha256": "a0eca6baab405111fc752238206765771df26ef561cbb3fc134da1e8408c34b1",
-      "promptSha256": "1d9e964cc4c14262828729f036b3e8eb19ffe9c40b9f1eeab7b4f51d36146ced",
-      "dimensions": [1254, 1254]
-    },
-    {
       "id": "mineral-v2",
       "sourceImage": "mineral-v2.png",
       "promptRecord": "mineral-prompt-v2.txt",

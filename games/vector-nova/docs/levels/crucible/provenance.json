@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "selectedConcept": "Crucible Foundry / Colossus industrial elimination circuit",
+  "consideredConcepts": [
+    "Nacre Breakwater / coastal elimination circuit",
+    "Orbital Riftline / relay elimination circuit",
+    "Crucible Foundry / industrial elimination circuit"
+  ],
+  "image": "crucible-foundry-v1.png",
+  "sha256": "7b3eaf70649014f3b2c8918bbf235bdfd9310325d27a7c7aaa1c9d6674e45b43",
+  "generator": "Built-in image_gen tool",
+  "purpose": "Original environment concept reference; not a runtime screenshot or shipped sky texture",
+  "rights": "Generated for this project; no third-party reference artwork supplied",
+  "prompt": "Use case: stylized-concept. Create one original 16:9 game environment concept for VECTOR//NOVA, an anti-gravity combat racer. Selected course concept: Crucible Foundry, a dedicated elimination circuit in a colossal working industrial heat-exchanger and dispatch district. Camera is a readable gameplay chase view behind a SMALL ceramic graphite anti-gravity racing ship hovering just above the road. The road is an engineered dark graphite/steel raceway with three or four broad usable racing lanes, overtaking width, long banked curves and clear actual guard rails. It wraps around immense heat-exchanger cylinders with layered ivory enamel ribs, copper radiator fins, steel pipework and fitted joints. Varied massive dispatch halls, structural gantries, undercrofts and cooling stacks rise 100–400 metres; every load is visibly supported by joined beams, pier seats and foundations. Warm dusk light from the horizon and cool blue-grey steel shadows. Restrained red cut-warning lamps are integrated into real trackside machinery and gantries; amber safety details are sparse. Keep the continuous road visible and the small ship crisp. Important composition: close grounded raceway foreground gives clear scale, one huge exchanger fills the midground beside a sweeping turn, unequal connected industrial masses and haze establish tremendous depth. Achievable high quality Three.js manufactured geometry, physically based materials, strong readable silhouettes, not a photorealistic city photograph. No hoops, no floating disconnected blocks, no aircraft flight, no jumps, no lava track, no neon cyberpunk, no giant UI screens, no text, no lettering, no logos, no HUD. Other concepts considered but not selected: a Nacre Breakwater coastal elimination course and an Orbital Riftline relay; this image must depict the chosen foundry course only."
+}

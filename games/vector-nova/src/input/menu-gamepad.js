@@ -194,7 +194,9 @@ export function bindMenuGamepad(
           nextRepeat = now + (current !== direction ? 350 : 140);
         }
         direction = current;
-      } else if (intent.camera && !previous.camera) key('c', 'KeyC');
+      } else if (intent.camera && !previous.camera)
+        // Camera is a semantic action rather than a synthetic keyboard event.
+        window.dispatchEvent(new Event('vn-camera-toggle'));
     }
     previous = intent;
     frame = requestAnimationFrame(poll);

@@ -51,7 +51,7 @@ export function garageView({
   craft,
   selectedShip,
   lockedShip,
-  stock,
+  stock = false,
   notice = '',
 }) {
   const unlocked = shipUnlocked(profile, craft.id);

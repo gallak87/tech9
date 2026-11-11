@@ -126,6 +126,7 @@ export function createLowCombatPresentation(scene, combat, projection = null) {
         if (
           flash.type === 'muzzle' ||
           isLanceFlash(flash) ||
+          flash.signature ||
           roadPulse?.handles(flash)
         )
           continue;
@@ -145,7 +146,7 @@ export function createLowCombatPresentation(scene, combat, projection = null) {
       }
       shots.count = 0;
       for (const shot of state.shots.slice(0, 30)) {
-        if (shot.heavy) continue;
+        if (shot.heavy || shot.signature) continue;
         transform.position.fromArray(shot.position);
         transform.quaternion.fromArray(shot.quaternion);
         transform.position.add(

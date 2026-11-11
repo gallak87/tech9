@@ -1,0 +1,449 @@
+{
+  "id": "ossuary-cranio-thoracic-v1",
+  "root": "ossuary_cranio_thoracic",
+  "stage": "Retained anatomy with one restrained geometry-derived cavity vertex-colour bake",
+  "coordinates": "Identity actual game-world metres,+Y up,+Z forward",
+  "source": {
+    "file": "assets/levels/eliminator-saffron/cranio-thoracic/build_cranio_thoracic.py",
+    "sha256": "bf2ba82aae69a4180af7c3df3539146377e244d30ab9f5660604585910fb9957"
+  },
+  "blend": {
+    "file": "assets/levels/eliminator-saffron/cranio-thoracic/cranio-thoracic.blend",
+    "sha256": "4e63ad842e0dca68d403cc669099247c9465b25af127d9252aea7acd67b05077"
+  },
+  "runtimeAsset": {
+    "file": "public/assets/levels/eliminator-saffron/cranio-thoracic.glb",
+    "sha256": "cde8b62e19a654456949e58c22ff91e30747920c753b069f3acfd1220bdbc574",
+    "bytes": 1246320
+  },
+  "guide": {
+    "coordinateContract": "Explicit editor-only guide input; regenerated at any temporary path, never a runtime dependency",
+    "semanticGeometrySha256": "75e81312ed7ec08436d19f1baf485ce558caf9781b50483b039b5d2612b25d85",
+    "rebuildHelper": "assets/levels/eliminator-saffron/export-authoring-guides.mjs",
+    "inputFileHashesAtGeneration": [
+      {
+        "file": "src/levels/eliminator-saffron/track/model.js",
+        "sha256": "fe1130b8cc37d86c0d24022ecad73e14af3d5733a7a90c31c6c595d22246ed5f"
+      },
+      {
+        "file": "src/events/eliminator-track.js",
+        "sha256": "19cb6ffa3c3787c463abc1b5ddb486ac02832cf5462bb0e76a4e10bde628e6d3"
+      },
+      {
+        "file": "src/events/eliminator-road.js",
+        "sha256": "82c91b97d87c325d240e1ae77133a2b0622842f01280a2e17121ee02e466b016"
+      },
+      {
+        "file": "src/levels/eliminator-saffron/scenery.js",
+        "sha256": "c5c635889ce08b53d8bb1a25dbdf14687b3145ee1d6c834813837d3051b25751"
+      },
+      {
+        "file": "src/levels/eliminator-saffron/gallery.js",
+        "sha256": "6f8415d76e13e567815a116b9263af057f5a97e408deb49e6f13dd7276165100"
+      },
+      {
+        "file": "public/assets/levels/saffron/leviathan-kit.glb",
+        "sha256": "3ed6cbcb753df383837c446e9985e937ad4c2888b8bf2ea03c376d7734d38b7c"
+      },
+      {
+        "file": "assets/levels/eliminator-saffron/authoring-views.json",
+        "sha256": "16178b79785dc2bc43c91bc2768a5d2c3eebcb779331b840c769750ae0939ff6"
+      },
+      {
+        "file": "assets/levels/saffron/scene-reference.png",
+        "sha256": "cd7a3799d7fe2ac8beaea380fcdae1d317209f86f806cd5d99fd43b421e5abdb"
+      },
+      {
+        "file": "assets/levels/saffron/PROVENANCE.md",
+        "sha256": "b9be8e90aa73c42328ed4f0019b12c28c0a8c1c11d5ad6d156ee2ab97989e70a"
+      }
+    ],
+    "viewSource": "assets/levels/eliminator-saffron/authoring-views.json",
+    "semanticViewsSha256": "a64104061b75a43f5842159ab125431f49916d0fcdda0e05eebeb95ba1238730"
+  },
+  "geometry": {
+    "triangles": 48664,
+    "bounds": {
+      "min": [471.9776306152344, 159.1015625, 480.4886779785156],
+      "max": [1144.2659912109375, 649.618896484375, 1142.67138671875]
+    },
+    "materialRoles": [
+      "Saffron_pale_fossil",
+      "Saffron_chalk_edges",
+      "Saffron_marrow_ochre"
+    ],
+    "closedSourceComponents": [
+      {
+        "name": "Original / fractured sheltered occipital pocket",
+        "boundaryEdges": 0,
+        "nonmanifoldEdges": 0,
+        "signedVolume": 4273708.045999035
+      },
+      {
+        "name": "Original / broad seated far-cheek cortical fan -1",
+        "boundaryEdges": 0,
+        "nonmanifoldEdges": 0,
+        "signedVolume": 213602.84284415463
+      },
+      {
+        "name": "Original / broad seated far-cheek cortical fan 1",
+        "boundaryEdges": 0,
+        "nonmanifoldEdges": 0,
+        "signedVolume": 153096.2316133997
+      },
+      {
+        "name": "Original / main leached costal load plate",
+        "boundaryEdges": 0,
+        "nonmanifoldEdges": 0,
+        "signedVolume": 2290163.7473129006
+      },
+      {
+        "name": "Original / stepped back asymmetric scapular load plate",
+        "boundaryEdges": 0,
+        "nonmanifoldEdges": 0,
+        "signedVolume": 660024.7714272443
+      },
+      {
+        "name": "Original / unequal upper costal fork and rejoining lamina",
+        "boundaryEdges": 0,
+        "nonmanifoldEdges": 0,
+        "signedVolume": 673014.7146467015
+      },
+      {
+        "name": "Original / exposed branching scapular ridge",
+        "boundaryEdges": 0,
+        "nonmanifoldEdges": 0,
+        "signedVolume": 470481.2810560979
+      },
+      {
+        "name": "Original / oblique occipital load plate behind bright exit",
+        "boundaryEdges": 0,
+        "nonmanifoldEdges": 0,
+        "signedVolume": 541497.0783317941
+      },
+      {
+        "name": "Original / deeper uneven fork seen through first gallery",
+        "boundaryEdges": 0,
+        "nonmanifoldEdges": 0,
+        "signedVolume": 519045.49842618534
+      },
+      {
+        "name": "Original / lower unequal costal root returning to sediment",
+        "boundaryEdges": 0,
+        "nonmanifoldEdges": 0,
+        "signedVolume": 1310230.5073401558
+      },
+      {
+        "name": "ossuary_sediment",
+        "boundaryEdges": 0,
+        "nonmanifoldEdges": 0,
+        "signedVolume": 3289379.4062688043
+      }
+    ],
+    "sourceContacts": [
+      {
+        "name": "skull_far_cheek_-1",
+        "point": [600.861572265625, 518.2247924804688, 983.7623901367188],
+        "normal": [
+          -0.019119517877697945, 0.7069774866104126, 0.7069774866104126
+        ],
+        "sourceFace": 68287,
+        "sourceQueryDistance": 31.67739486694336
+      },
+      {
+        "name": "skull_far_cheek_1",
+        "point": [530.5614624023438, 442.87432861328125, 809.2833862304688],
+        "normal": [
+          -0.1894216686487198, -0.7197510004043579, -0.6678906083106995
+        ],
+        "sourceFace": 33510,
+        "sourceQueryDistance": 24.81325340270996
+      }
+    ],
+    "actualExportContactAndGrounding": {
+      "assetSha256": "cde8b62e19a654456949e58c22ff91e30747920c753b069f3acfd1220bdbc574",
+      "method": "Actual exported POSITION accessor indices, three-direction canonical skull volume parity, exact rendered dune triangle interpolation; no bounds-centre contact approximation.",
+      "contactRegions": [
+        {
+          "name": "skull_far_cheek_-1",
+          "node": "Original / broad seated far-cheek cortical fan -1",
+          "measuredSourceFace": 68287,
+          "measuredSourceFacePoint": [
+            600.861572265625, 518.2247924804688, 983.7623901367188
+          ],
+          "testedNearContactVertices": 306,
+          "actualContainedUniqueVertices": 85,
+          "parityDirections": [
+            [0.012998583726584911, 0.9998910427093506, 0.006999237462878227],
+            [0.9736317992210388, 0.11391492187976837, 0.19764724373817444],
+            [0.21762385964393616, 0.016590159386396408, 0.9758917093276978]
+          ],
+          "allThreeDirectionsAgree": true,
+          "primitiveRegions": [
+            {
+              "primitive": 0,
+              "positionAccessor": 8,
+              "positionSha256": "1e5500d7daea10a1f5b5701f47817228d3b2e1560095587604bb0f4c815bce18",
+              "vertexIndices": [
+                0, 1, 2, 3, 4, 5, 23, 24, 25, 26, 27, 28, 29, 47, 48, 49, 50,
+                51, 52, 53, 72, 73, 74, 75, 76, 77, 96, 97, 98, 99, 100, 101,
+                121, 122, 123, 124, 145, 146, 147, 148, 168, 169, 170, 171, 191,
+                192, 193, 194, 214, 215, 216, 217, 236, 237, 238, 239, 240, 259,
+                260, 261, 262, 263, 282, 283, 284, 285, 286, 305, 306, 307, 308,
+                309, 328, 329, 330, 331, 332, 333, 351, 352, 353, 354, 355, 356,
+                373
+              ]
+            },
+            {
+              "primitive": 1,
+              "positionAccessor": 12,
+              "positionSha256": "3b8ab6cbabd13d315ae1ad08fa5c4833feb31dfc10f38a59ac0cc313bcc7f1db",
+              "vertexIndices": [27, 30]
+            }
+          ]
+        },
+        {
+          "name": "skull_far_cheek_1",
+          "node": "Original / broad seated far-cheek cortical fan 1",
+          "measuredSourceFace": 33510,
+          "measuredSourceFacePoint": [
+            530.5614624023438, 442.87432861328125, 809.2833862304688
+          ],
+          "testedNearContactVertices": 415,
+          "actualContainedUniqueVertices": 159,
+          "parityDirections": [
+            [0.012998583726584911, 0.9998910427093506, 0.006999237462878227],
+            [0.9736317992210388, 0.11391492187976837, 0.19764724373817444],
+            [0.21762385964393616, 0.016590159386396408, 0.9758917093276978]
+          ],
+          "allThreeDirectionsAgree": true,
+          "primitiveRegions": [
+            {
+              "primitive": 0,
+              "positionAccessor": 0,
+              "positionSha256": "9da7e7b68c577da3fa4761401ba313b9ae8aba23cefb73346aec5847f574b3e8",
+              "vertexIndices": [
+                11, 12, 13, 14, 15, 16, 17, 18, 35, 36, 37, 38, 39, 40, 41, 42,
+                60, 61, 62, 63, 64, 65, 66, 84, 85, 86, 87, 88, 89, 90, 108,
+                109, 110, 111, 112, 113, 114, 132, 133, 134, 135, 136, 137, 138,
+                155, 156, 157, 158, 159, 160, 161, 178, 179, 180, 181, 182, 183,
+                184, 201, 202, 203, 204, 205, 206, 207, 224, 225, 226, 227, 228,
+                229, 230, 247, 248, 249, 250, 251, 252, 253, 254, 255, 270, 271,
+                272, 273, 274, 275, 276, 277, 278, 279, 293, 294, 295, 296, 297,
+                298, 299, 300, 301, 302, 303, 316, 317, 318, 319, 320, 321, 322,
+                323, 324, 325, 326, 339, 340, 341, 342, 343, 344, 345, 346, 347,
+                348, 349, 362, 363, 364, 365, 366, 367, 368, 369, 370, 371, 372,
+                385, 386, 387, 388, 389, 390, 391, 392, 393, 408, 409, 410, 411,
+                412, 413, 414, 415, 431, 432, 433, 434, 437, 455, 456
+              ]
+            }
+          ]
+        }
+      ],
+      "groundingRegions": [
+        {
+          "name": "Original / main leached costal load plate / terminal toe cap",
+          "node": "Original / main leached costal load plate",
+          "expectedSourceFootPoints": 24,
+          "uniqueMatchedExportedPoints": 24,
+          "maximumMatchingErrorMetres": 0,
+          "minimumBurialMetres": 69.2074317133222,
+          "maximumBurialMetres": 167.24254696301904,
+          "allPointsBuried": true,
+          "primitiveRegions": [
+            {
+              "primitive": 0,
+              "positionAccessor": 55,
+              "positionSha256": "6cefb20b323a2757c15420f28f4d58126ac10930b2216939be49c1e4a9748e22",
+              "vertexIndices": [
+                1121, 1122, 1123, 1124, 1125, 1126, 1127, 1128, 1129, 1130,
+                1131, 1132, 1133, 1134, 1135, 1136, 1137, 1138, 1139, 1140,
+                1141, 1142, 1143, 1144
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Original / stepped back asymmetric scapular load plate / complete spreading foot",
+          "node": "Original / stepped back asymmetric scapular load plate",
+          "expectedSourceFootPoints": 305,
+          "uniqueMatchedExportedPoints": 305,
+          "maximumMatchingErrorMetres": 0,
+          "minimumBurialMetres": 19.99998489531896,
+          "maximumBurialMetres": 40.25839750486091,
+          "allPointsBuried": true,
+          "primitiveRegions": [
+            {
+              "primitive": 0,
+              "positionAccessor": 69,
+              "positionSha256": "68bdf359a174650e67bd25937c18dbdf2ba5e0816296f201fa7ce6a9d3989fe6",
+              "vertexIndices": [
+                0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
+                18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33,
+                34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49,
+                50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 3812, 3813, 3814,
+                3815, 3816, 3817, 3818, 3819, 3820, 3821, 3822, 3823, 3824,
+                3825, 3826, 3827, 3828, 3829, 3830, 3831, 3832, 3833, 3834,
+                3835, 3836, 3837, 3838, 3839, 3840, 3841, 3842, 3843, 3844,
+                3845, 3846, 3847, 3848, 3849, 3850, 3851, 3852, 3853, 3854,
+                3855, 3856, 3857, 3858, 3859, 3860, 3861, 3862, 3863, 3864,
+                3865, 3866, 3867, 3868, 3869, 3870, 3871, 3872
+              ]
+            },
+            {
+              "primitive": 1,
+              "positionAccessor": 73,
+              "positionSha256": "988a6e3bf9e3522863d58dffcf9ac4636fc7c095b3711240560c72fcf503e58b",
+              "vertexIndices": [
+                0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
+                18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33,
+                34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49,
+                50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 532, 533, 534, 535,
+                536, 537, 538, 539, 540, 541, 542, 543, 544, 545, 546, 547, 548,
+                549, 550, 551, 552, 553, 554, 555, 556, 557, 558, 559, 560, 561,
+                562, 563, 564, 565, 566, 567, 568, 569, 570, 571, 572, 573, 574,
+                575, 576, 577, 578, 579, 580, 581, 582, 583, 584, 585, 586, 587,
+                588, 589, 590, 591, 592, 1064, 1065, 1066, 1067, 1070, 1071,
+                1072, 1073, 1074, 1075, 1076, 1077, 1078, 1079, 1080, 1081,
+                1082, 1083, 1084, 1085, 1086, 1087, 1088, 1089, 1090, 1091,
+                1092, 1093, 1094, 1095, 1096, 1097, 1098, 1099, 1100, 1101,
+                1102, 1103, 1104, 1105, 1106, 1107, 1108, 1109, 1110, 1111,
+                1112, 1113, 1114, 1115, 1116, 1117, 1118, 1119, 1120, 1121,
+                1122, 1123, 1124, 1125, 1126, 1127, 1128, 1129, 1130, 1131,
+                1132, 1133, 1134, 1135, 1136, 1137, 1138, 1139, 1140, 1141,
+                1142, 1143, 1144, 1145, 1146, 1147, 1148, 1149, 1150, 1151,
+                1152, 1153, 1154, 1155, 1156, 1157, 1158, 1159, 1160, 1161,
+                1162, 1163, 1164, 1165, 1166, 1167, 1168, 1169, 1170, 1171,
+                1172, 1173, 1174, 1175, 1176, 1177, 1178, 1179, 1180, 1181,
+                1182, 1183, 1184, 1185, 1186, 1187
+              ]
+            },
+            {
+              "primitive": 2,
+              "positionAccessor": 77,
+              "positionSha256": "64ba882f3177fa4002cd246fe5cf70f06eec72f902b463574b8ff7c5f320d679",
+              "vertexIndices": [
+                0, 1, 2, 3, 4, 5, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+                21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36,
+                37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52,
+                53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68,
+                69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84,
+                85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100,
+                101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113,
+                114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126,
+                127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139,
+                140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152,
+                153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165,
+                166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178,
+                179, 180, 181, 182, 183, 184, 185
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Original / lower unequal costal root returning to sediment / terminal toe cap",
+          "node": "Original / lower unequal costal root returning to sediment",
+          "expectedSourceFootPoints": 24,
+          "uniqueMatchedExportedPoints": 24,
+          "maximumMatchingErrorMetres": 0,
+          "minimumBurialMetres": 89.36075851888143,
+          "maximumBurialMetres": 196.0062564878789,
+          "allPointsBuried": true,
+          "primitiveRegions": [
+            {
+              "primitive": 0,
+              "positionAccessor": 47,
+              "positionSha256": "74b95ad96f016f527051b4f7ef50929b2a87e212e50218b9b3881392cbb07b0c",
+              "vertexIndices": [
+                655, 656, 657, 658, 659, 660, 661, 662, 663, 664, 665, 666, 667,
+                668, 669, 670, 671, 672, 673, 674, 675, 676, 677, 678
+              ]
+            }
+          ]
+        },
+        {
+          "name": "sediment / complete bottom footprint",
+          "node": "ossuary_sediment",
+          "expectedSourceFootPoints": 145,
+          "uniqueMatchedExportedPoints": 145,
+          "maximumMatchingErrorMetres": 0,
+          "minimumBurialMetres": 17.999984977829627,
+          "maximumBurialMetres": 18.000014731172882,
+          "allPointsBuried": true,
+          "primitiveRegions": [
+            {
+              "primitive": 0,
+              "positionAccessor": 89,
+              "positionSha256": "5bb509dff24ff48a05da93571dce9fb744a58d446778e9438e290a652345b2f8",
+              "vertexIndices": [
+                0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
+                18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33,
+                34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49,
+                50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65,
+                66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81,
+                82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97,
+                98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110,
+                111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123,
+                124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136,
+                137, 138, 139, 140, 141, 142, 143, 144
+              ]
+            }
+          ]
+        },
+        {
+          "name": "sediment / complete top perimeter",
+          "node": "ossuary_sediment",
+          "expectedSourceFootPoints": 64,
+          "uniqueMatchedExportedPoints": 64,
+          "maximumMatchingErrorMetres": 0,
+          "minimumBurialMetres": 5.999985083814408,
+          "maximumBurialMetres": 6.000014390810065,
+          "allPointsBuried": true,
+          "primitiveRegions": [
+            {
+              "primitive": 0,
+              "positionAccessor": 89,
+              "positionSha256": "5bb509dff24ff48a05da93571dce9fb744a58d446778e9438e290a652345b2f8",
+              "vertexIndices": [
+                145, 146, 147, 148, 149, 150, 154, 155, 159, 160, 164, 165, 169,
+                170, 174, 175, 179, 180, 184, 185, 189, 190, 194, 195, 199, 200,
+                204, 205, 209, 210, 214, 215, 219, 220, 224, 225, 229, 230, 234,
+                235, 239, 240, 244, 245, 249, 250, 254, 255, 259, 260, 264, 265,
+                269, 270, 274, 275, 279, 280, 284, 285, 286, 287, 288, 289
+              ]
+            }
+          ]
+        }
+      ],
+      "guideSemanticGeometrySha256": "75e81312ed7ec08436d19f1baf485ce558caf9781b50483b039b5d2612b25d85"
+    },
+    "allRouteFrames": 2802,
+    "actualTriangleSATChecks": 0,
+    "blockers": 0,
+    "runtimeReferenceMeshes": 0,
+    "solidOccupancyGuard": {
+      "componentFrameCentreChecks": 691,
+      "enclosedCentres": 0,
+      "enclosed160mSolidBlockNegativeControlRejected": true
+    },
+    "cavityBake": {
+      "samplesPerVertex": 12,
+      "radiusMetres": 72,
+      "selfOffsetMetres": 0.25,
+      "connectedSmoothingPasses": 2,
+      "rays": 321600,
+      "minimum": 0.7600002306141654,
+      "maximum": 1,
+      "mean": 0.9109547983043028,
+      "rangeContract": [0.76, 1],
+      "occluders": "Actual retained new closed anatomy plus canonical fitted skull; old competing web excluded"
+    }
+  },
+  "reference": {
+    "file": "assets/levels/saffron/scene-reference.png",
+    "sha256": "cd7a3799d7fe2ac8beaea380fcdae1d317209f86f806cd5d99fd43b421e5abdb",
+    "promptProvenance": "assets/levels/saffron/PROVENANCE.md",
+    "promptProvenanceSha256": "b9be8e90aa73c42328ed4f0019b12c28c0a8c1c11d5ad6d156ee2ab97989e70a"
+  },
+  "rights": "Original project-authored anatomy/mineral collar, source concept and material roles project-owned. Canonical geometry only editor guide, never shipped in this asset."
+}

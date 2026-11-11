@@ -37,6 +37,7 @@ async function edition(t, name) {
     [
       'progression/profile',
       'progression/catalog',
+      'progression/completion',
       'progression/save-transfer',
       'race/cup',
       'race/rival-build',
@@ -44,6 +45,7 @@ async function edition(t, name) {
       'progression/goals',
       'progression/view',
       'frontend/cup-art',
+      'levels/access',
     ].map((id) => server.ssrLoadModule(`/src/${id}.js`)),
   );
   return Object.assign({}, ...modules);
@@ -76,6 +78,74 @@ function finishCup(api, cup, win = true) {
     if (!api.cupComplete(cup.snapshot().state)) cup.next();
   }
 }
+
+test('the demo keeps four unlocks while a completed thirty-seven-item career and credits acknowledgement round-trip intact', async (t) => {
+  const demo = await edition(t, 'demo');
+  const full = await edition(t, 'full');
+  const source = stores(full);
+  for (let i = 0; i < 24; i++)
+    source.profile.recordRace({ id: `complete-${i}`, won: true });
+  for (const cup of ['founders', 'frontier', 'horizon', 'apex'])
+    source.profile.recordCup(cup);
+  for (const track of ['halcyon', 'orbital'])
+    source.profile.recordTrial(track, true);
+  for (const mode of full.MODE_UNLOCKS)
+    for (const id of mode.levelIds.slice(0, 2))
+      source.profile.recordCourseFinish(id);
+  assert.equal(
+    full.careerUnlockProgress(source.profile.snapshot().state).collected,
+    37,
+  );
+  assert.equal(source.profile.queueCompletion('shrike'), true);
+  assert.equal(source.profile.acknowledgeCompletion(), true);
+  const inDemo = stores(demo);
+  inDemo.transfer.replace(inDemo.transfer.parse(source.transfer.export()));
+  const progress = demo.careerUnlockProgress(inDemo.profile.snapshot().state);
+  assert.equal(progress.total, 4);
+  assert.equal(progress.collected, 4);
+  assert.equal(progress.courseCount, 0);
+  assert.ok(progress.items.every((item) => item.kind === 'reward'));
+  assert.equal(demo.isCareerComplete(inDemo.profile.snapshot().state), false);
+  assert.equal(
+    demo.hasFullCareerUnlocks(inDemo.profile.snapshot().state),
+    true,
+  );
+  assert.equal(inDemo.profile.snapshot().state.completion.acknowledged, true);
+  const returned = stores(full);
+  returned.transfer.replace(returned.transfer.parse(inDemo.transfer.export()));
+  assert.deepEqual(
+    returned.profile.snapshot().state,
+    source.profile.snapshot().state,
+  );
+});
+
+test('cup-unlocked modes stay outside the demo even with full career progress or developer access', async (t) => {
+  const demo = await edition(t, 'demo'),
+    full = await edition(t, 'full');
+  const access = {
+    complete: true,
+    cupWins: ['founders', 'frontier', 'horizon', 'apex'],
+    finishedCourses: full.COURSE_IDS,
+  };
+  for (const unlock of full.MODE_UNLOCKS) {
+    assert.equal(full.modeAvailable(unlock.mode, access), true);
+    assert.equal(demo.modeAvailable(unlock.mode, access), false);
+    assert.equal(
+      demo.modeAvailable(unlock.mode, { ...access, developer: true }),
+      false,
+    );
+    for (const id of unlock.levelIds) {
+      assert.equal(full.levelAvailable(id, access), true);
+      assert.equal(demo.levelAvailable(id, access), false);
+      assert.equal(demo.previewSelectable(id, access), false);
+      assert.equal(
+        demo.levelAvailable(id, { ...access, developer: true }),
+        false,
+      );
+    }
+  }
+  assert.equal(demo.modeAvailable('race'), true);
+});
 
 test('demo awards four reachable milestones, independent of placing and with two equipment slots', async (t) => {
   const api = await edition(t, 'demo');
@@ -216,6 +286,8 @@ test('demo saves carry rewards and trophy to full; full saves round-trip through
   target.profile.chooseExotic('kestrel');
   for (const [i, id] of ['jump', 'lance', 'injector', 'deflector'].entries())
     target.profile.equip('kestrel', i, id);
+  target.profile.recordCourseFinish('launchworks');
+  target.profile.recordCourseFinish('freestyle-oriel');
   target.cup.start('apex', 'kestrel', 'hard');
   const original = target.profile.snapshot().state;
   const inDemo = stores(demo);
@@ -275,8 +347,29 @@ test('demo saves carry rewards and trophy to full; full saves round-trip through
   assert.equal(inDemo.profile.equip('kestrel', 1, 'lance'), false);
   assert.equal(inDemo.profile.chooseExotic('kestrel'), false);
   assert.equal(inDemo.profile.removeExotic(), false);
+  assert.equal(inDemo.profile.recordCourseFinish('freestyle-ravel'), false);
+  assert.deepEqual(inDemo.profile.snapshot().state.finishedCourses, [
+    'launchworks',
+    'freestyle-oriel',
+  ]);
   assert.deepEqual(inDemo.profile.snapshot().state, original);
-  assert.match(demo.careerView(original), /4<small> \/ 4 rewards/);
+  assert.match(demo.careerView(original), /4<small> \/ 4 unlocks/);
+  assert.doesNotMatch(
+    demo.careerView(original),
+    /career-courses|Course unlocks/,
+  );
+  assert.doesNotMatch(
+    demo.careerProgressView(original),
+    /course-progress|data-unlock/,
+  );
+  assert.equal(
+    (
+      demo
+        .careerProgressView(original)
+        .match(/class="career-progress-notch/g) ?? []
+    ).length,
+    4,
+  );
   const returned = stores(full);
   returned.transfer.replace(returned.transfer.parse(inDemo.transfer.export()));
   assert.deepEqual(returned.profile.snapshot().state, original);

@@ -1,7 +1,31 @@
 import { equipmentById, MAX_EQUIPMENT_SLOTS } from '../progression/catalog.js';
 import { vehicleHandling } from '../ships/catalog.js';
 const copy = (value) => structuredClone(value);
-export function createEquipmentSystem({ motion, combat, actorId = 'player' }) {
+export function createEquipmentSystem({
+  motion,
+  combat,
+  actorId = 'player',
+  tuning = {},
+}) {
+  for (const [id, rule] of Object.entries(tuning)) {
+    if (
+      !equipmentById(id) ||
+      !rule ||
+      Object.keys(rule).some(
+        (key) => !['cooldown', 'autoRepeat'].includes(key),
+      ) ||
+      (rule.cooldown !== undefined &&
+        (!Number.isFinite(rule.cooldown) ||
+          rule.cooldown < 0.15 ||
+          rule.cooldown > 120)) ||
+      (rule.autoRepeat !== undefined && typeof rule.autoRepeat !== 'boolean')
+    )
+      throw new Error('Invalid issued equipment tuning.');
+  }
+  const itemFor = (id) => {
+    const item = equipmentById(id);
+    return item ? { ...item, ...tuning[id] } : null;
+  };
   let slots = [],
     held = Array(MAX_EQUIPMENT_SLOTS).fill(false),
     time = 0,
@@ -23,17 +47,22 @@ export function createEquipmentSystem({ motion, combat, actorId = 'player' }) {
       held = Array(MAX_EQUIPMENT_SLOTS).fill(false);
       return;
     }
-    slots = (state?.equipment ?? [])
-      .slice(0, MAX_EQUIPMENT_SLOTS)
-      .map((id) =>
-        equipmentById(id) ? { id, remaining: 0, active: 0 } : null,
-      );
+    slots = (state?.equipment ?? []).slice(0, MAX_EQUIPMENT_SLOTS).map((id) =>
+      equipmentById(id)
+        ? {
+            id,
+            ...(tuning[id] ? { cooldown: itemFor(id).cooldown } : {}),
+            remaining: 0,
+            active: 0,
+          }
+        : null,
+    );
     held = Array(MAX_EQUIPMENT_SLOTS).fill(false);
     time = 0;
     shield = false;
   }
   function activate(slot, state) {
-    const item = equipmentById(slot.id);
+    const item = itemFor(slot.id);
     if (slot.remaining > 0) return false;
     if (slot.id === 'jump' && !motion.jump?.(state)) return false;
     if (slot.id === 'injector') {
@@ -84,7 +113,11 @@ export function createEquipmentSystem({ motion, combat, actorId = 'player' }) {
           events.push({ type: 'equipment-expire', payload: { kind: slot.id } });
         if (slot.id === 'deflector' && !slot.active) shield = false;
         const pressed = enabled && !!input?.[`equipment${i + 1}`];
-        if (pressed && !held[i] && activate(slot, state))
+        if (
+          pressed &&
+          (!held[i] || itemFor(slot.id).autoRepeat) &&
+          activate(slot, state)
+        )
           events.push({
             type: 'equipment-activate',
             payload: { kind: slot.id, slot: i, time },
@@ -141,7 +174,9 @@ export function createEquipmentSystem({ motion, combat, actorId = 'player' }) {
             (!equipmentById(slot.id) ||
               !Number.isFinite(slot.remaining) ||
               slot.remaining < 0 ||
-              slot.remaining > equipmentById(slot.id).cooldown ||
+              slot.remaining > itemFor(slot.id).cooldown ||
+              (slot.cooldown !== undefined &&
+                slot.cooldown !== itemFor(slot.id).cooldown) ||
               !Number.isFinite(slot.active) ||
               slot.active < 0 ||
               slot.active > equipmentById(slot.id).duration),

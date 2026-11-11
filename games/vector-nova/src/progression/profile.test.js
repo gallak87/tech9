@@ -20,6 +20,7 @@ import {
 } from '../race/time-trial.js';
 import { createCupStore } from '../race/cup.js';
 import { createSaveTransfer, SAVE_BACKUP_KEY } from './save-transfer.js';
+import { MODE_UNLOCKS } from '../levels/access.js';
 import { vehicleHandling, getShip } from '../ships/catalog.js';
 const memory = () => {
   const values = new Map();
@@ -155,6 +156,8 @@ test('Quad Core transfers and removes atomically while preserving progress and b
   for (const cup of ['founders', 'frontier', 'horizon', 'apex'])
     store.recordCup(cup);
   for (const track of ['halcyon', 'orbital']) store.recordTrial(track, true);
+  for (const mode of MODE_UNLOCKS)
+    for (const id of mode.levelIds.slice(0, 2)) store.recordCourseFinish(id);
   assert.ok(store.queueCompletion('kestrel'));
   assert.ok(store.acknowledgeCompletion());
   assert.ok(store.chooseExotic('kestrel'));

@@ -169,3 +169,41 @@ test('result progress shows the earned delta and does not double-count a reopene
     );
   assert.deepEqual(store.snapshot().state, after);
 });
+
+test('Freestyle progress supports full results with missed catches and explains incomplete or recovered runs', () => {
+  const store = createProfileStore(memory);
+  const before = store.snapshot().state;
+  store.recordRace({ id: 'freestyle', position: 3 });
+  const after = store.snapshot().state;
+  const result = {
+    mode: 'freestyle',
+    medal: 'Bronze',
+    playerValid: true,
+    landed: 2,
+    legs: Array.from({ length: 5 }, (_, index) => ({
+      id: `transfer-${index + 1}`,
+      landed: index < 2,
+    })),
+  };
+  const context = { mode: 'freestyle', trackId: 'launchworks' };
+  const earned = raceProgressView(before, after, context, result);
+  assert.match(earned, /<h3>\+3 race progress<\/h3>/);
+  assert.match(earned, /0 → 3\/6 progress/);
+  const reopened = raceProgressView(after, after, context, result);
+  assert.match(reopened, /<h3>Progress saved<\/h3>/);
+  assert.doesNotMatch(reopened, /No progress|valid finish is required/);
+  const incomplete = {
+    ...result,
+    legs: result.legs.slice(0, 4),
+  };
+  for (const invalid of [incomplete, { ...result, playerValid: false }]) {
+    assert.match(
+      raceProgressView(after, after, context, invalid),
+      /<h3>Complete the full course without manual recovery to earn career progress\.<\/h3>/,
+    );
+  }
+  assert.equal(
+    raceProgressView(before, after, { mode: 'practice' }, result),
+    '',
+  );
+});

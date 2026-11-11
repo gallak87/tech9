@@ -75,6 +75,98 @@ function harness(collisionWorld = null, course = track) {
   return { combat, actors, events, add, step, collect };
 }
 
+test('stopping one Ion emitter preserves its deposited hazardous trail and other actors', () => {
+  const h = harness();
+  const source = h.add('barge', 100, 0, 50);
+  h.add('other', 100, 10, 50);
+  h.collect('barge', 'ion');
+  h.collect('other', 'ion');
+  h.step(60);
+  const laid = h.combat.view().wakes.filter((wake) => wake.source === 'barge');
+  assert.ok(laid.length > 0);
+  assert.equal(h.combat.stopIon('barge'), true);
+  assert.equal(
+    h.combat.stopIon('barge'),
+    false,
+    'stopping twice has no extra effect',
+  );
+  assert.equal(h.combat.view().emitters.barge, undefined);
+  assert.ok(h.combat.view().emitters.other);
+  assert.deepEqual(
+    h.combat.view().wakes.filter((wake) => wake.source === 'barge'),
+    laid,
+  );
+  const oldIds = laid.map((wake) => wake.id);
+  const position = (laid.at(-1).a[2] + laid.at(-1).b[2]) / 2;
+  const following = h.add('following', position);
+  h.step(1);
+  assert.equal(
+    following.hits[0]?.kind,
+    'ion',
+    'a laid segment still hits a following hull',
+  );
+  h.step(120);
+  assert.deepEqual(
+    h.combat
+      .view()
+      .wakes.filter((wake) => wake.source === 'barge')
+      .map((wake) => wake.id),
+    oldIds,
+    'only the existing segments remain; stopping creates no new deposits',
+  );
+  assert.ok(
+    source.state.distance > 100,
+    'the source continues moving normally',
+  );
+  const saved = h.combat.snapshot();
+  h.combat.restore(saved);
+  h.step(300);
+  assert.equal(
+    h.combat.view().wakes.filter((wake) => wake.source === 'barge').length,
+    0,
+  );
+  assert.equal(
+    h.events.filter(
+      (event) => event.id === 'barge' && event.type === 'pickup-expire',
+    ).length,
+    1,
+  );
+});
+
+test('stopping queued Ion leaves unrelated queued weapons intact', () => {
+  const h = harness();
+  h.add('barge', 100);
+  h.add('other', 150);
+  h.collect('barge', 'ion');
+  h.collect('other', 'arc');
+  assert.equal(h.combat.stopIon('barge'), true);
+  h.step();
+  assert.equal(h.combat.view().emitters.barge, undefined);
+  assert.equal(h.combat.view().emitters.other.kind, 'arc');
+});
+
+test('an authored Ion muzzle deposits at its actual moving stern and rejects malformed replay atomically', () => {
+  const h = harness();
+  const actor = h.add('barge', 100, 0, 50);
+  h.combat.request('barge', {
+    type: 'pickup-activate',
+    payload: { kind: 'ion', deviceId: 'stern', wakeMuzzle: [0, 0.15, -10.4] },
+  });
+  h.step(25);
+  const snapshot = h.combat.snapshot(),
+    last = h.combat.view().wakes.at(-1);
+  assert.ok(last);
+  assert.ok(Math.abs(last.b[1] - 1.35) < 1e-10);
+  assert.ok(
+    last.b[2] < actor.state.distance - 10.39,
+    'the wake comes from the stern behind the real moving actor',
+  );
+  const invalid = structuredClone(snapshot);
+  invalid.emitters.barge.wakeMuzzle = [0, 0];
+  assert.throws(() => h.combat.restore(invalid), /replay state mismatch/);
+  assert.deepEqual(h.combat.snapshot(), snapshot);
+});
+
 test('live Lance fire and impact retain equipment identity without changing heavy-hit consequences', () => {
   for (const shielded of [false, true]) {
     const h = harness();

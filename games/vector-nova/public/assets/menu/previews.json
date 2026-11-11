@@ -127,6 +127,51 @@
       "sourceDirty": true,
       "routeSignature": "465f763b58be5b17"
     },
+    "launchworks": {
+      "file": "launchworks.webp",
+      "width": 640,
+      "height": 400,
+      "preset": "route-overview-v1",
+      "sourceRevision": "805ca624ad222e78016b790fd6055660d5c8edb4",
+      "sourceDirty": true,
+      "routeSignature": "479e230c74decc05"
+    },
+    "crucible": {
+      "file": "crucible.webp",
+      "width": 640,
+      "height": 400,
+      "preset": "route-overview-v1",
+      "sourceRevision": "3a72c844f1d09aee611a7ec71b0302c4b2d2677e",
+      "sourceDirty": true,
+      "routeSignature": "e9c5595dda27f4a2"
+    },
+    "interceptor": {
+      "file": "interceptor.webp",
+      "width": 640,
+      "height": 400,
+      "preset": "route-overview-v1",
+      "sourceRevision": "49a1b54056c482386f061017bb2b6c8d99433031",
+      "sourceDirty": true,
+      "routeSignature": "f8cc38fa9e1c7492"
+    },
+    "interceptor-helion": {
+      "file": "interceptor-helion.webp",
+      "width": 640,
+      "height": 400,
+      "preset": "route-overview-v1",
+      "sourceRevision": "cebdccf292307dbd08435bbf3ec0b778b4a0bf0c",
+      "sourceDirty": true,
+      "routeSignature": "718653a5c9f7ca2a"
+    },
+    "interceptor-nightweir": {
+      "file": "interceptor-nightweir.webp",
+      "width": 640,
+      "height": 400,
+      "preset": "route-overview-v1",
+      "sourceRevision": "3c671b247b6e84f51daac8df9eecf5e78dafa6a6",
+      "sourceDirty": true,
+      "routeSignature": "6714b13d3b3cdec1"
+    },
     "ravel": {
       "file": "ravel.webp",
       "width": 640,
@@ -153,6 +198,51 @@
       "sourceRevision": "024a8b2a87b5d9b354120148f3dc88a911bcc360",
       "sourceDirty": false,
       "routeSignature": "cc5a0db53f912a6e"
+    },
+    "freestyle-oriel": {
+      "file": "freestyle-oriel.webp",
+      "width": 640,
+      "height": 400,
+      "preset": "route-overview-v1",
+      "sourceRevision": "805ca624ad222e78016b790fd6055660d5c8edb4",
+      "sourceDirty": true,
+      "routeSignature": "80aaf4bd23e3cb80"
+    },
+    "freestyle-ravel": {
+      "file": "freestyle-ravel.webp",
+      "width": 640,
+      "height": 400,
+      "preset": "route-overview-v1",
+      "sourceRevision": "805ca624ad222e78016b790fd6055660d5c8edb4",
+      "sourceDirty": true,
+      "routeSignature": "e69594abdeaee283"
+    },
+    "eliminator-glasswake": {
+      "file": "eliminator-glasswake.webp",
+      "width": 640,
+      "height": 400,
+      "preset": "route-overview-v1",
+      "sourceRevision": "06c502b9a2c5ef53de9b5ced28e541e4722f513a",
+      "sourceDirty": true,
+      "routeSignature": "2ddcf9f54829d68a"
+    },
+    "eliminator-saffron": {
+      "file": "eliminator-saffron.webp",
+      "width": 640,
+      "height": 400,
+      "preset": "route-overview-v1",
+      "sourceRevision": "06c502b9a2c5ef53de9b5ced28e541e4722f513a",
+      "sourceDirty": true,
+      "routeSignature": "6ea85cbb4d3f1359"
+    },
+    "eliminator-nomad": {
+      "file": "eliminator-nomad.webp",
+      "width": 640,
+      "height": 400,
+      "preset": "route-overview-v1",
+      "sourceRevision": "3a276fbef1fbeec067658f436dffc9161d3e20ef",
+      "sourceDirty": true,
+      "routeSignature": "37a93254a696cb8f"
     }
   }
 }

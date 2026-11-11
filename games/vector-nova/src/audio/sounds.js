@@ -28,6 +28,96 @@ export const soundEffects = [
     bus: 'race',
     seconds: 3,
   },
+  ...[
+    ['charge', 'Shield bulkheads loading', 1.6],
+    ['lock', 'Vault latch', 0.25],
+    ['turn', 'Barge gyro turn', 0.9],
+    ['fire', 'Pressure slab', 0.45],
+    ['counter', 'Shoulder emitter ruptured', 0.55],
+    ['expose', 'Shoulder shutters open', 0.6],
+    ['disable', 'Shield collapse', 1.4],
+  ].map(([cue, label, seconds]) => ({
+    ...race(
+      `bulwark-${cue}`,
+      `Bulwark · ${label}`,
+      'interceptor-cue',
+      { bossId: 'bulwark', cue },
+      seconds,
+    ),
+    group: 'Interceptor · Bulwark',
+  })),
+  {
+    ...race(
+      'bulwark-core-hit',
+      'Bulwark · Critical shoulder hit',
+      'interceptor-hit',
+      {
+        bossId: 'bulwark',
+        target: 'bulwark',
+        source: 'player',
+        weakPoint: true,
+      },
+      0.35,
+    ),
+    group: 'Interceptor · Bulwark',
+  },
+  ...[
+    ['charge', 'Twin capacitors', 1.2],
+    ['lock', 'Ion lock', 0.25],
+    ['turn', 'Reverse thrust', 0.55],
+    ['fire', 'Ion scissors', 0.45],
+    ['counter', 'Lock ruptured', 0.55],
+    ['expose', 'Capacitor vent', 0.8],
+    ['disable', 'Twin drives quenched', 1.2],
+  ].map(([cue, label, seconds]) => ({
+    ...race(
+      `wraith-${cue}`,
+      `Wraith · ${label}`,
+      'interceptor-cue',
+      { bossId: 'wraith', cue },
+      seconds,
+    ),
+    group: 'Interceptor · Wraith',
+  })),
+  {
+    ...race(
+      'wraith-core-hit',
+      'Wraith · Critical capacitor hit',
+      'interceptor-hit',
+      { bossId: 'wraith', target: 'wraith', source: 'player', weakPoint: true },
+      0.4,
+    ),
+    group: 'Interceptor · Wraith',
+  },
+  ...[
+    ['charge', 'Pressure charge', 1.4],
+    ['turn', 'Magnetic turn', 0.8],
+    ['fire', 'Siege cannon', 0.7],
+    ['expose', 'Breach vent', 1.1],
+    ['recover', 'Cannon recharged', 0.6],
+    ['lock', 'Target lane locked', 0.3],
+    ['return', 'Cannon returning', 0.8],
+    ['disable', 'Core quenched', 1.2],
+  ].map(([cue, label, seconds]) => ({
+    ...race(
+      `goliath-${cue}`,
+      `Goliath · ${label}`,
+      'interceptor-cue',
+      { bossId: 'goliath', cue },
+      seconds,
+    ),
+    group: 'Interceptor · Goliath',
+  })),
+  {
+    ...race(
+      'goliath-core-hit',
+      'Goliath · Critical core hit',
+      'interceptor-hit',
+      { target: 'goliath', source: 'player', weakPoint: true },
+      0.5,
+    ),
+    group: 'Interceptor · Goliath',
+  },
   ...EQUIPMENT.filter(({ id }) => id !== 'lance').map(({ id, name }) => ({
     ...device(
       `${id}-activate`,

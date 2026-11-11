@@ -1,0 +1,765 @@
+{
+  "runtime": "Stable Audio 3 Small-SFX MLX",
+  "toolchain": "tools/sfx-models.json",
+  "referenceAudio": null,
+  "format": "stereo 44100 Hz 16-bit PCM",
+  "approval": "Integrated for encounter critique; human listening approval pending.",
+  "cues": {
+    "goliath-charge": {
+      "config": "goliath-charge.json",
+      "sourceSha256": "849b5441387ef2fb71f53d65f0a14b9f5dbb0057ed9fbcbde148c9bc5d004abb",
+      "trimStartFrame": 0,
+      "trimEndFrame": 61740,
+      "filters": [
+        {
+          "type": "highpass",
+          "hz": 28,
+          "Q": 0.7071067811865476
+        },
+        {
+          "type": "lowpass",
+          "hz": 3600,
+          "Q": 0.7071067811865476
+        }
+      ],
+      "compressor": {
+        "thresholdRelativeToPeak": 0.2,
+        "ratio": 3,
+        "releaseSeconds": 0.055
+      },
+      "gain": 5.158926394908884,
+      "peakDbfs": -3,
+      "fadeInFrames": 529,
+      "fadeOutFrames": 2426,
+      "fadeOutCurve": "raised-cosine",
+      "seconds": 1.4,
+      "sha256": "331a5c7eb04d6058593b73581c12d63388fbdb99a268b9505cadb03043ed46db",
+      "editScript": "master.py"
+    },
+    "goliath-turn": {
+      "config": "goliath-turn.json",
+      "sourceSha256": "a0452ad70d55d41c5d1146a42df874e5e6d34f202ae83699df5f343c2be7c16b",
+      "trimStartFrame": 7497,
+      "trimEndFrame": 42777,
+      "filters": [
+        {
+          "type": "highpass",
+          "hz": 32,
+          "Q": 0.7071067811865476
+        },
+        {
+          "type": "lowpass",
+          "hz": 3000,
+          "Q": 0.7071067811865476
+        }
+      ],
+      "compressor": {
+        "thresholdRelativeToPeak": 0.2,
+        "ratio": 3,
+        "releaseSeconds": 0.055
+      },
+      "gain": 2.428126863203058,
+      "peakDbfs": -2.5,
+      "fadeInFrames": 176,
+      "fadeOutFrames": 3087,
+      "fadeOutCurve": "raised-cosine",
+      "seconds": 0.8,
+      "sha256": "1c63dae91c0363574aa962931ef52df1049bd02475f4b431313eb1d81af4a9c2",
+      "editScript": "master.py"
+    },
+    "goliath-fire": {
+      "config": "goliath-fire.json",
+      "sourceSha256": "139f7db10070cd6238fd1c00690fe90fe9683a70211d632c11aaa4858a0677c7",
+      "trimStartFrame": 0,
+      "trimEndFrame": 30870,
+      "filters": [
+        {
+          "type": "highpass",
+          "hz": 28,
+          "Q": 0.7071067811865476
+        },
+        {
+          "type": "lowpass",
+          "hz": 2800,
+          "Q": 0.7071067811865476
+        }
+      ],
+      "compressor": {
+        "thresholdRelativeToPeak": 0.2,
+        "ratio": 3,
+        "releaseSeconds": 0.055
+      },
+      "gain": 3.8740624950804303,
+      "peakDbfs": -1,
+      "fadeInFrames": 44,
+      "fadeOutFrames": 3528,
+      "fadeOutCurve": "raised-cosine",
+      "seconds": 0.7,
+      "sha256": "97f94d77b13618838df4567be56c50b674fdfab1a8990e00bc9219d71b54b344",
+      "editScript": "master.py"
+    },
+    "goliath-expose": {
+      "config": "goliath-expose.json",
+      "sourceSha256": "9ff41e1b6c6672384879173005acbd4338aee1bb787bc17476882ec9c85728b9",
+      "trimStartFrame": 1764,
+      "trimEndFrame": 50274,
+      "filters": [
+        {
+          "type": "highpass",
+          "hz": 30,
+          "Q": 0.7071067811865476
+        },
+        {
+          "type": "lowpass",
+          "hz": 3300,
+          "Q": 0.7071067811865476
+        }
+      ],
+      "compressor": {
+        "thresholdRelativeToPeak": 0.2,
+        "ratio": 3,
+        "releaseSeconds": 0.055
+      },
+      "gain": 4.538603726307871,
+      "peakDbfs": -2,
+      "fadeInFrames": 176,
+      "fadeOutFrames": 3528,
+      "fadeOutCurve": "raised-cosine",
+      "seconds": 1.1,
+      "sha256": "62b72b64500cf04e0d8263d9d7406e086dc5c30c15e74ec2d0a283294fe20f2e",
+      "editScript": "master.py"
+    },
+    "goliath-recover": {
+      "config": "goliath-recover.json",
+      "sourceSha256": "36be2abe55544e38fa5fdd6c88e5ee7e4fe4096187aebbecb31f04bd7c0e9f3d",
+      "trimStartFrame": 0,
+      "trimEndFrame": 26460,
+      "filters": [
+        {
+          "type": "highpass",
+          "hz": 28,
+          "Q": 0.7071067811865476
+        },
+        {
+          "type": "lowpass",
+          "hz": 3000,
+          "Q": 0.7071067811865476
+        }
+      ],
+      "compressor": {
+        "thresholdRelativeToPeak": 0.2,
+        "ratio": 3,
+        "releaseSeconds": 0.055
+      },
+      "gain": 10.472792669476558,
+      "peakDbfs": -2.5,
+      "fadeInFrames": 132,
+      "fadeOutFrames": 3087,
+      "fadeOutCurve": "raised-cosine",
+      "seconds": 0.6,
+      "sha256": "bb9b1a1f43edcd96c6e71a30a5fd46aac847f0c976fef9a1848646840d8279d1",
+      "editScript": "master.py"
+    },
+    "goliath-core-hit": {
+      "config": "goliath-core-hit.json",
+      "sourceSha256": "151c1f205a1bf8fd779ab3fdfd6bb20f5c9f5585151d1e82064a208202c700e2",
+      "trimStartFrame": 0,
+      "trimEndFrame": 22050,
+      "filters": [
+        {
+          "type": "highpass",
+          "hz": 28,
+          "Q": 0.7071067811865476
+        },
+        {
+          "type": "lowpass",
+          "hz": 3000,
+          "Q": 0.7071067811865476
+        }
+      ],
+      "compressor": {
+        "thresholdRelativeToPeak": 0.2,
+        "ratio": 3,
+        "releaseSeconds": 0.055
+      },
+      "gain": 7.875900071872996,
+      "peakDbfs": -1.5,
+      "fadeInFrames": 44,
+      "fadeOutFrames": 2866,
+      "fadeOutCurve": "raised-cosine",
+      "seconds": 0.5,
+      "sha256": "4e453ea208ca2561a6d10cec3dff35e6d522996fc66a9c2d40e0bd8bd4ac29a1",
+      "editScript": "master.py"
+    },
+    "goliath-lock": {
+      "config": "goliath-lock.json",
+      "sourceSha256": "2b601d5fce0f14a5bc07a57517102a4bff87c8e77b4860887ff55a6f891528b0",
+      "trimStartFrame": 0,
+      "trimEndFrame": 13230,
+      "filters": [
+        {
+          "type": "highpass",
+          "hz": 32,
+          "Q": 0.7071067811865476
+        },
+        {
+          "type": "lowpass",
+          "hz": 3300,
+          "Q": 0.7071067811865476
+        }
+      ],
+      "compressor": {
+        "thresholdRelativeToPeak": 0.2,
+        "ratio": 3,
+        "releaseSeconds": 0.055
+      },
+      "gain": 55.43345517785516,
+      "peakDbfs": -2,
+      "fadeInFrames": 44,
+      "fadeOutFrames": 1984,
+      "fadeOutCurve": "raised-cosine",
+      "seconds": 0.3,
+      "sha256": "c6d9fff8d582c1640b8dfb2eaead537da645e5a78e8fc7ddbfc3092e69715ff7",
+      "editScript": "master.py"
+    },
+    "goliath-disable": {
+      "config": "goliath-disable.json",
+      "sourceSha256": "0e77665bf3384038bd2d3ca8f679d06c9ff8af5427218e8daca10abcd8c248b7",
+      "trimStartFrame": 2646,
+      "trimEndFrame": 55566,
+      "filters": [
+        {
+          "type": "highpass",
+          "hz": 26,
+          "Q": 0.7071067811865476
+        },
+        {
+          "type": "lowpass",
+          "hz": 3200,
+          "Q": 0.7071067811865476
+        }
+      ],
+      "compressor": {
+        "thresholdRelativeToPeak": 0.2,
+        "ratio": 3,
+        "releaseSeconds": 0.055
+      },
+      "gain": 6.243322338293036,
+      "peakDbfs": -1.5,
+      "fadeInFrames": 132,
+      "fadeOutFrames": 4410,
+      "fadeOutCurve": "raised-cosine",
+      "seconds": 1.2,
+      "sha256": "a35938a7fcb7ac38f1292cbbc8faa23571e936975078366f240c22022a30880d",
+      "editScript": "master.py",
+      "bodyDecay": {
+        "startSeconds": 0.2,
+        "exponent": 2
+      }
+    },
+    "wraith-charge": {
+      "config": "wraith-charge.json",
+      "sourceSha256": "3082ce435333fcf9a0572665fee1e8eb66a9ef4ca2118830b00569a9b3de6e95",
+      "trimStartFrame": 0,
+      "trimEndFrame": 52920,
+      "filters": [
+        {
+          "type": "highpass",
+          "hz": 40,
+          "Q": 0.7071067811865476
+        },
+        {
+          "type": "lowpass",
+          "hz": 4200,
+          "Q": 0.7071067811865476
+        }
+      ],
+      "compressor": {
+        "thresholdRelativeToPeak": 0.2,
+        "ratio": 3,
+        "releaseSeconds": 0.055
+      },
+      "gain": 2.296808223756471,
+      "peakDbfs": -3,
+      "fadeInFrames": 397,
+      "fadeOutFrames": 1984,
+      "fadeOutCurve": "raised-cosine",
+      "seconds": 1.2,
+      "sha256": "6a999424abb59bdcb13969dac7d01655ab73af8984f8bd4baaee792e0bb5ae19",
+      "editScript": "master.py"
+    },
+    "wraith-lock": {
+      "config": "wraith-lock.json",
+      "sourceSha256": "37c86712588d0b4f45dc02768001e0adaf6584e862a8341c8e2bab7ca87830f9",
+      "trimStartFrame": 0,
+      "trimEndFrame": 11025,
+      "filters": [
+        {
+          "type": "highpass",
+          "hz": 45,
+          "Q": 0.7071067811865476
+        },
+        {
+          "type": "lowpass",
+          "hz": 4200,
+          "Q": 0.7071067811865476
+        }
+      ],
+      "compressor": {
+        "thresholdRelativeToPeak": 0.2,
+        "ratio": 3,
+        "releaseSeconds": 0.055
+      },
+      "gain": 2161.9621185346077,
+      "peakDbfs": -2.5,
+      "fadeInFrames": 44,
+      "fadeOutFrames": 1764,
+      "fadeOutCurve": "raised-cosine",
+      "seconds": 0.25,
+      "sha256": "e8922e8682f8ba6c8f3d49c99bae465cc6625b69310397ade4431c1816dea4bc",
+      "editScript": "master.py"
+    },
+    "wraith-turn": {
+      "config": "wraith-turn.json",
+      "sourceSha256": "d066671e02e45516582c330b47d3a7cd599048f775a5901500b939b5e4474a4d",
+      "trimStartFrame": 2205,
+      "trimEndFrame": 26460,
+      "filters": [
+        {
+          "type": "highpass",
+          "hz": 40,
+          "Q": 0.7071067811865476
+        },
+        {
+          "type": "lowpass",
+          "hz": 4000,
+          "Q": 0.7071067811865476
+        }
+      ],
+      "compressor": {
+        "thresholdRelativeToPeak": 0.2,
+        "ratio": 3,
+        "releaseSeconds": 0.055
+      },
+      "gain": 11.620285473104197,
+      "peakDbfs": -2.5,
+      "fadeInFrames": 132,
+      "fadeOutFrames": 2426,
+      "fadeOutCurve": "raised-cosine",
+      "seconds": 0.55,
+      "sha256": "b61430353d8e003ed69598cb36ae308bb274f133e0b7f7be97355dac3fbeaa56",
+      "editScript": "master.py"
+    },
+    "wraith-fire": {
+      "config": "wraith-fire.json",
+      "sourceSha256": "60852901f1271f73ad2d304b1b54d3b85fac024fb00a5b8414482b52c649436f",
+      "trimStartFrame": 6615,
+      "trimEndFrame": 26460,
+      "filters": [
+        {
+          "type": "highpass",
+          "hz": 38,
+          "Q": 0.7071067811865476
+        },
+        {
+          "type": "lowpass",
+          "hz": 3800,
+          "Q": 0.7071067811865476
+        }
+      ],
+      "compressor": {
+        "thresholdRelativeToPeak": 0.2,
+        "ratio": 3,
+        "releaseSeconds": 0.055
+      },
+      "gain": 5.44940343967359,
+      "peakDbfs": -1.5,
+      "fadeInFrames": 44,
+      "fadeOutFrames": 2866,
+      "fadeOutCurve": "raised-cosine",
+      "seconds": 0.45,
+      "sha256": "08f38966d56bdc92fd9092ed6e4388ad99acbac95c891b0d0df57f8eba70f2d0",
+      "editScript": "master.py"
+    },
+    "wraith-counter": {
+      "config": "wraith-counter.json",
+      "sourceSha256": "dc65194068c52fee9d761ba22c485783665c31a93502281412feed5253447e42",
+      "trimStartFrame": 0,
+      "trimEndFrame": 24255,
+      "filters": [
+        {
+          "type": "highpass",
+          "hz": 38,
+          "Q": 0.7071067811865476
+        },
+        {
+          "type": "lowpass",
+          "hz": 4100,
+          "Q": 0.7071067811865476
+        }
+      ],
+      "compressor": {
+        "thresholdRelativeToPeak": 0.2,
+        "ratio": 3,
+        "releaseSeconds": 0.055
+      },
+      "gain": 6.3428481176052,
+      "peakDbfs": -2,
+      "fadeInFrames": 88,
+      "fadeOutFrames": 2866,
+      "fadeOutCurve": "raised-cosine",
+      "seconds": 0.55,
+      "sha256": "f88d21f0290d6f90043a43c06a8f974bb4cff73a2e4dd0bbef67089315b27e71",
+      "editScript": "master.py"
+    },
+    "wraith-expose": {
+      "config": "wraith-expose.json",
+      "sourceSha256": "41c28478a4d5188364fd25e4d99b57bd1155fa3f84b5b114b4881557d0bc3375",
+      "trimStartFrame": 0,
+      "trimEndFrame": 35280,
+      "filters": [
+        {
+          "type": "highpass",
+          "hz": 40,
+          "Q": 0.7071067811865476
+        },
+        {
+          "type": "lowpass",
+          "hz": 3400,
+          "Q": 0.7071067811865476
+        }
+      ],
+      "compressor": {
+        "thresholdRelativeToPeak": 0.2,
+        "ratio": 3,
+        "releaseSeconds": 0.055
+      },
+      "gain": 7.310840078217799,
+      "peakDbfs": -2.5,
+      "fadeInFrames": 176,
+      "fadeOutFrames": 2866,
+      "fadeOutCurve": "raised-cosine",
+      "seconds": 0.8,
+      "sha256": "42aa07f7a69e7a30f7a62a965a636d315c6dacaa02ab5a5018d377cd2928dbf5",
+      "editScript": "master.py"
+    },
+    "wraith-core-hit": {
+      "config": "wraith-core-hit.json",
+      "sourceSha256": "16fa58a6e3d38020809aad674ad12bfe9d5bc2819c10ca20e1aecf7bf287a03a",
+      "trimStartFrame": 1764,
+      "trimEndFrame": 19404,
+      "filters": [
+        {
+          "type": "highpass",
+          "hz": 35,
+          "Q": 0.7071067811865476
+        },
+        {
+          "type": "lowpass",
+          "hz": 3800,
+          "Q": 0.7071067811865476
+        }
+      ],
+      "compressor": {
+        "thresholdRelativeToPeak": 0.2,
+        "ratio": 3,
+        "releaseSeconds": 0.055
+      },
+      "gain": 3.6115629194333594,
+      "peakDbfs": -1.5,
+      "fadeInFrames": 44,
+      "fadeOutFrames": 2866,
+      "fadeOutCurve": "raised-cosine",
+      "seconds": 0.4,
+      "sha256": "d882e809575b775748d5ac45a0f110692931506accc6ae9e1e47c61d4ba11164",
+      "editScript": "master.py"
+    },
+    "wraith-disable": {
+      "config": "wraith-disable.json",
+      "sourceSha256": "36c5ff8e4cc2c1c65ce8d4c988fd3c57f1b7dff0106045c297f55b9931b94430",
+      "trimStartFrame": 2205,
+      "trimEndFrame": 55125,
+      "filters": [
+        {
+          "type": "highpass",
+          "hz": 32,
+          "Q": 0.7071067811865476
+        },
+        {
+          "type": "lowpass",
+          "hz": 4000,
+          "Q": 0.7071067811865476
+        }
+      ],
+      "compressor": {
+        "thresholdRelativeToPeak": 0.2,
+        "ratio": 3,
+        "releaseSeconds": 0.055
+      },
+      "gain": 6.131352720717179,
+      "peakDbfs": -1.5,
+      "fadeInFrames": 132,
+      "fadeOutFrames": 4410,
+      "fadeOutCurve": "raised-cosine",
+      "seconds": 1.2,
+      "sha256": "cf025395015bd9a76d1f4c897027d1fcea6fb2e83b8ba1741a9fd568628be0fb",
+      "editScript": "master.py",
+      "bodyDecay": {
+        "startSeconds": 0.18,
+        "exponent": 2.4
+      }
+    },
+    "bulwark-charge": {
+      "config": "bulwark-charge.json",
+      "sourceSha256": "0cd8edb69f732c37fde92123b772055cd1ff00f2d67fa8e109cb9b5f873f328b",
+      "trimStartFrame": 0,
+      "trimEndFrame": 70560,
+      "filters": [
+        {
+          "type": "highpass",
+          "hz": 28,
+          "Q": 0.7071067811865476
+        },
+        {
+          "type": "lowpass",
+          "hz": 2800,
+          "Q": 0.7071067811865476
+        }
+      ],
+      "compressor": {
+        "thresholdRelativeToPeak": 0.2,
+        "ratio": 3,
+        "releaseSeconds": 0.055
+      },
+      "gain": 5.4009592618860784,
+      "peakDbfs": -3,
+      "fadeInFrames": 529,
+      "fadeOutFrames": 3308,
+      "fadeOutCurve": "raised-cosine",
+      "seconds": 1.6,
+      "sha256": "0ec96fcdad2a45e95e4b597d323721d2b44190b4654c5efaee98823193632659",
+      "editScript": "master.py"
+    },
+    "bulwark-lock": {
+      "config": "bulwark-lock.json",
+      "sourceSha256": "d8990412c4b67576d6490ebe85c330c0db568ea2ada5242496eabeaa4c4caa6b",
+      "trimStartFrame": 1764,
+      "trimEndFrame": 12789,
+      "filters": [
+        {
+          "type": "highpass",
+          "hz": 32,
+          "Q": 0.7071067811865476
+        },
+        {
+          "type": "lowpass",
+          "hz": 3000,
+          "Q": 0.7071067811865476
+        }
+      ],
+      "compressor": {
+        "thresholdRelativeToPeak": 0.2,
+        "ratio": 3,
+        "releaseSeconds": 0.055
+      },
+      "gain": 2.9275576653313964,
+      "peakDbfs": -2.5,
+      "fadeInFrames": 44,
+      "fadeOutFrames": 1764,
+      "fadeOutCurve": "raised-cosine",
+      "seconds": 0.25,
+      "sha256": "4ad8f2028d3fc0404d1a5813f6ece06591e202911686ebc2b3a4a27126678139",
+      "editScript": "master.py"
+    },
+    "bulwark-turn": {
+      "config": "bulwark-turn.json",
+      "sourceSha256": "7603562763ff92d0f44979574c5f320457255edd3d92ee90ca4b83b8556465db",
+      "trimStartFrame": 6615,
+      "trimEndFrame": 46305,
+      "filters": [
+        {
+          "type": "highpass",
+          "hz": 28,
+          "Q": 0.7071067811865476
+        },
+        {
+          "type": "lowpass",
+          "hz": 2900,
+          "Q": 0.7071067811865476
+        }
+      ],
+      "compressor": {
+        "thresholdRelativeToPeak": 0.2,
+        "ratio": 3,
+        "releaseSeconds": 0.055
+      },
+      "gain": 4.101006991698336,
+      "peakDbfs": -2.5,
+      "fadeInFrames": 176,
+      "fadeOutFrames": 3308,
+      "fadeOutCurve": "raised-cosine",
+      "seconds": 0.9,
+      "sha256": "5917a85220ad3bb2804d83e6735494067bfd329b5d45dd35b61a7e0a760ff89d",
+      "editScript": "master.py"
+    },
+    "bulwark-fire": {
+      "config": "bulwark-fire.json",
+      "sourceSha256": "2762dd79ffccc9b60e789164e7984cc48c007f3c92114e9b2159d13851599afb",
+      "trimStartFrame": 1764,
+      "trimEndFrame": 21609,
+      "filters": [
+        {
+          "type": "highpass",
+          "hz": 28,
+          "Q": 0.7071067811865476
+        },
+        {
+          "type": "lowpass",
+          "hz": 2700,
+          "Q": 0.7071067811865476
+        }
+      ],
+      "compressor": {
+        "thresholdRelativeToPeak": 0.2,
+        "ratio": 3,
+        "releaseSeconds": 0.055
+      },
+      "gain": 5.140486196796802,
+      "peakDbfs": -1.5,
+      "fadeInFrames": 44,
+      "fadeOutFrames": 2866,
+      "fadeOutCurve": "raised-cosine",
+      "seconds": 0.45,
+      "sha256": "a96a8923317c06e4ba07764dc1090580592819ce3ce0923e041836ca82a194ae",
+      "editScript": "master.py"
+    },
+    "bulwark-counter": {
+      "config": "bulwark-counter.json",
+      "sourceSha256": "4f4ffde6d892d5641942e974f2f4b74b3e456ce2d418b55656e863ab48d0d266",
+      "trimStartFrame": 1102,
+      "trimEndFrame": 25357,
+      "filters": [
+        {
+          "type": "highpass",
+          "hz": 30,
+          "Q": 0.7071067811865476
+        },
+        {
+          "type": "lowpass",
+          "hz": 2700,
+          "Q": 0.7071067811865476
+        }
+      ],
+      "compressor": {
+        "thresholdRelativeToPeak": 0.2,
+        "ratio": 3,
+        "releaseSeconds": 0.055
+      },
+      "gain": 10.740502788778581,
+      "peakDbfs": -2,
+      "fadeInFrames": 88,
+      "fadeOutFrames": 2866,
+      "fadeOutCurve": "raised-cosine",
+      "seconds": 0.55,
+      "sha256": "73721d7f25cd3d84a4d3ad5f5d734f792fe9f728e79af153a21c3df71af98e77",
+      "editScript": "master.py"
+    },
+    "bulwark-expose": {
+      "config": "bulwark-expose.json",
+      "sourceSha256": "9287150898401594d328f0b66203ea16bdd1fd408f3bf567baa8c4d9940f0e4f",
+      "trimStartFrame": 3087,
+      "trimEndFrame": 29547,
+      "filters": [
+        {
+          "type": "highpass",
+          "hz": 28,
+          "Q": 0.7071067811865476
+        },
+        {
+          "type": "lowpass",
+          "hz": 3000,
+          "Q": 0.7071067811865476
+        }
+      ],
+      "compressor": {
+        "thresholdRelativeToPeak": 0.2,
+        "ratio": 3,
+        "releaseSeconds": 0.055
+      },
+      "gain": 7.055311816232601,
+      "peakDbfs": -2.5,
+      "fadeInFrames": 176,
+      "fadeOutFrames": 2866,
+      "fadeOutCurve": "raised-cosine",
+      "seconds": 0.6,
+      "sha256": "78461f29f4029d0dfd5cc0d0aa54d1567a7d1cbd9bfbdd5a4229ce7a69abf1d9",
+      "editScript": "master.py"
+    },
+    "bulwark-core-hit": {
+      "config": "bulwark-core-hit.json",
+      "sourceSha256": "12bb4e22bce0baa2a19ef86050a6ea665bf8154347db66fff917d64677d1347e",
+      "trimStartFrame": 1102,
+      "trimEndFrame": 16537,
+      "filters": [
+        {
+          "type": "highpass",
+          "hz": 30,
+          "Q": 0.7071067811865476
+        },
+        {
+          "type": "lowpass",
+          "hz": 2800,
+          "Q": 0.7071067811865476
+        }
+      ],
+      "compressor": {
+        "thresholdRelativeToPeak": 0.2,
+        "ratio": 3,
+        "releaseSeconds": 0.055
+      },
+      "gain": 4.870044166409413,
+      "peakDbfs": -1.5,
+      "fadeInFrames": 44,
+      "fadeOutFrames": 2646,
+      "fadeOutCurve": "raised-cosine",
+      "seconds": 0.35,
+      "sha256": "2f3970a7b6d2ee8e2029046e881446f2db96977b92c774291004d5c5cd0146b4",
+      "editScript": "master.py"
+    },
+    "bulwark-disable": {
+      "config": "bulwark-disable.json",
+      "sourceSha256": "e7ecf4d9b5d970d1f010d0330634f445e1da975d237410d0d29c7643ed0c52b7",
+      "trimStartFrame": 1764,
+      "trimEndFrame": 63504,
+      "filters": [
+        {
+          "type": "highpass",
+          "hz": 26,
+          "Q": 0.7071067811865476
+        },
+        {
+          "type": "lowpass",
+          "hz": 2800,
+          "Q": 0.7071067811865476
+        }
+      ],
+      "compressor": {
+        "thresholdRelativeToPeak": 0.2,
+        "ratio": 3,
+        "releaseSeconds": 0.055
+      },
+      "gain": 4.0639484142875055,
+      "peakDbfs": -1.5,
+      "fadeInFrames": 132,
+      "fadeOutFrames": 5292,
+      "fadeOutCurve": "raised-cosine",
+      "seconds": 1.4,
+      "sha256": "61d0795dc681bc6ff4f30a12b1b53db1f547c2e019c4c79f1f1b0f1e92770f66",
+      "editScript": "master.py",
+      "bodyDecay": {
+        "startSeconds": 0.2,
+        "exponent": 2.8
+      }
+    }
+  }
+}

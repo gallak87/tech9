@@ -8,7 +8,7 @@ import {
   cupChampion,
   cupGridOrder,
 } from '../race/cup.js';
-import { cupCard } from './cup-art.js';
+import { cupCard, cupModeUnlock } from './cup-art.js';
 import { SHIPS } from '../ships/catalog.js';
 import { formatTime } from '../race/timing.js';
 import { trackChallenge } from './track-challenge.js';
@@ -136,6 +136,10 @@ export function cupView({
       ? 'Sprint · 1 descent'
       : 'Circuit · 2 laps';
   const complete = cupComplete(state);
+  const modeUnlock = cupModeUnlock(
+    cup.id,
+    !!collection[cup.id] || !!(complete && cupChampion(state)),
+  );
   const standings = state ? cupStandings(state) : [];
   const player = standings.find((r) => r.id === 'player');
   const tied =
@@ -184,7 +188,7 @@ export function cupView({
           : '';
     return `<section class="cup-panel cup-menu-panel" aria-label="${esc(cup.name)}">${menu.hero(title)}${picker}${route}${gridSummary(state, cup)}${notice ? `<p class="cup-save" role="status">${esc(notice)}</p>` : ''}${management}${scores ? `<details class="cup-scores"><summary>Standings & race results · ${state.results.length}/${cup.tracks.length} scored</summary>${scores}</details>` : ''}${menu.actions ?? ''}</section>`;
   }
-  return `<section class="cup-panel"><div class="front-heading"><span class="kicker">CHAMPIONSHIP / ${esc(cup.name.toUpperCase())}</span><h1 tabindex="-1">${title}</h1></div>${!state ? `<fieldset class="cup-picker"><legend>Choose a championship</legend>${cups.map((entry) => cupCard(entry, cup.id, collection)).join('')}</fieldset>` : ''}${route}${gridSummary(state, cup)}<p class="cup-summary">${state ? `${esc(SHIPS.find((s) => s.id === state.shipId).name)} · ${state.difficulty} · locked for this cup · ${state.results.length}/${cup.tracks.length} races scored${complete ? ` · ${player.points} points` : ''}` : `${cup.tracks.length} races · 10 pilots`}</p>${notice ? `<p class="cup-save" role="status">${esc(notice)}</p>` : ''}${!state ? `<section class="cup-setup" aria-label="Cup setup"><fieldset><legend>Ship for all ${cup.tracks.length} races</legend>${SHIPS.map((s) => `<button data-ship="${s.id}" aria-pressed="${shipId === s.id}">${s.name}</button>`).join('')}</fieldset><fieldset aria-describedby="cup-difficulty-description"><legend>Opponent difficulty</legend>${['easy', 'medium', 'hard'].map((d) => `<button data-difficulty="${d}" aria-pressed="${difficulty === d}">${d}</button>`).join('')}</fieldset>${difficultyDescriptionView(difficulty, 'cup-difficulty-description')}</section>` : ''}${actions}${scores}</section>`;
+  return `<section class="cup-panel"><div class="front-heading"><span class="kicker">CHAMPIONSHIP / ${esc(cup.name.toUpperCase())}</span><h1 tabindex="-1">${title}</h1></div>${!state ? `<fieldset class="cup-picker"><legend>Choose a championship</legend>${cups.map((entry) => cupCard(entry, cup.id, collection)).join('')}</fieldset>` : ''}${route}${gridSummary(state, cup)}<p class="cup-summary">${state ? `${esc(SHIPS.find((s) => s.id === state.shipId).name)} · ${state.difficulty} · locked for this cup · ${state.results.length}/${cup.tracks.length} races scored${complete ? ` · ${player.points} points` : ''}` : `${cup.tracks.length} races · 10 pilots`}</p>${modeUnlock ? `<p class="cup-mode-unlock">${modeUnlock}</p>` : ''}${notice ? `<p class="cup-save" role="status">${esc(notice)}</p>` : ''}${!state ? `<section class="cup-setup" aria-label="Cup setup"><fieldset><legend>Ship for all ${cup.tracks.length} races</legend>${SHIPS.map((s) => `<button data-ship="${s.id}" aria-pressed="${shipId === s.id}">${s.name}</button>`).join('')}</fieldset><fieldset aria-describedby="cup-difficulty-description"><legend>Opponent difficulty</legend>${['easy', 'medium', 'hard'].map((d) => `<button data-difficulty="${d}" aria-pressed="${difficulty === d}">${d}</button>`).join('')}</fieldset>${difficultyDescriptionView(difficulty, 'cup-difficulty-description')}</section>` : ''}${actions}${scores}</section>`;
 }
 
 function waitingRows(data) {
@@ -197,7 +201,7 @@ function waitingRows(data) {
 }
 const waitingNote = (data) => `Waiting for the field · ${data.remaining}s`;
 export function cupWaitingView(data) {
-  return `<section class="result-panel cup-waiting"><div class="front-heading"><span class="kicker">CUP / ${data.courseFormat === 'sprint' ? 'SPRINT' : 'RACE'} FINISH</span><h1 tabindex="-1">${data.playerValid ? 'Race finished.' : 'Unranked finish.'}</h1></div><p>Your time: ${formatTime(data.playerTotalTime)}</p><ol class="results-list" aria-label="Live race classification">${waitingRows(data)}</ol><p class="results-note" role="status">${waitingNote(data)}</p><div class="front-actions">${button('cup-retry', 'Retry this race')}${button('cup-hub', 'Cup hub · pause waiting')}</div></section>`;
+  return `<section class="result-panel cup-waiting"><div class="front-heading"><span class="kicker">CUP / ${data.courseFormat === 'sprint' ? 'SPRINT' : 'RACE'} FINISH</span><h1 tabindex="-1">${data.playerValid ? 'Race finished.' : 'Unranked finish.'}</h1></div><p>Your time: ${formatTime(data.playerTotalTime)}</p><ol class="results-list" aria-label="Live race classification">${waitingRows(data)}</ol><p class="results-note" role="status">${waitingNote(data)}</p><div class="front-actions">${button('cup-hub', 'Cup hub · pause waiting', true)}${button('cup-retry', 'Retry this race')}</div></section>`;
 }
 export function updateCupWaitingView(panel, data) {
   // Keep the animated panel and focused controls mounted as rivals finish.

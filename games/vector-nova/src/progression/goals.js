@@ -2,6 +2,7 @@ import { IS_DEMO, fullCupWins } from './edition.js';
 import { REWARDS, ENHANCEMENTS, requirementText } from './catalog.js';
 import { rewardProgress } from './profile.js';
 import { rewardIcon, escapeHTML } from './view.js';
+import { freestyleProgressPosition } from './result-coordinator.js';
 
 const undiscovered = (reward) =>
   reward.kind === 'ship'
@@ -166,9 +167,11 @@ export function raceProgressView(before, after, context, result) {
   if (!goals.length && !points && !maps) return '';
   const player = result?.standings?.find((row) => row.id === 'player');
   const valid =
-    context.mode === 'time-trial'
-      ? result?.playerValid
-      : player?.valid && player?.finished;
+    context.mode === 'freestyle'
+      ? freestyleProgressPosition(result) != null
+      : ['time-trial', 'interceptor'].includes(context.mode)
+        ? result?.playerValid
+        : player?.valid && player?.finished;
   const finishes = after.finishes - before.finishes;
   const label =
     IS_DEMO && finishes
@@ -179,6 +182,8 @@ export function raceProgressView(before, after, context, result) {
           ? 'New Time Trial map recorded'
           : valid
             ? 'Progress saved'
-            : 'No progress · A valid finish is required';
+            : context.mode === 'freestyle'
+              ? 'Complete the full course without manual recovery to earn career progress.'
+              : 'No progress · A valid finish is required';
   return `<section class="race-reward-progress"><h3>${escapeHTML(label)}</h3>${rewardBadgesView(goals, after, { before, results: true })}</section>`;
 }

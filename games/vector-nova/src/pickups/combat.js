@@ -1,4 +1,5 @@
 import { toughness } from '../progression/catalog.js';
+import { projectMagneticBody } from '../physics/magnetic-body.js';
 import * as T from 'three';
 import { ionWakeContact, sampleIonContact } from './ion-contact.js';
 import {
@@ -33,11 +34,47 @@ export const COMBAT_RULES = Object.freeze({
 });
 export const COMBAT_TYPES = Object.freeze(['repulsor', 'arc', 'ion']);
 export const isCombatDevice = (type) => COMBAT_TYPES.includes(type);
+export function validateCombatResistance(value = 0) {
+  if (!Number.isFinite(value) || value < 0 || value > 1)
+    throw new Error(
+      'Combat resistance must be a finite value from zero to one',
+    );
+  return value;
+}
 const copy = (value) => structuredClone(value);
 const vector = (value) => new T.Vector3().fromArray(value);
 const up = new T.Vector3(0, 1, 0);
 const forward = new T.Vector3(0, 0, 1);
 const boltHull = { halfWidth: 0.15, halfLength: 0.15, hover: 0.15 };
+const defaultHitBounds = Object.freeze({
+  half: Object.freeze({ x: 2.5, y: 1.8, z: ARC_TARGET_HALF_LENGTH }),
+  center: Object.freeze([0, 0, 0]),
+});
+
+// Actor-local bounds are configuration, not damage state. Large event chassis
+// provide their actual hull envelope instead of inheriting the racer-sized box.
+export function combatHitBounds(bounds) {
+  if (bounds == null) return null;
+  const half = bounds.half ?? bounds;
+  const values = Array.isArray(half) ? half : [half.x, half.y, half.z];
+  const offset = bounds.center ?? [0, 0, 0];
+  const center = Array.isArray(offset)
+    ? [...offset]
+    : [offset.x, offset.y, offset.z];
+  if (
+    values.length !== 3 ||
+    !values.every((value) => Number.isFinite(value) && value > 0) ||
+    center.length !== 3 ||
+    !center.every(Number.isFinite)
+  )
+    throw new Error(
+      'Combat hit bounds need positive finite half extents and a finite local center',
+    );
+  return Object.freeze({
+    half: Object.freeze({ x: values[0], y: values[1], z: values[2] }),
+    center: Object.freeze(center),
+  });
+}
 
 // Continuous segment/box test, also used with relative target motion so fast
 // opposing movement cannot step over a bolt between two fixed ticks.
@@ -63,8 +100,12 @@ export function createCombatSimulation({
   track,
   collisionWorld = null,
   dynamics = null,
+  onHit,
 }) {
+  if (onHit !== undefined && typeof onHit !== 'function')
+    throw new Error('Combat hit observer must be a function');
   const actors = new Map();
+  const boxes = new WeakMap();
   const touched = new Set();
   const movingFrames = typeof track.frameAtTime === 'function';
   let requests = [];
@@ -84,6 +125,23 @@ export function createCombatSimulation({
     flashes: [],
   });
   state = fresh();
+  function sameTeam(source, target) {
+    const team = actors.get(source)?.team;
+    return (
+      typeof team === 'string' &&
+      team.length > 0 &&
+      team === actors.get(target)?.team
+    );
+  }
+  function hitBounds(actor) {
+    if (!actor.hitBounds) return defaultHitBounds;
+    let box = boxes.get(actor.hitBounds);
+    if (!box) {
+      box = combatHitBounds(actor.hitBounds);
+      boxes.set(actor.hitBounds, box);
+    }
+    return box;
+  }
   const courseFrame = (distance, time = state.frameTime) =>
     movingFrames ? track.frameAtTime(distance, time) : track.sample(distance);
   function eligible(id, requireTouched = true) {
@@ -115,7 +173,8 @@ export function createCombatSimulation({
   }
   function arcAim(shot, target) {
     const other = eligible(target);
-    if (!other || target === shot.source) return null;
+    if (!other || target === shot.source || sameTeam(shot.source, target))
+      return null;
     let ahead = other.actor.state.distance - shot.distance;
     if (track.closed !== false)
       ahead =
@@ -181,48 +240,78 @@ export function createCombatSimulation({
     position,
     equipment,
     incomingQuaternion,
+    signature,
   ) {
-    if ((state.grace[target] ?? 0) > state.time) return;
+    const damageOnly = (state.grace[target] ?? 0) > state.time;
+    if (damageOnly && !actors.get(target)?.damageDuringGrace) return;
     const targetActor = eligible(target);
-    if (!targetActor || source === target) return;
+    if (!targetActor || source === target || sameTeam(source, target)) return;
     const entrySpeed = targetActor.actor.state.speed;
+    const resistance = targetActor.actor.combatResistance ?? 0;
+    const mitigation = resistance
+      ? 1 - (1 - toughness(targetActor.actor.state)) * (1 - resistance)
+      : toughness(targetActor.actor.state);
+    const reserveCost = COMBAT_CONSEQUENCES[kind]?.reserveCost ?? cost;
     const shielded = targetActor.actor.hit({
       source,
       kind,
-      impulse,
-      cost: COMBAT_CONSEQUENCES[kind]?.reserveCost ?? cost,
+      impulse: damageOnly
+        ? new T.Vector3()
+        : resistance
+          ? impulse.clone().multiplyScalar(1 - resistance)
+          : impulse,
+      cost: damageOnly
+        ? 0
+        : resistance
+          ? reserveCost * (1 - resistance)
+          : reserveCost,
+      ...(damageOnly ? { damageOnly: true } : {}),
     });
-    if (!shielded) {
-      state.disruptions[target] = combatDisruption(
-        state.disruptions[target],
-        kind,
-        state.time,
-        entrySpeed,
-        toughness(targetActor.actor.state),
-        equipment,
-      );
+    if (!shielded && !damageOnly) {
+      state.disruptions[target] = {
+        ...combatDisruption(
+          state.disruptions[target],
+          kind,
+          state.time,
+          entrySpeed,
+          mitigation,
+          equipment,
+        ),
+        ...(resistance ? { combatResistance: resistance } : {}),
+        ...(signature ? { signature } : {}),
+      };
       targetActor.actor.disrupt?.(
         sampleCombatDisruption(state.disruptions[target], state.time),
       );
     }
-    state.grace[target] =
-      state.time + (kind === 'ion' ? 1.25 : COMBAT_RULES.hitGrace);
+    if (!damageOnly)
+      state.grace[target] =
+        state.time + (kind === 'ion' ? 1.25 : COMBAT_RULES.hitGrace);
     const payload = {
       source,
       target,
       kind,
       shielded,
-      duration: shielded ? 0 : COMBAT_CONSEQUENCES[kind].duration,
+      duration:
+        shielded || damageOnly
+          ? 0
+          : resistance
+            ? state.disruptions[target].duration
+            : COMBAT_CONSEQUENCES[kind].duration,
       position: position.toArray(),
       ...(equipment ? { equipment } : {}),
+      ...(signature ? { signature } : {}),
+      ...(damageOnly ? { damageOnly: true } : {}),
     };
     notify(target, 'combat-hit', payload);
     notify(source, 'combat-confirm', payload);
+    const hitId = state.sequence++;
     state.flashes.push({
-      id: state.sequence++,
+      id: hitId,
       target,
       kind: shielded ? 'aegis' : kind,
       ...(equipment ? { equipment } : {}),
+      ...(signature ? { signature } : {}),
       position: payload.position,
       quaternion:
         !shielded && incomingQuaternion
@@ -231,6 +320,7 @@ export function createCombatSimulation({
       age: 0,
       radius: 4,
     });
+    onHit?.({ ...copy(payload), hitId });
     return true;
   }
   function pulse(id, actor, pose) {
@@ -267,6 +357,7 @@ export function createCombatSimulation({
       if (
         !other ||
         id === target ||
+        sameTeam(id, target) ||
         !nearCourse(
           actor.state.distance,
           other.actor.state.distance,
@@ -335,7 +426,7 @@ export function createCombatSimulation({
       );
     }
   }
-  function shoot(id, actor, pose, heavy = false) {
+  function shoot(id, actor, pose, heavy = false, signature) {
     const direction = forward.clone().applyQuaternion(pose.quaternion);
     const frame = courseFrame(
       actor.state.distance,
@@ -350,11 +441,12 @@ export function createCombatSimulation({
         .clone()
         .sub(frame.position)
         .addScaledVector(frame.right, -actor.state.lateral)
-        .dot(frame.up) + ARC_SHOT_HEIGHT;
+        .dot(frame.up) + (signature ? 0 : ARC_SHOT_HEIGHT);
     const shot = {
       id: state.sequence++,
       source: id,
       ...(heavy ? { heavy: true } : {}),
+      ...(signature ? { signature } : {}),
       age: 0,
       distance: actor.state.distance,
       lateral: actor.state.lateral,
@@ -365,26 +457,42 @@ export function createCombatSimulation({
         Math.max(0, actor.state.speed),
       position: pose.position
         .clone()
-        .addScaledVector(frame.up, ARC_SHOT_HEIGHT)
+        .addScaledVector(frame.up, signature ? 0 : ARC_SHOT_HEIGHT)
         .toArray(),
       velocity: direction
         .multiplyScalar(COMBAT_RULES.arcSpeed + Math.max(0, actor.state.speed))
         .toArray(),
       quaternion: pose.quaternion.toArray(),
     };
-    shot.target = heavy ? null : acquireArcTarget(shot);
+    if (signature) {
+      const projected = projectMagneticBody(
+        track,
+        pose.position,
+        actor.state.distance,
+        actor.state.lateral,
+      );
+      shot.distance = projected.distance;
+      shot.lateral = projected.lateral;
+      shot.velocity = forward
+        .clone()
+        .applyQuaternion(pose.quaternion)
+        .multiplyScalar(shot.speed)
+        .toArray();
+    }
+    shot.target = heavy || signature ? null : acquireArcTarget(shot);
     state.shots.push(shot);
     state.flashes.push({
       id: state.sequence++,
       kind: 'arc',
       ...(heavy ? { equipment: 'lance' } : {}),
       type: 'muzzle',
+      ...(signature ? { signature } : {}),
       source: id,
       position: pose.position
         .clone()
         .addScaledVector(
           up.clone().applyQuaternion(pose.quaternion),
-          ARC_MUZZLE_HEIGHT,
+          signature ? 0 : ARC_MUZZLE_HEIGHT,
         )
         .toArray(),
       quaternion: pose.quaternion.toArray(),
@@ -416,6 +524,13 @@ export function createCombatSimulation({
   }
   return {
     bind(id, actor, { touch = true } = {}) {
+      hitBounds(actor);
+      validateCombatResistance(actor.combatResistance);
+      if (
+        actor.damageDuringGrace !== undefined &&
+        typeof actor.damageDuringGrace !== 'boolean'
+      )
+        throw new Error('Damage during grace must be a boolean');
       actors.set(id, actor);
       if (touch) touched.add(id);
       if (touch && movingFrames && Number.isFinite(actor.state.time))
@@ -446,14 +561,61 @@ export function createCombatSimulation({
       }
       return null;
     },
-    fireLance(id) {
+    fireLance(id, options = {}) {
       const source = eligible(id);
       if (!source) return false;
-      shoot(id, source.actor, source.pose, true);
+      if (
+        options.signature !== undefined &&
+        !['goliath-pressure', 'bulwark-slab'].includes(options.signature)
+      )
+        throw new Error('Unknown signature projectile');
+      const pose = options.pose ?? source.pose;
+      if (
+        !pose.position?.isVector3 ||
+        !pose.quaternion?.isQuaternion ||
+        ![...pose.position.toArray(), ...pose.quaternion.toArray()].every(
+          Number.isFinite,
+        ) ||
+        Math.abs(pose.quaternion.lengthSq() - 1) > 1e-5
+      )
+        throw new Error('Signature fire requires a finite physical pose');
+      shoot(id, source.actor, pose, true, options.signature);
+      return true;
+    },
+    fireArc(id, options = {}) {
+      const source = eligible(id);
+      if (!source) return false;
+      if (options.signature !== 'wraith-scissor')
+        throw new Error('Unknown Arc signature projectile');
+      const pose = options.pose;
+      if (
+        !pose?.position?.isVector3 ||
+        !pose.quaternion?.isQuaternion ||
+        ![...pose.position.toArray(), ...pose.quaternion.toArray()].every(
+          Number.isFinite,
+        ) ||
+        Math.abs(pose.quaternion.lengthSq() - 1) > 1e-5
+      )
+        throw new Error('Signature fire requires a finite physical pose');
+      shoot(id, source.actor, pose, false, options.signature);
       return true;
     },
     request(id, event) {
       requests.push({ id, event });
+    },
+    // A destroyed emitter ends future deposits, never the physical trail it
+    // already laid. Keep the burst's existing contact ledger until it expires.
+    stopIon(id) {
+      const pending = requests.length;
+      requests = requests.filter(
+        ({ id: source, event }) =>
+          source !== id || event.payload.kind !== 'ion',
+      );
+      const emitter = state.emitters[id];
+      if (emitter?.kind !== 'ion') return requests.length !== pending;
+      delete state.emitters[id];
+      notify(id, 'pickup-expire', { kind: 'ion', deviceId: emitter.deviceId });
+      return true;
     },
     resetActor,
     step(dt) {
@@ -480,6 +642,15 @@ export function createCombatSimulation({
       for (const { id, event } of requests) {
         if (!eligible(id)) continue;
         const { kind, deviceId } = event.payload;
+        const wakeMuzzle = event.payload.wakeMuzzle;
+        if (
+          wakeMuzzle !== undefined &&
+          (kind !== 'ion' ||
+            !Array.isArray(wakeMuzzle) ||
+            wakeMuzzle.length !== 3 ||
+            !wakeMuzzle.every((v) => Number.isFinite(v) && Math.abs(v) <= 100))
+        )
+          throw new Error('Ion emitter requires a finite physical muzzle');
         // Each accepted gate starts its full program, replacing any emitter.
         // Fired shots, deposited wakes and their burst hit ledgers still own
         // their original lifetime independently of the refreshed emitter.
@@ -491,6 +662,7 @@ export function createCombatSimulation({
           nextWake: 0,
           tail: null,
           burst: state.sequence++,
+          ...(wakeMuzzle ? { wakeMuzzle: [...wakeMuzzle] } : {}),
         };
         if (kind === 'ion')
           state.wakeHits[state.emitters[id].burst] = {
@@ -532,12 +704,16 @@ export function createCombatSimulation({
         }
         if (emitter.kind === 'ion') {
           if (emitter.elapsed >= emitter.nextWake) {
-            const tail = pose.position
-              .clone()
-              .addScaledVector(
-                forward.clone().applyQuaternion(pose.quaternion),
-                -5,
-              );
+            const tail = emitter.wakeMuzzle
+              ? vector(emitter.wakeMuzzle)
+                  .applyQuaternion(pose.quaternion)
+                  .add(pose.position)
+              : pose.position
+                  .clone()
+                  .addScaledVector(
+                    forward.clone().applyQuaternion(pose.quaternion),
+                    -5,
+                  );
             if (emitter.tail)
               state.wakes.push({
                 id: state.sequence++,
@@ -570,23 +746,40 @@ export function createCombatSimulation({
         const a = vector(shot.position);
         // Bounded homing adjusts road-local yaw; hills and banks still need
         // no separate pitch aim, and every movement keeps the swept collision.
-        steerArc(shot, dt);
-        shot.distance += shot.speed * Math.cos(shot.heading) * dt;
-        shot.lateral += shot.speed * Math.sin(shot.heading) * dt;
+        if (!shot.signature) steerArc(shot, dt);
+        let b;
+        if (shot.signature) {
+          // A siege bolt leaves its real offset muzzle along the frozen aim.
+          // It never snaps to the actor centre or steers after the lane locks.
+          b = a.clone().addScaledVector(vector(shot.velocity), dt);
+          const projected = projectMagneticBody(
+            track,
+            b,
+            shot.distance,
+            shot.lateral,
+          );
+          shot.distance = projected.distance;
+          shot.lateral = projected.lateral;
+        } else {
+          shot.distance += shot.speed * Math.cos(shot.heading) * dt;
+          shot.lateral += shot.speed * Math.sin(shot.heading) * dt;
+        }
         if (
           (track.closed === false && shot.distance > track.length) ||
           Math.abs(shot.lateral) > track.width / 2
         )
           return false;
         const frame = courseFrame(shot.distance);
-        const b = frame.position
+        b ??= frame.position
           .clone()
           .addScaledVector(frame.right, shot.lateral)
           .addScaledVector(frame.up, shot.height);
         const velocity = b.clone().sub(a).divideScalar(dt);
-        const quaternion = frame.quaternion
-          .clone()
-          .multiply(new T.Quaternion().setFromAxisAngle(up, shot.heading));
+        const quaternion = shot.signature
+          ? new T.Quaternion().fromArray(shot.quaternion)
+          : frame.quaternion
+              .clone()
+              .multiply(new T.Quaternion().setFromAxisAngle(up, shot.heading));
         shot.quaternion = quaternion.toArray();
         shot.velocity = velocity.toArray();
         let first = blocked(a, b, quaternion);
@@ -596,17 +789,26 @@ export function createCombatSimulation({
           if (
             !other ||
             id === shot.source ||
+            sameTeam(shot.source, id) ||
             !nearCourse(shot.distance, other.actor.state.distance, 600)
           )
             continue;
           const inverse = other.pose.quaternion.clone().invert();
+          const box = hitBounds(other.actor);
+          const center = new T.Vector3()
+            .fromArray(box.center)
+            .applyQuaternion(other.pose.quaternion);
           const previous = state.positions[id]
             ? vector(state.positions[id])
             : other.pose.position;
           const fraction = segmentBoxFraction(
-            a.clone().sub(previous).applyQuaternion(inverse),
-            b.clone().sub(other.pose.position).applyQuaternion(inverse),
-            { x: 2.5, y: 1.8, z: ARC_TARGET_HALF_LENGTH },
+            a.clone().sub(previous).sub(center).applyQuaternion(inverse),
+            b
+              .clone()
+              .sub(other.pose.position)
+              .sub(center)
+              .applyQuaternion(inverse),
+            box.half,
           );
           if (fraction !== null && fraction < first) {
             first = fraction;
@@ -631,6 +833,7 @@ export function createCombatSimulation({
             a.clone().lerp(b, first),
             shot.heavy ? 'lance' : undefined,
             shot.heavy ? shot.quaternion : undefined,
+            shot.signature,
           );
           // Damage grace suppresses repeated impulses, not visible contact.
           if (!applied) {
@@ -639,6 +842,7 @@ export function createCombatSimulation({
               target,
               kind: 'arc',
               ...(shot.heavy ? { equipment: 'lance' } : {}),
+              ...(shot.signature ? { signature: shot.signature } : {}),
               position: a.clone().lerp(b, first).toArray(),
             };
             notify(shot.source, 'combat-contact', payload);
@@ -648,6 +852,7 @@ export function createCombatSimulation({
               target,
               kind: 'arc',
               ...(shot.heavy ? { equipment: 'lance' } : {}),
+              ...(shot.signature ? { signature: shot.signature } : {}),
               position: a.clone().lerp(b, first).toArray(),
               quaternion: shot.heavy
                 ? [...shot.quaternion]
@@ -670,6 +875,7 @@ export function createCombatSimulation({
           if (
             !other ||
             id === wake.source ||
+            sameTeam(wake.source, id) ||
             exposure?.targets.includes(id) ||
             !nearCourse(wake.distance, other.actor.state.distance, 45)
           )
@@ -720,7 +926,11 @@ export function createCombatSimulation({
       if (!actor) return null;
       const horizon = Math.max(35, actor.state.speed * 0.7);
       for (const wake of state.wakes) {
-        if (wake.source === id || wake.age > COMBAT_RULES.wakeLifetime - 0.3)
+        if (
+          wake.source === id ||
+          sameTeam(wake.source, id) ||
+          wake.age > COMBAT_RULES.wakeLifetime - 0.3
+        )
           continue;
         let ahead = wake.distance - actor.state.distance;
         if (track.closed !== false && ahead < -track.length / 2)
@@ -754,7 +964,9 @@ export function createCombatSimulation({
         pose.position,
         id,
         COMBAT_RULES.wakeLifetime,
-        (wake) => nearCourse(wake.distance, actor.state.distance, 45),
+        (wake) =>
+          !sameTeam(wake.source, id) &&
+          nearCourse(wake.distance, actor.state.distance, 45),
       );
     },
     view() {
@@ -785,11 +997,42 @@ export function createCombatSimulation({
         !Number.isSafeInteger(data.sequence) ||
         !Array.isArray(data.shots) ||
         data.shots.length > 30 ||
+        data.shots.some(
+          (shot) =>
+            shot.signature !== undefined &&
+            !(
+              (['goliath-pressure', 'bulwark-slab'].includes(shot.signature) &&
+                shot.heavy === true) ||
+              (shot.signature === 'wraith-scissor' &&
+                shot.heavy === undefined &&
+                shot.target === null)
+            ),
+        ) ||
         !Array.isArray(data.wakes) ||
         data.wakes.length > 256 ||
         !Array.isArray(data.flashes) ||
         data.flashes.length > 32 ||
+        data.flashes.some(
+          (flash) =>
+            flash.signature !== undefined &&
+            !(
+              (['goliath-pressure', 'bulwark-slab'].includes(flash.signature) &&
+                flash.equipment === 'lance') ||
+              (flash.signature === 'wraith-scissor' &&
+                flash.equipment === undefined)
+            ),
+        ) ||
         !data.emitters ||
+        Object.values(data.emitters).some(
+          (emitter) =>
+            emitter.wakeMuzzle !== undefined &&
+            (emitter.kind !== 'ion' ||
+              !Array.isArray(emitter.wakeMuzzle) ||
+              emitter.wakeMuzzle.length !== 3 ||
+              !emitter.wakeMuzzle.every(
+                (v) => Number.isFinite(v) && Math.abs(v) <= 100,
+              )),
+        ) ||
         !data.grace ||
         !data.disruptions ||
         Object.values(data.disruptions).some(
@@ -799,10 +1042,18 @@ export function createCombatSimulation({
             entry.duration !==
               COMBAT_CONSEQUENCES[entry.kind].duration *
                 (1 - (entry.mitigation ?? 0)) ||
+            (entry.combatResistance !== undefined &&
+              (!Number.isFinite(entry.combatResistance) ||
+                entry.combatResistance <= 0 ||
+                entry.combatResistance > 1 ||
+                entry.mitigation == null)) ||
             (entry.mitigation != null &&
               (!Number.isFinite(entry.mitigation) ||
-                entry.mitigation < 0 ||
-                entry.mitigation > 0.2)) ||
+                entry.mitigation < (entry.combatResistance ?? 0) ||
+                entry.mitigation >
+                  (entry.combatResistance
+                    ? 1 - 0.8 * (1 - entry.combatResistance)
+                    : 0.2))) ||
             !Number.isFinite(entry.entrySpeed) ||
             entry.entrySpeed < 0 ||
             !Number.isFinite(entry.startedAt) ||

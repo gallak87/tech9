@@ -7,6 +7,12 @@ import {
 } from '../race/cup.js';
 import { assetURL } from '../assets/url.js';
 import { encoreBackground } from './encore-art.js';
+import { MODE_UNLOCKS } from '../levels/access.js';
+
+export function cupModeUnlock(cupId, won = false) {
+  const mode = MODE_UNLOCKS.find((entry) => entry.cupId === cupId);
+  return mode ? (won ? `${mode.label} unlocked` : `Unlocks ${mode.label}`) : '';
+}
 
 const accents = {
   founders: '#85be99',
@@ -30,8 +36,9 @@ export function cupArt(id) {
 }
 export function cupCard(cup, selected, collection) {
   const art = cupArt(cup.id),
-    won = !!collection[cup.id];
-  return `<button class="cup-card ${cup.bonus ? 'is-bonus' : ''} ${won ? 'is-earned' : ''}" data-cup="${cup.id}" aria-pressed="${selected === cup.id}" aria-label="${cup.name}, ${cup.tracks.length} races, ${won ? 'trophy earned' : 'not yet won'}" style="--cup-accent:${art.accent}"><img class="cup-card-background" src="${art.background}" alt=""><img class="cup-card-trophy" src="${art.trophy}" alt=""><span class="cup-card-label"><strong>${cup.name}</strong><small>${cup.bonus ? 'Career complete · ' : ''}${cup.tracks.length} races</small></span>${cup.bonus && !won ? '<span class="cup-bonus-badge" aria-label="New cup to complete">NEW CUP</span>' : ''}${won ? '<span class="cup-earned-mark" aria-hidden="true">✓</span>' : ''}</button>`;
+    won = !!collection[cup.id],
+    unlock = cupModeUnlock(cup.id, won);
+  return `<button class="cup-card ${cup.bonus ? 'is-bonus' : ''} ${won ? 'is-earned' : ''}" data-cup="${cup.id}" aria-pressed="${selected === cup.id}" aria-label="${cup.name}, ${cup.tracks.length} races, ${won ? 'trophy earned' : 'not yet won'}${unlock ? `, ${unlock}` : ''}" style="--cup-accent:${art.accent}"><img class="cup-card-background" src="${art.background}" alt=""><img class="cup-card-trophy" src="${art.trophy}" alt=""><span class="cup-card-label"><strong>${cup.name}</strong><small>${cup.bonus ? 'Career complete · ' : ''}${cup.tracks.length} races${unlock ? `<span class="cup-card-unlock">${unlock}</span>` : ''}</small></span>${cup.bonus && !won ? '<span class="cup-bonus-badge" aria-label="New cup to complete">NEW CUP</span>' : ''}${won ? '<span class="cup-earned-mark" aria-hidden="true">✓</span>' : ''}</button>`;
 }
 export function cupCabinet(
   { cups = {}, notice = '' } = {},
@@ -56,8 +63,9 @@ export function cupCabinet(
 }
 export function cupHero(cup, title, collection, rewards = '') {
   const art = cupArt(cup.id),
-    won = !!collection[cup.id];
-  return `<div class="cup-hero cup-art-hero ${won ? 'is-earned' : ''}" style="--cup-accent:${art.accent}"><img class="cup-card-background" src="${art.background}" alt=""><img class="cup-hero-trophy" src="${art.trophy}" alt=""><div class="cup-hero-caption"><span class="kicker">${won ? '✓ TROPHY EARNED' : 'CHAMPIONSHIP'}</span><h2 class="cup-title">${title}</h2><p>${cup.tracks.length} races · 9 rivals</p>${rewards}</div></div>`;
+    won = !!collection[cup.id],
+    unlock = cupModeUnlock(cup.id, won);
+  return `<div class="cup-hero cup-art-hero ${won ? 'is-earned' : ''}" style="--cup-accent:${art.accent}"><img class="cup-card-background" src="${art.background}" alt=""><img class="cup-hero-trophy" src="${art.trophy}" alt=""><div class="cup-hero-caption"><span class="kicker">${won ? '✓ TROPHY EARNED' : 'CHAMPIONSHIP'}</span><h2 class="cup-title">${title}</h2><p>${cup.tracks.length} races · 9 rivals</p>${unlock ? `<p class="cup-mode-unlock">${unlock}</p>` : ''}${rewards}</div></div>`;
 }
 export function cupVictoryView(
   state,
@@ -65,10 +73,11 @@ export function cupVictoryView(
 ) {
   const cup = cupDefinition(state.cupId),
     champion = cupChampion(state),
-    art = cupArt(cup.id);
+    art = cupArt(cup.id),
+    unlock = cupModeUnlock(cup.id, true);
   const particles = Array.from({ length: 16 }, (_, i) => {
     const angle = (i / 16) * Math.PI * 2;
     return `<i style="--spark-x:${Math.round(Math.cos(angle) * (115 + (i % 3) * 22))}px;--spark-y:${Math.round(Math.sin(angle) * 150)}px;--spark-turn:${i * 37}deg;--spark-lag:${(i % 4) * 45}ms"></i>`;
   }).join('');
-  return `<section class="cup-victory" aria-labelledby="cup-victory-title" style="--cup-accent:${art.accent};--cup-reveal-delay:${delay}s"><img class="cup-victory-background" src="${art.background}" alt=""><div class="cup-victory-copy"><span class="kicker">CHAMPION / ${fresh ? 'TROPHY EARNED' : 'CUP DEFENDED'}</span><h1 id="cup-victory-title" tabindex="-1">${cup.name}</h1><p class="cup-victory-score">1st place <span>·</span> ${champion.points} points</p><p class="cup-victory-earned" role="status">${fresh ? '✓ Added to your collection' : '✓ Trophy in your collection'}</p>${notice ? `<p class="cup-save" role="status">${notice}</p>` : ''}<div class="front-actions"><button class="primary" data-action="cup-standings">View standings →</button><button data-action="cup-hub">Back to cups</button></div></div><div class="cup-victory-stage" aria-hidden="true"><div class="cup-victory-halo"></div><div class="cup-victory-sparks">${particles}</div><img class="cup-victory-trophy" src="${art.trophy}" alt=""></div></section>`;
+  return `<section class="cup-victory" aria-labelledby="cup-victory-title" style="--cup-accent:${art.accent};--cup-reveal-delay:${delay}s"><img class="cup-victory-background" src="${art.background}" alt=""><div class="cup-victory-copy"><span class="kicker">CHAMPION / ${fresh ? 'TROPHY EARNED' : 'CUP DEFENDED'}</span><h1 id="cup-victory-title" tabindex="-1">${cup.name}</h1><p class="cup-victory-score">1st place <span>·</span> ${champion.points} points</p><p class="cup-victory-earned" role="status">${fresh ? '✓ Added to your collection' : '✓ Trophy in your collection'}${unlock ? `<span class="cup-victory-unlock">${unlock}</span>` : ''}</p>${notice ? `<p class="cup-save" role="status">${notice}</p>` : ''}<div class="front-actions"><button class="primary" data-action="cup-standings">View standings →</button><button data-action="cup-hub">Back to cups</button></div></div><div class="cup-victory-stage" aria-hidden="true"><div class="cup-victory-halo"></div><div class="cup-victory-sparks">${particles}</div><img class="cup-victory-trophy" src="${art.trophy}" alt=""></div></section>`;
 }

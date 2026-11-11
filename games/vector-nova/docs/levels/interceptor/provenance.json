@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "selectedConcept": "Goliath / armored heavy courier",
+  "consideredConcepts": [
+    "Heavy carrier racer",
+    "Armored tug",
+    "Armored heavy courier"
+  ],
+  "image": "goliath-courier-v1.png",
+  "sha256": "915a9720a2c24edb3b39d54b754668b86afb632ed02c7803559c2b482af89657",
+  "generator": "Built-in image_gen tool",
+  "purpose": "Original concept reference for a source-authored AI pursuit craft; not a runtime render",
+  "rights": "Generated for this project; no third-party reference artwork supplied",
+  "prompt": "Use case: stylized-concept. One original design reference for a new very large anti-gravity racer pursuit target called Goliath, an armored heavy courier. Considered but not selected were a heavy carrier racer and an armored tug; depict the chosen heavy courier only. A clean manufactured ceramic/graphite/titanium craft for the VECTOR//NOVA racing game. The craft is approximately 40 metres long, 16 metres wide, only 6 metres high: a long, broad, low hovering armored courier, much bigger than ordinary racing ships. +Z-forward design visually has a chisel prow, connected central cargo/pressure spine, layered seated ivory ceramic armor with blue-grey service panels, dark resin-coated structural recesses, a small low armored command canopy, two thick integrated aft engine nacelles and a smaller central exhaust. Strong blue ion exhaust originates inside real recessed metal nozzle throats. Use large purposeful connected masses and thick fitted joints, machined retaining lips, real shadowed intake cavities with folded vanes, restrained vermilion identification bands and clean material separation. No wings, no long airplane fins, no aircraft flight, no wheels, no gun turrets, no random boxes, no loose floating panels, no wear/dirt as a substitute for construction. Composition: original high quality 3D game concept, three-quarter rear view at a slight elevation to show the broad low hull silhouette, deep aft nozzle recesses, ceramic armor thickness and connected spine; a tiny ordinary racing ship parked at a distance at ground level conveys scale but remains secondary. Neutral cool industrial paddock and warm soft key light, broad physically based reflections, 16:9 landscape. No text, lettering, logos, labels or HUD. Focus on forms achievable in authored game geometry rather than microscopic greebles."
+}

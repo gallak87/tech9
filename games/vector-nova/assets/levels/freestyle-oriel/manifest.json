@@ -1,0 +1,68 @@
+{
+  "title": "Sunvault / original founded civic construction kit",
+  "coordinates": "glTF metres; +Y up, +X lateral, +Z forward; identity prototype roots",
+  "source": "build_civic_works.py",
+  "blend": "sunvault-civic-works.blend",
+  "runtimeAsset": "public/assets/levels/freestyle-oriel/sunvault-civic-works.glb",
+  "rights": "Original project-authored Blender geometry and scalar PBR materials; no third-party assets or baked lighting.",
+  "reference": "../oriel/reference/oriel-original.png",
+  "referencePrompt": "../oriel/reference/original-prompt.txt",
+  "direction": "Sunvault course-local load paths and deep civic arcades; original Oriel reference style, approved driving/jump geometry unchanged.",
+  "materials": ["WarmLimestone", "coolrecess", "agedbronze"],
+  "prototypes": [
+    {
+      "name": "anchor_pier",
+      "bounds": {
+        "min": [-55, 0, -65],
+        "max": [55, 1000, 65]
+      },
+      "triangles": 2808,
+      "materialBatches": 3,
+      "sockets": [
+        {
+          "name": "pier_head",
+          "position": [0, 1000, 0]
+        }
+      ]
+    },
+    {
+      "name": "arrival_terrace",
+      "bounds": {
+        "min": [-100, 0, -90],
+        "max": [100, 54, 90]
+      },
+      "triangles": 3836,
+      "materialBatches": 3,
+      "sockets": [
+        {
+          "name": "terrace_top",
+          "position": [0, 54, 0]
+        }
+      ]
+    },
+    {
+      "name": "load_cradle",
+      "bounds": {
+        "min": [-37, -56, -18],
+        "max": [37, -3.5, 18]
+      },
+      "triangles": 1192,
+      "materialBatches": 3,
+      "sockets": [
+        {
+          "name": "cradle_end_starboard",
+          "position": [37, -48, 0]
+        },
+        {
+          "name": "cradle_end_port",
+          "position": [-37, -48, 0]
+        }
+      ]
+    }
+  ],
+  "hashes": {
+    "build_civic_works.py": "ce4ac9e8c3832ea946ba455821ae49bfe277d758a351946d139a83f82c9b31fb",
+    "sunvault-civic-works.blend": "7f3bed029bb973d6ba6b02e781a66e447f1b8f6372e9b951c10c5b1889bba7db",
+    "sunvault-civic-works.glb": "ce6ef868782f48333866223d02f3538a58724872736c4d1c44b01d0980a5a347"
+  }
+}

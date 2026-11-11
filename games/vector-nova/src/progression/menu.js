@@ -1,6 +1,7 @@
 import { MAX_SAVE_BYTES } from './save-transfer.js';
 import { careerView, escapeHTML } from './view.js';
 import { careerNameIcons } from './career-name.js';
+import { careerUnlockProgress } from './completion.js';
 import './style.css';
 export function createProgressionMenu({
   store,
@@ -10,6 +11,7 @@ export function createProgressionMenu({
   onRenameCareer = null,
   careerName = 'Career',
   sandbox = false,
+  catalog = [],
 }) {
   const career = document.createElement('section');
   career.className = 'career-page';
@@ -33,9 +35,10 @@ export function createProgressionMenu({
   function render(focus) {
     const state = profile();
     const title = escapeHTML(careerName);
-    const content = `<div class="career-transfer"><button data-export>Export save</button><button data-import>Import save</button><button data-backup aria-label="Export previous backup">Export backup</button><input type="file" accept=".json,application/json" hidden data-save-file><span>Includes rewards, equipment, cups, records and ghosts.</span></div>${careerView(state)}`;
+    const incoming = imported ? careerUnlockProgress(imported.profile) : null;
+    const content = `<div class="career-transfer"><button data-export>Export save</button><button data-import>Import save</button><button data-backup aria-label="Export previous backup">Export backup</button><input type="file" accept=".json,application/json" hidden data-save-file><span>Includes rewards, courses, equipment, cups, records and ghosts.</span></div>${careerView(state, { catalog })}`;
     const ask = imported
-      ? `<section class="progression-confirm" role="alertdialog" aria-label="Import career"><h3>Replace this career?</h3><p>Incoming save: ${imported.profile.wins} wins · ${imported.profile.claims.length} rewards · ${imported.profile.cups.length} cup wins. A backup of your current career will be kept on this device.</p>${imported.cupUnavailable ? '<p>This championship can only resume in the other edition. Its results, rewards and trophies will stay saved.</p>' : ''}<button data-cancel>Cancel</button><button data-confirm-import>Import career</button></section>`
+      ? `<section class="progression-confirm" role="alertdialog" aria-label="Import career"><h3>Replace this career?</h3><p>Incoming save: ${imported.profile.wins} wins · ${incoming.collected} / ${incoming.total} unlocks · ${imported.profile.cups.length} cup wins. A backup of your current career will be kept on this device.</p>${imported.cupUnavailable ? '<p>This championship can only resume in the other edition. Its results, rewards and trophies will stay saved.</p>' : ''}<button data-cancel>Cancel</button><button data-confirm-import>Import career</button></section>`
       : '';
     const notice = `<p class="progression-notice" id="career-page-notice" role="status">${escapeHTML(message || store.snapshot().notice || (sandbox ? 'Temporary playtest profile. Your earned career is untouched.' : ''))}</p>`;
     const rename =

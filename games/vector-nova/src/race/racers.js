@@ -419,29 +419,92 @@ export function createRacers({
   devices = [],
   createRuntime,
   dynamics = null,
+  continuous = false,
+  field = null,
 }) {
   if (typeof createRuntime !== 'function')
     throw new Error('Racers require the circuit simulation factory');
+  if (typeof continuous !== 'boolean')
+    throw new Error('Continuous racing must be a boolean');
+  if (
+    field &&
+    (typeof field.id !== 'string' ||
+      !field.id ||
+      field.id.length > 160 ||
+      !Array.isArray(field.opponents) ||
+      field.opponents.length < 1 ||
+      field.opponents.length > 16 ||
+      field.opponents.some(
+        (specification) =>
+          !specification ||
+          typeof specification.id !== 'string' ||
+          !specification.id ||
+          specification.id === 'player' ||
+          typeof specification.name !== 'string' ||
+          !Number.isFinite(specification.lane) ||
+          !Number.isFinite(specification.pace) ||
+          specification.pace <= 0 ||
+          (specification.team !== undefined &&
+            typeof specification.team !== 'string') ||
+          (specification.chassisId !== undefined &&
+            typeof specification.chassisId !== 'string') ||
+          (specification.version !== undefined &&
+            (!Number.isSafeInteger(specification.version) ||
+              specification.version <= 0)),
+      ) ||
+      new Set(field.opponents.map((specification) => specification.id)).size !==
+        field.opponents.length ||
+      !field.grid ||
+      Array.isArray(field.grid) ||
+      (field.control !== undefined && typeof field.control !== 'function'))
+  )
+    throw new Error('Invalid custom racing field');
+  const specifications = field ? copy(field.opponents) : RACE_OPPONENTS;
+  if (field)
+    for (const specification of specifications) getShip(specification.shipId);
+  const ids = field
+    ? ['player', ...specifications.map((specification) => specification.id)]
+    : Object.keys(RACE_GRID);
+  if (
+    field &&
+    (Object.keys(field.grid).length !== ids.length ||
+      ids.some(
+        (id) =>
+          !field.grid[id] ||
+          !Number.isFinite(field.grid[id].distance) ||
+          !Number.isFinite(field.grid[id].lateral) ||
+          !Object.values(field.grid[id]).every((value) =>
+            Number.isFinite(value),
+          ),
+      ))
+  )
+    throw new Error('Custom field needs one finite grid pose for every racer');
+  const initialGrid = field ? copy(field.grid) : RACE_GRID;
+  const initialOrder = field ? Object.keys(initialGrid) : RACE_ORDER;
+  const fieldControl = field?.control;
   const sprint = track.closed === false;
-  const lapsRequired = sprint ? 1 : RACE_LAPS;
+  const lapsRequired = continuous ? Infinity : sprint ? 1 : RACE_LAPS;
   const course = courseIdentity(track);
-  const relativeTiming = createRelativeTiming(Object.keys(RACE_GRID));
-  const opponents = RACE_OPPONENTS.map((specification) => ({
+  const relativeTiming = createRelativeTiming(ids);
+  const opponents = specifications.map((specification) => ({
     specification,
     state: {
       ...createVehicleState(specification.shipId),
-      chassisId: specification.id,
+      chassisId: specification.chassisId ?? specification.id,
     },
     prev: null,
     race: null,
     runtime: createRuntime(specification),
     finish: null,
     boostSeconds: 0,
+    ...(continuous ? { eliminated: false } : {}),
   }));
   // Record the actual field configuration instead of a second version stamp.
   // Visual names/colors are deliberately absent from deterministic identity.
   let identity = {
-    grid: RACE_GRID,
+    ...(continuous ? { continuous: true } : {}),
+    ...(field ? { field: { id: field.id, order: initialOrder } } : {}),
+    grid: initialGrid,
     drivers: DRIVER_PROFILES,
     reorient: REORIENT,
     opponents: opponents.map(({ specification, runtime }) => ({
@@ -452,6 +515,15 @@ export function createRacers({
       },
       lane: specification.lane,
       pace: specification.pace,
+      ...(field
+        ? {
+            chassis: {
+              id: specification.chassisId ?? specification.id,
+              version: specification.version ?? 1,
+            },
+            team: specification.team ?? null,
+          }
+        : {}),
       runtime: {
         id: runtime.id,
         version: runtime.version,
@@ -505,18 +577,31 @@ export function createRacers({
     enabled: nextEnabled = true,
     fieldBuild = selectedBuild,
     difficulty: nextDifficulty = fieldBuild?.difficulty ?? 'easy',
-    gridOrder = RACE_ORDER,
+    gridOrder = initialOrder,
     presentation = true,
   } = {}) {
     if (!RACE_DIFFICULTIES.includes(nextDifficulty))
       throw new Error('Unknown race difficulty');
     const nextBuild =
       fieldBuild === null ? null : validateRivalFieldBuild(fieldBuild);
+    if (field && nextBuild)
+      throw new Error('Custom racing fields cannot use standard rival builds');
     if (nextBuild && nextBuild.difficulty !== nextDifficulty)
       throw new Error('Rival build difficulty mismatch');
-    const grid = createRaceGrid(gridOrder);
+    if (
+      field &&
+      (!Array.isArray(gridOrder) ||
+        gridOrder.length !== ids.length ||
+        new Set(gridOrder).size !== ids.length ||
+        !gridOrder.every((id) => ids.includes(id)))
+    )
+      throw new Error(
+        'Custom grid order must contain every racer exactly once',
+      );
+    const grid = field ? copy(initialGrid) : createRaceGrid(gridOrder);
     selectedBuild = nextBuild;
     identity = projectIdentity(selectedBuild, grid);
+    if (field) identity.field.order = [...gridOrder];
     identityJSON = JSON.stringify(identity);
     gridPositions = Object.fromEntries(
       gridOrder.map((id, index) => [id, index]),
@@ -535,7 +620,7 @@ export function createRacers({
       const { specification } = opponent;
       opponent.state = {
         ...createVehicleState(specification.shipId),
-        chassisId: specification.id,
+        chassisId: specification.chassisId ?? specification.id,
         ...rivalBuildState(selectedBuild, specification.id),
         ...grid[specification.id],
       };
@@ -545,6 +630,10 @@ export function createRacers({
       });
       opponent.finish = null;
       opponent.boostSeconds = 0;
+      if (continuous) {
+        opponent.eliminated = false;
+        opponent.runtime.setEnabled?.(enabled);
+      }
       opponent.runtime.reset({
         reason: 'restart',
         state: opponent.state,
@@ -567,16 +656,45 @@ export function createRacers({
     elapsed += step;
     // All controls are sampled before anyone advances, so this one bounded
     // field view needs neither per-driver copies nor per-driver filter arrays.
-    nearby.length = opponents.length + (playerState ? 1 : 0);
-    opponents.forEach((opponent, index) => {
-      nearby[index] = opponent.state;
+    nearby.length = 0;
+    for (const opponent of opponents)
+      if (!opponent.eliminated) nearby.push(opponent.state);
+    if (playerState) nearby.push(playerPrevious ?? playerState);
+    const controls = opponents.map((opponent) => {
+      if (opponent.eliminated) return null;
+      const defaultControl = controlsFor(
+        opponent,
+        track,
+        devices,
+        nearby,
+        difficulty,
+      );
+      if (!fieldControl) return defaultControl;
+      const control = fieldControl({
+        opponent,
+        track,
+        devices,
+        nearby,
+        difficulty,
+        defaultControl,
+      });
+      if (
+        !control ||
+        !['throttle', 'brake', 'steer'].every(
+          (key) => Number.isFinite(control[key]) && Math.abs(control[key]) <= 1,
+        ) ||
+        control.throttle < 0 ||
+        control.brake < 0 ||
+        typeof control.boost !== 'boolean' ||
+        typeof control.airbrake !== 'boolean'
+      )
+        throw new Error(
+          'Custom field control must return normalized driving inputs',
+        );
+      return control;
     });
-    if (playerState) nearby[opponents.length] = playerPrevious ?? playerState;
-    const controls = opponents.map((opponent) =>
-      controlsFor(opponent, track, devices, nearby, difficulty),
-    );
     opponents.forEach((opponent) => {
-      opponent.prev = { ...opponent.state };
+      if (!opponent.eliminated) opponent.prev = { ...opponent.state };
     });
     return {
       step,
@@ -594,6 +712,7 @@ export function createRacers({
   ) {
     const events = [];
     opponents.forEach((opponent, index) => {
+      if (opponent.eliminated) return;
       const vehicleEvents = shared
         ? opponent.runtime.finishAdvance(opponent.state)
         : opponent.runtime.advance(opponent.state, controls[index], step);
@@ -615,7 +734,8 @@ export function createRacers({
         elapsed,
       );
       const wasFinished = !!opponent.finish;
-      if (!opponent.finish) opponent.finish = finishFrom(opponent.race);
+      if (!continuous && !opponent.finish)
+        opponent.finish = finishFrom(opponent.race);
       if (opponent.finish && !wasFinished)
         events.push({
           type: 'racer-complete',
@@ -635,7 +755,7 @@ export function createRacers({
   }
 
   function finishPlayerRace(playerRace, events) {
-    if (!playerFinish && playerRace) {
+    if (!continuous && !playerFinish && playerRace) {
       playerFinish = finishFrom(playerRace);
       if (playerFinish)
         events.push({
@@ -651,7 +771,12 @@ export function createRacers({
     if (staged) throw new Error('Racer advance is already staged');
     staged = prepareTick(dt, context);
     opponents.forEach((opponent, index) => {
-      opponent.runtime.beginAdvance(opponent.state, staged.controls[index], dt);
+      if (!opponent.eliminated)
+        opponent.runtime.beginAdvance(
+          opponent.state,
+          staged.controls[index],
+          dt,
+        );
     });
   }
 
@@ -694,12 +819,14 @@ export function createRacers({
       speed: state.speed,
       lap: Math.min(lapsRequired, completedLaps + 1),
       completedLaps,
-      progress: clamp(
-        displayDistance /
-          (sprint ? track.finishDistance : RACE_LAPS * track.length),
-        0,
-        1,
-      ),
+      progress: continuous
+        ? displayDistance / track.length
+        : clamp(
+            displayDistance /
+              (sprint ? track.finishDistance : RACE_LAPS * track.length),
+            0,
+            1,
+          ),
       lapTimes: finish
         ? [...finish.lapTimes]
         : race.history.slice(0, lapsRequired).map((lap) => lap.duration),
@@ -714,8 +841,8 @@ export function createRacers({
   }
 
   function snapshot({ playerState, playerRace, playerPose } = {}) {
-    const standings = opponents.map((opponent) =>
-      row(
+    const standings = opponents.map((opponent) => ({
+      ...row(
         opponent.specification.id,
         opponent.specification.name,
         opponent.state,
@@ -723,9 +850,12 @@ export function createRacers({
         opponent.finish,
         opponent.runtime.pose(1),
       ),
-    );
-    const currentFinish =
-      playerFinish ?? (playerRace ? finishFrom(playerRace) : null);
+      ...(continuous ? { eliminated: opponent.eliminated } : {}),
+      ...(field ? { team: opponent.specification.team ?? null } : {}),
+    }));
+    const currentFinish = continuous
+      ? null
+      : (playerFinish ?? (playerRace ? finishFrom(playerRace) : null));
     if (playerState && playerRace)
       standings.push(
         row(
@@ -784,7 +914,7 @@ export function createRacers({
     return {
       enabled,
       difficulty,
-      laps: lapsRequired,
+      laps: continuous ? null : lapsRequired,
       courseFormat: course.format,
       elapsed,
       // First completed sprint, or the first two circuit laps, valid or invalid.
@@ -841,6 +971,7 @@ export function createRacers({
         runtime: opponent.runtime.snapshot(),
         finish: copy(opponent.finish),
         boostSeconds: opponent.boostSeconds,
+        ...(continuous ? { eliminated: opponent.eliminated } : {}),
       })),
     };
   }
@@ -892,6 +1023,7 @@ export function createRacers({
         const opponent = opponents[index];
         if (
           saved.id !== opponent.specification.id ||
+          (continuous && typeof saved.eliminated !== 'boolean') ||
           saved.state?.shipId !== opponent.specification.shipId ||
           !saved.prev ||
           !saved.race ||
@@ -913,7 +1045,8 @@ export function createRacers({
               ([key, value]) => typeof state[key] === typeof value,
             ) ||
             state.shipId !== opponent.specification.shipId ||
-            state.chassisId !== opponent.specification.id ||
+            state.chassisId !==
+              (opponent.specification.chassisId ?? opponent.specification.id) ||
             !matchesRivalBuild(state, selectedBuild, opponent.specification.id)
           )
             throw new Error('Racer vehicle state mismatch');
@@ -974,6 +1107,18 @@ export function createRacers({
       Object.assign(opponent.state, restoredState);
       opponent.prev = copy(saved.prev);
       restoreRaceProgress(opponent.race, saved.race);
+      if (continuous) {
+        opponent.eliminated = saved.eliminated;
+        opponent.runtime.setEnabled?.(enabled && !opponent.eliminated);
+        // Restoring logical body state does not deactivate a live query actor.
+        // Reset the actor first, then restore the exact saved logical snapshot.
+        if (opponent.eliminated)
+          opponent.runtime.reset({
+            reason: 'eliminated',
+            state: opponent.state,
+            presentation,
+          });
+      }
       opponent.runtime.restore(copy(saved.runtime), {
         presentation,
         equipment: opponent.state.equipment,
@@ -982,6 +1127,22 @@ export function createRacers({
       opponent.finish = copy(saved.finish);
       opponent.boostSeconds = saved.boostSeconds;
     });
+  }
+
+  function setEliminated(id) {
+    if (!continuous)
+      throw new Error('Only continuous event fields eliminate racers');
+    if (staged)
+      throw new Error('Finish the shared racer step before eliminating');
+    const opponent = opponents.find((entry) => entry.specification.id === id);
+    if (!opponent) throw new Error(`Unknown rival: ${id}`);
+    if (opponent.eliminated) return false;
+    opponent.eliminated = true;
+    opponent.runtime.setEnabled?.(false);
+    // Skipping a future stage alone leaves the previous physical actor moving.
+    // Runtime reset disables that actor until its next (now skipped) stage.
+    opponent.runtime.reset({ reason: 'eliminated', state: opponent.state });
+    return true;
   }
 
   return {
@@ -999,6 +1160,7 @@ export function createRacers({
     snapshot,
     serialize,
     restore,
+    setEliminated,
     dispose() {
       if (disposed) return;
       disposed = true;

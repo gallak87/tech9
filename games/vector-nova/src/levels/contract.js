@@ -1,4 +1,6 @@
 import { validateSafeFrame } from '../camera/contract.js';
+import { interceptorBoss } from '../events/interceptor-bosses.js';
+import { canonicalLevelId } from './aliases.js';
 
 const slugPattern = /^[a-z][a-z0-9-]*$/;
 
@@ -29,6 +31,11 @@ export function validateMetadata(metadata, id = metadata?.id) {
       typeof metadata.ui[field] !== 'string'
     )
       throw new Error(`Invalid circuit text: ${id}.${field}`);
+  if (
+    metadata.eventType !== undefined &&
+    !['eliminator', 'interceptor'].includes(metadata.eventType)
+  )
+    throw new Error(`Invalid circuit event: ${id}`);
   for (const flag of [
     'compact',
     'stackedReview',
@@ -66,6 +73,31 @@ export function validateMetadata(metadata, id = metadata?.id) {
 }
 
 export function validateDefinition(definition, id = 'circuit') {
+  if (
+    definition.event !== undefined &&
+    (!definition.event ||
+      !['eliminator', 'interceptor'].includes(definition.event.type) ||
+      (definition.event.type === 'eliminator' &&
+        ![definition.event.firstCut, definition.event.interval].every(
+          (value) => Number.isFinite(value) && value > 0,
+        )) ||
+      (definition.event.type === 'interceptor' &&
+        (!['goliath', 'wraith', 'bulwark'].includes(
+          definition.event.targetId,
+        ) ||
+          !Number.isFinite(definition.event.escapeLaps) ||
+          definition.event.escapeLaps <= 0 ||
+          (definition.event.health !== undefined &&
+            (!Number.isFinite(definition.event.health) ||
+              definition.event.health <= 0)))))
+  )
+    throw new Error(`Invalid ${id}.event`);
+  if (
+    definition.event?.type === 'interceptor' &&
+    interceptorBoss(definition.event.bossId ?? definition.event.targetId).id !==
+      definition.event.targetId
+  )
+    throw new Error(`Invalid ${id}.event boss identity`);
   for (const name of [
     'createTrack',
     'createRoad',
@@ -103,6 +135,11 @@ export function validateDefinition(definition, id = 'circuit') {
   )
     throw new Error(`Invalid ${id}.audio.immersion`);
   if (definition.racing !== undefined) {
+    if (
+      definition.racing?.loadRival !== undefined &&
+      typeof definition.racing.loadRival !== 'function'
+    )
+      throw new Error(`Invalid ${id}.racing.loadRival`);
     if (
       !definition.racing ||
       typeof definition.racing.createDevices !== 'function'
@@ -181,7 +218,8 @@ export function createCatalog(metadataModules, loaders) {
       .map((entry) => entry.metadata)
       .sort((a, b) => a.order - b.order || a.id.localeCompare(b.id)),
     async load(requested, { review } = {}) {
-      const id = requested || 'halcyon';
+      const alias = canonicalLevelId(requested);
+      const id = (entries.has(alias) ? alias : requested) || 'halcyon';
       const entry = entries.get(id);
       if (!entry)
         throw new Error(
@@ -254,6 +292,7 @@ export function validateTrack(track) {
 }
 
 export function circuitURL(currentURL, id) {
+  id = canonicalLevelId(id);
   if (!slugPattern.test(id)) throw new Error('Invalid circuit id');
   const url = new URL(currentURL);
   const music = url.searchParams.get('music');

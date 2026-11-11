@@ -11,6 +11,14 @@ import {
 } from './catalog.js';
 import { rewardProgress, shipUnlocked } from './profile.js';
 import { escapeHTML } from '../ui/html.js';
+import {
+  courseCollection,
+  courseUnlockMessage,
+  courseUnlockRequirement,
+  MODE_UNLOCKS,
+} from '../levels/access.js';
+import { trackChallenge } from '../frontend/track-challenge.js';
+import { careerUnlockProgress } from './completion.js';
 export { escapeHTML };
 const paths = {
   speed: 'm4 17 8-10 8 10M7 17l5-6 5 6',
@@ -74,16 +82,42 @@ export function rewardsView(rewards, { heading = 'Earned this run' } = {}) {
   if (!rewards?.length) return '';
   return `<section class="earned-rewards" aria-label="${heading}"><h3>${heading}</h3><div>${rewards.map((reward) => `<article class="earned-reward rarity-${reward.rarity}">${rewardIcon(reward.id)}<span><small>${RARITIES[reward.rarity]}${reward.kind === 'enhancement' ? ' · Fleet upgrade unlocked' : ''}</small><strong>${reward.name}</strong><p>${reward.description}${reward.kind === 'enhancement' ? ' · Applies automatically to every ship.' : ''}</p></span></article>`).join('')}</div></section>`;
 }
-const collectedRewardCount = (profile) =>
-  REWARDS.filter((reward) => profile.claims.includes(reward.id)).length;
+export function courseRequirementText(id, access, catalog = []) {
+  const requirement = courseUnlockRequirement(id, access);
+  const previous = catalog.find((entry) => entry.id === requirement?.courseId);
+  return previous
+    ? `${requirement.winRequired ? 'Win' : 'Complete'} ${previous.name} to unlock this course.`
+    : courseUnlockMessage(id, access);
+}
+export function courseResultsView(before, after, catalog = []) {
+  if (IS_DEMO || !before) return '';
+  const previous = courseCollection(before),
+    current = courseCollection(after);
+  const completed = current.courses.filter(
+    (course) =>
+      course.completed &&
+      !previous.courses.find((old) => old.id === course.id)?.completed,
+  );
+  const opened = current.courses.filter(
+    (course) =>
+      course.available &&
+      !previous.courses.find((old) => old.id === course.id)?.available,
+  );
+  if (!completed.length && !opened.length) return '';
+  const title = (id) =>
+    escapeHTML(catalog.find((entry) => entry.id === id)?.name ?? id);
+  return `<section class="race-reward-progress course-result-progress"><h3>${completed.length ? 'Course complete' : 'New course unlocked'}</h3>${completed.map((course) => `<p>${title(course.id)} completed.</p>`).join('')}${opened.map((course) => `<p><strong>${title(course.id)}</strong> unlocked.</p>`).join('')}${completed.length && !opened.length ? '<p>All three courses in this mode are complete.</p>' : ''}</section>`;
+}
 export function careerProgressView(profile) {
-  const collected = collectedRewardCount(profile);
-  return `<section class="career-progress" aria-label="Career unlocks"><div class="career-progress-heading"><span>Unlocks</span><span>${collected}<span class="career-progress-total"> / ${REWARDS.length}</span></span></div><div class="career-progress-bar" role="progressbar" aria-label="Collected career rewards" aria-valuemin="0" aria-valuemax="${REWARDS.length}" aria-valuenow="${collected}" aria-valuetext="${collected} of ${REWARDS.length} rewards collected" style="--reward-count:${REWARDS.length}">${REWARDS.map(
+  const progress = careerUnlockProgress(profile);
+  return `<section class="career-progress" aria-label="Career unlock collection"><div class="career-progress-heading"><span>Unlocks</span><span>${progress.collected}<span class="career-progress-total"> / ${progress.total}</span></span></div><div class="career-progress-bar" role="progressbar" aria-label="Career unlocks" aria-valuemin="0" aria-valuemax="${progress.total}" aria-valuenow="${progress.collected}" aria-valuetext="${progress.collected} of ${progress.total} unlocks collected" style="--reward-count:${progress.total}">${Array.from(
+    { length: progress.total },
     (_, index) =>
-      `<span class="career-progress-notch${index < collected ? ' is-earned' : ''}" aria-hidden="true"></span>`,
+      `<span class="career-progress-notch${index < progress.collected ? ' is-earned' : ''}" aria-hidden="true"></span>`,
   ).join('')}</div></section>`;
 }
-export function careerView(profile) {
+export function careerView(profile, { catalog = [] } = {}) {
+  const progress = careerUnlockProgress(profile);
   const groups = [
     [
       'enhancements',
@@ -111,7 +145,32 @@ export function careerView(profile) {
         .join('')}</div></section>`;
     })
     .join('');
-  return `<div class="career-summary"><strong>${collectedRewardCount(profile)}<small> / ${REWARDS.length} rewards</small></strong>${IS_DEMO ? '' : `<span>${profile.points} race progress</span>`}<span>${profile.finishes} finishes · ${profile.wins} wins</span><span>${IS_DEMO ? Number(profile.cups.includes('demo')) : fullCupWins(profile)} / ${IS_DEMO ? 1 : 4} cup wins</span><span>${Math.min(profile.trialTracks.length, IS_DEMO ? 1 : 2)} / ${IS_DEMO ? 1 : 2} Time Trial maps</span></div><details class="career-rules"><summary tabindex="0">How to earn rewards</summary><p class="career-intro">${IS_DEMO ? 'Four rewards to earn: finish races, win the Demo Cup and set a clean Time Trial record. Fleet upgrades apply automatically to every ship. Equip two items. Export your save here, then import it in the full game to keep your rewards, trophy and records. Full-game upgrades stay saved while you play the demo.' : 'Fleet upgrades apply automatically to every ship. Every valid Quick Race or cup-race finish earns progress: 1st +5, 2nd +4, 3rd +3, 4th–5th +2, 6th–10th +1. Win championships and set clean Time Trial records on two different maps to complete your collection.'}</p></details><div class="career-rewards">${roadmap}</div>`;
+  const collection = IS_DEMO ? null : courseCollection(profile);
+  const access = {
+    cupWins: profile.cups,
+    finishedCourses: profile.finishedCourses ?? [],
+  };
+  const courses = IS_DEMO
+    ? ''
+    : `<section class="career-collection career-courses" aria-label="Course unlocks"><header class="career-collection-heading"><h2>Courses <small>${collection.unlocked} / ${collection.total} unlocked</small></h2><span>${collection.completed} completed</span></header><p class="career-collection-intro">Cup wins open each mode. Finish Freestyle courses or win Eliminator and Interceptor encounters to open the next course.</p>${MODE_UNLOCKS.map(
+        (mode) =>
+          `<section class="career-course-group" aria-label="${mode.label} courses"><h3>${mode.label}</h3><div class="career-course-grid">${collection.courses
+            .filter((course) => course.mode === mode.mode)
+            .map((course) => {
+              const name =
+                catalog.find((entry) => entry.id === course.id)?.name ??
+                `${mode.label} ${course.index + 1}`;
+              const status = {
+                locked: 'Locked',
+                available: 'Available',
+                completed: 'Completed',
+              }[course.status];
+              const message = courseRequirementText(course.id, access, catalog);
+              return `<article class="career-course-card is-${course.status}" data-course="${course.id}" aria-label="${escapeHTML(name)} · ${status}"><div><span class="career-course-tier">${trackChallenge(course.id)}</span><span class="career-course-status">${status}</span></div><strong>${escapeHTML(name)}</strong><p>${escapeHTML(message || (course.completed ? 'Course complete.' : 'Ready to play.'))}</p></article>`;
+            })
+            .join('')}</div></section>`,
+      ).join('')}</section>`;
+  return `<div class="career-summary"><strong>${progress.collected}<small> / ${progress.total} unlocks</small></strong>${IS_DEMO ? '' : `<span>${profile.points} race progress</span>`}<span>${profile.finishes} finishes · ${profile.wins} wins</span><span>${IS_DEMO ? Number(profile.cups.includes('demo')) : fullCupWins(profile)} / ${IS_DEMO ? 1 : 4} cup wins</span><span>${Math.min(profile.trialTracks.length, IS_DEMO ? 1 : 2)} / ${IS_DEMO ? 1 : 2} Time Trial maps</span></div><section class="career-unlocks" aria-label="Career unlock collection"><section class="career-collection career-gear" aria-label="Reward unlocks"><header class="career-collection-heading"><h2>Rewards <small>${progress.rewardCount} / ${REWARDS.length} collected</small></h2></header><details class="career-rules"><summary tabindex="0">How to earn rewards</summary><p class="career-intro">${IS_DEMO ? 'Four rewards to earn: finish races, win the Demo Cup and set a clean Time Trial record. Fleet upgrades apply automatically to every ship. Equip two items. Export your save here, then import it in the full game to keep your rewards, trophy and records. Full-game upgrades stay saved while you play the demo.' : 'Fleet upgrades apply automatically to every ship. Races and valid mode results earn reward progress. Race placements award 1st +5, 2nd +4, 3rd +3, 4th–5th +2, 6th–10th +1; Freestyle medals and Interceptor results also contribute. Win championships and set clean Time Trial records on two different maps to complete your gear collection, then unlock every mode course to complete your career.'}</p></details><div class="career-rewards">${roadmap}</div></section>${courses}</section>`;
 }
 export function shipLockText(profile, id) {
   if (shipUnlocked(profile, id)) return '';

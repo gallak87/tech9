@@ -49,7 +49,7 @@ const level = await createLevel({}),
   track = level.createTrack();
 const jump = track.jumps?.[jumpIndex];
 if (!jump) throw new Error('The selected circuit has no jump at that index.');
-const collisionWorld = level.createCollisionWorld({ track });
+const collisionWorld = await level.createCollisionWorld({ track });
 let dynamics;
 const racers = [],
   bins = new Map(),

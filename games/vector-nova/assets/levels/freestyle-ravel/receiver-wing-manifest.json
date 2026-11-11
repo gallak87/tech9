@@ -1,0 +1,59 @@
+{
+  "id": "freestyle-ravel-receiver-wing-v1",
+  "generator": "Original project-authored background Blender geometry",
+  "rights": "Original editable project geometry and scalar PBR material. Existing project-owned generated Ravel concepts are reference-only. No third-party assets or textures.",
+  "coordinates": "metres; +Y up; +X outboard; +Z along receiver; identity root",
+  "root": "receiver_foil_wing",
+  "shape": "Broad tensioned curling wall/canopy with asymmetric interior strain folds, exact fixed inner hem and continuous reinforced rolled border",
+  "source": {
+    "file": "assets/levels/freestyle-ravel/build_receiver_wing.py",
+    "sha256": "fe8da70dc567b57ba20c3bb55a755a1681b72733c88cf50f608c9f5faa8bcb14"
+  },
+  "blend": {
+    "file": "assets/levels/freestyle-ravel/receiver-wing.blend",
+    "sha256": "2062839879691badd8600741c9f0eb6e74a0a1b4a70b41df199fec9cd7a402f4"
+  },
+  "runtimeAsset": {
+    "file": "public/assets/levels/freestyle-ravel/receiver-wing.glb",
+    "sha256": "450bd58fb080854d0ab646b5fdd9ea9ead8905c4810090d05cbd8afa00c03322",
+    "bytes": 200356
+  },
+  "referenceImages": [
+    {
+      "file": "assets/levels/ravel/reference/ravel-anchor-narrows-concept.png",
+      "sha256": "9d10cfba850da22fb6a01a92df0624af25dec7329e36c340df34e20454c13ea5"
+    },
+    {
+      "file": "assets/levels/ravel/reference/ravel-crown-fold-concept.png",
+      "sha256": "5f98830aacd2235dd2f4b742cadf861a08ea9c271f11f6a6eeb220bc87c6b969"
+    },
+    {
+      "file": "assets/levels/ravel/reference/sail-basin-selected-crop.png",
+      "sha256": "fffdfad048bddc81fea153f2c98b3394c214d7044dc75557b90730a47244aab0"
+    }
+  ],
+  "geometry": {
+    "grid": [48, 64],
+    "vertices": 4529,
+    "triangles": 8832,
+    "surfaceTriangles": 6144,
+    "hemTriangles": 2688,
+    "bounds": {
+      "min": [-2.5, -2.1650633811950684, -702.5],
+      "max": [822.5, 1025.3831787109375, 702.5]
+    },
+    "materialRoles": ["Foil / receiver collector membrane"],
+    "textures": [],
+    "uv": "uv.x=(local Z+700)/24; uv.y=local X/16",
+    "runtimeRoadCoord": "(uv.x*24,uv.y*16)",
+    "doubleSided": true,
+    "rolledHemRadius": 2.5
+  },
+  "anchors": {
+    "root": [0, 0, 0],
+    "inner_a": [0, 0, -700],
+    "inner_b": [0, 0, 700],
+    "outer_a": [820, 600, -700],
+    "outer_b": [820, 800, 700]
+  }
+}

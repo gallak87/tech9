@@ -33,9 +33,10 @@ export async function createRacerPresentation({
         roll: new Quaternion(),
       };
       ships.push(entry);
-      entry.hitFeedback = combat
-        ? createHitFeedback(ship.group, settings)
-        : null;
+      entry.hitFeedback =
+        combat && opponent.specification.team !== 'quarry'
+          ? createHitFeedback(ship.group, settings)
+          : null;
       entry.pickups = createRivalPickups(
         ship.group,
         opponent.runtime,
@@ -52,14 +53,34 @@ export async function createRacerPresentation({
   }
   let disposed = false;
   return {
-    update({ alpha = 1, mode = 'title', settings = {} } = {}) {
+    getShip(id) {
+      return (
+        ships.find(({ opponent }) => opponent.specification.id === id)?.ship ??
+        null
+      );
+    },
+    update({
+      alpha = 1,
+      mode = 'title',
+      settings = {},
+      interceptor = null,
+    } = {}) {
       if (disposed) return;
       const enabled = racers.enabled;
-      const show =
-        enabled && ['racing', 'results', 'paused', 'countdown'].includes(mode);
+      const showField =
+        enabled &&
+        (['racing', 'paused', 'countdown'].includes(mode) ||
+          (mode === 'results' && !interceptor));
       const combatState = combat?.view();
       const flashes = combatState?.flashes ?? [];
       for (const { ship, opponent, yaw, roll, hitFeedback, pickups } of ships) {
+        const retained = !!(
+          mode === 'results' &&
+          interceptor?.result &&
+          opponent.specification.id === interceptor.targetId
+        );
+        const disabled = retained && interceptor.result.won;
+        const show = (showField || retained) && !opponent.eliminated;
         ship.group.visible = show;
         const effects =
           typeof opponent.runtime.readFrame === 'function' ||
@@ -67,7 +88,7 @@ export async function createRacerPresentation({
             ? (readRuntimeFrame(opponent.runtime) ?? {})
             : {};
         pickups.update({
-          visible: show,
+          visible: show && !disabled,
           mode,
           state: opponent.state,
           effects,
@@ -95,6 +116,18 @@ export async function createRacerPresentation({
           ? MathUtils.clamp(alpha, 0, 1)
           : 1;
         const state = opponent.state;
+        const attack = interceptor?.counterattack;
+        let drivePower = 1;
+        if (opponent.specification.id === 'wraith' && attack?.started != null) {
+          if (attack.phase !== 'idle')
+            drivePower =
+              1 - 0.65 * MathUtils.smoothstep(attack.elapsed, 0, 0.4);
+          else {
+            const releaseAge =
+              interceptor.elapsed - attack.started - attack.elapsed;
+            drivePower = 0.35 + 0.65 * MathUtils.smoothstep(releaseAge, 0, 0.4);
+          }
+        }
         ship.update?.({
           speed: MathUtils.lerp(
             opponent.prev?.speed ?? state.speed,
@@ -109,7 +142,8 @@ export async function createRacerPresentation({
           energy: state.energy / 100,
           quality: settings.quality,
           reducedMotion: settings.reducedMotion,
-          visible: true,
+          visible: !disabled,
+          drivePower,
         });
         const pose = opponent.runtime.pose(blend);
         if (pose) {

@@ -110,7 +110,7 @@ export function createLancePresentation(parent, { low = false } = {}) {
         glow.material.uniforms.time.value = reducedMotion ? 0 : state.time;
       const strength = reducedMotion ? 0.55 : 1;
       for (const shot of state.shots
-        .filter((shot) => shot.heavy)
+        .filter((shot) => shot.heavy && !shot.signature)
         .slice(0, 30)) {
         quaternion.fromArray(shot.quaternion);
         position
@@ -146,7 +146,9 @@ export function createLancePresentation(parent, { low = false } = {}) {
             strength,
           );
       }
-      for (const flash of state.flashes.filter(isLanceFlash).slice(0, 32)) {
+      for (const flash of state.flashes
+        .filter((f) => isLanceFlash(f) && !f.signature)
+        .slice(0, 32)) {
         const muzzle = flash.type === 'muzzle';
         const lifetime = muzzle ? MUZZLE_LIFETIME : CONTACT_LIFETIME;
         if (flash.age >= lifetime) continue;

@@ -1422,10 +1422,10 @@
       ]
     },
     {
-      "id": "worldkit-sapling-oak-study",
+      "id": "worldkit-sapling-forest",
       "source": "../../worldkit/modules/living-forest/art/sapling/",
       "creator": "Worldkit project contributors; Sapling Tree Gen contributors and Brad Chamberlain for the source Coast Live Oak preset",
-      "provenance": "One experimental oak generated with Sapling Tree Gen 1.0.0 in Blender 5.2.3 LTS. The retained settings and reproducible build recipe export two bounded mesh parts from Sapling-grown curves, using the existing Living Forest bark and cutout foliage. Vesper's explicit developer-only tree=sapling comparison replaces one existing tree at its original footing and checks the wood against the full road/camera corridor. The normal forest remains unchanged.",
+      "provenance": "Four grove forms, paired near/far meshes and an attached crown-bough module generated with Sapling Tree Gen 1.0.0 in Blender 5.2.3 LTS. The retained settings and reproducible build recipe export bounded wood and foliage parts from Sapling-grown curves, using the existing Living Forest bark and cutout foliage. Vesper composes the full forest, checks both grove qualities against the road/camera corridor, and fits the crown boughs around its route-cut hollow. Other Living Forest consumers retain their existing tree families.",
       "rights": "Sapling is a free GPL-3.0-or-later build tool; the adapted Coast Live Oak parameter recipe credits its GPL-3.0-only preset. Existing Worldkit image notices apply. No third-party tree mesh is imported.",
       "runtimeDependencies": [
         "three",
@@ -1433,7 +1433,7 @@
         "worldkit-forest-art"
       ],
       "runtimeAssets": [
-        "../../worldkit/modules/living-forest/assets/sapling-oak-study-v1.glb"
+        "../../worldkit/modules/living-forest/assets/sapling-forest-v1.glb"
       ],
       "provenanceRecords": [
         "../../worldkit/modules/living-forest/assets/provenance.json",
@@ -1449,7 +1449,8 @@
       "runtimeDependencies": [
         "three",
         "@worldkit/environment",
-        "worldkit-forest-art"
+        "worldkit-forest-art",
+        "worldkit-sapling-forest"
       ],
       "provenanceRecords": [
         "../../worldkit/modules/living-forest/assets/provenance.json",

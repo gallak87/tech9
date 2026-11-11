@@ -8,8 +8,8 @@ import {
   livingForestLeafURL,
 } from '@worldkit/environment/living-forest';
 import {
-  loadSaplingTree,
-  saplingTreeURL,
+  loadSaplingForestKit,
+  saplingForestURL,
 } from '@worldkit/environment/living-forest/sapling';
 import * as THREE from 'three';
 import * as worldkit from '@worldkit/environment';
@@ -27,8 +27,8 @@ test('public entry points import without a browser or scene and use the consumer
   assert.equal(typeof worldkit.createComposedLandscape, 'function');
   assert.equal(typeof worldkit.createLandscape, 'function');
   assert.equal(typeof worldkit.createWeather, 'function');
-  assert.equal(typeof loadSaplingTree, 'function');
-  assert.ok(saplingTreeURL.endsWith('/sapling-oak-study-v1.glb'));
+  assert.equal(typeof loadSaplingForestKit, 'function');
+  assert.ok(saplingForestURL.endsWith('/sapling-forest-v1.glb'));
   const coast = createIslandCoast({ radius: 40 });
   assert.equal(typeof coast.terrainHeight, 'function');
   assert.equal(typeof createShoreline().terrainHeight, 'function');

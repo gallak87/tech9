@@ -273,15 +273,26 @@ export function createLivingForestKit({
   seed = 7319,
   textures,
   branchFinish = 'cut',
+  includeTrees = true,
 } = {}) {
   if (!['high', 'low'].includes(detail))
     throw new Error('Living Forest detail must be high or low');
   if (!['cut', 'natural'].includes(branchFinish))
     throw new Error('Living Forest branchFinish must be cut or natural');
+  if (typeof includeTrees !== 'boolean')
+    throw new Error('Living Forest includeTrees must be boolean');
   const palette = createLivingForestMaterials({ textures });
-  const prototypes = [0, 1, 2].map((variant) =>
-    matureTree(seed + variant * 517, variant, detail, palette, branchFinish),
-  );
+  const prototypes = includeTrees
+    ? [0, 1, 2].map((variant) =>
+        matureTree(
+          seed + variant * 517,
+          variant,
+          detail,
+          palette,
+          branchFinish,
+        ),
+      )
+    : [];
   const shrubParts = shrub(seed + 333, detail, palette);
   const rockParts = [0, 1, 2].map((i) => ({
     geometry: createRockGeometry(seed + i * 17, detail),
@@ -296,7 +307,7 @@ export function createLivingForestKit({
   let disposed = false;
   return {
     prototypes,
-    treeParts: prototypes[0].treeParts,
+    treeParts: prototypes[0]?.treeParts ?? [],
     shrubParts,
     rockParts,
     materials: { wood: palette.wood, leaf: palette.leaf, rock: palette.rock },

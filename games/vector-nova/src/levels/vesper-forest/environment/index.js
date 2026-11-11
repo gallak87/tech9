@@ -6,14 +6,12 @@ import {
   livingForestBarkURL,
   livingForestLeafURL,
 } from '@worldkit/environment/living-forest';
+import { loadSaplingForestKit } from '@worldkit/environment/living-forest/sapling';
 import { createRiverWaterLayer } from '@worldkit/environment/water';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { createForestTerrain, randomSource } from './terrain.js';
 import { createForestRouteClearance } from './clearance.js';
-import {
-  saplingPreviewRequested,
-  placeSaplingPreview,
-} from './sapling-preview.js';
+import { VESPER_CROWN_BEARINGS } from './forest-composition.js';
 import { createLifetime } from '../../../core/lifecycle.js';
 
 const UP = new T.Vector3(0, 1, 0);
@@ -55,18 +53,9 @@ export async function createVesperEnvironment(context = {}) {
   const lifetime = createLifetime();
   try {
     const textures = await loadTextures(lifetime);
-    let saplingPrototype;
-    if (saplingPreviewRequested(context)) {
-      const { loadSaplingTree } =
-        await import('@worldkit/environment/living-forest/sapling');
-      saplingPrototype = lifetime.own(await loadSaplingTree({ textures }));
-      saplingPrototype.materials.wood.bumpScale = 0.75;
-    }
-    return buildEnvironment(
-      { ...context, saplingPrototype },
-      textures,
-      lifetime,
-    );
+    const forestKit = lifetime.own(await loadSaplingForestKit({ textures }));
+    forestKit.materials.wood.bumpScale = 0.75;
+    return buildEnvironment({ ...context, forestKit }, textures, lifetime);
   } catch (error) {
     const failures = [error];
     try {
@@ -106,7 +95,7 @@ async function loadTextures(lifetime) {
 }
 
 function buildEnvironment(
-  { track, settings = {}, view, saplingPrototype },
+  { track, settings = {}, view, forestKit },
   textures,
   lifetime,
 ) {
@@ -118,19 +107,12 @@ function buildEnvironment(
   const terrain = lifetime.own(createForestTerrain(track));
   group.add(terrain.mesh);
   const kit = lifetime.own(
-      createLivingForestKit({
-        detail: 'high',
-        textures,
-        branchFinish: 'natural',
-      }),
-    ),
-    farKit = lifetime.own(
-      createLivingForestKit({
-        detail: 'low',
-        textures,
-        branchFinish: 'natural',
-      }),
-    );
+    createLivingForestKit({
+      detail: 'high',
+      textures,
+      includeTrees: false,
+    }),
+  );
   const inner = lifetime.own(kit.materials.wood.clone());
   inner.name = 'Living Forest / warm heartwood';
   inner.color.set('#9b866b');
@@ -157,14 +139,15 @@ function buildEnvironment(
       clearance: 34,
       ageRelief: 1,
       materials: { bark: kit.materials.wood, inner, rim },
+      crownParts: forestKit.crownParts,
+      crownBearings: VESPER_CROWN_BEARINGS,
     }),
   );
   group.add(hollow.group);
   kit.materials.wood.bumpScale = 0.75;
-  farKit.materials.wood.bumpScale = 0.3;
   const random = randomSource(37219),
     center = new T.Vector3(...hollowData.center);
-  const stands = [[], [], []];
+  const stands = forestKit.prototypes.map(() => []);
   // A broad open floodplain between the landing and the far grove creates depth.
   const inVista = (x, z) => x > 610 && x < 1180 && z > 65 && z < 315;
   const accepted = [];
@@ -176,7 +159,7 @@ function buildEnvironment(
       Math.hypot(x - center.x, z - center.z) < 245
     )
       return false;
-    const proto = kit.prototypes[variant],
+    const proto = forestKit.prototypes[variant],
       scale = targetHeight / proto.height;
     const crownRadius = proto.radius * scale;
     const p = new T.Vector3(x, ground, z);
@@ -197,10 +180,9 @@ function buildEnvironment(
     // Conservative cylinders do not describe leaning limbs or broad buttresses.
     // Both rendered qualities must leave the complete driver/camera corridor clear.
     if (
-      [kit.prototypes[variant], farKit.prototypes[variant]].some((prototype) =>
-        routeClearance.intersectsGeometry(
-          prototype.treeParts.find((part) => part.kind === 'wood').geometry,
-          item.matrix,
+      [proto.treeParts, proto.farParts].some((parts) =>
+        parts.some(({ geometry }) =>
+          routeClearance.intersectsGeometry(geometry, item.matrix),
         ),
       )
     )
@@ -228,7 +210,7 @@ function buildEnvironment(
             p.x,
             p.z,
             height * (0.94 + random() * 0.12),
-            Math.floor(random() * 3),
+            Math.floor(random() * forestKit.prototypes.length),
           )
         )
           break;
@@ -238,66 +220,32 @@ function buildEnvironment(
     for (let z = -1100; z <= 1000; z += 160) {
       const px = x + (random() - 0.5) * 90,
         pz = z + (random() - 0.5) * 90;
-      addTree(px, pz, 190 + random() * 155, Math.floor(random() * 3));
+      addTree(
+        px,
+        pz,
+        190 + random() * 155,
+        Math.floor(random() * forestKit.prototypes.length),
+      );
     }
-  const saplingItem = saplingPrototype
-    ? placeSaplingPreview({
-        prototype: saplingPrototype,
-        stands,
-        routeClearance,
-      })
-    : null;
-  const saplingMeshes = saplingItem
-    ? batches(
-        saplingPrototype.treeParts,
-        [saplingItem],
-        'Living Forest / one Sapling comparison tree',
-        group,
-      )
-    : [];
   const treeLods = [];
-  for (let v = 0; v < 3; v++) {
+  for (let v = 0; v < forestKit.prototypes.length; v++) {
+    const prototype = forestKit.prototypes[v];
     const near = batches(
-      kit.prototypes[v].treeParts,
+      prototype.treeParts,
       stands[v],
-      `Living Forest / ${kit.prototypes[v].name} near`,
+      `Living Forest / ${prototype.name} near`,
       group,
     );
     const far = batches(
-      farKit.prototypes[v].treeParts,
+      prototype.farParts,
       stands[v],
-      `Living Forest / ${kit.prototypes[v].name} distant`,
+      `Living Forest / ${prototype.name} distant`,
       group,
     );
     near.forEach((m) => (m.count = 0));
     far.forEach((m) => (m.castShadow = false));
     treeLods.push({ entries: stands[v], near, far });
   }
-  // The giant crown is new foliage from the kit, carried by the hollow's crown boughs.
-  const crownParts = kit.prototypes[0].treeParts.filter(
-    (p) => p.kind === 'leaf',
-  );
-  const crownPlacements = [];
-  for (let i = 0; i < 6; i++) {
-    const a = (i * Math.PI) / 3;
-    crownPlacements.push(
-      placement(
-        new T.Vector3(
-          center.x + Math.cos(a) * 108,
-          180 + (i % 2) * 24,
-          center.z + Math.sin(a) * 108,
-        ),
-        2.8,
-        a,
-      ),
-    );
-  }
-  batches(
-    crownParts,
-    crownPlacements,
-    'Living Forest / cathedral canopy',
-    group,
-  );
   // Layer angular slate and young growth into actual banks, never empty air.
   const rocks = [[], [], []],
     shrubs = [];
@@ -458,8 +406,9 @@ function buildEnvironment(
   // The mirror belongs to the real scene when rendered; the layer may own a group.
   // Current normals use metre-scaled ripples; the body tint stays visible at grazing angles.
   const metrics = {
-    recipe: 'living-forest-river-v2',
+    recipe: 'living-forest-sapling-v1',
     trees: accepted.length,
+    treeForms: forestKit.prototypes.length,
     shrubs: shrubs.length,
     rocks: rocks.flat().length,
     hollow: hollow.metrics,
@@ -467,16 +416,6 @@ function buildEnvironment(
     rejectedRoots,
     oldAssetDependencies: 0,
     loadState: 'ready',
-    ...(saplingItem
-      ? {
-          treePrototype: {
-            source: 'Worldkit Sapling comparison',
-            replacements: 1,
-            position: saplingItem.position.toArray(),
-            height: saplingItem.height,
-          },
-        }
-      : {}),
   };
   group.userData.metrics = metrics;
   let disposed = false,
@@ -492,12 +431,6 @@ function buildEnvironment(
     if (!changed) return;
     lastCamera.copy(camera.position);
     lastQuality = quality;
-    for (const mesh of saplingMeshes)
-      mesh.count =
-        camera.position.distanceToSquared(saplingItem.detailCenter) <
-        DRAW_DISTANCE ** 2
-          ? 1
-          : 0;
     for (const lod of treeLods) {
       let n = 0,
         f = 0;

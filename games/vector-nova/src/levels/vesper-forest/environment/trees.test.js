@@ -3,12 +3,14 @@ import assert from 'node:assert/strict';
 import * as T from 'three';
 import { createVesperTrack } from '../track/model.js';
 import { createVesperEnvironment } from './index.js';
+import { allowWorldkitAssetReads } from './asset-test-utils.js';
 import {
   createCollisionWorld,
   indexedTriangles,
 } from '../../../physics/collision-world.js';
 
-test('both rendered tree qualities and their buttresses clear the complete road and camera sweep', async (t) => {
+test('all four Sapling grove forms and both rendered qualities clear the complete road and camera sweep', async (t) => {
+  allowWorldkitAssetReads(t);
   t.mock.method(
     T.TextureLoader.prototype,
     'loadAsync',
@@ -27,14 +29,11 @@ test('both rendered tree qualities and their buttresses clear the complete road 
     });
   }
   const distant = environment.group.children.filter(
-    (mesh) =>
-      mesh.isInstancedMesh &&
-      mesh.name.endsWith('distant') &&
-      mesh.material.name.includes('bark'),
+    (mesh) => mesh.isInstancedMesh && mesh.name.endsWith('distant'),
   );
   const worlds = new Map();
-  let trees = 0,
-    checks = 0;
+  const trees = new Set();
+  let checks = 0;
   const worldFor = (geometry) => {
     if (!worlds.has(geometry)) {
       const triangles = indexedTriangles(
@@ -60,10 +59,10 @@ test('both rendered tree qualities and their buttresses clear the complete road 
         (mesh) =>
           mesh.isInstancedMesh &&
           mesh.name === far.name.replace('distant', 'near') &&
-          mesh.material.name.includes('bark'),
+          mesh.material === far.material,
       );
       for (let i = 0; i < far.count; i++) {
-        trees++;
+        trees.add(`${far.name}:${i}`);
         const instance = new T.Matrix4();
         far.getMatrixAt(i, instance);
         instance.premultiply(far.matrixWorld);
@@ -114,13 +113,13 @@ test('both rendered tree qualities and their buttresses clear the complete road 
       }
     }
     assert.ok(
-      trees > 150,
+      trees.size > 150,
       'the forest keeps substantial founded tree coverage',
     );
     assert.equal(
       worlds.size,
-      6,
-      'all three forms and both qualities are checked',
+      16,
+      'wood and foliage in all four Sapling forms and both qualities are checked',
     );
     assert.ok(
       checks > 1000,

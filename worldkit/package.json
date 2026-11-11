@@ -102,6 +102,7 @@
     "modules/living-forest/assets",
     "modules/living-forest/art/sapling/README.md",
     "modules/living-forest/art/sapling/settings.json",
+    "modules/living-forest/art/sapling/variants.json",
     "modules/living-forest/art/sapling/build_sapling.py",
     "modules/living-forest/art/sapling/asset.json",
     "modules/industrial/src",

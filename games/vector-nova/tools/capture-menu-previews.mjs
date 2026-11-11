@@ -168,9 +168,10 @@ try {
         // Frame the crown and exposed road, rather than aiming through the
         // monolith toward the route's interior-weighted average.
         if (id === 'vesper-forest') {
-          // Keep the road overview above the foreground support boughs.
-          camera.position.y += 145;
-          target.y += 30;
+          // Frame the complete Sapling crown, amber approach and blue river.
+          camera.position.set(-649.04, 456.26, -422.04);
+          target.set(78.28, 296.85, 245.49);
+          camera.fov = 64;
         }
         if (id === 'worldspire') {
           camera.position.set(1400, track.spireHeight + 650, -2200);

@@ -105,6 +105,74 @@ test('seed controls original geometry deterministically', () => {
   }
 });
 
+test('understory-only kits preserve seeded shrubs and rocks without allocating mature trees', () => {
+  for (const detail of ['high', 'low']) {
+    const full = createLivingForestKit({
+      detail,
+      seed: 371,
+      branchFinish: 'natural',
+    });
+    const explicit = createLivingForestKit({
+      detail,
+      seed: 371,
+      branchFinish: 'natural',
+      includeTrees: true,
+    });
+    const understory = createLivingForestKit({
+      detail,
+      seed: 371,
+      branchFinish: 'natural',
+      includeTrees: false,
+    });
+    const owned = [
+      ...understory.shrubParts.map(({ geometry }) => geometry),
+      ...understory.rockParts.map(({ geometry }) => geometry),
+      ...understory.materialList,
+      ...understory.textures,
+    ];
+    const disposals = new Map(owned.map((resource) => [resource, 0]));
+    owned.forEach((resource) =>
+      resource.addEventListener('dispose', () =>
+        disposals.set(resource, disposals.get(resource) + 1),
+      ),
+    );
+    try {
+      assert.deepEqual(understory.prototypes, []);
+      assert.deepEqual(understory.treeParts, []);
+      assert.equal(understory.shrubParts.length, full.shrubParts.length);
+      assert.equal(understory.rockParts.length, full.rockParts.length);
+      const sameGeometry = (a, b) => {
+        assert.deepEqual(Object.keys(a.attributes), Object.keys(b.attributes));
+        for (const name of Object.keys(a.attributes))
+          assert.deepEqual(
+            a.attributes[name].array,
+            b.attributes[name].array,
+            name,
+          );
+        assert.deepEqual(a.index?.array, b.index?.array);
+      };
+      for (const role of ['shrubParts', 'rockParts'])
+        understory[role].forEach(({ geometry }, index) =>
+          sameGeometry(geometry, full[role][index].geometry),
+        );
+      full.prototypes.forEach((prototype, index) =>
+        prototype.treeParts.forEach(({ geometry }, partIndex) =>
+          sameGeometry(
+            geometry,
+            explicit.prototypes[index].treeParts[partIndex].geometry,
+          ),
+        ),
+      );
+    } finally {
+      understory.dispose();
+      understory.dispose();
+      full.dispose();
+      explicit.dispose();
+    }
+    assert.ok([...disposals.values()].every((count) => count === 1));
+  }
+});
+
 test('kit owns each generated resource exactly once and never disposes borrowed maps', () => {
   const borrowed = new T.Texture();
   const leafMap = new T.Texture();

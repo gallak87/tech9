@@ -2,9 +2,9 @@ import * as T from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { createLivingForestMaterials } from './materials.js';
 
-/** One baked Sapling study; the regular Living Forest entry does not emit it. */
-export const saplingTreeURL = new URL(
-  '../assets/sapling-oak-study-v1.glb',
+/** Baked grove variants and crown boughs; images remain consumer-owned. */
+export const saplingForestURL = new URL(
+  '../assets/sapling-forest-v1.glb',
   import.meta.url,
 ).href;
 
@@ -34,73 +34,101 @@ function releaseImport(gltf) {
   images.forEach((image) => image.close());
 }
 
+function readPart(scene, name, kind, geometries) {
+  const mesh = scene.getObjectByName(name);
+  if (!mesh?.isMesh)
+    throw new Error(`Sapling forest is missing the ${name} mesh`);
+  const geometry = mesh.geometry.clone();
+  geometries.add(geometry);
+  geometry.applyMatrix4(mesh.matrixWorld);
+  // Blender's glTF convention expects flipY=false. Worldkit's borrowed
+  // TextureLoader maps use flipY=true; restore their matching UV convention.
+  const uv = geometry.attributes.uv;
+  if (uv)
+    for (let index = 0; index < uv.count; index++)
+      uv.setY(index, 1 - uv.getY(index));
+  if (!geometry.attributes.color) {
+    const colors = new Float32Array(geometry.attributes.position.count * 3);
+    colors.fill(1);
+    geometry.setAttribute('color', new T.BufferAttribute(colors, 3));
+  }
+  geometry.computeBoundingBox();
+  geometry.computeBoundingSphere();
+  return { kind, geometry };
+}
+
+function measure(parts) {
+  const bounds = new T.Box3();
+  parts.forEach(({ geometry }) => bounds.union(geometry.boundingBox));
+  const height = bounds.max.y - bounds.min.y;
+  if (
+    !(height > 0) ||
+    ![...bounds.min.toArray(), ...bounds.max.toArray()].every(Number.isFinite)
+  )
+    throw new Error('Sapling forest has invalid bounds');
+  return {
+    bounds,
+    height,
+    radius: Math.max(
+      Math.abs(bounds.min.x),
+      Math.abs(bounds.max.x),
+      Math.abs(bounds.min.z),
+      Math.abs(bounds.max.z),
+    ),
+  };
+}
+
 /**
- * Load the experimental, metre-scale oak as two ready-to-instance parts.
- * The result owns its geometry/materials and borrows the supplied image maps.
- * Consumers own placement, graphics settings, visibility and route clearance.
+ * Load four grove prototypes with matched near/far parts and one crown module.
+ * Geometry/materials are owned, supplied image maps are borrowed. Placement,
+ * lighting, LOD selection and route/camera clearance remain consumer policies.
  */
-export async function loadSaplingTree({ textures } = {}) {
-  const gltf = await new GLTFLoader().loadAsync(saplingTreeURL);
-  const treeParts = [];
+export async function loadSaplingForestKit({ textures } = {}) {
+  const gltf = await new GLTFLoader().loadAsync(saplingForestURL);
+  const geometries = new Set();
   let palette;
   try {
     gltf.scene.updateMatrixWorld(true);
-    for (const [kind, name] of [
-      ['wood', 'SaplingWood'],
-      ['leaf', 'SaplingLeaves'],
-    ]) {
-      const mesh = gltf.scene.getObjectByName(name);
-      if (!mesh?.isMesh)
-        throw new Error(`Sapling study is missing the ${name} mesh`);
-      const geometry = mesh.geometry.clone();
-      // Own clones so the imported scene can be released immediately, including
-      // when callers reuse this geometry in more than one instanced batch.
-      treeParts.push({ kind, geometry });
-      geometry.applyMatrix4(mesh.matrixWorld);
-      // Blender exports glTF UVs for textures with flipY=false. These parts
-      // instead borrow ordinary Worldkit/TextureLoader maps (flipY=true), so
-      // restore the source convention without mutating those shared textures.
-      const uv = geometry.attributes.uv;
-      if (uv)
-        for (let index = 0; index < uv.count; index++)
-          uv.setY(index, 1 - uv.getY(index));
-      if (!geometry.attributes.color) {
-        const colors = new Float32Array(geometry.attributes.position.count * 3);
-        colors.fill(1);
-        geometry.setAttribute('color', new T.BufferAttribute(colors, 3));
-      }
-      geometry.computeBoundingBox();
-      geometry.computeBoundingSphere();
-    }
+    const pair = (prefix, detail = '') => [
+      readPart(gltf.scene, `${prefix}_Wood${detail}`, 'wood', geometries),
+      readPart(gltf.scene, `${prefix}_Leaves${detail}`, 'leaf', geometries),
+    ];
+    const prototypes = ['A', 'B', 'C', 'D'].map((variant) => {
+      const treeParts = pair(`Grove${variant}`, 'Near');
+      const farParts = pair(`Grove${variant}`, 'Far');
+      return {
+        name: `sapling-grove-${variant.toLowerCase()}`,
+        treeParts,
+        farParts,
+        ...measure([...treeParts, ...farParts]),
+      };
+    });
+    const crownParts = pair('Crown');
+    measure(crownParts);
     palette = createLivingForestMaterials({ textures });
-    treeParts.forEach((part) => (part.material = palette[part.kind]));
-    const bounds = new T.Box3();
-    treeParts.forEach(({ geometry }) => bounds.union(geometry.boundingBox));
-    const height = bounds.max.y - bounds.min.y;
-    if (!(height > 0) || !Number.isFinite(height))
-      throw new Error('Sapling study has invalid bounds');
+    palette.wood.bumpScale = 0.75;
+    const allParts = [
+      ...prototypes.flatMap(({ treeParts, farParts }) => [
+        ...treeParts,
+        ...farParts,
+      ]),
+      ...crownParts,
+    ];
+    allParts.forEach((part) => (part.material = palette[part.kind]));
     let disposed = false;
     return {
-      name: 'sapling-oak-study',
-      treeParts,
+      prototypes,
+      crownParts,
       materials: palette,
-      bounds,
-      height,
-      radius: Math.max(
-        Math.abs(bounds.min.x),
-        Math.abs(bounds.max.x),
-        Math.abs(bounds.min.z),
-        Math.abs(bounds.max.z),
-      ),
       dispose() {
         if (disposed) return;
         disposed = true;
-        treeParts.forEach(({ geometry }) => geometry.dispose());
+        geometries.forEach((geometry) => geometry.dispose());
         palette.dispose();
       },
     };
   } catch (error) {
-    treeParts.forEach(({ geometry }) => geometry.dispose());
+    geometries.forEach((geometry) => geometry.dispose());
     palette?.dispose();
     throw error;
   } finally {

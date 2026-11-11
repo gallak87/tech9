@@ -17,7 +17,7 @@ import {
   livingForestBarkURL,
   livingForestLeafURL,
 } from '../src/living-forest.js';
-import { saplingTreeURL } from '../src/living-forest-sapling.js';
+import { saplingForestURL } from '../src/living-forest-sapling.js';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const scratch = await mkdtemp(path.join(tmpdir(), 'worldkit-package-'));
@@ -52,7 +52,7 @@ try {
   const urls = [
     livingForestBarkURL,
     livingForestLeafURL,
-    saplingTreeURL,
+    saplingForestURL,
     ...Object.values(LANDSCAPE_ASSETS),
     ...Object.values(FOREST_MATERIAL_ASSETS),
   ];
@@ -70,6 +70,7 @@ try {
     'modules/living-forest/assets/provenance.json',
     'modules/living-forest/art/sapling/README.md',
     'modules/living-forest/art/sapling/settings.json',
+    'modules/living-forest/art/sapling/variants.json',
     'modules/living-forest/art/sapling/build_sapling.py',
     'modules/living-forest/art/sapling/asset.json',
   ])
@@ -226,8 +227,8 @@ try {
   await writeFile(
     path.join(consumer, 'main.js'),
     `
-    import {loadSaplingTree, saplingTreeURL} from '@worldkit/environment/living-forest/sapling';
-    window.saplingStudyConsumer = {loadSaplingTree, saplingTreeURL};
+    import {loadSaplingForestKit, saplingForestURL} from '@worldkit/environment/living-forest/sapling';
+    window.saplingForestConsumer = {loadSaplingForestKit, saplingForestURL};
   `,
   );
   const sapling = await build({
@@ -244,15 +245,19 @@ try {
   const saplingArt = saplingOutputs.filter(
     (item) => item.type === 'asset' && /\.(jpg|png|glb)$/.test(item.fileName),
   );
-  assert.equal(saplingArt.length, 1, 'Sapling study borrows consumer textures');
-  assert.match(saplingArt[0].fileName, /sapling-oak-study-v1-.*\.glb$/);
+  assert.equal(
+    saplingArt.length,
+    1,
+    'Sapling forest borrows consumer textures',
+  );
+  assert.match(saplingArt[0].fileName, /sapling-forest-v1-.*\.glb$/);
   assert.ok(
     saplingOutputs.some(
       (item) =>
         item.type === 'chunk' &&
-        item.code.includes('/worldkit-consumer/assets/sapling-oak-study-v1-'),
+        item.code.includes('/worldkit-consumer/assets/sapling-forest-v1-'),
     ),
-    'Sapling study URL uses the non-root deployment base',
+    'Sapling forest URL uses the non-root deployment base',
   );
   console.log(
     `Worldkit packed-consumer build passed: ${paths.size} package files, ${assets.length} emitted assets; all exports resolved.`,

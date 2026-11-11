@@ -1,5 +1,10 @@
 import * as T from 'three';
 import { createWoodGeometry, mergeParts } from './geometry.js';
+import {
+  prepareHollowCrown,
+  attachHollowCrown,
+  createCrownRouteClearance,
+} from './hollow-crown.js';
 
 const TAU = Math.PI * 2;
 const clamp = (v) => Math.max(0, Math.min(1, v));
@@ -39,7 +44,15 @@ function segmentDistanceSquared(p, q, route) {
   );
 }
 
-function makeRoute(points, center, radius, base, top, clearance) {
+function makeRoute(
+  points,
+  center,
+  radius,
+  base,
+  top,
+  clearance,
+  bounded = true,
+) {
   const route = [];
   for (let i = 0; i < points.length - 1; i++) {
     const a = asVector(points[i]).sub(center),
@@ -51,12 +64,13 @@ function makeRoute(points, center, radius, base, top, clearance) {
     if (lengthSquared < 1e-8) continue;
     const reach = radius + 140 + clearance;
     if (
-      Math.min(a.x, b.x) > reach ||
-      Math.max(a.x, b.x) < -reach ||
-      Math.min(a.z, b.z) > reach ||
-      Math.max(a.z, b.z) < -reach ||
-      Math.min(a.y, b.y) > top + 80 + clearance ||
-      Math.max(a.y, b.y) < base - clearance
+      bounded &&
+      (Math.min(a.x, b.x) > reach ||
+        Math.max(a.x, b.x) < -reach ||
+        Math.min(a.z, b.z) > reach ||
+        Math.max(a.z, b.z) < -reach ||
+        Math.min(a.y, b.y) > top + 80 + clearance ||
+        Math.max(a.y, b.y) < base - clearance)
     )
       continue;
     route.push({ x: a.x, y: a.y, z: a.z, dx, dy, dz, lengthSquared });
@@ -94,6 +108,9 @@ export function createLivingHollow({
   heightSegments = 112,
   seed = 19,
   ageRelief = 0,
+  crownParts,
+  crownScale,
+  crownBearings,
 } = {}) {
   if (!materials?.bark || !materials?.inner || !materials?.rim)
     throw new Error('Living hollow requires bark, inner and rim materials');
@@ -105,6 +122,14 @@ export function createLivingHollow({
   heightSegments = Math.max(80, Math.floor(heightSegments));
   const origin = asVector(center),
     height = top - base;
+  const crownPlan = prepareHollowCrown(
+    crownParts,
+    crownScale,
+    height,
+    seed,
+    materials,
+    crownBearings,
+  );
   const route = makeRoute(routePoints, origin, radius, base, top, clearance);
   // Grid chords are slightly inside the analytic shell. Keep an explicit margin
   // so clipped triangles and rounded edges remain outside the requested volume.
@@ -245,6 +270,13 @@ export function createLivingHollow({
         14 + 22 * T.MathUtils.clamp(0.5 - sideBias * 0.5, 0, 1);
       outerRadius += ageRelief * wound * shoulderMass;
     }
+    if (crownPlan)
+      outerRadius += crownPlan.growth(
+        u,
+        v,
+        outerRadius - innerRadius,
+        outerRadius,
+      );
     const shade =
       0.45 +
       0.38 * T.MathUtils.clamp(shoulder / 40, 0, 1) +
@@ -261,6 +293,8 @@ export function createLivingHollow({
         leanZ + Math.sin(u) * innerRadius,
       ),
       shade,
+      axisX: leanX,
+      axisZ: leanZ,
       u,
       v,
     };
@@ -664,65 +698,132 @@ export function createLivingHollow({
     'Living Forest / rolled portal wounds and broken crown',
   );
 
-  const branches = [];
-  for (let i = 0; i < 6; i++) {
-    const angle = (i / 6) * TAU + 0.27,
-      v = 0.71 + 0.08 * Math.sin(i * 2.4);
-    const attachment = shell(angle, v).outer;
-    const outward = new T.Vector3(Math.cos(angle), 0, Math.sin(angle));
-    const lateral = new T.Vector3(-Math.sin(angle), 0, Math.cos(angle));
-    const reach = 96 + 39 * (0.5 + 0.5 * Math.sin(i * 3.2));
-    const points = [
-      attachment.clone().addScaledVector(outward, -15),
-      attachment
-        .clone()
-        .addScaledVector(outward, 32)
-        .add(new T.Vector3(0, 8, 0)),
-      attachment
-        .clone()
-        .addScaledVector(outward, reach * 0.7)
-        .addScaledVector(lateral, 16)
-        .add(new T.Vector3(0, 49, 0)),
-      attachment
-        .clone()
-        .addScaledVector(outward, reach)
-        .addScaledVector(lateral, 29)
-        .add(new T.Vector3(0, 86, 0)),
-    ];
-    const candidate = createWoodGeometry(points, [22, 18, 10, 1.6], {
-      segments: 36,
-      sides: 24,
-      lobes: 7,
-      seed: seed + i,
-      fluting: 0.13,
-    });
-    const p = candidate.attributes.position,
-      from = new T.Vector3(),
-      to = new T.Vector3();
-    let safe = true;
-    for (let index = 0; index < p.count && safe; index++) {
-      from.fromBufferAttribute(p, index);
-      to.copy(from).addScalar(0.0001);
-      for (const segment of route)
-        if (
-          segmentDistanceSquared(from, to, segment) <
-          (clearance + 3.5) ** 2
-        ) {
-          safe = false;
-          break;
-        }
-    }
-    if (safe) branches.push(candidate);
-    else candidate.dispose();
-  }
-  if (branches.length) {
-    const geometry = mergeParts(branches);
-    geometries.push(geometry);
-    attach(
-      geometry,
-      materials.bark,
-      'Living Forest / attached ascending crown boughs',
+  let branchCount;
+  if (crownPlan) {
+    const allRoute = makeRoute(
+      routePoints,
+      origin,
+      radius,
+      base,
+      top,
+      clearance,
+      false,
     );
+    const clearsRoute = createCrownRouteClearance(
+      allRoute,
+      cutClearance,
+      segmentDistanceSquared,
+    );
+    try {
+      const insideWood = (point) => {
+        let u = Math.atan2(point.z, point.x),
+          v = (point.y - base) / height;
+        for (let i = 0; i < 7; i++) {
+          if (v <= 0 || v >= 1) return false;
+          const pair = shell(u, v);
+          const span = (pair.outer.y - base) / v;
+          v += (point.y - pair.outer.y) / span;
+          u = Math.atan2(point.z - pair.axisZ, point.x - pair.axisX);
+        }
+        if (v <= 0 || v >= 1) return false;
+        const pair = shell(u, v);
+        const distance = Math.hypot(point.x - pair.axisX, point.z - pair.axisZ);
+        const inner = Math.hypot(
+          pair.inner.x - pair.axisX,
+          pair.inner.z - pair.axisZ,
+        );
+        const outer = Math.hypot(
+          pair.outer.x - pair.axisX,
+          pair.outer.z - pair.axisZ,
+        );
+        return distance > inner + 1 && distance < outer - 1;
+      };
+      const crown = attachHollowCrown(
+        crownPlan,
+        shell,
+        clearsRoute,
+        insideWood,
+      );
+      branchCount = crown.attachments.length;
+      for (const part of crown.parts) {
+        geometries.push(part.geometry);
+        const mesh = attach(
+          part.geometry,
+          part.material,
+          part.kind === 'wood'
+            ? 'Living Forest / attached Sapling crown wood'
+            : 'Living Forest / attached Sapling crown foliage',
+        );
+        mesh.userData.crownAttachments = crown.attachments;
+        mesh.userData.crownKind = part.kind;
+      }
+    } catch (error) {
+      geometries.forEach((geometry) => geometry.dispose());
+      group.clear();
+      throw error;
+    }
+  } else {
+    const branches = [];
+    for (let i = 0; i < 6; i++) {
+      const angle = (i / 6) * TAU + 0.27,
+        v = 0.71 + 0.08 * Math.sin(i * 2.4);
+      const attachment = shell(angle, v).outer;
+      const outward = new T.Vector3(Math.cos(angle), 0, Math.sin(angle));
+      const lateral = new T.Vector3(-Math.sin(angle), 0, Math.cos(angle));
+      const reach = 96 + 39 * (0.5 + 0.5 * Math.sin(i * 3.2));
+      const points = [
+        attachment.clone().addScaledVector(outward, -15),
+        attachment
+          .clone()
+          .addScaledVector(outward, 32)
+          .add(new T.Vector3(0, 8, 0)),
+        attachment
+          .clone()
+          .addScaledVector(outward, reach * 0.7)
+          .addScaledVector(lateral, 16)
+          .add(new T.Vector3(0, 49, 0)),
+        attachment
+          .clone()
+          .addScaledVector(outward, reach)
+          .addScaledVector(lateral, 29)
+          .add(new T.Vector3(0, 86, 0)),
+      ];
+      const candidate = createWoodGeometry(points, [22, 18, 10, 1.6], {
+        segments: 36,
+        sides: 24,
+        lobes: 7,
+        seed: seed + i,
+        fluting: 0.13,
+      });
+      const p = candidate.attributes.position,
+        from = new T.Vector3(),
+        to = new T.Vector3();
+      let safe = true;
+      for (let index = 0; index < p.count && safe; index++) {
+        from.fromBufferAttribute(p, index);
+        to.copy(from).addScalar(0.0001);
+        for (const segment of route)
+          if (
+            segmentDistanceSquared(from, to, segment) <
+            (clearance + 3.5) ** 2
+          ) {
+            safe = false;
+            break;
+          }
+      }
+      if (safe) branches.push(candidate);
+      else candidate.dispose();
+    }
+    branchCount = branches.length;
+    if (branches.length) {
+      const geometry = mergeParts(branches);
+      geometries.push(geometry);
+      attach(
+        geometry,
+        materials.bark,
+        'Living Forest / attached ascending crown boughs',
+      );
+    }
   }
   let disposed = false;
   const portalAdjacency = new Map();
@@ -754,7 +855,7 @@ export function createLivingHollow({
       (neighbors) => neighbors.size !== 2,
     ).length,
     crownEdges: radialSegments,
-    branches: branches.length,
+    branches: branchCount,
     draws: group.children.length,
     triangles: geometries.reduce(
       (sum, geometry) => sum + geometry.index.count / 3,

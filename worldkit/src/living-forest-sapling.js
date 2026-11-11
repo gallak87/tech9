@@ -1,5 +1,5 @@
-/** Opt-in baked tree study; does not replace the procedural Living Forest kit. */
+/** Baked Sapling grove forms and crown parts, independent of placement policy. */
 export {
-  loadSaplingTree,
-  saplingTreeURL,
+  loadSaplingForestKit,
+  saplingForestURL,
 } from '../modules/living-forest/src/sapling.js';

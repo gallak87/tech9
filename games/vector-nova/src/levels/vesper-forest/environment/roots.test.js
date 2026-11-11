@@ -3,12 +3,15 @@ import assert from 'node:assert/strict';
 import * as T from 'three';
 import { createVesperTrack } from '../track/model.js';
 import { createVesperEnvironment } from './index.js';
+import { allowWorldkitAssetReads } from './asset-test-utils.js';
+import { VESPER_CROWN_BEARINGS } from './forest-composition.js';
 import {
   createCollisionWorld,
   indexedTriangles,
 } from '../../../physics/collision-world.js';
 
 test('actual forest supports and hollow triangles clear the entire driving width and chase-camera corridor through every roll', async (t) => {
+  allowWorldkitAssetReads(t);
   t.mock.method(
     T.TextureLoader.prototype,
     'loadAsync',
@@ -23,6 +26,25 @@ test('actual forest supports and hollow triangles clear the entire driving width
   environment.group.updateMatrixWorld(true);
   const hollow = environment.group.getObjectByName(
     'Living Forest / ancient hollow cathedral',
+  );
+  assert.ok(
+    hollow.getObjectByName('Living Forest / attached Sapling crown wood'),
+    'the giant hollow retains its grown Sapling scaffold',
+  );
+  assert.equal(
+    hollow.getObjectByName('Living Forest / attached Sapling crown wood')
+      .userData.crownAttachments.length,
+    VESPER_CROWN_BEARINGS.length,
+    'every major limb and upper leader remains seated and clear of the route',
+  );
+  assert.ok(
+    hollow.getObjectByName('Living Forest / attached Sapling crown foliage'),
+    'the giant scaffold carries attached foliage',
+  );
+  assert.equal(
+    hollow.getObjectByName('Living Forest / attached ascending crown boughs'),
+    undefined,
+    'the giant uses the new scaffold instead of the old horn branches',
   );
   const triangles = [roots, ...hollow.children].flatMap((mesh) =>
     indexedTriangles(

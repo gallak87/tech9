@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import * as T from 'three';
 import { createVesperEnvironment } from './index.js';
 import { createVesperTrack } from '../track/model.js';
+import { allowWorldkitAssetReads } from './asset-test-utils.js';
 
 function watch(resources) {
   const counts = new Map();
@@ -54,7 +55,24 @@ test('a failed foliage load releases the earlier bark texture and reports the re
   assertReleasedOnce(counts);
 });
 
+test('a failed Sapling forest load releases the earlier caller-owned bark and foliage maps', async (t) => {
+  const bark = new T.Texture(),
+    foliage = new T.Texture(),
+    counts = watch([bark, foliage]);
+  const images = [bark, foliage];
+  t.mock.method(T.TextureLoader.prototype, 'loadAsync', async () =>
+    images.shift(),
+  );
+  const cause = new Error('Sapling geometry unavailable');
+  t.mock.method(globalThis, 'fetch', async () => {
+    throw cause;
+  });
+  await assert.rejects(createVesperEnvironment(), (error) => error === cause);
+  assertReleasedOnce(counts);
+});
+
 test('a late construction failure releases loaded maps, partial instances and temporary root geometry', async (t) => {
+  allowWorldkitAssetReads(t);
   t.mock.method(
     T.TextureLoader.prototype,
     'loadAsync',
@@ -88,6 +106,7 @@ test('a late construction failure releases loaded maps, partial instances and te
 });
 
 test('the complete environment respects inherited reduced motion and owns shared resources once', async (t) => {
+  allowWorldkitAssetReads(t);
   t.mock.method(
     T.TextureLoader.prototype,
     'loadAsync',

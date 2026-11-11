@@ -1,10 +1,61 @@
 {
   "generator": "Sapling Tree Gen 1.0.0",
-  "seed": 37,
-  "saplingCurves": 236,
-  "foliageSites": 310,
-  "woodTriangles": 37812,
-  "leafTriangles": 3720,
-  "glbBytes": 1344960,
-  "glbSHA256": "906df240af55a38691172facf387d3c4036e816b39e40b7950fa2613227bc668"
+  "blender": "5.2.3 LTS",
+  "variants": [
+    {
+      "name": "GroveA",
+      "seed": 37,
+      "saplingCurves": 236,
+      "foliageSites": 310,
+      "sprayScale": 1,
+      "woodNearTriangles": 15052,
+      "leavesNearTriangles": 3720,
+      "woodFarTriangles": 2764,
+      "leavesFarTriangles": 1240
+    },
+    {
+      "name": "GroveB",
+      "seed": 69,
+      "saplingCurves": 241,
+      "foliageSites": 283,
+      "sprayScale": 1,
+      "woodNearTriangles": 15884,
+      "leavesNearTriangles": 3396,
+      "woodFarTriangles": 2972,
+      "leavesFarTriangles": 1132
+    },
+    {
+      "name": "GroveC",
+      "seed": 103,
+      "saplingCurves": 231,
+      "foliageSites": 279,
+      "sprayScale": 1,
+      "woodNearTriangles": 16172,
+      "leavesNearTriangles": 3348,
+      "woodFarTriangles": 3216,
+      "leavesFarTriangles": 1116
+    },
+    {
+      "name": "GroveD",
+      "seed": 211,
+      "saplingCurves": 201,
+      "foliageSites": 227,
+      "sprayScale": 1,
+      "woodNearTriangles": 12380,
+      "leavesNearTriangles": 2724,
+      "woodFarTriangles": 1652,
+      "leavesFarTriangles": 908
+    },
+    {
+      "name": "Crown",
+      "seed": 733,
+      "saplingCurves": 188,
+      "foliageSites": 240,
+      "sprayScale": 1.8,
+      "woodTriangles": 14308,
+      "leavesTriangles": 2880
+    }
+  ],
+  "glbBytes": 4053220,
+  "glbSHA256": "41d7603a7b75dbb071536351064f39b237b71f2fa362470bf81013469ace81ba"
 }

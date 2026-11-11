@@ -48,6 +48,12 @@ Three mature forms (`cathedral`, `windward`, `forked`) are around 100m tall. Eac
 
 `kit.materials.wood`, `.leaf`, and `.rock` are shared materials (also available through `kit.palette`). Optional `textures.wood.map`, `textures.wood.bumpMap`, `textures.wood.normalMap`, `textures.wood.roughnessMap`, and `textures.leaf.map` are borrowed; the kit owns only its empty leaf placeholder texture. Bark maps are supplied by the consumer; without them the wood uses a neutral slate material. `createLivingForestMaterials` exposes the same palette for unique landmarks. Wood UVs use about one tile per 11m. Consumers own light, fog, placement, route clearances and LOD selection.
 
+`includeTrees: false` creates only the same seeded shrubs, rocks and shared
+palette, skipping all three mature-tree meshes. `prototypes` and `treeParts`
+are empty in this mode; ownership/disposal remain the same. The default is
+`true` and preserves the existing procedural tree geometry. This lets consumers
+combine the understory with a separately loaded tree family.
+
 `livingForestLeafURL` resolves the RGBA foliage spray. Pass its loaded sRGB texture as `textures.leaf.map`; the shared leaf material uses `alphaTest: 0.5`, depth writes and double-sided cutout rendering. Each tree retains all 120 attached spray clusters in both qualities, with three crossed cards per cluster near and two far. No foliage renders until a real spray map is supplied.
 
 `livingForestBarkURL` resolves the packaged `silver-bark-color-v1.png` in Vite. Load it with a consumer `TextureLoader`, mark color data as `SRGBColorSpace`, and pass it as `textures.wood.map`. The image is stored exactly as generated; its prompt, generation ID, dimensions and SHA-256 are in [provenance.json](assets/provenance.json). It is a color texture, not a calibrated scan or authored normal map. The consumer owns and disposes all loaded or cloned textures.
@@ -70,20 +76,55 @@ bays, eroded crossing arches and uneven rolled wound lips. Relief ranges from
 the same shell tessellation. Games still own heartwood/rim materials and the
 route points that establish portal clearances.
 
-## Sapling oak study
+`createLivingHollow({ crownParts: kit.crownParts, ... })` borrows a wood/leaf
+geometry/material pair with its true base bearing at the origin, +Y up, +X
+outward and +Z lateral. Omit `crownParts` to preserve the original crown boughs;
+pass `[]` to suppress them. The hollow owns transformed clones merged into two
+draws, while source parts and materials remain borrowed. Accepted root caps sit
+between the actual shell skins, and both wood and foliage triangles must clear
+the full supplied route.
+
+Optional positive, finite `crownScale` sets the module scale; otherwise the hollow
+fits a reference pitched bough's rise to 62% of its height. Optional
+`crownBearings: [{ angle, v, scale?, splay?, pitch? }]` replaces the default five
+bearings: angles are radians, `v` is normalized shell height with `0 < v < 1`,
+and each positive `scale` multiplies `crownScale`. `splay` adjusts outward yaw
+and `pitch` tilts the module upward. Custom descriptors replace the seeded
+default composition; the consumer owns their layout, as Vesper does for its
+eight bearings. Seating and route clearance can adjust or reject a bearing.
+
+## Baked Sapling forest
 
 The separate `@worldkit/environment/living-forest/sapling` entry exports
-`loadSaplingTree({ textures })` and `saplingTreeURL`. It loads one baked,
-metre-scale Blender/Sapling tree for an opt-in comparison; it does not replace
-the three procedural forms or emit its GLB through the regular kit entry.
+`loadSaplingForestKit({ textures })` and `saplingForestURL`. It loads four baked
+Blender/Sapling grove forms and a branching crown module. The procedural
+`createLivingForestKit` entry remains unchanged for its existing consumers and
+does not emit this GLB.
 
-The async result exposes two `treeParts` (`wood` and `leaf`), `bounds`, `height`,
-`radius`, shared `materials`, and an idempotent `dispose()`. Each part contains
-owned geometry with flattened source transforms and an owned material. Supply
-the same `textures.wood` / `textures.leaf` maps used by the procedural kit to
-compare structure under the same surface finish. The loader borrows those maps;
-they use the regular TextureLoader `flipY: true` convention, and the loader
-converts the baked glTF UVs back to that convention on its owned geometry.
-Dispose its result before releasing the caller's textures. Loading allocates no
-renderer, scene, frame loop or placement policy. Consumers own tree placement,
-visibility, scaling and road/camera clearance.
+The async result exposes:
+
+- `prototypes`: four named forms, each with near `treeParts`, matching
+  `farParts`, and shared `bounds`, `height` and `radius` in metres. Bounds include
+  both detail levels so a single placement transform and clearance envelope
+  remain valid while changing detail.
+- `crownParts`: a wood/leaf pair whose origin is its base bearing, with +Y up,
+  +X growing outward and +Z lateral. Consumers can instance it or pass it to
+  `createLivingHollow`; neither placement nor landmark scale is prescribed.
+- `materials`: the shared owned palette used by all forms, both detail levels
+  and the crown. Wood uses bump scale 0.75; consumers can tune its finish.
+- `dispose()`: releases all owned geometries and materials exactly once.
+
+Each part contains `kind` (`wood` or `leaf`), owned geometry with flattened source
+transforms, and its shared material. The loader borrows the supplied
+`textures.wood` / `textures.leaf` maps, including normal/bump/roughness maps, and
+never disposes those images. They use the regular TextureLoader `flipY: true`
+convention; the loader restores that convention on its cloned baked glTF UVs.
+Without a supplied leaf-spray map, the material keeps foliage invisible rather
+than drawing opaque card rectangles.
+
+The source recipe, settings and tool attribution are in the
+[Sapling source guide](art/sapling/README.md). The game needs only the baked GLB
+and borrowed maps; Blender and Sapling run during asset authoring. Dispose the
+kit after its instances/borrowers are removed, then release the caller's images.
+Consumers own placement, lighting, LOD selection, visibility and road/camera
+clearance. Loading allocates no renderer, scene or frame loop.

@@ -1,0 +1,62 @@
+{
+  "groves": [
+    { "name": "GroveA", "settings": { "seed": 37 } },
+    {
+      "name": "GroveB",
+      "settings": {
+        "seed": 69,
+        "baseSize": 0.4,
+        "baseSplits": 2,
+        "splitHeight": 0.42,
+        "length": [1, 0.4, 0.42, 0.1],
+        "downAngle": [0, 62, 50, 0],
+        "splitAngle": [22, 28, 15, 0],
+        "pruneWidth": 0.62
+      }
+    },
+    {
+      "name": "GroveC",
+      "settings": {
+        "seed": 103,
+        "baseSize": 0.28,
+        "baseSplits": 2,
+        "splitHeight": 0.25,
+        "length": [1, 0.4, 0.4, 0.1],
+        "downAngle": [0, 55, 60, 0],
+        "ratio": 0.065,
+        "pruneWidth": 0.68
+      }
+    },
+    {
+      "name": "GroveD",
+      "settings": {
+        "seed": 211,
+        "curve": [22, -10, 0, 0],
+        "curveV": [55, 65, 45, 0],
+        "baseSize": 0.38,
+        "baseSplits": 1,
+        "splitHeight": 0.32,
+        "length": [1, 0.45, 0.28, 0.1],
+        "downAngle": [0, 60, 45, 0],
+        "pruneWidth": 0.65
+      }
+    }
+  ],
+  "crown": {
+    "name": "Crown",
+    "sprayScale": 1.8,
+    "settings": {
+      "seed": 733,
+      "branches": [0, 14, 14, 0],
+      "baseSize": 0.22,
+      "baseSplits": 1,
+      "splitHeight": 0.2,
+      "segSplits": [0.07, 0.05, 0.02, 0],
+      "ratio": 0.1,
+      "ratioPower": 2.0,
+      "rootFlare": 1.1,
+      "length": [1, 0.5, 0.35, 0.1],
+      "pruneWidth": 0.68
+    }
+  }
+}

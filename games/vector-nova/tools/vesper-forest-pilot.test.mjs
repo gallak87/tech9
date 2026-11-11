@@ -18,7 +18,7 @@ import { trackChallenge } from '../src/frontend/track-challenge.js';
 import { menuCatalog } from './menu-catalog.mjs';
 import { editionPolicy } from './desktop/policy.mjs';
 
-// These fingerprints describe the approved Forest route, road and contacts.
+// These fingerprints describe the authored Forest route, road and contacts.
 // Quantize double precision noise without allowing a physical route change.
 const fingerprint = (value) =>
   createHash('sha256')
@@ -64,16 +64,40 @@ test('Vesper Forest is independently discoverable without constructing a world',
   assert.equal(course.trackId, 'vesper-forest-1');
 });
 
-test('the approved Forest route, surfaces and device layout retain their physical contract', () => {
+test('the authored Forest route, surfaces and device layout retain their physical contract', () => {
   const track = createVesperTrack();
   assert.equal(track.id, 'vesper-forest-1');
   assert.equal(track.name, 'Vesper Forest');
   assert.equal(track.width, 28);
-  assert.equal(track.length, 4762.5398043901305);
-  assert.equal(track.jumps.length, 1);
+  assert.equal(track.length, 5301.169944527549);
+  assert.equal(track.jumps.length, 2);
   assert.equal(track.inversions.length, 1);
-  assert.equal(track.revision, 'vesper-route-8-offset-lane-frames');
+  assert.equal(track.revision, 'vesper-route-9-river-run');
   assert.equal(track.geometryVersion, track.revision);
+  const roll = track.inversions[0];
+  assert.ok(
+    track.sapZones.every(
+      (zone) => zone.end < roll.start || zone.start > roll.end,
+    ),
+    'sap never secretly slows the roll',
+  );
+  for (const jump of track.jumps) {
+    assert.ok(
+      track.sample(jump.takeoff).tangent.y > 0.07,
+      'visible pitched takeoff',
+    );
+    assert.ok(
+      track.sample(jump.landingStart).tangent.y < 0,
+      'falling catch runway',
+    );
+    assert.ok(
+      track.sample(jump.takeoff).position.y -
+        track.sample(jump.landingStart).position.y >=
+        7.5,
+      'receiver sits clearly below the release',
+    );
+    assert.ok(jump.landingEnd - jump.landingStart > 350, 'wide speed envelope');
+  }
   const geometry = Object.fromEntries(
     Object.entries(track).filter(
       ([key, value]) =>
@@ -84,7 +108,7 @@ test('the approved Forest route, surfaces and device layout retain their physica
   );
   assert.equal(
     fingerprint(geometry),
-    'c2756f9bb101db2a8104ad977c8a9a52160f1259743b2d300d854970ee78304e',
+    'b7883426c8f8f99ccc3c588a00a6a50e2082f5c9c530fb3bd773525237a2d54f',
   );
   const frames = [];
   for (let distance = -2; distance <= track.length + 2; distance++) {
@@ -107,11 +131,11 @@ test('the approved Forest route, surfaces and device layout retain their physica
   }
   assert.equal(
     fingerprint(frames),
-    '9bade6deadc92d1a6bc4a1a0b458ca39d4d9bd7539306e915b88877688b1a57a',
+    '7d4011c21b193c6059ec58df2ee033372f146cd782f5e071fb69f42cc0b3f6fc',
   );
   assert.equal(
     fingerprint(createDevices(track)),
-    '65fdff8db17985352fa675a4b0ae82b2d8e09646fb6b027c4f63425ac1598ff3',
+    '7603134860d5f3603a44ad140d70d206724200322537a91c341e8f49921c87dc',
   );
 });
 
@@ -193,15 +217,15 @@ test('Forest coast, hollow and crown-flight simulations retain their determinist
   for (const [initial, expected] of [
     [
       { distance: 460, speed: 80 },
-      '198a785e08381125bf19af195708d2931bd2266d19bbec2f29eecf33f762856e',
+      '8a37f7578108d06db4cc7be692da2389184ecd0a67c24d2799320679e71e51a1',
     ],
     [
       { distance: track.landmarks.hollow.entry, speed: 60 },
-      'e95ef4ade25ae2e40cd88b0ff99e88320841ce6fd9fb82f9f8a7368697386b67',
+      '4fde84a444c57b74fd89165d3fc7b3b76f601ae0b52b3866b59e2210803107a0',
     ],
     [
       { distance: track.jumps[0].takeoff - 0.1, speed: 112 },
-      '21a7b3a9f558b9fb0f73ab697d64d6c556dd5e6a601b74b0b72e223c523ff7b3',
+      '05185495167e00da9dc61f80213657267e872c5e17ba949d7b62551d057e3ddb',
     ],
   ]) {
     const runtime = createVesperRuntime({ track, presentation: false });
@@ -245,7 +269,7 @@ test('Forest coast, hollow and crown-flight simulations retain their determinist
   }
 });
 
-test('Forest road geometry, materials and guidance retain the approved mesh contract', () => {
+test('Forest road geometry, materials and guidance retain the authored mesh contract', () => {
   const road = createVesperRoad({ track: createVesperTrack() });
   try {
     const meshes = [];
@@ -278,7 +302,7 @@ test('Forest road geometry, materials and guidance retain the approved mesh cont
         },
       });
     });
-    assert.equal(meshes.length, 89);
+    assert.equal(meshes.length, 100);
     assert.ok(meshes.some((mesh) => mesh.userData.drivingSurface));
     assert.ok(
       meshes.some(
@@ -287,29 +311,28 @@ test('Forest road geometry, materials and guidance retain the approved mesh cont
     );
     assert.equal(
       fingerprint(meshes),
-      // Fine longitudinal/transverse running cells now match native support.
-      // Checked shader anchors change the included hook source; compiled GLSL,
-      // cache keys, material state and exact geometry bytes remain unchanged.
-      'aaa7b085dd8d482d12b600e1d22c6a7dcf33279b43844fa4ee0ddf797cd635bc',
+      // This revision includes two gaps, fine roll cells and visible sap films.
+      '62e0482deded1cd4488dd3ef1722ab9ad5b36f4e51994c4913061b2836f199b6',
     );
   } finally {
     road.dispose();
   }
 });
 
-test('Forest collision keeps every approved deck, rail and structural triangle', () => {
+test('Forest collision keeps every authored deck, rail and structural triangle', () => {
   const collision = createVesperCollisionWorld({ track: createVesperTrack() });
   try {
     // Exact running faces cover the whole supported route; scenery stays
-    // limited to the original launch and receiving neighbourhoods.
-    assert.equal(collision.targets.length, 15);
-    assert.equal(collision.triangleCount, 165182);
+    // limited to both launch/receiving neighbourhoods; raised decorative
+    // reinforcement decals never create physical speed bumps.
+    assert.equal(collision.targets.length, 24);
+    assert.equal(collision.triangleCount, 185722);
     assert.equal(
       fingerprint({
         targets: collision.targets,
         triangles: collision.triangles,
       }),
-      'ad090f87fdde9a5fc1bc94688b2e7559a3377b8e02a2a4b8a51d23529b62a1d7',
+      'cc5b35082ea567f5c61f9cd68f5ce9782b198b40dc6e2d534715ab977b0ac6dc',
     );
   } finally {
     collision.dispose();

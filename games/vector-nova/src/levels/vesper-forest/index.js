@@ -6,6 +6,7 @@ import { createVesperRoad } from './track/road.js';
 import { createVesperEnvironment } from './environment/index.js';
 import { createVesperBackdrop } from './backdrop/index.js';
 import { createVesperRuntime } from './runtime.js';
+import { withVesperSapEffects } from './sap-effects.js';
 
 export default function createLevel({ shape = false } = {}) {
   return {
@@ -43,10 +44,10 @@ export default function createLevel({ shape = false } = {}) {
     practiceSectionsUntimed: true,
     createTrack: createVesperTrack,
     createRoad: (context) => createVesperRoad({ ...context, shape }),
-    createEnvironment: (context) =>
+    createEnvironment: async (context) =>
       shape
         ? { group: new T.Group(), dispose() {} }
-        : createVesperEnvironment(context),
+        : withVesperSapEffects(await createVesperEnvironment(context)),
     createBackdrop: (context) =>
       shape
         ? {

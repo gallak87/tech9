@@ -166,14 +166,23 @@ export function createVesperRoad({ track, shape = false }) {
     roughness: 0.45,
   });
   const sap = new T.MeshPhysicalMaterial({
-    color: 0xba8944,
-    emissive: 0x402409,
-    emissiveIntensity: 0.06 * lightScale,
-    roughness: 0.6,
-    clearcoat: 0.12,
-    clearcoatRoughness: 0.7,
-    specularIntensity: 0.12,
+    color: 0x49320d,
+    emissive: 0x91600b,
+    emissiveIntensity: 0.15 * lightScale,
+    roughness: 0.26,
+    clearcoat: 0.48,
+    clearcoatRoughness: 0.3,
+    specularIntensity: 0.28,
   });
+  const sapEdge =
+    !shape &&
+    new T.MeshStandardMaterial({
+      name: 'Pale gold sap margins / dry resin guidance',
+      color: 0xffe5a0,
+      emissive: 0xe8a329,
+      emissiveIntensity: 0.45,
+      roughness: 0.45,
+    });
   const sapClock = { value: 0 };
   const resinLayers = { value: 6 };
   for (const material of shape
@@ -234,7 +243,7 @@ export function createVesperRoad({ track, shape = false }) {
         diffuseColor.rgb *= .83 + .26 * cloud;
         diffuseColor.rgb += vec3(.035,.014,.002)*filament*(.3+.7*cloud);
         vec3 vesperInterior=vec3(0.);
-        if(vVesperResinActive>.5) {
+        if(${flowing ? 'false' : 'vVesperResinActive>.5'}) {
           // Six refracted interior layers give inclusions real view parallax.
           // The shared probe supplies reflections; these local inclusions
           // sample no background scene and add no further render pass.
@@ -259,7 +268,16 @@ export function createVesperRoad({ track, shape = false }) {
           diffuseColor.rgb*=.72+.25*cloud;
           diffuseColor.rgb+=vesperInterior*.9;
         }
-        ${flowing ? 'float flow = pow(0.5 + 0.5 * sin(vVesperUv.y * 11.0 - vesperSapTime * 0.75 + sin(vVesperUv.x * 19.0)), 9.0); diffuseColor.rgb += vec3(0.045,0.027,0.01)*flow;' : ''}
+        ${
+          flowing
+            ? `
+          float flow = pow(.5+.5*sin(longitudinal*.7-vesperSapTime*.65+sin(resinP.x*1.8+cloud*4.)),7.);
+          float bubbles = smoothstep(.76,.91,resinNoise(resinP*.9+vec2(0.,vesperSapTime*.12)));
+          diffuseColor.rgb = mix(diffuseColor.rgb*.62,vec3(.72,.39,.045),flow*.75+bubbles*.22);
+          diffuseColor.rgb += vec3(.14,.065,.006)*bubbles;
+        `
+            : ''
+        }
       `,
                 ),
                 'vec3 totalSpecular = reflectedLight.directSpecular + reflectedLight.indirectSpecular;',
@@ -276,13 +294,8 @@ export function createVesperRoad({ track, shape = false }) {
         );
     };
     material.customProgramCacheKey = () =>
-      flowing ? 'vesper-flow-v7' : 'vesper-lamina-v7';
+      flowing ? 'vesper-flow-v8-visible-sap' : 'vesper-lamina-v7';
   }
-  // Keep authored clearcoat values for independent live comparisons.
-  const coats = [amber, polished, core, sap].map((material) => ({
-    material,
-    clearcoat: material.clearcoat,
-  }));
   const slices = [
     0,
     track.length,
@@ -421,6 +434,7 @@ export function createVesperRoad({ track, shape = false }) {
   }
   // Visible films are clipped to the exact same physical zone and road mesh.
   if (!shape) {
+    const margins = [];
     const surfaces = group.children.filter(
       (mesh) => mesh.userData.drivingSurface,
     );
@@ -440,7 +454,21 @@ export function createVesperRoad({ track, shape = false }) {
           );
           if (geometry.index.count) group.add(new T.Mesh(geometry, sap));
           else geometry.dispose();
+          // The pale lip marks the actual safe-lane boundary, so the hazard
+          // reads at driving speed without hiding where resistance begins.
+          const edge =
+            a < 0 && b <= zone.resinCenter ? [b - 0.42, b] : [a, a + 0.42];
+          const margin = deckPatch(
+            surface,
+            ...edge,
+            zone.start,
+            zone.end,
+            0.055,
+          );
+          if (margin.index.count) margins.push(margin);
+          else margin.dispose();
         }
+    mergeParts(group, margins, sapEdge, 'Sap flow / pale dry-lane margins');
   }
   group.traverse((o) => {
     if (o.material === sap) {
@@ -589,18 +617,7 @@ export function createVesperRoad({ track, shape = false }) {
     },
     update({ time, settings }) {
       sapClock.value = settings.reducedMotion ? 0 : time;
-      resinLayers.value =
-        settings.vesperResinDetail === false
-          ? 0
-          : settings.quality === 'low'
-            ? 3
-            : 6;
-      for (const { material, clearcoat } of coats) {
-        const value = settings.vesperClearcoat === false ? 0 : clearcoat;
-        if (material.clearcoat === value) continue;
-        material.clearcoat = value;
-        material.needsUpdate = true;
-      }
+      resinLayers.value = settings.quality === 'low' ? 3 : 6;
     },
     dispose() {
       const gs = new Set(),

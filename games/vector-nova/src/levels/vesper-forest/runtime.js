@@ -4,7 +4,7 @@ import { HAZARD_SURFACE_RULES } from '../../physics/hazard-surface.js';
 
 export const VESPER_FLIGHT = createFlightModel({
   gravity: 26,
-  railHeight: { 'crown-leap': 1.2 },
+  railHeight: { 'crown-leap': 1.2, 'river-skip': 1.2 },
 });
 export function vesperGroundOptions(track, state) {
   const surface = sampleVesperSurface(track, state);
@@ -16,8 +16,8 @@ export function createVesperRuntime(context) {
     testLaunch: Boolean(context.playtest),
     forgivingContacts: Boolean(context.collisionWorld),
     id: 'vesper-forest-pilot-flight',
-    version: 2,
-    rulesId: `vesper-rules-3:${JSON.stringify({ revision: track.revision, rules: VESPER_FLIGHT.rules, jumps: track.jumps, zones: track.sapZones, hazard: HAZARD_SURFACE_RULES, severity: VESPER_SAP_SEVERITY })}`,
+    version: 3,
+    rulesId: `vesper-rules-4:${JSON.stringify({ revision: track.revision, rules: VESPER_FLIGHT.rules, jumps: track.jumps, zones: track.sapZones, hazard: HAZARD_SURFACE_RULES, severity: VESPER_SAP_SEVERITY })}`,
     groundOptions: ({ state }) => vesperGroundOptions(track, state),
   });
   let surface = { id: 'resin', zone: null, drag: 0 };
@@ -42,6 +42,9 @@ export function createVesperRuntime(context) {
   }
   return {
     ...runtime,
+    readFrame() {
+      return { ...runtime.readFrame(), surface: { ...surface } };
+    },
     advance(state, input, dt, modifiers) {
       return finishSurface(state, runtime.advance(state, input, dt, modifiers));
     },
@@ -54,7 +57,10 @@ export function createVesperRuntime(context) {
       : {}),
     reset(args) {
       runtime.reset(args);
-      surface = sampleVesperSurface(track, args.state);
+      surface =
+        runtime.status().mode === 'magnetic'
+          ? sampleVesperSurface(track, args.state)
+          : { id: 'air', zone: null, drag: 0 };
     },
     snapshot() {
       return { ...runtime.snapshot(), surface: { ...surface } };

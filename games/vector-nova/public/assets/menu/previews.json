@@ -114,9 +114,9 @@
       "width": 640,
       "height": 400,
       "preset": "route-overview-v1",
-      "sourceRevision": "655bd2801494b5122a03440aa12f80c597bb5f64",
+      "sourceRevision": "257c9e4e5b0674769dadf28cd05a40c1d533474b",
       "sourceDirty": true,
-      "routeSignature": "2f147e93e90cfdd4"
+      "routeSignature": "ebbde417a79cc8af"
     },
     "colossus": {
       "file": "colossus.webp",

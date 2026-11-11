@@ -152,3 +152,27 @@ test('kit owns each generated resource exactly once and never disposes borrowed 
   normal.dispose();
   roughness.dispose();
 });
+
+test('slate outcrops have a buried foot, broad cleaved form and shared worn normals', () => {
+  const kit = createLivingForestKit({ detail: 'low' });
+  try {
+    for (const { geometry } of kit.rockParts) {
+      const size = geometry.boundingBox.getSize(new T.Vector3());
+      assert.ok(geometry.boundingBox.min.y >= 0);
+      assert.ok(size.x > size.y * 1.6 && size.z > size.y * 1.3);
+      assert.ok(
+        geometry.index,
+        'coincident corners are shared for continuous shading',
+      );
+      assert.ok(
+        Array.from(geometry.attributes.normal.array).every(Number.isFinite),
+      );
+    }
+    assert.ok(
+      kit.materials.rock.color.getHex() < 0x889999,
+      'slate has a darker mineral body',
+    );
+  } finally {
+    kit.dispose();
+  }
+});

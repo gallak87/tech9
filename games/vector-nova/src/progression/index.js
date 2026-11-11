@@ -1,11 +1,6 @@
 import { CONTROLLER_DEFAULTS, controllerSettings } from '../input/gamepad.js';
 import { mobileGraphics } from '../renderer/device.js';
 
-export const vesperGraphicsDefaults = {
-  vesperClearcoat: true,
-  vesperResinDetail: true,
-  vesperSurfaceDetail: true,
-};
 export const halcyonGraphicsDefaults = {
   halcyonRoadSheen: 0.8,
   halcyonRoadReflections: true,
@@ -18,7 +13,6 @@ export const defaults = {
   quality: 'high',
   reducedMotion: false,
   difficulty: 'easy',
-  ...vesperGraphicsDefaults,
   ...halcyonGraphicsDefaults,
 };
 const volumeLane = (value, fallback) =>
@@ -42,12 +36,6 @@ function normalize(saved = {}) {
       typeof saved.halcyonRoadReflections === 'boolean'
         ? saved.halcyonRoadReflections
         : halcyonGraphicsDefaults.halcyonRoadReflections,
-    ...Object.fromEntries(
-      Object.entries(vesperGraphicsDefaults).map(([key, fallback]) => [
-        key,
-        typeof saved[key] === 'boolean' ? saved[key] : fallback,
-      ]),
-    ),
     masterVolume: volumeLane(saved.masterVolume, defaults.masterVolume),
     volume: volumeLane(saved.volume, defaults.volume),
     musicVolume: volumeLane(saved.musicVolume, defaults.musicVolume),

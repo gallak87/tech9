@@ -6,10 +6,7 @@ import {
   livingForestBarkURL,
   livingForestLeafURL,
 } from '@worldkit/environment/living-forest';
-import {
-  createOceanLayer,
-  createIslandCoast,
-} from '@worldkit/environment/ocean';
+import { createRiverWaterLayer } from '@worldkit/environment/water';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { createForestTerrain, randomSource } from './terrain.js';
 import { createLifetime } from '../../../core/lifecycle.js';
@@ -141,7 +138,7 @@ function buildEnvironment({ track, settings = {}, view }, textures, lifetime) {
     const ground = terrain.height(x, z) - 2;
     if (
       inVista(x, z) ||
-      ground < -113 ||
+      ground < terrain.river.level + 8 ||
       Math.hypot(x - center.x, z - center.z) < 245
     )
       return false;
@@ -248,7 +245,11 @@ function buildEnvironment({ track, settings = {}, view }, textures, lifetime) {
     const x = -650 + random() * 2200,
       z = -800 + random() * 1600,
       y = terrain.height(x, z);
-    if (y < -109 || Math.hypot(x - center.x, z - center.z) < 170) continue;
+    if (
+      y < terrain.river.level + 5 ||
+      Math.hypot(x - center.x, z - center.z) < 170
+    )
+      continue;
     const nearest = terrain.route.reduce(
       (best, p) => Math.min(best, (p.x - x) ** 2 + (p.z - z) ** 2),
       Infinity,
@@ -256,7 +257,7 @@ function buildEnvironment({ track, settings = {}, view }, textures, lifetime) {
     if (nearest > 450 ** 2) continue;
     const isRock = i % 3 === 0,
       scale = isRock ? 1.1 + random() * 3.2 : 1.1 + random() * 1.8;
-    const radius = (isRock ? 8 : 14) * scale;
+    const radius = (isRock ? 12 : 14) * scale;
     const at = new T.Vector3(x, y + (isRock ? 2 : 8) * scale, z);
     if (terrain.route.some((p) => p.distanceToSquared(at) < (radius + 26) ** 2))
       continue;
@@ -353,20 +354,13 @@ function buildEnvironment({ track, settings = {}, view }, textures, lifetime) {
     roots.castShadow = true;
     group.add(roots);
   }
-  const coast = createIslandCoast({
-    x: center.x,
-    z: center.z,
-    radius: 215,
-    level: -112,
-    harmonics: [],
-  });
   const water = lifetime.own(
-    createOceanLayer({
+    createRiverWaterLayer({
       id: 'Living Forest / reflective floodplain',
-      coast,
-      halfSize: 2400,
+      ...terrain.river,
       quality: 'balanced',
-      waterColor: '#17464b',
+      waterColor: '#174f52',
+      depthAt: (x, z) => terrain.river.level - terrain.surfaceHeight(x, z),
       distortionScale: 0.6,
       normalSize: 128,
     }),
@@ -383,9 +377,9 @@ function buildEnvironment({ track, settings = {}, view }, textures, lifetime) {
     'Living Forest / reflective floodplain',
   );
   // The mirror belongs to the real scene when rendered; the layer may own a group.
-  if (waterMesh) waterMesh.material.uniforms.size.value = 0.3;
+  // Current normals use metre-scaled ripples; the body tint stays visible at grazing angles.
   const metrics = {
-    recipe: 'living-forest-v1',
+    recipe: 'living-forest-river-v2',
     trees: accepted.length,
     shrubs: shrubs.length,
     rocks: rocks.flat().length,
@@ -434,7 +428,7 @@ function buildEnvironment({ track, settings = {}, view }, textures, lifetime) {
     }
     shrubMeshes.forEach((m) => (m.visible = quality !== 'low'));
     if (waterMesh && qualityChanged) {
-      waterMesh.reflectionStride = quality === 'low' ? 12 : 5;
+      waterMesh.reflectionStride = quality === 'low' ? 8 : 3;
       waterMesh.renderTarget.setSize(
         quality === 'low' ? 512 : 768,
         quality === 'low' ? 512 : 768,

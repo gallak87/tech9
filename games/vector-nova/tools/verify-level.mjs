@@ -39,6 +39,7 @@ function urlFor({ shape = false, id = slug } = {}) {
   url.hash = '';
   url.searchParams.set('level', id);
   url.searchParams.set('capture', '1');
+  url.searchParams.set('music', '0');
   if (BONUS_LEVEL_IDS.includes(id)) url.searchParams.set('dev', '1');
   if (shape) url.searchParams.set('review', 'shape');
   return url.href;

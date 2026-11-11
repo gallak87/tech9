@@ -10,9 +10,9 @@ export default {
     eyebrow: 'NOCTURNAL TRANSPORT GUILD · 004F',
     heading: ['BENEATH THE', 'LIVING CROWN.'],
     intro:
-      'Climb inside a colossal tree. Leap across the lantern crown, plunge beneath the canopy, then spiral skyward before the Rootfall dive.',
+      'Climb inside a colossal tree, leap across its lantern crown and roll through Bloomspan. Flow into Rootfall and skip the river on the way home.',
     detail:
-      '28 m magnetic deck · hollow ascent · crown flight · sap and resin lines. Manual boost is available.',
+      '5.3 km of rolling forest ribbon · two forgiving jumps · reversing corkscrew · visible sap and clear resin lines. Manual boost is available.',
     start: 'ENTER THE CANOPY',
     tag: 'VESPER FOREST',
     tagDetail: '04F / ANCIENT FOREST',
@@ -23,7 +23,7 @@ export default {
     shape: {
       edition: 'ROUTE STUDY',
       intro:
-        'The complete Vesper route in neutral materials. Crown and branch gaps use the same live flight rules.',
+        'The complete Vesper route in neutral materials. Crown and river gaps use the same live flight rules.',
       start: 'DRIVE ROUTE STUDY',
     },
   },

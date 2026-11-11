@@ -119,4 +119,22 @@ const PLAN = [
   },
 ];
 
-export const createDevices = (track) => createDeviceLayout(track, PLAN);
+export const createDevices = (track) => {
+  const section = (id) => track.sections.find((entry) => entry.id === id);
+  const distances = {
+    'crown-arc': track.jumps[0].recovery + 80,
+    'bloomspan-vector': track.inversions[0].start - 45,
+    'rootfall-aegis': section('rootfall').start - 65,
+    'vault-aegis': section('vault').start + 40,
+    'vault-vector': track.jumps[1].takeoff - 95,
+    'vault-repulsor': track.jumps[1].recovery + 50,
+    'dawnscar-arc': track.length - 75,
+  };
+  return createDeviceLayout(
+    track,
+    PLAN.map((device) => ({
+      ...device,
+      distance: distances[device.id] ?? device.distance,
+    })),
+  );
+};

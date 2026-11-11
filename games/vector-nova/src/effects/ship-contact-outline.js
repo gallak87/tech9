@@ -17,12 +17,16 @@ export function contactOutlineStrength(
 
 // The combat-style hull coat and broad rim share one draw per borrowed mesh.
 // Single-pass double sides avoid adding a second halo or transparency pass.
-export function createShipContactOutline() {
+export function createShipContactOutline({ color = '#ff4020', label } = {}) {
   const group = new Group();
-  group.name = 'Thermal contact / lava-red hull envelope';
+  group.name = label
+    ? label + ' / hull contact envelope'
+    : 'Thermal contact / lava-red hull envelope';
   group.visible = false;
   const material = new ShaderMaterial({
-    name: 'Thermal contact / lava-red hull and rim',
+    name: label
+      ? label + ' / hull and rim'
+      : 'Thermal contact / lava-red hull and rim',
     transparent: true,
     depthWrite: false,
     side: DoubleSide,
@@ -30,7 +34,7 @@ export function createShipContactOutline() {
     toneMapped: false,
     uniforms: {
       strength: { value: 0 },
-      color: { value: new Color('#ff4020') },
+      color: { value: new Color(color) },
     },
     vertexShader: `
       varying vec3 hullNormal, hullView;
@@ -87,7 +91,8 @@ export function createShipContactOutline() {
         : [source.material];
       if (surfaces.every((surface) => surface.transparent)) return;
       const mesh = new Mesh(source.geometry, material);
-      mesh.name = 'Thermal edge / ' + source.name;
+      mesh.name =
+        (label ? label + ' edge / ' : 'Thermal edge / ') + source.name;
       mesh.matrixAutoUpdate = false;
       mesh.userData.aoExclude = mesh.userData.reflectionExclude = true;
       group.add(mesh);

@@ -25,6 +25,10 @@ function noise(x, z) {
     fz,
   );
 }
+const riverCenter = (x) =>
+  -170 + 105 * Math.sin(x * 0.003) + 275 * T.MathUtils.smoothstep(x, 400, 1100);
+const RIVER_LEVEL = -108;
+
 export function createForestTerrain(track) {
   const route = [];
   for (let s = 0; s < track.length; s += 12)
@@ -35,13 +39,14 @@ export function createForestTerrain(track) {
       noise(x * 0.0018 + 6, z * 0.0018 + 9) * 105 +
       noise(x * 0.005 + 19, z * 0.005) * 40 +
       noise(x * 0.017, z * 0.017) * 11;
-    const channel =
-      120 * Math.exp(-(((z - (-170 + 105 * Math.sin(x * 0.003))) / 125) ** 2));
+    const channel = 120 * Math.exp(-(((z - riverCenter(x)) / 125) ** 2));
     const island =
       75 * Math.exp(-((x - center.x) ** 2 + (z - center.z) ** 2) / 85000);
     const basin =
       130 * Math.exp(-(((x - 880) / 330) ** 2 + ((z - 170) / 210) ** 2));
-    let y = -115 + n - channel + island - basin;
+    // A continuous incised bed keeps even the high-noise reaches connected.
+    const riverBed = RIVER_LEVEL - 28 + 54 * ((z - riverCenter(x)) / 125) ** 2;
+    let y = Math.min(-115 + n - channel + island - basin, riverBed);
     for (const p of route) {
       const d2 = (p.x - x) ** 2 + (p.z - z) ** 2;
       if (d2 < 125 ** 2) y = Math.min(y, p.y - 64 + Math.sqrt(d2) * 0.13);
@@ -111,7 +116,41 @@ export function createForestTerrain(track) {
   return {
     mesh,
     height,
+    // Exact barycentric height of the retained terrain triangles for water/bank contact.
+    surfaceHeight(x, z) {
+      const gx = (x + 1400) / (3500 / 220),
+        gz = (z + 1450) / (2900 / 180);
+      if (gx < 0 || gx > 220 || gz < 0 || gz > 180) return height(x, z);
+      const ix = Math.min(219, Math.floor(gx)),
+        iz = Math.min(179, Math.floor(gz));
+      const a = iz * 221 + ix;
+      const tx = T.MathUtils.clamp(
+        (x - p.getX(a)) / (p.getX(a + 1) - p.getX(a)),
+        0,
+        1,
+      );
+      const tz = T.MathUtils.clamp(
+        (z - p.getZ(a)) / (p.getZ(a + 221) - p.getZ(a)),
+        0,
+        1,
+      );
+      const ya = p.getY(a),
+        yd = p.getY(a + 1),
+        yb = p.getY(a + 221),
+        yc = p.getY(a + 222);
+      return tx + tz <= 1
+        ? ya * (1 - tx - tz) + yd * tx + yb * tz
+        : yb * (1 - tx) + yd * (1 - tz) + yc * (tx + tz - 1);
+    },
     route,
+    river: {
+      points: Array.from({ length: 46 }, (_, i) => {
+        const x = -1400 + i * 80;
+        return [x, riverCenter(x)];
+      }),
+      halfWidth: 260,
+      level: RIVER_LEVEL,
+    },
     dispose() {
       geometry.dispose();
       material.dispose();

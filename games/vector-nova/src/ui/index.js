@@ -11,10 +11,7 @@ import {
   RACER_COLORS as racerColors,
   RACE_FIELD_SIZE,
 } from '../race/roster.js';
-import {
-  halcyonGraphicsDefaults,
-  vesperGraphicsDefaults,
-} from '../progression/index.js';
+import { halcyonGraphicsDefaults } from '../progression/index.js';
 
 export function createUI(
   host,
@@ -468,13 +465,8 @@ export function createUI(
     'click',
     (event) => {
       const reset = event.target.closest('[data-graphics-reset]');
-      if (reset) {
-        Object.assign(
-          settings,
-          reset.dataset.graphicsReset === 'halcyon'
-            ? halcyonGraphicsDefaults
-            : vesperGraphicsDefaults,
-        );
+      if (reset?.dataset.graphicsReset === 'halcyon') {
+        Object.assign(settings, halcyonGraphicsDefaults);
         actions.settings();
       }
     },

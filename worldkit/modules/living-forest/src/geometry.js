@@ -1,5 +1,8 @@
 import * as T from 'three';
-import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import {
+  mergeGeometries,
+  mergeVertices,
+} from 'three/addons/utils/BufferGeometryUtils.js';
 
 export function randomSource(seed = 13) {
   return () => {
@@ -175,27 +178,43 @@ export function mergeParts(parts) {
   return result;
 }
 
+/** Layered, weathered slate with broad cleaved shoulders and a buried flat foot. */
 export function createRockGeometry(seed = 0, detail = 'high') {
-  const geometry = new T.IcosahedronGeometry(1, detail === 'high' ? 3 : 1);
-  const p = geometry.attributes.position,
+  const source = new T.IcosahedronGeometry(1, detail === 'high' ? 3 : 2);
+  const p = source.attributes.position,
     colors = [];
+  const aspect = 0.82 + 0.24 * (0.5 + 0.5 * Math.sin(seed * 0.73));
   for (let i = 0; i < p.count; i++) {
     const x = p.getX(i),
       y = p.getY(i),
       z = p.getZ(i);
-    const noise =
-      Math.sin(x * 5 + seed) * Math.sin(z * 4 - seed) * 0.12 +
-      Math.sin(y * 11 + x * 4) * 0.045;
+    const cleave =
+      Math.sin(x * 5.2 + z * 3.6 + seed) * 0.09 +
+      Math.sin(z * 7.1 - y * 4.8) * 0.055;
+    const shoulder = Math.min(0.7, y + cleave);
+    const height = Math.max(0, (shoulder + 0.85) * 3.4);
     p.setXYZ(
       i,
-      x * (1 + noise) * 5.5,
-      (y + 1) * 3.8 * (1 + noise),
-      z * (1 + noise) * 4.6,
+      (x * (1 + cleave) + y * 0.2) * 7.4 * aspect,
+      height,
+      (z * (1 + cleave) * 5.5) / aspect,
     );
-    const moss = Math.max(0, y) * 0.5;
-    colors.push(0.5 - moss * 0.12, 0.59 + moss * 0.14, 0.57 - moss * 0.04);
+    const weather = 0.5 + 0.5 * Math.sin(x * 8.3 + z * 6.1 + seed);
+    const moss = Math.max(0, y - 0.15) * (0.45 + weather * 0.3);
+    const stone = 0.62 + weather * 0.16;
+    colors.push(
+      stone * (1 - moss * 0.4),
+      stone * (1 + moss * 0.05),
+      stone * (1 - moss * 0.2),
+    );
   }
-  geometry.setAttribute('color', new T.Float32BufferAttribute(colors, 3));
+  source.setAttribute('color', new T.Float32BufferAttribute(colors, 3));
+  // Icosphere input is unindexed. Weld coincident corners before computing normals
+  // so slate reads as worn stone instead of an unlit stack of triangle patches.
+  source.deleteAttribute('normal');
+  source.deleteAttribute('uv');
+  const geometry = mergeVertices(source, 1e-5);
+  source.dispose();
   geometry.computeVertexNormals();
   geometry.computeBoundingBox();
   geometry.computeBoundingSphere();

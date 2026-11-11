@@ -166,7 +166,9 @@ const definitions = [
       const zone = track.sapZones[1];
       return {
         distance: zone.start + 12,
-        lateral: active ? 0 : zone.resinCenter,
+        lateral: active
+          ? zone.resinCenter + zone.resinHalfWidth + 1
+          : zone.resinCenter,
         time: 0,
       };
     },

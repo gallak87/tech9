@@ -51,3 +51,8 @@ Three mature forms (`cathedral`, `windward`, `forked`) are around 100m tall. Eac
 `livingForestLeafURL` resolves the RGBA foliage spray. Pass its loaded sRGB texture as `textures.leaf.map`; the shared leaf material uses `alphaTest: 0.5`, depth writes and double-sided cutout rendering. Each tree retains all 120 attached spray clusters in both qualities, with three crossed cards per cluster near and two far. No foliage renders until a real spray map is supplied.
 
 `livingForestBarkURL` resolves the packaged `silver-bark-color-v1.png` in Vite. Load it with a consumer `TextureLoader`, mark color data as `SRGBColorSpace`, and pass it as `textures.wood.map`. The image is stored exactly as generated; its prompt, generation ID, dimensions and SHA-256 are in [provenance.json](assets/provenance.json). It is a color texture, not a calibrated scan or authored normal map. The consumer owns and disposes all loaded or cloned textures.
+
+The three `rockParts` are worn, cleaved slate forms with a flat buried foot,
+shared-corner normals, layered fissures and restrained upper-surface lichen.
+Their reusable geometry and metre-scale procedural finish belong to this kit;
+consumers own instance scale, ground seating and clustering.

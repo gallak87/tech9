@@ -2,7 +2,7 @@ import * as T from 'three';
 import { cacheClosedCatmullRom } from '../../../track/cached-curve.js';
 import { createVesperSurfaceSampler } from './surface.js';
 
-export const VESPER_REVISION = 'vesper-route-8-offset-lane-frames';
+export const VESPER_REVISION = 'vesper-route-9-river-run';
 const wrap = (s, length) => ((s % length) + length) % length;
 const PLAN = [
   [-280, -300],
@@ -21,41 +21,46 @@ const PLAN = [
   [10, 420],
   [150, 450],
   [340, 450],
-  [550, 450],
-  [720, 450],
-  [890, 470],
-  [1070, 330],
-  [1100, 120],
-  [930, 30],
-  [760, 20],
-  [590, 20],
-  [380, 20],
-  [270, -70],
-  [330, -220],
-  [430, -310],
-  [360, -450],
-  [175, -475],
-  [30, -350],
-  [-120, -490],
-  [-280, -450],
+  [600, 450],
+  [850, 450],
+  [1100, 450],
+  [1270, 315],
+  [1210, 80],
+  [1040, -10],
+  [800, 20],
+  [580, 55],
+  [360, 20],
+  [250, -100],
+  [340, -260],
+  [480, -360],
+  [430, -600],
+  [160, -600],
+  [-120, -600],
+  [-390, -600],
+  [-380, -430],
 ];
 // Heights are sparse grade anchors, not a hump at every plan control point.
 const ELEVATIONS = [
   [0, 25],
+  [1, 35],
+  [2, 31],
+  [3, 48],
   [4, 65],
+  [7, 109],
+  [10, 156],
   [13, 207],
   [14, 220],
-  [15, 232],
-  // Lower the receiving span smoothly: its front lip is 2.25 m lower,
-  // giving ordinary cruise launches margin without altering the takeoff.
-  [16, 193],
-  [17, 188],
+  // Long catch runways and their launch ramps are inserted below in metres.
   [19, 180],
-  [21, -25],
-  [24, 270],
-  [25, 270],
-  [28, 12],
-  [31, 25],
+  [20, 119],
+  [21, 100],
+  [22, 105],
+  [23, 116],
+  [24, 145],
+  [25, 145],
+  [26, 112],
+  [27, 64],
+  [28, 45],
   [32, 25],
 ];
 
@@ -81,17 +86,66 @@ export function createVesperTrack() {
       planLength
     );
   };
-  // Beyond the lowered crown receiver, three sustained grades drop into the
-  // canopy, climb through Bloomspan, then dive into Rootfall.
+  const scale = 0.8672943791072507;
+  const planMetres = planLength * scale;
+  const transferPlans = [
+    {
+      id: 'crown-leap',
+      node: 15,
+      gap: 72,
+      ramp: 135,
+      height: 193.52,
+      pitch: 0.1,
+      drop: 12,
+      catchGrade: -0.055,
+      catchNode: 18,
+    },
+    {
+      id: 'river-skip',
+      node: 29,
+      gap: 64,
+      ramp: 140,
+      height: 55.76,
+      pitch: 0.08,
+      drop: 8,
+      catchGrade: -0.025,
+      catchNode: 31,
+    },
+  ];
   const grades = ELEVATIONS.map(([node, height]) => ({
     u: nodeU(node),
     y: height * 0.82,
   }));
+  for (const jump of transferPlans) {
+    const takeoff = nodeU(jump.node) * planMetres;
+    const landing = takeoff + jump.gap;
+    const catchEnd = nodeU(jump.catchNode) * planMetres;
+    for (const [metres, y, derivative] of [
+      [takeoff - jump.ramp, jump.height - jump.ramp * jump.pitch, jump.pitch],
+      [takeoff, jump.height, jump.pitch],
+      [landing, jump.height - jump.drop, jump.catchGrade],
+      [
+        catchEnd,
+        jump.height - jump.drop + (catchEnd - landing) * jump.catchGrade,
+        jump.catchGrade,
+      ],
+    ])
+      grades.push({
+        u: metres / planMetres,
+        y,
+        slope: derivative * planMetres,
+      });
+    jump.takeoffU = takeoff / planMetres;
+    jump.landingU = landing / planMetres;
+    jump.catchU = catchEnd / planMetres;
+  }
   grades.push({ u: 1, y: grades[0].y });
+  grades.sort((a, b) => a.u - b.u);
   const secants = grades
     .slice(0, -1)
     .map((a, i) => (grades[i + 1].y - a.y) / (grades[i + 1].u - a.u));
   const slopes = grades.map((_, i) => {
+    if (grades[i].slope !== undefined) return grades[i].slope;
     if (i === 0 || i === grades.length - 1) return 0;
     const a = secants[i - 1],
       b = secants[i];
@@ -119,9 +173,8 @@ export function createVesperTrack() {
       (t ** 3 - t ** 2) * span * slopes[index + 1]
     );
   };
-  // Fixed forest footprint: changing altitude must not move the fitted hollow
-  // portals or rescale every tree and crossing in the world.
-  const scale = 0.8672943791072507;
+  // Keep the fitted hollow and its portals at their original world scale.
+  // The open eastern and return spans supply the extra transfer room.
   const curve = new T.Curve();
   curve.getPoint = (u) => {
     const point = planAt(u).multiplyScalar(scale);
@@ -132,32 +185,64 @@ export function createVesperTrack() {
   curve.updateArcLengths();
   const length = curve.getLength();
   const arcs = curve.getLengths(48000);
-  const nodeS = (node) => {
-    const f = nodeU(node) * 48000;
+  const arcAt = (u) => {
+    const f = u * 48000;
     const i = Math.floor(f);
     return T.MathUtils.lerp(arcs[i], arcs[Math.min(i + 1, 48000)], f - i);
   };
+  const nodeS = (node) => arcAt(nodeU(node));
   const positionAt = (s) => curve.getPointAt(wrap(s, length) / length);
   const tangentAt = (s) =>
     positionAt(s + 0.25)
       .sub(positionAt(s - 0.25))
       .normalize();
-  // One deliberate, broad 360-degree roll on the open climbing span. Keep
-  // the tightly winding hollow and ordinary road level across their width.
+  // Bloomspan rolls past inversion, then unwinds into the opposite bank.
+  // Its shallow rising wave preserves cruising pace through the whole feature.
   const inversion = {
     id: 'bloom-corkscrew',
     name: 'Bloomspan Corkscrew',
     start: nodeS(21) + 20,
     end: nodeS(24) - 20,
   };
+  const rollKeys = [
+    [0, 0],
+    [0.07, -0.14],
+    [0.5, Math.PI * 1.04],
+    [0.93, -0.14],
+    [1, 0],
+  ];
   const rollAt = (s) => {
+    if (s < inversion.start || s > inversion.end) {
+      // Small banks support the open bends. Keep hollow shelves and transfer
+      // corridors upright, with a gradual blend at every protected boundary.
+      const fade = (start, end) =>
+        T.MathUtils.smoothstep(s, start - 35, start) *
+        (1 - T.MathUtils.smoothstep(s, end, end + 35));
+      let weight = 1 - fade(nodeS(4) - 20, nodeS(14) + 20);
+      for (const jump of transferPlans)
+        weight *=
+          1 -
+          fade(arcAt(jump.takeoffU) - jump.ramp - 35, arcAt(jump.catchU) + 35);
+      weight *=
+        T.MathUtils.clamp(Math.abs(s - inversion.start) / 35, 0, 1) *
+        T.MathUtils.clamp(Math.abs(s - inversion.end) / 35, 0, 1);
+      const before = tangentAt(s - 3),
+        after = tangentAt(s + 3);
+      const turn = (before.x * after.z - before.z * after.x) / 6;
+      return T.MathUtils.clamp(turn * 12, -0.1, 0.1) * weight;
+    }
     const t = T.MathUtils.clamp(
       (s - inversion.start) / (inversion.end - inversion.start),
       0,
       1,
     );
-    // Cosine velocity eases both ends to zero without a pitch/roll shoulder.
-    return Math.PI * 2 * (t - Math.sin(Math.PI * 2 * t) / (Math.PI * 2));
+    const next = rollKeys.findIndex(([u]) => u > t);
+    const index = next < 0 ? rollKeys.length - 2 : Math.max(0, next - 1);
+    const [u0, r0] = rollKeys[index],
+      [u1, r1] = rollKeys[index + 1];
+    const f = T.MathUtils.clamp((t - u0) / (u1 - u0), 0, 1);
+    const eased = f * f * f * (10 + f * (-15 + f * 6));
+    return T.MathUtils.lerp(r0, r1, eased);
   };
   function sample(s) {
     const distance = wrap(s, length);
@@ -204,25 +289,24 @@ export function createVesperTrack() {
       end: nodeS(28),
     },
   ];
-  const crownTakeoff = nodeS(15) - 8;
-  const jumps = [
-    {
-      id: 'crown-leap',
-      name: 'Lantern crown leap',
-      takeoff: crownTakeoff,
-      landingStart: crownTakeoff + 66,
-      landingEnd: nodeS(17) - 12,
-      recovery: nodeS(17) - 8,
-      halfWidth: 14,
-    },
-  ];
+  const jumps = transferPlans.map((jump) => ({
+    id: jump.id,
+    name: jump.id === 'crown-leap' ? 'Lantern crown leap' : 'River skip',
+    takeoff: arcAt(jump.takeoffU),
+    landingStart: arcAt(jump.landingU),
+    landingEnd: arcAt(jump.catchU) - 24,
+    recovery: arcAt(jump.catchU) - 12,
+    halfWidth: 14,
+    launchAlignment: jump.ramp,
+  }));
+  const crownTakeoff = jumps[0].takeoff;
   const definitions = [
     ['saplight', 'Saplight Landing', 0, nodeS(4), nodeS(1)],
     ['pillar', 'Pillar Grove', nodeS(4), nodeS(13), nodeS(6)],
     ['crown', 'Lantern Crown', nodeS(13), nodeS(19), nodeS(14) - 40],
     ['bloom', 'Bloomspan', nodeS(19), nodeS(25), nodeS(22) - 50],
     ['rootfall', 'Rootfall', nodeS(25), nodeS(28), nodeS(26)],
-    ['vault', 'Mycelium Vault', nodeS(28), nodeS(31), nodeS(29)],
+    ['vault', 'Mycelium Vault', nodeS(28), nodeS(31), nodeS(28) + 90],
     ['dawnscar', 'Dawnscar Return', nodeS(31), length, nodeS(32)],
   ];
   const sections = definitions.map(([id, name, start, end, showcase]) => ({
@@ -241,7 +325,7 @@ export function createVesperTrack() {
     nodeS(22),
     nodeS(25),
     nodeS(28),
-    nodeS(31),
+    jumps[1].landingStart,
   ]
     .sort((a, b) => a - b)
     .map((distance, index) => ({
@@ -262,10 +346,10 @@ export function createVesperTrack() {
     },
     {
       id: 'bloom-flow',
-      start: nodeS(22) - 70,
-      end: nodeS(24) - 30,
-      resinCenter: -5,
-      resinHalfWidth: 3.6,
+      start: nodeS(20) - 50,
+      end: nodeS(21) - 50,
+      resinCenter: 0,
+      resinHalfWidth: 5,
       drag: 5.5,
     },
     {
@@ -290,8 +374,10 @@ export function createVesperTrack() {
       speed: 72,
       heading: 0.09,
     },
-    'sap-compare': { distance: nodeS(22) - 75, speed: 85, lateral: 2 },
-    'resin-compare': { distance: nodeS(22) - 75, speed: 85, lateral: -5 },
+    'sap-compare': { distance: sapZones[1].start + 5, speed: 85, lateral: 8.5 },
+    'resin-compare': { distance: sapZones[1].start + 5, speed: 85, lateral: 0 },
+    'river-runup': { distance: jumps[1].takeoff - 160, speed: 80 },
+    'river-fast': { distance: jumps[1].takeoff - 35, speed: 160 },
     'bloom-runup': { distance: nodeS(22) - 48, speed: 95, lateral: 8.5 },
     'bloom-corkscrew': { distance: inversion.start - 70, speed: 112 },
     'root-descent': { distance: nodeS(25) - 40, speed: 70 },

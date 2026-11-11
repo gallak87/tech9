@@ -284,11 +284,12 @@ class Water extends Mesh {
     scope.material = material;
 
     scope.onBeforeRender = function (renderer, scene, camera) {
-      if (
-        scope.disposed ||
-        scope.reflectionFrame++ % scope.reflectionStride !== 0
-      )
-        return;
+      // Depth/normal prepasses borrow an override material. Refreshing here
+      // would cache those diagnostic colors instead of the reflected scene.
+      // Only beauty draws count toward reflection cadence.
+      if (scope.disposed || scene.overrideMaterial) return;
+      eye.setFromMatrixPosition(camera.matrixWorld);
+      if (scope.reflectionFrame++ % scope.reflectionStride !== 0) return;
       mirrorWorldPosition.setFromMatrixPosition(scope.matrixWorld);
       cameraWorldPosition.setFromMatrixPosition(camera.matrixWorld);
 
@@ -381,8 +382,6 @@ class Water extends Mesh {
       projectionMatrix.elements[6] = clipPlane.y;
       projectionMatrix.elements[10] = clipPlane.z + 1.0 - clipBias;
       projectionMatrix.elements[14] = clipPlane.w;
-
-      eye.setFromMatrixPosition(camera.matrixWorld);
 
       // Render
 

@@ -18,6 +18,7 @@ import { createMagneticBody } from '../src/physics/magnetic-body.js';
 import { createRapierWorld } from '../src/physics/rapier-world.js';
 import { withMagneticBoundaries } from '../src/physics/magnetic-boundaries.js';
 import { createVehicleState } from '../src/physics/index.js';
+import { getShip } from '../src/ships/catalog.js';
 
 // Actual Vesper Forest geometry and actual Kestrel hull: the old fixed support target
 // lost up to 119 m/s in one tick here even without touching a collider.
@@ -60,7 +61,7 @@ test('Vesper Forest tree turns and descending road preserve momentum between gen
   }
 });
 
-test('the Bloomspan corkscrew carries native hulls through a complete inversion without launches or false braking', async (t) => {
+test('the Bloomspan corkscrew inverts and unwinds at cruising pace without launches or false braking', async (t) => {
   const track = createVesperTrack();
   const collisionWorld = createVesperCollisionWorld({ track });
   const dynamics = await createRapierWorld({
@@ -78,6 +79,7 @@ test('the Bloomspan corkscrew carries native hulls through a complete inversion 
     collisionWorld.dispose();
   });
   const { start, end } = track.inversions[0];
+  const pace = [];
   for (const lateral of [-8, 0, 8]) {
     for (const speed of [112, 160]) {
       dynamics.reset();
@@ -88,15 +90,16 @@ test('the Bloomspan corkscrew carries native hulls through a complete inversion 
         speed,
       };
       runtime.reset({ state });
-      // The climbing span crosses viscous sap off the left resin lane. Budget
-      // for 20 m/s average traversal instead of assuming the entry speed holds.
-      const maxTicks = Math.ceil(((end - start + 80) / 20) * 120);
+      const maxTicks = Math.ceil(((end - start + 80) / (speed * 0.8)) * 120);
       let inverted = false,
         bodyRoll = 0,
+        peakRoll = 0,
+        minSpeed = speed,
         previousBank = null;
       let ticks = 0;
       for (; ticks < maxTicks && state.distance < end + 40; ticks++) {
         const before = state.speed;
+        minSpeed = Math.min(minSpeed, before);
         const events = runtime.advance(
           state,
           {
@@ -142,6 +145,7 @@ test('the Bloomspan corkscrew carries native hulls through a complete inversion 
           bodyRoll += Math.atan2(Math.sin(change), Math.cos(change));
         }
         previousBank = bank;
+        peakRoll = Math.max(peakRoll, bodyRoll);
         assert.ok(
           Math.abs(state.lateral) < 11.5,
           `lane lost at ${state.distance}: ${state.lateral}`,
@@ -152,11 +156,25 @@ test('the Bloomspan corkscrew carries native hulls through a complete inversion 
         `incomplete inversion ${lateral}/${speed} after ${ticks / 120}s: ${state.distance}m of ${end + 40}m, speed ${state.speed}, inverted ${inverted}`,
       );
       assert.ok(
-        Math.abs(bodyRoll - Math.PI * 2) < 0.05,
-        `native hull completes one full roll ${lateral}/${speed}: ${bodyRoll}`,
+        Math.abs(
+          bodyRoll -
+            (track.sample(state.distance).roll - track.sample(start - 40).roll),
+        ) < 0.05 && peakRoll > Math.PI,
+        `native hull rolls past inversion and unwinds ${lateral}/${speed}: peak ${peakRoll}, finish ${bodyRoll}`,
       );
+      assert.ok(
+        minSpeed > speed * 0.85,
+        `corkscrew pace ${lateral}/${speed}: ${minSpeed}`,
+      );
+      const meanSpeed = (end - start + 80) / (ticks / 120);
+      assert.ok(
+        meanSpeed > speed * 0.85,
+        `corkscrew average pace ${lateral}/${speed}`,
+      );
+      pace.push({ lateral, entry: speed, minimum: minSpeed, mean: meanSpeed });
     }
   }
+  t.diagnostic(JSON.stringify({ pace }));
 });
 
 test('the Vesper Forest crown transfer retains forward momentum through physical landing and magnetic capture', async (t) => {
@@ -207,6 +225,86 @@ test('the Vesper Forest crown transfer retains forward momentum through physical
       );
     }
   }
+});
+
+test('both Vesper transfers catch slow, cruising and boosted stock hulls without losing momentum', async (t) => {
+  const track = createVesperTrack();
+  const collisionWorld = createVesperCollisionWorld({ track });
+  const dynamics = await createRapierWorld({
+    collisionWorld: withMagneticBoundaries(track, collisionWorld),
+  });
+  const runtime = createVesperRuntime({
+    track,
+    collisionWorld,
+    dynamics,
+    presentation: false,
+  });
+  t.after(() => {
+    runtime.dispose();
+    dynamics.dispose();
+    collisionWorld.dispose();
+  });
+  for (const jump of track.jumps)
+    for (const shipId of ['kestrel', 'shrike', 'bastion', 'needle'])
+      for (const [speed, boost] of [
+        [65, false],
+        [getShip(shipId).handling.cruiseSpeed, false],
+        [getShip(shipId).handling.boostSpeed, true],
+      ]) {
+        dynamics.reset();
+        const state = {
+          ...createVehicleState(shipId),
+          distance: jump.takeoff - 2,
+          speed,
+        };
+        runtime.reset({ state });
+        let launched = false,
+          transfer;
+        for (let tick = 0; tick < 900 && !transfer; tick++) {
+          const events = runtime.advance(
+            state,
+            { throttle: 1, steer: 0, boost },
+            1 / 120,
+          );
+          launched ||= events.some(({ type }) => type === 'jump-launch');
+          transfer = events.find(({ type }) => type === 'jump-transfer');
+        }
+        const label = `${jump.id}/${shipId}/${speed}/${boost}`;
+        assert.ok(launched, `${label}: must cross a real gap`);
+        assert.equal(transfer?.payload.outcome, 'landed', label);
+        assert.ok(
+          state.distance >= jump.landingStart &&
+            state.distance < jump.landingEnd,
+          `${label}: must land inside the authored receiver`,
+        );
+        assert.ok(
+          state.speed > speed * 0.85,
+          `${label}: touchdown speed ${state.speed}`,
+        );
+        for (let tick = 0; tick < 30; tick++) {
+          const events = runtime.advance(
+            state,
+            { throttle: 1, steer: 0, boost },
+            1 / 120,
+          );
+          assert.equal(
+            runtime.pose(1)?.grounded,
+            true,
+            `${label}: capture lost`,
+          );
+          assert.equal(
+            events.some(({ type }) =>
+              ['road-departure', 'road-recovery'].includes(type),
+            ),
+            false,
+            label,
+          );
+          assert.ok(
+            state.speed > speed * 0.85,
+            `${label}: settled speed ${state.speed}`,
+          );
+        }
+      }
 });
 
 test('Vesper Forest tree-side hull straddles separate or recover instead of hanging', async (t) => {
@@ -315,6 +413,19 @@ for (const [level, createLevel] of [
           racers.reset({ enabled: true, difficulty });
           runtime.reset({ reason: 'fresh-lap', state });
           for (let tick = 0; tick < 960; tick++) {
+            if (level === 'vesper-forest' && tick === 480) {
+              // The broader opening no longer guarantees an incidental bump.
+              // Stage one genuine close-pack contact, then keep the original
+              // unsteered player input and all ten native actors advancing.
+              const neighbour = racers.opponents.at(-1);
+              Object.assign(neighbour.state, {
+                distance: state.distance + 5,
+                lateral: state.lateral + 0.4,
+                speed: state.speed - 2,
+              });
+              Object.assign(neighbour.prev, neighbour.state);
+              neighbour.runtime.reset({ state: neighbour.state });
+            }
             const events = advanceSession({
               state,
               input: { throttle: 1, steer: 0, boost: false },

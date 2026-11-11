@@ -37,3 +37,43 @@ water.dispose();
 Water accepts `id`, `shoreline`, `quality`, `segments=160` (24–1024), `waterColor='#31564c'` and `distortionScale=0.24`. Optional `definition.environment.sun` in the initialization context supplies light direction/color. `configure({quality})` selects balanced (1024 px/every 3 frames), high (1536/every 2) or ultra (2048/every 2); unknown values use balanced. Geometry, procedural normals, material and reflection target belong to the layer. Reflections are throttled planar approximations.
 
 `createPondShoreLayer` places batched reeds, cattails, lily pads, flowers and rocks around the same shoreline. Options: `shoreline`, `terrainHeight`, `seed=73311`, `bankRocks=[]` and `textureUrls={diff,nor_gl,rough}`. Bank-rock tuples are `[x,z,scaleX,scaleY,scaleZ,yaw]`; use those same placements when adding collision proxies. Default textures resolve relative to this module and include their [license](./assets/LICENSE.md). The layer owns its geometry, materials and loaded textures. Initialization is single-use; disposal is idempotent and releases late texture arrivals.
+
+## Rivers
+
+`createRiverWaterLayer` from `/water` builds a bounded, opaque blue-green ribbon
+through supplied world-space `[x,z]` centreline points. The consumer owns bank
+terrain, placement exclusions and river shape; put the ribbon edges beneath the
+banks. The layer owns its geometry, procedural normal map, material and one
+throttled planar reflection target. It uses the same `init`, `update`, `configure`,
+`invalidateReflection` and idempotent `dispose` lifecycle as pond water.
+
+```js
+const river = createRiverWaterLayer({
+  points: [
+    [-80, 0],
+    [0, 15],
+    [90, 40],
+  ],
+  halfWidth: 20,
+  level: -2,
+  waterColor: '#174f52',
+  depthAt: (x, z) => -2 - terrainHeight(x, z),
+  quality: 'balanced',
+});
+river.init({ scene });
+```
+
+Options also include `id='river-water'`, `normalSize=128` (power of two 16–512),
+`distortionScale=0.45`, `crossSegments=32` (2–128) and `maxSegmentLength=12`.
+`depthAt(x,z)` returns **signed** water depth (`level - bedHeight`), including
+negative values under dry banks; its default is a constant 12 m. Prefer sampling
+the actual terrain triangles when available. The layer samples both along and
+across the ribbon, interpolating the signed depth before shading clear shallows,
+deeper current and soft bank contact. The consumer owns the bed and its sampling
+callback; the layer does not retain a terrain object.
+
+Directional ripples, filtered fine normals, broad sun glints and Fresnel-weighted
+forest reflections remain visible together. Planar reflection images are softened
+spatially; high-frequency ripple energy fades with pixel footprint. Shared Water
+ignores normal/depth override passes when refreshing reflection images, while its
+view-dependent shading follows the current camera even between mirror refreshes.

@@ -200,7 +200,7 @@ function waitingRows(data) {
 }
 const waitingNote = (data) => `Waiting for the field · ${data.remaining}s`;
 export function cupWaitingView(data) {
-  return `<section class="result-panel cup-waiting"><div class="front-heading"><span class="kicker">CUP / ${data.courseFormat === 'sprint' ? 'SPRINT' : 'RACE'} FINISH</span><h1 tabindex="-1">${data.playerValid ? 'Race finished.' : 'Unranked finish.'}</h1></div><p>Your time: ${formatTime(data.playerTotalTime)}</p><ol class="results-list" aria-label="Live race classification">${waitingRows(data)}</ol><p class="results-note" role="status">${waitingNote(data)}</p><div class="front-actions">${button('cup-retry', 'Retry this race')}${button('cup-hub', 'Cup hub · pause waiting')}</div></section>`;
+  return `<section class="result-panel cup-waiting"><div class="front-heading"><span class="kicker">CUP / ${data.courseFormat === 'sprint' ? 'SPRINT' : 'RACE'} FINISH</span><h1 tabindex="-1">${data.playerValid ? 'Race finished.' : 'Unranked finish.'}</h1></div><p>Your time: ${formatTime(data.playerTotalTime)}</p><ol class="results-list" aria-label="Live race classification">${waitingRows(data)}</ol><p class="results-note" role="status">${waitingNote(data)}</p><div class="front-actions">${button('cup-hub', 'Cup hub · pause waiting', true)}${button('cup-retry', 'Retry this race')}</div></section>`;
 }
 export function updateCupWaitingView(panel, data) {
   // Keep the animated panel and focused controls mounted as rivals finish.

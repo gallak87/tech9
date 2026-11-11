@@ -108,7 +108,7 @@ test('Freestyle two-hand keys compose attitude independently of driving and neve
     'left arrow rolls left in the chase view',
   );
   assert.equal(sample.aerialPitch, 1, 'up arrow pitches the nose forward');
-  assert.equal(sample.aerialYaw, 1, 'E spins right');
+  assert.equal(sample.aerialYaw, -1, 'E spins right');
   assert.equal(sample.throttle, 1);
   assert.equal(sample.steer, 1, 'D steering is independent of left-roll input');
   assert.equal(sample.brake, 0);
@@ -122,7 +122,7 @@ test('Freestyle two-hand keys compose attitude independently of driving and neve
   sample = input.sample();
   assert.equal(sample.aerialRoll, 1);
   assert.equal(sample.aerialPitch, -1, 'down arrow pulls the nose back');
-  assert.equal(sample.aerialYaw, -1);
+  assert.equal(sample.aerialYaw, 1, 'Q spins left');
   assert.equal(
     sample.throttle,
     1,
@@ -162,7 +162,7 @@ test('Freestyle arrows never drive and opposing rotation keys cancel without a m
   sample = input.sample();
   assert.equal(sample.aerialPitch, 1);
   assert.equal(sample.aerialRoll, -1);
-  assert.equal(sample.aerialYaw, -1);
+  assert.equal(sample.aerialYaw, 1);
   assert.equal(sample.throttle, 0);
   assert.equal(sample.brake, 0);
   assert.equal(sample.steer, 0);
@@ -260,7 +260,7 @@ test('Freestyle right stick pitches and rolls while X/Y spin independently acros
       'right stick up pitches the nose forward',
     );
     assert.ok(sample.aerialRoll > 0.5, 'right stick right rolls right');
-    assert.equal(sample.aerialYaw, -1, 'X spins left');
+    assert.equal(sample.aerialYaw, 1, 'X spins left');
     assert.ok(sample.steer > 0.2, 'left stick still steers');
     assert.equal(sample.throttle, 0, preset);
     assert.equal(sample.brake, 0, preset);
@@ -276,7 +276,7 @@ test('Freestyle right stick pitches and rolls while X/Y spin independently acros
     pad.buttons[2] = { value: 0, pressed: false };
     pad.axes = [0.4, -0.8, -0.6, 0.9];
     sample = input.sample();
-    assert.equal(sample.aerialYaw, 1, 'Y spins right');
+    assert.equal(sample.aerialYaw, -1, 'Y spins right');
     assert.ok(sample.aerialRoll < -0.5, 'right stick left rolls left');
     assert.ok(
       sample.aerialPitch < -0.8,
@@ -373,6 +373,46 @@ test('Freestyle left and right bank the actual hull toward that side of the rear
     );
     if (code) key('keyup', code);
     pad.axes[2] = 0;
+  }
+});
+
+test('Freestyle Q/X and E/Y turn the actual nose left and right in the rear chase view', (t) => {
+  const { input, key, setPad } = harness(t, { freestyle: true });
+  const pad = {
+    id: 'freestyle-yaw-direction',
+    index: 0,
+    connected: true,
+    mapping: 'standard',
+    axes: [0, 0, 0, 0],
+    buttons: Array.from({ length: 17 }, () => ({ value: 0, pressed: false })),
+  };
+  setPad(pad);
+  input.sample();
+  const chase = new T.PerspectiveCamera();
+  chase.position.set(0, 6, -18);
+  chase.lookAt(0, 0, 12);
+  const screenRight = new T.Vector3(1, 0, 0).applyQuaternion(chase.quaternion);
+  for (const [code, button, left] of [
+    ['KeyQ', null, true],
+    ['KeyE', null, false],
+    [null, 2, true],
+    [null, 3, false],
+  ]) {
+    if (code) key('keydown', code);
+    if (button !== null) pad.buttons[button] = { value: 1, pressed: true };
+    const controller = createFreestyleController({ jumps: [] });
+    controller.launch('yaw-direction');
+    for (let tick = 0; tick < 30; tick++)
+      controller.step(input.sample(), 1 / 120);
+    const orientation = new T.Quaternion();
+    controller.attitude(orientation);
+    const nose = new T.Vector3(0, 0, 1).applyQuaternion(orientation);
+    assert.ok(
+      left ? nose.dot(screenRight) < -0.05 : nose.dot(screenRight) > 0.05,
+      `${code ?? `pad ${button}`}: the nose visibly turns ${left ? 'left' : 'right'}`,
+    );
+    if (code) key('keyup', code);
+    if (button !== null) pad.buttons[button] = { value: 0, pressed: false };
   }
 });
 

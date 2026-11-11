@@ -70,7 +70,7 @@ export function createUI(
     const finishActions = document.createElement('div');
     finishActions.id = 'sprint-finish-actions';
     finishActions.className = 'actions hidden';
-    finishActions.innerHTML = `<button id="sprint-retry">R · ${playtest ? 'REPEAT CASE' : 'RETRY DESCENT'}</button><button id="sprint-home">ESC · PADDOCK</button>`;
+    finishActions.innerHTML = `<button id="sprint-home" class="primary">Race setup →</button><button id="sprint-retry">R · ${playtest ? 'REPEAT CASE' : 'RETRY DESCENT'}</button>`;
     root.append(finishActions);
     $('sprint-retry').onclick = actions.restart;
     $('sprint-home').onclick = actions.home;
@@ -805,8 +805,8 @@ export function createUI(
       $('best').textContent = sprint
         ? r.complete
           ? r.valid
-            ? 'RESULT RECORDED · R TO RETRY'
-            : 'UNTIMED RESULT · R TO RETRY'
+            ? 'RESULT RECORDED'
+            : 'UNTIMED RESULT'
           : r.valid
             ? (copy.courseLabel ?? 'SUMMIT → RECEIVING ARRAY')
             : 'UNTIMED RUN'
@@ -818,6 +818,8 @@ export function createUI(
             ? `BEST ${fmt(r.best)}`
             : 'SET YOUR FIRST CLEAN LAP';
       $('home').textContent = cup ? 'Cup hub · progress kept' : 'Race setup';
+      if ($('sprint-home'))
+        $('sprint-home').textContent = cup ? 'Cup hub →' : 'Race setup →';
       if (cup) {
         $('restart').textContent = 'Retry cup race · earlier scores kept';
         root.querySelector('.lap > span').textContent =

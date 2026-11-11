@@ -221,7 +221,7 @@ try {
   // Exercise actual DOM keyboard events, not calls into the input reader.
   for (const [keys, expected] of [
     [
-      ['ArrowLeft', 'ArrowUp', 'KeyE', 'KeyW'],
+      ['ArrowLeft', 'ArrowUp', 'KeyQ', 'KeyW'],
       {
         aerialRoll: -1,
         aerialPitch: 1,
@@ -233,7 +233,7 @@ try {
       },
     ],
     [
-      ['ArrowRight', 'ArrowDown', 'KeyQ', 'Space'],
+      ['ArrowRight', 'ArrowDown', 'KeyE', 'Space'],
       {
         aerialRoll: 1,
         aerialPitch: -1,
@@ -464,7 +464,7 @@ try {
   );
   assert.equal(
     padInput.aerialYaw,
-    -1,
+    1,
     'X flat-spins left independently of right-stick roll',
   );
   assert.equal(padInput.boost, false);

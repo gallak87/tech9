@@ -1,7 +1,9 @@
 #front-shell.entry-shell {
   --entry-accent: #d01818;
   --entry-paper: #e8e8e8;
-  scroll-padding-top: var(--entry-header-clearance, 100px);
+}
+#front-shell.cinematic-menu.entry-shell:has(> .entry-topbar) {
+  top: var(--entry-header-clearance, 100px);
 }
 .entry-shell > section {
   position: relative;
@@ -120,8 +122,8 @@
 .entry-page {
   width: min(1480px, 100%);
   margin: auto;
-  min-height: 100svh;
-  padding: var(--entry-header-clearance, 100px) clamp(24px, 4vw, 64px) 32px;
+  min-height: 100%;
+  padding: 0 clamp(24px, 4vw, 64px) 32px;
   box-sizing: border-box;
   animation: entry-ship-reveal 220ms ease-out both;
 }

@@ -5,6 +5,11 @@ import { createCupFinish } from './cup-finish.js';
 import { finishFreestyle } from '../freestyle/records.js';
 import { freestylePracticeOutcome } from '../freestyle/feedback.js';
 import { withFreestyleCatchFeedback } from '../freestyle/catch-feedback.js';
+import {
+  createLandingFeedback,
+  withLandingFeedback,
+} from '../presentation/landing-feedback.js';
+import { createLandingVfx } from '../presentation/landing-vfx.js';
 import { createRaceGrid, RACE_ORDER } from '../race/roster.js';
 import {
   createEliminatorEvent,
@@ -390,6 +395,15 @@ export async function createGame({
       effects = lifetime.own(createEffects(scene, definition.effects));
     let rig = createCameraRig(camera, definition.camera, inspectionBounds);
     const raceFeedback = createRaceFeedback();
+    const landingFeedback = freestyle ? null : createLandingFeedback();
+    const landingVfx = freestyle
+      ? null
+      : lifetime.own(createLandingVfx({ track }));
+    if (landingVfx) scene.add(landingVfx.group);
+    function resetLandingFeedback() {
+      landingFeedback?.reset(state.time);
+      landingVfx?.reset();
+    }
     let inspectionTab = 'fleet',
       inspectedRival = RIVAL_SHIPS[0],
       rivalPreview = null,
@@ -422,6 +436,7 @@ export async function createGame({
       if (e.type === 'jump-transfer' || e.type === 'road-recovery')
         prev = { ...state };
       raceFeedback.event(event);
+      landingFeedback?.event(event);
       if (
         freestylePractice &&
         e.type === 'jump-launch' &&
@@ -695,6 +710,7 @@ export async function createGame({
       audio.resetEnvironment();
       effects.reset();
       raceFeedback.reset();
+      resetLandingFeedback();
       world.reset();
     };
     const advance = (control) => {
@@ -742,6 +758,21 @@ export async function createGame({
         if (inputLog.length > 36000) inputLog.shift();
       }
       advance(control);
+      if (landingFeedback) {
+        const support = runtime.pose(1);
+        const cue = landingFeedback.sample({
+          clock: state.time,
+          grounded: support?.grounded,
+          recovering: support?.recovering,
+        });
+        if (cue && mode === 'racing') {
+          try {
+            audio.event(cue);
+          } catch {
+            /* Decorative audio must not interrupt physics. */
+          }
+        }
+      }
       tick++;
       if (freestylePractice?.outcome && !freestylePractice.notified) {
         freestylePractice.notified = true;
@@ -2071,6 +2102,11 @@ export async function createGame({
           motionFeedback.freestyle ?? motionFeedback.motion?.freestyle,
           { reducedMotion: settings.reducedMotion, mode },
         );
+      else
+        feedback = withLandingFeedback(feedback, landingFeedback.read(), {
+          reducedMotion: settings.reducedMotion,
+          mode,
+        });
       if (mode === 'inspection') {
         if (inspectionPreview.autoRotate && !settings.reducedMotion)
           inspectionTime += dt;
@@ -2241,6 +2277,7 @@ export async function createGame({
         settings,
         ship,
         motion: motionFeedback,
+        ...(landingFeedback ? { landing: landingFeedback.read() } : {}),
         eliminator: competition ? eliminator?.snapshot() : null,
         interceptor: competition ? missionSnapshot() : null,
         gamepad: input.gamepadPresent,
@@ -2253,6 +2290,7 @@ export async function createGame({
         definition.audio?.immersion?.({ ...frame, track }) ?? 0,
       );
       runtime.update?.(frame);
+      landingVfx?.update(frame);
       eventPresentation?.update(frame);
       equipmentPresentation.update({
         equipment: runtime.equipment?.(),
@@ -2396,6 +2434,8 @@ export async function createGame({
                 { track, state, race, runtime, racers, timeTrial },
                 options,
               );
+              resetLandingFeedback();
+              audio.resetEnvironment();
               prev = { ...state };
               initial = captureInitial(state, runtime, dynamics);
               input.clear();
@@ -2876,6 +2916,8 @@ export async function createGame({
                 if (mode === 'countdown' && !retained.countdown.running)
                   armCountdown(true);
                 world.reset();
+                resetLandingFeedback();
+                audio.resetEnvironment();
                 inputLog.splice(0, inputLog.length, ...retained.inputs);
                 events.splice(0, events.length, ...retained.events);
                 if (mode === 'inspection') inspectionScene.add(ship.group);
@@ -2897,6 +2939,8 @@ export async function createGame({
               for (const entry of replay.inputs) {
                 advanceTick(entry.input);
               }
+              resetLandingFeedback();
+              audio.resetEnvironment();
               pause();
               return this.getSnapshot();
             },
@@ -3018,6 +3062,7 @@ export async function createGame({
           },
           environment: {
             ...world.getPresentation(),
+            ...(landingVfx ? { landing: landingVfx.getPresentation() } : {}),
             storm: view.getPresentation(),
             thunder: audio.getPresentation(),
             audio: audio.getStatus(),

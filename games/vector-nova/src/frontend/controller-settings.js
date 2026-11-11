@@ -31,7 +31,7 @@ export function controllerSettingsView(settings, { freestyle = false } = {}) {
       .join('')}
     <div><dt><kbd>Left stick</kbd></dt><dd>Steer</dd></div>
     <div><dt><kbd>Right stick click</kbd></dt><dd>Change race camera</dd></div>
-    ${freestyle ? '<div><dt><kbd>Right stick ↑ / ↓</kbd></dt><dd>Pitch nose up / down</dd></div><div><dt><kbd>Right stick ← / →</kbd></dt><dd>Roll left / right</dd></div><div><dt><kbd>X / Y</kbd></dt><dd>Flat spin left / right</dd></div>' : '<div><dt><kbd>X / Y / D-pad ← / →</kbd></dt><dd>Equipment 1 / 2 / 3 / 4</dd></div>'}
+    ${freestyle ? '<div><dt><kbd>Right stick ↑ / ↓</kbd></dt><dd>Pitch nose down / up</dd></div><div><dt><kbd>Right stick ← / →</kbd></dt><dd>Roll left / right</dd></div><div><dt><kbd>X / Y</kbd></dt><dd>Flat spin left / right</dd></div>' : '<div><dt><kbd>X / Y / D-pad ← / →</kbd></dt><dd>Equipment 1 / 2 / 3 / 4</dd></div>'}
     <div><dt><kbd>Menu / Start</kbd></dt><dd>Pause / resume</dd></div>
     <div><dt><kbd>View / Select</kbd></dt><dd>Music play / pause</dd></div>
     <div><dt><kbd>D-pad / stick</kbd></dt><dd>Navigate menus</dd></div>

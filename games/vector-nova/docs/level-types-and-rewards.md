@@ -1,52 +1,43 @@
 # Level types, rewards and world expansion
 
-Current review-branch direction, **2026-11-10**. Preserve anti-gravity racing, colossal scale and the approved shared handling. Human playtests and release validation remain separate from implementation and completed art reviews.
+Keep anti-gravity racing, colossal scale and approved handling. Mode courses are standalone; original championship lineups and item requirements stay fixed.
 
-## Current implementation status
+## Modes and course chains
 
-Seventeen ordinary racing courses remain alongside **nine standalone mode courses**. Cups keep their existing lineups; new courses do not automatically become championship races.
+| Mode        | Starter cup gate | Easy → Medium → Hard                                                                | Build and next-course requirement                                                         |
+| ----------- | ---------------- | ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Freestyle   | Win Founders Cup | Zephyr Skywell → Oriel Sunvault → Ravel Sailbreak                                   | Stock ship, no equipment; complete the full course to advance, with no medal requirement. |
+| Eliminator  | Win Frontier Cup | Glasswake Fracture → Saffron Ossuary → Nomad Last Convoy                            | Owned build and road weapons; win to advance.                                             |
+| Interceptor | Win Horizon Cup  | Crucible Dispatch / Goliath → Helion Breach / Wraith → Nightweir Lockdown / Bulwark | Stock mission ship with issued Lance and Reserve Injector; defeat the boss to advance.    |
 
-| Mode        | Cup opens the first course | Easy → Medium → Hard                                                                | Build and advancement                                                                      |
-| ----------- | -------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| Freestyle   | Founders                   | Zephyr Skywell → Oriel Sunvault → Ravel Sailbreak                                   | Stock ship, no equipment. A valid full course finish opens the next; no medal requirement. |
-| Eliminator  | Frontier                   | Glasswake Fracture → Saffron Ossuary → Nomad Last Convoy                            | Owned build and road weapons. Win to open the next course.                                 |
-| Interceptor | Horizon                    | Crucible Dispatch / Goliath → Helion Breach / Wraith → Nightweir Lockdown / Bulwark | Stock mission ship, issued Lance and Injector. Defeat the boss to open the next encounter. |
+Course challenge groups are separate from opponent/encounter difficulty. Locked modes and courses remain selectable previews, showing the cup or predecessor requirement beside disabled Start. Previews use saved menu stills. Keyboard and controller share the launch guard.
 
-These are course challenge tiers; the opponent/encounter difficulty setting remains separate. Crucible Foundry is retired from the player picker. Its shared factory/route code remains a source for Dispatch, which has its own pursuit plunge and bank reversal. The three Interceptor encounters retain their established mechanics and art.
+Eliminator cuts the last racer after 22 seconds, then every 10 seconds. Last Convoy retains Nomad’s actual moving trucks, deck transfers and recovery; its event can also end at the first valid finish on the lead carrier. Interceptor gives three allied racers and the player two circuits to stop the boss.
 
-Last Convoy uses Nomad Procession's actual moving-carrier course: drive on the decks and transfer between trucks. Its Eliminator event ends with the last survivor or the first valid finish on the lead carrier; its separate mode identity keeps records and progression distinct.
+## Career collection
 
-## One career collection
+The full-game progression bar counts **37 unlocks: 28 reward items + 9 mode courses**. The items cover permanent enhancements, ship unlocks, equipment and Quad Core. A course counts when it becomes available, rather than becoming another equipment claim.
 
-The full game has **37 unlocks: 28 existing reward items + 9 course unlocks**, shown in one progression bar. The 28 items remain the six enhancement tracks, three ship unlocks, six abilities and Quad Core; courses are not fake equipment claims.
+Eligibility derives from cup wins and `profile.finishedCourses`, without separate saved unlock flags. Each starter opens with its cup; each successor requires the preceding courses to be completed under that mode’s rule. Opening all nine therefore requires the first two courses in each chain. Final-course completion is recorded separately.
 
-Course eligibility is computed from cup wins and the known course IDs in `profile.finishedCourses`. Cup victories open the starters; finishing or winning a course opens its successor according to the table. No separate saved unlock flags or migration layer is needed. An unlock counts when the course becomes available, so opening all nine requires the first two courses in each mode; completing the final courses is tracked separately.
+**37/37** opens the original Oriel, Ravel and Nomad Procession racing courses, Encore Cup and the career completion cinematic. Mode variants have distinct identities and earlier cup access, avoiding circular gates. Quad Core still requires the four original cups. The demo retains its four-item collection and excludes these modes.
 
-**37/37** opens the original Oriel, Ravel and Nomad Procession racing courses, Encore Cup and the completion cinematic. The earlier mode variants have distinct IDs and do not require those bonus racing courses, avoiding a circular gate. Original cup lineups and item requirements, including Quad Core's four original cups, stay fixed. The demo retains its four-item collection and excludes these modes.
-
-Valid results also earn ordinary race progress: Freestyle Gold/Silver/Bronze/completion gives 5/4/3/1; Eliminator uses placement; Interceptor success/failure gives 5/1. Invalid attempts and practice earn none. Losing a combat event can earn progress without advancing its course chain. Result reopening cannot duplicate claims or course finishes.
-
-Locked modes and courses remain selectable as previews, with a visible cup or predecessor requirement and disabled Start. Previewing uses saved menu imagery, not a constructed world. Keyboard and controller use the same selection and launch guards. Course results name newly opened courses; Career lists their locked, available or completed states. Garage always displays the owned career build.
+Valid events also earn ordinary race progress: Freestyle Gold/Silver/Bronze/completion gives 5/4/3/1; Eliminator uses placement; Interceptor success/failure gives 5/1. Invalid attempts and practice earn none. A loss can earn progress without advancing a course chain. Reopening results cannot duplicate rewards. Career shows course availability and completion.
 
 ## Freestyle
 
-All three courses have five authored transfers, distinct approaches and banked or tube arrivals. Skywell's approved driving, jumps and landing mechanics remain the reference. Sunvault recomposes them within Oriel's inhabited cylinder with three pipe catches; Sailbreak uses Ravel's folded-sail fleet and two pipe catches. Each has an independent route/record identity and course-local scenery.
+Each course has five transfers with generous flight space and distinct banked or tube catches. Sunvault has three pipe arrivals; Sailbreak has two. Keep the approved takeoff, flight and landing envelopes.
 
-WASD drives; arrows pitch/roll; Q/E flat-spin; Space damps rotation; Shift boosts. On controller, left stick drives, right stick pitches/rolls and X/Y flat-spin. These bindings apply only to Freestyle. Held airborne rotation earns continuous AIR SCORE; accepted catches bank it with landing quality and chain bonuses. Full route completion includes authored misses; manual recovery, incomplete routes and developer transfer practice cannot set records or advance the chain.
+**Keyboard:** WASD drives; arrows pitch/roll; Q/E flat-spin; Space damps rotation; Shift boosts. **Controller:** left stick drives, right stick pitches/rolls, X/Y flat-spin. These aerial bindings apply only to Freestyle; equipment is disabled.
 
-## Reuse and presentation
+Held airborne rotation grows AIR SCORE continuously. Accepted catches bank rotation/trick points, landing quality and chain bonuses. Rough catches that reattach natively can bank **Good** after stable support. Solid receiver surroundings use the shared physical bounce/recovery system. Authored misses still allow a valid full-course finish; manual recovery, incomplete routes and developer transfer practice cannot set records or advance the chain.
 
-A biome supplies shared architecture, materials, lighting, sky and sound vocabulary; a course owns route, collision, placement and event pacing. Reuse public [Worldkit](../../../worldkit/README.md) kits where suitable and canonical local assets where already authored. There is no required circuit/sprint/Freestyle trio per biome. Preserve the original courses when composing siblings.
+## Reuse and direction
 
-Mode variants need their own readable landmarks, physical clearances, menu stills and art review. Badges say Freestyle, Eliminator or Interceptor; boss names are secondary. Retain the [art direction](ART_BIBLE.md), [audio conventions](audio/sounds.md), restrained HUD and complete input/result/retry paths. Register new assets and borrowed sources in [ASSET_MANIFEST.json](ASSET_MANIFEST.json). Completed critic loops remain closed.
+Reuse public [Worldkit](../../../worldkit/README.md) kits and canonical biome assets where suitable. Each sibling course owns its route, placement, collision and event pacing; there is no required circuit/sprint/Freestyle trio. Preserve original courses, readable paths and complete keyboard/controller result/retry flows. Keep mode badges, icons, VFX and sounds consistent with [art direction](ART_BIBLE.md) and [audio conventions](audio/sounds.md); register current assets in [ASSET_MANIFEST.json](ASSET_MANIFEST.json).
 
-## Later gameplay and rewards
+## Later
 
-- **Sidegrades:** start with one weapon variant and possibly one propulsion specialization. Define benefit, tradeoff, slots, cooldown, counterplay and complete icon/VFX/audio presentation. Revisit or replace Magnetic Stabilizer if its air-control role remains too narrow.
-- **Carve and Escape:** prove controlled slide/clean-exit scoring on one banked section and visible pursuit/fair recovery in one suitable sprint biome before authoring full courses.
-- **Assault:** defer its moving targets and vulnerable systems until weapon expansion is established. Redline remains parked.
-- Add specialist series only after measuring duration and compatible scoring; do not extend the original cups or their reward requirements automatically.
-
-## Optional feel and presentation experiments
-
-Future camera, sound, mastery cosmetics or hull-detail experiments need a bounded assignment and matched gameplay views. Story campaigns, open-world conversion, manual weapon aiming, online play and consumable economies remain separately scoped ideas. Current priorities live in the [roadmap](../ROADMAP.md).
+- Weapon/propulsion sidegrades with clear tradeoffs and complete presentation; revisit or replace Magnetic Stabilizer’s narrow role.
+- Carve and Escape remain candidates for suitable banked sections and sprint biomes.
+- Assault follows weapon expansion.

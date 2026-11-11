@@ -459,13 +459,14 @@ try {
               .getAttribute('aria-valuenow'),
             String(after.collected),
           );
-          assert.equal(
+          assert.deepEqual(
             await page
-              .locator(
-                `.career-progress-notch.is-earned[data-unlock="${next}"]`,
-              )
-              .count(),
-            1,
+              .locator('.career-progress-notch')
+              .evaluateAll((notches) =>
+                notches.map((notch) => notch.classList.contains('is-earned')),
+              ),
+            Array.from({ length: after.total }, (_, i) => i < after.collected),
+            'new unlocks extend the filled section without leaving holes',
           );
           await page.locator('[data-action="career"]').click();
           assert.equal(

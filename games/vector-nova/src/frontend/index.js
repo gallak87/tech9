@@ -544,6 +544,11 @@ export async function createFrontend(
             : `[data-level="${selected}"]`,
     );
   }
+  function resultsFocusSelector() {
+    return cupCelebration
+      ? '[data-action="cup-standings"]'
+      : '.front-content .primary:not(:disabled)';
+  }
   function focusPickerHeader() {
     focusMenu(
       shell.querySelector('.picker-header button:last-child') ??
@@ -599,12 +604,18 @@ export async function createFrontend(
                     ? '[data-action="cancel"]'
                     : cupCelebration
                       ? '[data-action="cup-standings"]'
-                      : 'h1';
-    const focusedControl = shell.querySelector(focus);
+                      : next === 'results'
+                        ? resultsFocusSelector()
+                        : 'h1';
+    const focusedControl =
+      shell.querySelector(focus) ??
+      (next === 'results' ? shell.querySelector('h1') : null);
     const focusTarget = focusedControl?.disabled
       ? shell.querySelector('.mode-picker button[aria-pressed="true"]')
       : focusedControl;
     focusTarget?.focus({ preventScroll: true });
+    if (next === 'results')
+      focusTarget?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     if (next === 'circuits')
       shell.querySelector(focus)?.scrollIntoView({ block: 'nearest' });
     updateStatus();
@@ -775,11 +786,11 @@ export async function createFrontend(
     }
     const guide =
       intent === 'freestyle'
-        ? `<aside class="freestyle-guide" aria-label="Freestyle controls"><p><b>WASD</b> drive · <b>↑ / ↓</b> pitch · <b>← / →</b> roll · <b>Q / E</b> flat-spin · <b>Space</b> airbrake · <b>Shift</b> boost</p><p class="freestyle-pad-guide">Pad: <b>left stick</b> steer · <b>right stick</b> pitch / roll · <b>X / Y</b> flat-spin · <b>${controllerLayout(settings).throttle} / ${controllerLayout(settings).brake}</b> throttle / brake · <b>${controllerLayout(settings).airbrake}</b> airbrake · <b>${controllerLayout(settings).boost}</b> boost</p></aside>`
+        ? `<aside class="freestyle-guide" aria-label="Freestyle controls"><p><b>WASD</b> drive · <b>↑ / ↓</b> pitch · <b>← / →</b> roll · <b>Q / E</b> flat-spin · <b>Space</b> airbrake · <b>Shift</b> boost</p><p class="freestyle-pad-guide">Pad: <b>left stick</b> steer · <b>right stick</b> pitch / roll · <b>X / Y</b> flat-spin · <b>${controllerLayout(settings).throttle} / ${controllerLayout(settings).brake}</b> throttle / brake · <b>${controllerLayout(settings).airbrake}</b> airbrake · <b>${controllerLayout(settings).boost}</b> boost</p><p class="mode-build-status">Stock ship · equipment disabled</p></aside>`
         : intent === 'eliminator'
-          ? `<aside class="event-guide"><h3>Stay ahead of the cut.</h3><p>Last place is eliminated after <b>22 seconds</b>, then every <b>10 seconds</b>.</p><p><b>Q / X</b> Equipment 1 · <b>E / Y</b> Equipment 2 · <b>Shift / ${controllerLayout(settings).boost}</b> Boost</p><p>Your equipped build and track weapons are active.</p></aside>`
+          ? `<aside class="event-guide" aria-label="Eliminator rules and controls"><p>Last place is eliminated after <b>22 seconds</b>, then every <b>10 seconds</b>.<span class="eliminator-finish-rule">${isSprint() ? ' First to the lead deck also wins.' : ''}</span></p><p><b>Q / X</b> Equipment 1 · <b>E / Y</b> Equipment 2 · <b>Shift / ${controllerLayout(settings).boost}</b> Boost</p><p class="mode-build-status">Equipped build · track weapons</p></aside>`
           : intent === 'interceptor'
-            ? `<aside class="event-guide"><h3>Stop ${escape(encounterBoss().name)} within 2 laps.</h3><p><b>Hold Q / X</b> Fire Lance · <b>E / Y</b> Refill reserve · <b>Shift / ${controllerLayout(settings).boost}</b> Boost</p><p>Stock ship · issued Lance + Injector</p></aside>`
+            ? `<aside class="event-guide" aria-label="Interceptor objective and controls"><h3 class="event-boss"><span>Boss:</span> <strong class="event-boss-name">${escape(encounterBoss().name)}</strong></h3><p>Stop the boss within <b>2 laps</b>.</p><p><b>Hold Q / X</b> Fire Lance · <b>E / Y</b> Refill reserve · <b>Shift / ${controllerLayout(settings).boost}</b> Boost</p><p class="mode-build-status">Stock ship · issued Lance + Injector</p></aside>`
             : '';
     return `<section class="circuit-picker-panel" aria-label="Choose a track"><div class="circuit-hero" aria-live="polite"></div>${guide}<div class="circuit-grid" role="group" aria-label="Tracks">${[
       ...groups,
@@ -892,7 +903,7 @@ export async function createFrontend(
     const selectedCraft = lockedCup()
       ? SHIPS.find((entry) => entry.id === savedCup.shipId)
       : selectedShip();
-    return `<section class="race-menu" aria-label="Session setup">${import.meta.env?.VN_EDITION === 'demo' ? '<p class="demo-edition">DEMO · Kestrel · 2 courses · Unlimited play</p>' : ''}${sessionReturn()}${modePicker()}<button class="menu-selection" data-action="circuits"><span>${cup ? 'Cup' : 'Track'}</span><div><strong>${escape(cup ? cup.name : level().name)}</strong><small>${cup ? `${cup.tracks.length} races · ${savedCup ? `${savedCup.results.length} scored` : 'Championship'}` : intent === 'interceptor' ? `${escape(encounterBoss().name)} · Interceptor` : `${trackChallenge(selected)} · ${intent === 'freestyle' ? 'Freestyle · stock build' : intent === 'eliminator' ? 'Eliminator' : isSprint() ? 'Downhill sprint' : 'Circuit'}`}</small></div><b aria-hidden="true">›</b></button><button class="menu-selection" data-action="ship-step"><span>Ship</span><div><strong>${selectedCraft.name}</strong><small>${lockedCup() ? 'Locked for this cup' : selectedCraft.role}</small></div><b aria-hidden="true">${lockedCup() ? '—' : '›'}</b></button>${raceActions()}<div class="menu-extras"><button data-action="records" aria-pressed="${screen === 'records'}">Time Trial records</button>${developer ? button('inspect', 'Ship inspector') : ''}</div>${careerProgressView(profile())}${cupCabinet(cupCollection.snapshot(), cups())}${import.meta.env?.VN_DESKTOP === true ? `<nav class="menu-links" aria-label="Application">${button('desktop-quit', 'Quit game')}</nav>` : ''}<div class="transfer-slot menu-transfer"></div>${savedCup && !cup ? `<aside class="saved-cup">${button('saved-cup', `${cupDefinition(savedCup.cupId).name} · ${savedCup.results.length}/${cupDefinition(savedCup.cupId).tracks.length} scored →`)}</aside>` : ''}</section>`;
+    return `<section class="race-menu" aria-label="Session setup">${import.meta.env?.VN_EDITION === 'demo' ? '<p class="demo-edition">DEMO · Kestrel · 2 courses · Unlimited play</p>' : ''}${sessionReturn()}${modePicker()}<button class="menu-selection" data-action="circuits"><span>${cup ? 'Cup' : 'Track'}</span><div><strong>${escape(cup ? cup.name : level().name)}</strong><small>${cup ? `${cup.tracks.length} races · ${savedCup ? `${savedCup.results.length} scored` : 'Championship'}` : `${trackChallenge(selected)} · ${modeUnlockRequirement(intent)?.label ?? (isSprint() ? 'Downhill sprint' : 'Circuit')}`}</small></div><b aria-hidden="true">›</b></button><button class="menu-selection" data-action="ship-step"><span>Ship</span><div><strong>${selectedCraft.name}</strong><small>${lockedCup() ? 'Locked for this cup' : selectedCraft.role}</small></div><b aria-hidden="true">${lockedCup() ? '—' : '›'}</b></button>${raceActions()}<div class="menu-extras"><button data-action="records" aria-pressed="${screen === 'records'}">Time Trial records</button>${developer ? button('inspect', 'Ship inspector') : ''}</div>${careerProgressView(profile())}${cupCabinet(cupCollection.snapshot(), cups())}${import.meta.env?.VN_DESKTOP === true ? `<nav class="menu-links" aria-label="Application">${button('desktop-quit', 'Quit game')}</nav>` : ''}<div class="transfer-slot menu-transfer"></div>${savedCup && !cup ? `<aside class="saved-cup">${button('saved-cup', `${cupDefinition(savedCup.cupId).name} · ${savedCup.results.length}/${cupDefinition(savedCup.cupId).tracks.length} scored →`)}</aside>` : ''}</section>`;
   };
   function cupPanel(withActions) {
     const cup = currentCup();
@@ -1107,7 +1118,7 @@ export async function createFrontend(
           .join(' → ')}`;
     } else if (screen === 'results' && lastResults?.mode === 'freestyle') {
       const r = lastResults;
-      content.innerHTML = `<section class="result-panel freestyle-results">${heading('FREESTYLE / ' + escape(loadedLevel().name.toUpperCase()), r.playerValid ? `${r.medal}${r.improved ? ' · Personal best' : ''}` : 'Practice score · unranked')}<div class="fs-result-score">${r.score.toLocaleString()}</div><div class="fs-result-summary"><span><b>${r.bestChain}</b>best chain</span><span><b>${r.landed ?? r.legs.filter((leg) => leg.landed || leg.clean).length} / ${transferCount(loadedId)}</b>landed · ${r.clean} clean</span><span><b>${r.best?.toLocaleString() ?? '—'}</b>personal best</span></div><ol aria-label="Transfer scores">${r.legs.map((leg, i) => `<li><b>TRANSFER ${i + 1}</b><span>${escape(leg.reason)}${leg.tricks.length ? ' · ' + leg.tricks.map((k) => TRICKS[k].name).join(' + ') : ''}</span><span>${leg.bank ? '+' : ''}${leg.bank.toLocaleString()}</span></li>`).join('')}</ol><p class="results-note">${r.playerValid ? (r.improved ? (r.saved ? 'Personal best saved on this device.' : 'Best retained for this session; storage unavailable.') : 'Personal best unchanged.') : 'An incomplete route or manual recovery invalidated this record. Retry from the start for a ranked score.'}</p><div class="front-actions results-actions">${button('retry-race', 'Retry Freestyle →', true)}${button('change', 'Back to setup')}</div></section>`;
+      content.innerHTML = `<section class="result-panel freestyle-results">${heading('FREESTYLE / ' + escape(loadedLevel().name.toUpperCase()), r.playerValid ? `${r.medal}${r.improved ? ' · Personal best' : ''}` : 'Practice score · unranked')}<div class="fs-result-score">${r.score.toLocaleString()}</div><div class="fs-result-summary"><span><b>${r.bestChain}</b>best chain</span><span><b>${r.landed ?? r.legs.filter((leg) => leg.landed || leg.clean).length} / ${transferCount(loadedId)}</b>landed · ${r.clean} clean</span><span><b>${r.best?.toLocaleString() ?? '—'}</b>personal best</span></div><ol aria-label="Transfer scores">${r.legs.map((leg, i) => `<li><b>TRANSFER ${i + 1}</b><span>${escape(leg.reason)}${leg.tricks.length ? ' · ' + leg.tricks.map((k) => TRICKS[k].name).join(' + ') : ''}</span><span>${leg.bank ? '+' : ''}${leg.bank.toLocaleString()}</span></li>`).join('')}</ol><p class="results-note">${r.playerValid ? (r.improved ? (r.saved ? 'Personal best saved on this device.' : 'Best retained for this session; storage unavailable.') : 'Personal best unchanged.') : 'An incomplete route or manual recovery invalidated this record. Retry from the start for a ranked score.'}</p><div class="front-actions results-actions">${button('change', 'Race setup →', true)}${button('retry-race', 'Retry Freestyle')}</div></section>`;
     } else if (screen === 'results' && lastResults?.mode === 'eliminator') {
       content.innerHTML = eliminatorResultsView(lastResults, {
         courseName: loadedLevel().name,
@@ -1135,7 +1146,7 @@ export async function createFrontend(
           : player?.position === 1
             ? 'Winner.'
             : 'Race finished.';
-      content.innerHTML = `<section class="result-panel">${heading('FINISH / ' + escape(loadedLevel().name.toUpperCase()), title)}<div class="front-actions results-actions">${button('retry-race', 'Retry Quick Race →', true)}${button('continue', 'Continue driving')}${button('change', 'Back to setup')}</div><div class="results-layout"><section class="result-personal"><span class="kicker">${lastResults?.playerValid ? 'RACE TIME' : 'UNRANKED RUN'}</span><strong>${stamp(lastResults?.playerTotalTime)}</strong><p>${lastResults?.playerValid ? `${sprint ? 'One descent' : `${lastResults.laps ?? 2} laps`} · ${escape(lastResults.difficulty ?? settings.difficulty)}` : `${sprint ? 'This descent' : 'A lap'} was invalidated. This run does not count toward classification.`}</p><div class="lap-splits">${(lastResults?.playerLapTimes ?? []).map((t, i) => `<span>${sprint ? 'DESCENT' : `LAP ${i + 1}`}<b>${stamp(t)}</b></span>`).join('')}</div></section><section><ol class="results-list" aria-label="Race classification" tabindex="0"></ol><p class="results-note" role="status"></p></section></div></section>`;
+      content.innerHTML = `<section class="result-panel">${heading('FINISH / ' + escape(loadedLevel().name.toUpperCase()), title)}<div class="front-actions results-actions">${button('change', 'Race setup →', true)}${button('continue', 'Continue driving')}${button('retry-race', 'Retry Quick Race')}</div><div class="results-layout"><section class="result-personal"><span class="kicker">${lastResults?.playerValid ? 'RACE TIME' : 'UNRANKED RUN'}</span><strong>${stamp(lastResults?.playerTotalTime)}</strong><p>${lastResults?.playerValid ? `${sprint ? 'One descent' : `${lastResults.laps ?? 2} laps`} · ${escape(lastResults.difficulty ?? settings.difficulty)}` : `${sprint ? 'This descent' : 'A lap'} was invalidated. This run does not count toward classification.`}</p><div class="lap-splits">${(lastResults?.playerLapTimes ?? []).map((t, i) => `<span>${sprint ? 'DESCENT' : `LAP ${i + 1}`}<b>${stamp(t)}</b></span>`).join('')}</div></section><section><ol class="results-list" aria-label="Race classification" tabindex="0"></ol><p class="results-note" role="status"></p></section></div></section>`;
       if (trial) {
         const r = lastResults;
         const signed = formatDelta;
@@ -1148,7 +1159,7 @@ export async function createFrontend(
         const detail = content.querySelector('.results-list').parentElement;
         detail.innerHTML = `<p class="trial-best">PERSONAL BEST <b>${stamp(r.bestTime)}</b></p><h2 class="trial-split-title">Cumulative splits</h2><p class="trial-split-key">Elapsed time at each sector · − ahead / + behind previous best</p><ol class="trial-splits" aria-label="Cumulative splits against previous best">${r.splits.map((t, i) => `<li><span>${sprint ? '' : `L${Math.floor(i / 3) + 1} · `}S${(i % 3) + 1}</span><b>${stamp(t)}</b><span>${signed(r.splitDeltas[i])}</span></li>`).join('')}</ol><p class="results-note" role="status">${!r.playerValid ? 'Best and ghost unchanged.' : r.improved ? (r.saved.saved ? (r.saved.ghostSaved ? 'Best and personal ghost saved on this device.' : 'Best saved. Ghost could not be saved; storage may be full or the run exceeded 20 minutes.') : 'Storage unavailable. Best and ghost are kept for this page session only.') : r.ghostAvailable ? 'Personal best unchanged.' : 'Personal best unchanged. No compatible ghost is saved for this best.'}</p>`;
         const retry = content.querySelector('[data-action="retry-race"]');
-        retry.textContent = 'Retry Time Trial →';
+        retry.textContent = 'Retry Time Trial';
         const records = content.querySelector('[data-action="continue"]');
         records.dataset.action = 'records';
         records.textContent = 'Time Trial records';
@@ -1265,7 +1276,14 @@ export async function createFrontend(
       node = shell.querySelector('.circuit-hero');
     if (!node) return;
     previewLevelId = id;
-    node.innerHTML = `<div class="detail-image">${picture(r)}${routeArt(r)}${goalBadges(id)}${trackBadge(id)}<div class="track-caption"><h2>${escape(l.name)}</h2><p>${eventTypeFor(id) === 'interceptor' ? escape(encounterBoss(id).name) : trackChallenge(id)} · ${r ? (r.length / 1000).toFixed(2) + ' km' : '—'}</p></div></div>`;
+    node.innerHTML = `<div class="detail-image">${picture(r)}${routeArt(r)}${goalBadges(id)}${trackBadge(id)}<div class="track-caption"><h2>${escape(l.name)}</h2><p>${trackChallenge(id)} · ${r ? (r.length / 1000).toFixed(2) + ' km' : '—'}</p></div></div>`;
+    const bossName = shell.querySelector('.event-boss-name');
+    if (bossName) bossName.textContent = encounterBoss(id).name;
+    const finishRule = shell.querySelector('.eliminator-finish-rule');
+    if (finishRule)
+      finishRule.textContent = isSprint(id)
+        ? ' First to the lead deck also wins.'
+        : '';
   }
   function showCupDetail(id) {
     const cup = cupDefinition(id),
@@ -1373,11 +1391,7 @@ export async function createFrontend(
         render();
         if (data.final && waiting) {
           shell.scrollTop = 0;
-          shell
-            .querySelector(
-              cupCelebration ? '[data-action="cup-standings"]' : 'h1',
-            )
-            ?.focus({ preventScroll: true });
+          focusMenu(resultsFocusSelector());
         } else focusMenu(focused);
       }
       return;
@@ -2018,7 +2032,7 @@ export async function createFrontend(
     'cup-standings'() {
       cupCelebration = null;
       render();
-      focusMenu('h1');
+      focusMenu(resultsFocusSelector());
     },
     'saved-cup': openCup,
     'cup-start'() {

@@ -110,12 +110,11 @@ export function courseResultsView(before, after, catalog = []) {
 }
 export function careerProgressView(profile) {
   const progress = careerUnlockProgress(profile);
-  return `<section class="career-progress" aria-label="Career unlock collection"><div class="career-progress-heading"><span>Unlocks</span><span>${progress.collected}<span class="career-progress-total"> / ${progress.total}</span></span></div><div class="career-progress-bar" role="progressbar" aria-label="Career unlocks" aria-valuemin="0" aria-valuemax="${progress.total}" aria-valuenow="${progress.collected}" aria-valuetext="${progress.collected} of ${progress.total} unlocks collected" style="--reward-count:${progress.total}">${progress.items
-    .map(
-      (item) =>
-        `<span class="career-progress-notch${item.collected ? ' is-earned' : ''}" data-unlock="${item.id}" aria-hidden="true"></span>`,
-    )
-    .join('')}</div></section>`;
+  return `<section class="career-progress" aria-label="Career unlock collection"><div class="career-progress-heading"><span>Unlocks</span><span>${progress.collected}<span class="career-progress-total"> / ${progress.total}</span></span></div><div class="career-progress-bar" role="progressbar" aria-label="Career unlocks" aria-valuemin="0" aria-valuemax="${progress.total}" aria-valuenow="${progress.collected}" aria-valuetext="${progress.collected} of ${progress.total} unlocks collected" style="--reward-count:${progress.total}">${Array.from(
+    { length: progress.total },
+    (_, index) =>
+      `<span class="career-progress-notch${index < progress.collected ? ' is-earned' : ''}" aria-hidden="true"></span>`,
+  ).join('')}</div></section>`;
 }
 export function careerView(profile, { catalog = [] } = {}) {
   const progress = careerUnlockProgress(profile);

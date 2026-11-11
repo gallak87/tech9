@@ -45,7 +45,7 @@ test('career presents one 37-item unlock collection with all gear and course ite
   assert.doesNotMatch(bar, /course-progress|<img|<svg/);
 });
 
-test('one static bar activates actual gear and derived course items without developer inflation', () => {
+test('the static bar fills continuously from the left when gear and courses unlock out of order', () => {
   const profile = freshProfile();
   profile.claims = ['speed-1'];
   profile.cups = ['horizon'];
@@ -72,15 +72,12 @@ test('one static bar activates actual gear and derived course items without deve
     (bar.match(/class="career-progress-notch is-earned"/g) ?? []).length,
     3,
   );
-  for (const id of ['speed-1', 'interceptor', 'interceptor-helion'])
-    assert.match(
-      bar,
-      new RegExp(`career-progress-notch is-earned" data-unlock="${id}"`),
-    );
-  assert.match(bar, /career-progress-notch" data-unlock="launchworks"/);
-  assert.match(
-    bar,
-    /career-progress-notch" data-unlock="interceptor-nightweir"/,
+  assert.deepEqual(
+    [...bar.matchAll(/class="career-progress-notch( is-earned)?"/g)].map(
+      (match) => !!match[1],
+    ),
+    [...Array(3).fill(true), ...Array(34).fill(false)],
+    'every collected unlock fills the next notch, without holes for unearned catalog items',
   );
 });
 

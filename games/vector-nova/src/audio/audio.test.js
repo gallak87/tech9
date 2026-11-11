@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createAudio } from './index.js';
+import { createLandingAudio, LANDING_AUDIO_RULES } from './landing.js';
+import { createFreestyleAudio } from '../freestyle/audio.js';
 import { createPropulsion } from './propulsion.js';
 import { createPickupAudio } from '../pickups/audio.js';
 import { DEVICE_SAMPLES, deviceSample } from '../pickups/sample-cues.js';
@@ -139,6 +141,176 @@ function sampleContext(durations = {}) {
   };
   return context;
 }
+
+test('neutral landing voices require confirmed presentation events, dedupe contacts and never queue past the voice cap', () => {
+  const context = new Context(),
+    destination = {};
+  const landing = createLandingAudio(context, destination);
+  const contact = (at, strength = 1) => ({
+    type: 'landing-catch',
+    payload: { id: 'course-jump', at, strength },
+  });
+  assert.equal(
+    landing.trigger(contact(1)),
+    false,
+    'does not resume suspended audio',
+  );
+  context.state = 'running';
+  for (const event of [
+    { type: 'jump-transfer', payload: { outcome: 'landed' } },
+    { type: 'jump-transfer', payload: { outcome: 'recovered' } },
+    { type: 'freestyle-bank', payload: { landed: true } },
+    { type: 'landing-catch', payload: { at: 1 } },
+    contact(NaN),
+    contact(-1),
+    contact(1, NaN),
+    contact(1, 0),
+  ])
+    assert.equal(landing.trigger(event), false);
+  assert.equal(landing.trigger(contact(1, 0.5)), true);
+  assert.equal(landing.trigger(contact(1, 0.5)), false);
+  assert.equal(landing.trigger(contact(2, 3)), true);
+  assert.equal(landing.trigger(contact(3)), false);
+  const sources = () => context.nodes.filter((node) => node.kind === 'buffer');
+  assert.equal(sources().length, LANDING_AUDIO_RULES.maxVoices);
+  for (const [index, source] of sources().entries()) {
+    assert.equal(source.destination.destination, destination);
+    assert.equal(
+      source.destination.gain.value,
+      LANDING_AUDIO_RULES.gain * (index ? 1 : 0.5),
+    );
+    assert.equal(source.stops[0], context.currentTime + source.buffer.duration);
+  }
+  sources()[0].onended();
+  assert.equal(
+    landing.trigger(contact(3)),
+    false,
+    'a dropped cue cannot play late',
+  );
+  assert.equal(landing.trigger(contact(4)), true);
+  landing.stop();
+  assert.equal(landing.getPresentation().activeVoices, 0);
+  assert.ok(sources().every((source) => source.disconnected));
+  assert.equal(
+    landing.trigger(contact(1)),
+    false,
+    'pause keeps contact dedupe',
+  );
+  landing.reset();
+  assert.equal(
+    landing.trigger(contact(1)),
+    true,
+    'a fresh attempt may reuse contact identity',
+  );
+  landing.dispose();
+  assert.equal(landing.trigger(contact(5)), false);
+  assert.equal(landing.getPresentation().activeVoices, 0);
+});
+
+test('common landing cues compose with biome audio and obey unlock, mute, pause, results, retry and disposal', async () => {
+  const context = new Context();
+  let destination,
+    biomeEvents = 0,
+    biomeDisposed = 0;
+  const audio = createAudio({
+    createContext: () => context,
+    engine: false,
+    samples: {},
+    environment: (_context, bus) => {
+      destination = bus;
+      return {
+        trigger() {
+          biomeEvents++;
+        },
+        stop() {},
+        dispose() {
+          biomeDisposed++;
+        },
+      };
+    },
+  });
+  const contact = (at) => ({
+    type: 'landing-catch',
+    payload: { id: 'jump', at, strength: 0.75 },
+  });
+  assert.equal(audio.event(contact(1)), false);
+  assert.equal(context.resumes, 0);
+  await audio.unlock();
+  assert.equal(
+    audio.event(contact(1)),
+    false,
+    'unlock alone is not active driving',
+  );
+  audio.update(state, 0.5, true);
+  audio.event({ type: 'biome-ambience' });
+  assert.equal(biomeEvents, 1);
+  assert.equal(audio.event(contact(1)), true);
+  const source = context.nodes.find((node) => node.kind === 'buffer');
+  assert.equal(
+    source.destination.destination,
+    destination,
+    'same biome/effects bus',
+  );
+  assert.equal(
+    biomeEvents,
+    1,
+    'the common cue does not duplicate into a biome owner',
+  );
+  assert.equal(audio.getStatus().landing.triggerCount, 1);
+  for (const options of [
+    { running: false },
+    { running: false, countdown: true },
+    { running: false, results: true },
+    { running: true, volume: 0 },
+  ]) {
+    audio.update(state, options.volume ?? 0.5, options.running, options);
+    assert.equal(audio.getStatus().landing.activeVoices, 0);
+    assert.equal(audio.event(contact(2)), false);
+    audio.update(state, 0.5, true);
+    assert.equal(
+      audio.event(contact(1)),
+      false,
+      'resuming cannot replay the old contact',
+    );
+  }
+  assert.equal(audio.event(contact(2)), true);
+  audio.resetEnvironment();
+  assert.equal(audio.getStatus().landing.activeVoices, 0);
+  assert.equal(audio.event(contact(1)), true);
+  await audio.dispose();
+  assert.equal(biomeDisposed, 1);
+  assert.equal(audio.getStatus().landing.activeVoices, 0);
+  assert.equal(audio.event(contact(3)), false);
+});
+
+test('Freestyle retains its one graded landing voice without also playing the common cue', async () => {
+  const context = new Context();
+  const audio = createAudio({
+    createContext: () => context,
+    engine: false,
+    samples: {},
+    environment: createFreestyleAudio,
+  });
+  await audio.unlock();
+  audio.update(state, 0.5, true);
+  audio.event({
+    type: 'jump-transfer',
+    payload: { id: 'transfer-1', outcome: 'landed' },
+  });
+  const event = {
+    type: 'freestyle-bank',
+    payload: { id: 'transfer-1', at: 1, landed: true },
+  };
+  audio.event(event);
+  audio.event(event);
+  assert.equal(
+    context.nodes.filter((node) => node.kind === 'buffer').length,
+    1,
+  );
+  assert.equal(audio.getPresentation().lastGrade, 'good');
+  assert.equal(audio.getStatus().landing.triggerCount, 0);
+  await audio.dispose();
+});
 
 test('boss critical audio follows real player core damage and cancels without replay on pause', async () => {
   const context = sampleContext();

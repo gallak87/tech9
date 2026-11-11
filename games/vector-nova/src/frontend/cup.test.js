@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cupView, cupWaitingView } from './cup.js';
+import { cupView, cupWaitingView, cupLaunch } from './cup.js';
 import { createCupStore, availableCups, cupDefinition } from '../race/cup.js';
 import {
   cupCabinet,
@@ -19,7 +19,8 @@ function stateAt(
   ids.splice(position - 1, 0, 'player');
   const store = createCupStore(() => ({ getItem: () => null, setItem() {} }));
   store.start(cupId, 'kestrel', 'easy');
-  for (let event = 0; event < (complete ? 3 : 1); event++) {
+  const events = complete ? cupDefinition(cupId).tracks.length : 1;
+  for (let event = 0; event < events; event++) {
     store.finish({
       standings: ids.map((id, i) => ({
         id,
@@ -28,7 +29,7 @@ function stateAt(
         totalTime: 100 + i,
       })),
     });
-    if (complete && event < 2) store.next();
+    if (event < events - 1) store.next();
   }
   return store.snapshot().state;
 }
@@ -128,6 +129,57 @@ test('final standings include the complete field', () => {
     html,
     /data-action="cup-(?:abandon|retry|restart|confirm)"/,
   );
+});
+test('cup results keep the next race primary until the championship is complete', () => {
+  for (const { id: cupId } of availableCups({ complete: true })) {
+    for (const complete of [false, true]) {
+      for (const valid of [false, true]) {
+        const state = stateAt(5, { cupId, complete, valid });
+        const html = cupView({ state, catalog: [], routes: [] });
+        const action = complete ? 'cup-hub' : 'cup-next';
+        assert.deepEqual(
+          [
+            ...html.matchAll(/<button data-action="([^"]+)" class="primary">/g),
+          ].map((match) => match[1]),
+          [action],
+          `${cupId}: ${complete ? 'completed' : 'intermediate'} results`,
+        );
+        assert.equal(cupLaunch(state, cupId).action, action);
+        if (!complete) {
+          assert.match(html, /data-action="cup-retry" class="">Retry race/);
+          assert.ok(
+            html.indexOf('data-action="cup-next"') <
+              html.indexOf('data-action="cup-retry"'),
+          );
+        }
+      }
+    }
+  }
+});
+test('waiting for cup classification offers the cup hub before a secondary retry', () => {
+  for (const playerValid of [false, true]) {
+    const html = cupWaitingView({
+      playerValid,
+      playerTotalTime: 120,
+      courseFormat: 'circuit',
+      remaining: 9,
+      standings: [
+        {
+          id: 'player',
+          position: 1,
+          finished: true,
+          valid: playerValid,
+          totalTime: 120,
+        },
+      ],
+    });
+    assert.match(
+      html,
+      /<div class="front-actions"><button data-action="cup-hub" class="primary">/,
+    );
+    assert.match(html, /data-action="cup-retry" class="">Retry this race/);
+    assert.doesNotMatch(html, /data-action="cup-next"/);
+  }
 });
 test('results explain the earned next grid instead of promising pole after a win', () => {
   assert.match(resultAt(1), /Next grid: P03 \/ 10/);

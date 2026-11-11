@@ -1,3 +1,5 @@
+import { applyLandingImpulse } from '../presentation/landing-feedback.js';
+
 // The magnetic seat is a visual impulse on the already-supported hull. Its
 // clock comes from contact/settling, never an airborne landing prediction.
 export function freestyleCatchImpulse(
@@ -30,23 +32,5 @@ export function freestyleCatchImpulse(
 }
 
 export function withFreestyleCatchFeedback(feedback, data, options) {
-  const { seat, lock } = freestyleCatchImpulse(data, options);
-  if (!seat && !lock) return feedback;
-  return {
-    ...feedback,
-    // At most 24 cm: a deliberate seat and release, within the hover clearance.
-    hullHeave: feedback.hullHeave - seat * 0.24,
-    hullPitch: feedback.hullPitch + seat * 0.008,
-    fov: feedback.fov - seat * 0.85 - lock * 0.35,
-    position: [
-      feedback.position[0],
-      feedback.position[1] - seat * 0.08,
-      feedback.position[2] - lock * 0.09,
-    ],
-    rotation: [
-      feedback.rotation[0] + seat * 0.002,
-      feedback.rotation[1],
-      feedback.rotation[2],
-    ],
-  };
+  return applyLandingImpulse(feedback, freestyleCatchImpulse(data, options));
 }

@@ -1,6 +1,7 @@
 import { createPropulsion, smooth } from './propulsion.js';
 import { createNacreThunder } from './nacre-thunder.js';
 import { createImmersionMix } from './immersion.js';
+import { createLandingAudio } from './landing.js';
 import { createSampleBank } from './sample-bank.js';
 import { RACE_SAMPLES, raceSample } from './sample-cues.js';
 
@@ -33,6 +34,7 @@ export function createAudio({
     owned.propulsion?.dispose();
     owned.thunder?.dispose();
     owned.environment?.dispose();
+    owned.landing.dispose();
     for (const shot of owned.shots) shot.stop();
     owned.shots.clear();
     owned.bus.disconnect();
@@ -103,6 +105,7 @@ export function createAudio({
                   })
                 : null,
               environment: environment?.(context, bus),
+              landing: createLandingAudio(context, bus),
               shots: new Set(),
             };
           }
@@ -153,6 +156,7 @@ export function createAudio({
       smooth(propulsionBus.gain, running ? 1 : 0, context.currentTime, 0.012);
       if (running) propulsion?.update(state);
       if (!environmentActive) {
+        resources.landing.stop();
         resources.environment?.stop();
         resources.thunder?.stop();
       }
@@ -163,6 +167,7 @@ export function createAudio({
         }
     },
     resetEnvironment() {
+      resources?.landing.reset();
       resources?.thunder?.stop();
       resources?.environment?.stop();
       if (resources) {
@@ -180,6 +185,7 @@ export function createAudio({
         loadedSamples: resources?.samples.loaded() ?? [],
         missingSamples: resources?.samples.missing() ?? Object.keys(samples),
         immersion: resources?.immersion?.getStatus() ?? null,
+        landing: resources?.landing.getPresentation() ?? null,
       };
     },
     getPresentation() {
@@ -194,6 +200,11 @@ export function createAudio({
       return sample ? (resources?.samples.get(sample.id)?.duration ?? 0) : 0;
     },
     event(event) {
+      if (event?.type === 'landing-catch') {
+        return resources && !disposed && environmentActive
+          ? resources.landing.trigger(event)
+          : false;
+      }
       if (resources && !disposed && environmentActive)
         resources.environment?.trigger(event);
       if (event?.type === 'nacre-thunder') {

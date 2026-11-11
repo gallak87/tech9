@@ -79,15 +79,15 @@ export function freestyleAttitudeCue(
   if (angularSpeed > 0.65) return `Release rotation · ${brake} fine trim`;
   const keys = gamepad
     ? {
-        pitch: ['STICK ↑', 'STICK ↓'],
-        yaw: ['X', 'Y'],
-        roll: ['STICK →', 'STICK ←'],
+        pitch: ['STICK ↓', 'STICK ↑'],
+        yaw: ['Y', 'X'],
+        roll: ['STICK ←', 'STICK →'],
       }
-    : { pitch: ['↑', '↓'], yaw: ['Q', 'E'], roll: ['→', '←'] };
+    : { pitch: ['↓', '↑'], yaw: ['E', 'Q'], roll: ['←', '→'] };
   const actions = {
     pitch: ['nose up', 'nose down'],
-    yaw: ['turn left', 'turn right'],
-    roll: ['roll right', 'roll left'],
+    yaw: ['turn right', 'turn left'],
+    roll: ['roll left', 'roll right'],
   };
   const corrections = Object.entries(reference.correction)
     .filter(

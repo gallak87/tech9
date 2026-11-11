@@ -321,7 +321,7 @@ test('demo saves carry rewards and trophy to full; full saves round-trip through
   );
   assert.doesNotMatch(
     demo.careerProgressView(original),
-    /course-progress|data-unlock="(?:launchworks|freestyle-|eliminator-|interceptor)/,
+    /course-progress|data-unlock/,
   );
   assert.equal(
     (

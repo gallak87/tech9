@@ -1,4 +1,5 @@
 import { freestyleLandingGrade } from './arcade.js';
+import { createLandingAudioBuffer } from '../audio/landing.js';
 
 export const FREESTYLE_AUDIO_RULES = Object.freeze({
   maxVoices: 2,
@@ -13,7 +14,6 @@ export const FREESTYLE_AUDIO_RULES = Object.freeze({
 });
 const TAU = Math.PI * 2;
 const profiles = {
-  good: { start: 88, end: 43, fall: 0.043, decay: 0.07, latch: 310 },
   great: { start: 112, end: 49, fall: 0.036, decay: 0.084, latch: 350 },
   perfect: { start: 124, end: 52, fall: 0.036, decay: 0.088, latch: 380 },
 };
@@ -23,6 +23,7 @@ const trickNotes = { roll: 294, flip: 349, spin: 330, corkscrew: 392 };
 // and falling low body share one attack; the tail only decays, with no late
 // click, noisy crackle or delayed laser chirp. All buffers are prepared at unlock.
 export function createFreestyleAudioBuffer(context, kind, trick = 'roll') {
+  if (kind === 'good') return createLandingAudioBuffer(context);
   const duration = FREESTYLE_AUDIO_RULES.durations[kind];
   if (!duration) throw new Error(`Unknown Freestyle sound: ${kind}`);
   const rate = context.sampleRate;

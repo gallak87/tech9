@@ -30,7 +30,7 @@ export function settingsView(
         ...(freestyle
           ? [
               ['WASD', 'Throttle, brake and steer'],
-              ['↑ / ↓', 'Pitch nose up / down'],
+              ['↑ / ↓', 'Pitch nose down / up'],
               ['← / →', 'Roll left / right'],
               ['Q / E', 'Flat spin left / right'],
             ]

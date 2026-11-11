@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as T from 'three';
+import { createFreestyleController } from './controller.js';
 import {
   freestyleAttitudeCue,
   freestylePracticeOutcome,
@@ -120,27 +121,27 @@ test('receiver correction uses the real local quaternion and shortest rotation',
 
 test('attitude advice supplies actual signed keys, a quiet deadband and rotation recovery priority', () => {
   const reference = { correction: { pitch: 0.3, yaw: 0.1, roll: -0.7 } };
-  assert.equal(freestyleAttitudeCue(reference), '→ roll right · ↓ nose down');
+  assert.equal(freestyleAttitudeCue(reference), '← roll left · ↑ nose down');
   assert.equal(
     freestyleAttitudeCue(reference, { gamepad: true }),
-    'STICK → roll right · STICK ↓ nose down',
+    'STICK ← roll left · STICK ↑ nose down',
   );
   assert.equal(
     freestyleAttitudeCue(
       { correction: { pitch: -0.4, yaw: 0.7, roll: 0 } },
       { gamepad: true },
     ),
-    'Y turn right · STICK ↑ nose up',
+    'X turn left · STICK ↓ nose up',
   );
   const opposite = { correction: { pitch: -0.4, yaw: -0.7, roll: 0.9 } };
-  assert.equal(freestyleAttitudeCue(opposite), '← roll left · Q turn left');
+  assert.equal(freestyleAttitudeCue(opposite), '→ roll right · E turn right');
   assert.equal(
     freestyleAttitudeCue(opposite, { gamepad: true }),
-    'STICK ← roll left · X turn left',
+    'STICK → roll right · Y turn right',
   );
   assert.equal(
     freestyleAttitudeCue({ correction: { pitch: -0.7, yaw: 0.4, roll: 0 } }),
-    '↑ nose up · E turn right',
+    '↓ nose up · Q turn left',
   );
   assert.equal(
     freestyleAttitudeCue({
@@ -153,4 +154,36 @@ test('attitude advice supplies actual signed keys, a quiet deadband and rotation
     'Release rotation · SPACE fine trim',
   );
   assert.equal(freestyleAttitudeCue(undefined), '');
+});
+
+test('coaching keys describe the real local correction and turn the hull toward its receiver', () => {
+  const hull = new T.Quaternion().setFromEuler(new T.Euler(0.4, 0.7, -0.2));
+  for (const [axis, field, sign, key, pad, action] of [
+    [new T.Vector3(1, 0, 0), 'aerialPitch', -1, '↓', 'STICK ↓', 'nose up'],
+    [new T.Vector3(1, 0, 0), 'aerialPitch', 1, '↑', 'STICK ↑', 'nose down'],
+    [new T.Vector3(0, 1, 0), 'aerialYaw', -1, 'E', 'Y', 'turn right'],
+    [new T.Vector3(0, 1, 0), 'aerialYaw', 1, 'Q', 'X', 'turn left'],
+    [new T.Vector3(0, 0, 1), 'aerialRoll', -1, '←', 'STICK ←', 'roll left'],
+    [new T.Vector3(0, 0, 1), 'aerialRoll', 1, '→', 'STICK →', 'roll right'],
+  ]) {
+    const target = hull
+      .clone()
+      .multiply(new T.Quaternion().setFromAxisAngle(axis, sign * 0.7));
+    const reference = { correction: freestyleReceiverCorrection(hull, target) };
+    assert.equal(freestyleAttitudeCue(reference), `${key} ${action}`);
+    assert.equal(
+      freestyleAttitudeCue(reference, { gamepad: true }),
+      `${pad} ${action}`,
+    );
+    const controller = createFreestyleController({ jumps: [] });
+    controller.launch('correction');
+    for (let tick = 0; tick < 24; tick++)
+      controller.step({ [field]: sign }, 1 / 120);
+    const corrected = hull.clone();
+    controller.attitude(corrected);
+    assert.ok(
+      corrected.angleTo(target) < hull.angleTo(target) - 0.05,
+      `${key}: the commanded local rotation approaches the actual receiver`,
+    );
+  }
 });

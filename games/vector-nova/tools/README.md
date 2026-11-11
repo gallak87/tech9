@@ -1,5 +1,7 @@
 # Verification tools
 
+`VN_URL=<dev-server> node tools/landing-verify.mjs` checks shared landing presentation in a muted desktop browser using bounded native jump scenarios, pause/reset and matched warm rendering probes. `node --test tools/landing-feedback.test.mjs` covers actual powered tube contact without changing the simulation. The pure state, pooled renderer and unchanged Freestyle adapter regressions live in `src/presentation/` and `src/freestyle/catch-*.test.js`.
+
 Run these commands from the app directory. `<dev-server>` means a Vite development server; a compiled preview does not serve the `/src/...` modules used by checks that import or intercept source modules. Entry, frontend, component and compatibility launcher checks cover different contracts.
 
 When starting a second Vite server in this checkout, give it an independent optimizer cache, for example `VN_VITE_CACHE_DIR=node_modules/.vite-5187 npm exec vite -- --host 127.0.0.1 --port 5187 --strictPort`. Sharing the default cache between concurrent servers can invalidate one server's optimized dependencies and produce HTTP 504 responses even in a fresh browser.

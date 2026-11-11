@@ -170,12 +170,13 @@ export function createInput(
                 (pad.aerialStickX ?? 0),
             )
           : 0;
+        // Positive local yaw turns the nose left in the rear chase view.
         i.aerialYaw = active
           ? clamp(
-              Number(down('KeyE')) -
-                Number(down('KeyQ')) +
-                Number(pad.equipment2) -
-                Number(pad.equipment1),
+              Number(down('KeyQ')) -
+                Number(down('KeyE')) +
+                Number(pad.equipment1) -
+                Number(pad.equipment2),
             )
           : 0;
         // These buttons belong to attitude control in this discipline. No

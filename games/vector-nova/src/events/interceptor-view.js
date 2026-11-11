@@ -42,7 +42,7 @@ export function interceptorResultsView(
     <div class="interceptor-contributions" aria-label="Damage dealt"><div><span>YOUR DAMAGE</span><b>${player}</b></div><div><span>ALLIED DAMAGE</span><b>${allied}</b></div></div>
     <div class="interceptor-target-health"><div><span>${escape(targetName.toUpperCase())} · HEALTH REMAINING</span><b>${Math.round(remaining)} / ${Math.round(total)}</b></div><div class="ic-health" role="progressbar" aria-label="${escape(targetName)} remaining health" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${remaining}" aria-valuetext="${Math.round(remaining)} health remaining out of ${Math.round(total)}"><i style="transform:scaleX(${remaining / total})"></i></div></div>
     ${result?.playerValid === false ? '<p class="results-note">Unranked run.</p>' : ''}
-    <div class="front-actions results-actions"><button class="primary" data-action="retry-race">Retry Interceptor →</button><button data-action="change">Back to setup</button></div>
+    <div class="front-actions results-actions"><button class="primary" data-action="change">Race setup →</button><button data-action="retry-race">Retry Interceptor</button></div>
   </section>`;
 }
 

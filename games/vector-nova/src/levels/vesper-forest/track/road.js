@@ -127,10 +127,15 @@ export function createVesperRoad({ track, shape = false }) {
     emissive: shape ? 0 : 0x512503,
     emissiveIntensity: 0.13 * lightScale,
   });
-  const milk = new T.MeshStandardMaterial({
-    color: shape ? 0xc1c9cc : 0xd7b47a,
-    roughness: 0.53,
-    metalness: 0.08,
+  const milk = new T.MeshPhysicalMaterial({
+    name: 'Clouded honey resin',
+    color: shape ? 0xc1c9cc : 0xad8048,
+    roughness: 0.42,
+    metalness: 0.02,
+    clearcoat: shape ? 0 : 0.14,
+    clearcoatRoughness: 0.4,
+    specularIntensity: 0.2,
+    specularColor: 0xf4d6aa,
   });
   const smoked = new T.MeshStandardMaterial({
     color: shape ? 0x7b8b90 : 0x673715,
@@ -166,9 +171,9 @@ export function createVesperRoad({ track, shape = false }) {
     roughness: 0.45,
   });
   const sap = new T.MeshPhysicalMaterial({
-    color: 0x49320d,
-    emissive: 0x91600b,
-    emissiveIntensity: 0.15 * lightScale,
+    color: 0x6b2c0c,
+    emissive: 0x542006,
+    emissiveIntensity: 0.1 * lightScale,
     roughness: 0.26,
     clearcoat: 0.48,
     clearcoatRoughness: 0.3,
@@ -273,8 +278,8 @@ export function createVesperRoad({ track, shape = false }) {
             ? `
           float flow = pow(.5+.5*sin(longitudinal*.7-vesperSapTime*.65+sin(resinP.x*1.8+cloud*4.)),7.);
           float bubbles = smoothstep(.76,.91,resinNoise(resinP*.9+vec2(0.,vesperSapTime*.12)));
-          diffuseColor.rgb = mix(diffuseColor.rgb*.62,vec3(.72,.39,.045),flow*.75+bubbles*.22);
-          diffuseColor.rgb += vec3(.14,.065,.006)*bubbles;
+          diffuseColor.rgb = mix(diffuseColor.rgb*.62,vec3(.48,.17,.025),flow*.75+bubbles*.22);
+          diffuseColor.rgb += vec3(.075,.025,.003)*bubbles;
         `
             : ''
         }
@@ -294,8 +299,9 @@ export function createVesperRoad({ track, shape = false }) {
         );
     };
     material.customProgramCacheKey = () =>
-      flowing ? 'vesper-flow-v8-visible-sap' : 'vesper-lamina-v7';
+      flowing ? 'vesper-flow-v9-resin-orange' : 'vesper-lamina-v7';
   }
+  const halfWidth = track.width / 2;
   const slices = [
     0,
     track.length,
@@ -309,8 +315,8 @@ export function createVesperRoad({ track, shape = false }) {
       end = slices[i + 1],
       mid = (start + end) / 2;
     const gap = track.jumps.find((j) => inside(mid, j));
-    if (gap && !gap.optional) continue;
-    const right = gap?.optional ? 5.5 : 14;
+    if (gap) continue;
+    const right = halfWidth;
     const twisting = track.inversions.some(
       (roll) => roll.start < end && roll.end > start,
     );
@@ -325,7 +331,7 @@ export function createVesperRoad({ track, shape = false }) {
       sweepGeometry(
         track,
         [
-          [-14, 0],
+          [-halfWidth, 0],
           [right, 0],
         ],
         { start, end, step: 1, transverseStep: twisting ? 1 : 2 },
@@ -342,9 +348,9 @@ export function createVesperRoad({ track, shape = false }) {
       sweepGeometry(
         track,
         [
-          [-14, 0],
-          [-15.8, -1.4],
-          [-12.2, -4.2],
+          [-halfWidth, 0],
+          [-halfWidth - 1.8, -1.4],
+          [-halfWidth + 1.8, -4.2],
           [right - 1.8, -4.2],
           [right + 1.8, -1.4],
           [right, 0],
@@ -365,24 +371,31 @@ export function createVesperRoad({ track, shape = false }) {
     thickness.name = 'Thick cast resin sides and underside';
     group.add(thickness);
     for (const sign of [-1, 1]) {
-      if (sign === 1 && gap?.optional) continue;
       const curb = new T.Mesh(
-        sweepGeometry(track, boxProfile(sign * 14.75, 0.6, 1.5, 1.2), {
-          start,
-          end,
-          step: 4,
-        }),
+        sweepGeometry(
+          track,
+          boxProfile(sign * (halfWidth + 0.75), 0.6, 1.5, 1.2),
+          {
+            start,
+            end,
+            step: 4,
+          },
+        ),
         shape ? milk : core,
       );
       curb.name = 'Continuous cast resin curb';
       group.add(curb);
       group.add(
         new T.Mesh(
-          sweepGeometry(track, boxProfile(sign * 13.48, 0.07, 0.23, 0.1), {
-            start,
-            end,
-            step: 4,
-          }),
+          sweepGeometry(
+            track,
+            boxProfile(sign * (halfWidth - 0.52), 0.07, 0.23, 0.1),
+            {
+              start,
+              end,
+              step: 4,
+            },
+          ),
           vein,
         ),
       );
@@ -409,28 +422,6 @@ export function createVesperRoad({ track, shape = false }) {
       lane.receiveShadow = true;
       group.add(lane);
     }
-  }
-  for (const jump of track.jumps.filter((j) => j.optional)) {
-    const divider = new T.Mesh(
-      sweepGeometry(track, boxProfile(5.95, 0.55, 0.9, 1.1), {
-        start: jump.takeoff,
-        end: jump.landingStart,
-        step: 2,
-      }),
-      milk,
-    );
-    divider.name = 'Branch bypass main-road protective divider';
-    group.add(divider);
-    group.add(
-      new T.Mesh(
-        sweepGeometry(track, boxProfile(5.95, 1.13, 0.28, 0.08), {
-          start: jump.takeoff,
-          end: jump.landingStart,
-          step: 2,
-        }),
-        vein,
-      ),
-    );
   }
   // Visible films are clipped to the exact same physical zone and road mesh.
   if (!shape) {
@@ -483,23 +474,21 @@ export function createVesperRoad({ track, shape = false }) {
   for (let s = 10; s < track.length; s += 20) {
     if (track.isGap(s, 0)) continue;
     const f = track.sample(s);
-    const optional = track.isGap(s, 9);
     const m = new T.Matrix4().compose(
-      framePoint(f, optional ? -4.25 : 0, 0.06),
+      framePoint(f, 0, 0.06),
       f.quaternion,
-      new T.Vector3(optional ? 19.5 : 28, 0.1, 0.3),
+      new T.Vector3(track.width, 0.1, 0.3),
     );
     seals.push(box.clone().applyMatrix4(m));
     if (!shape)
       for (const side of [-1, 1]) {
-        if (side > 0 && optional) continue;
         // Warm windows below the low curb expose the resin edge depth.
         inlays.push(
           box
             .clone()
             .applyMatrix4(
               new T.Matrix4().compose(
-                framePoint(f, side * 15.6, -1.4),
+                framePoint(f, side * (halfWidth + 1.6), -1.4),
                 f.quaternion,
                 new T.Vector3(0.45, 0.5, 3.4),
               ),
@@ -510,8 +499,8 @@ export function createVesperRoad({ track, shape = false }) {
   box.dispose();
   mergeParts(group, seals, milk, 'Translucent reinforcement joints');
   mergeParts(group, inlays, vein, 'Amber resin edge windows');
-  // Advance lane arrows and continuous boundary inlays communicate a real
-  // flight choice; they are visual guidance, never boost pads or hidden rails.
+  // Full-width chevrons identify the whole launch apron. The usable road
+  // stays the same 28 m through the ramp and receiving deck.
   const guide = new T.MeshStandardMaterial({
     color: 0xf2deb0,
     emissive: 0xcaa261,
@@ -530,8 +519,8 @@ export function createVesperRoad({ track, shape = false }) {
     }
   }
   for (const jump of track.jumps) {
-    const center = jump.optional ? 9.4 : 0;
-    const span = jump.optional ? 2.4 : 6.5;
+    const center = 0;
+    const span = halfWidth - 1.4;
     for (
       let distance = jump.takeoff - 150;
       distance < jump.takeoff - 12;
@@ -547,16 +536,15 @@ export function createVesperRoad({ track, shape = false }) {
         mark(center - span, center + span, distance - 2, distance + 5, arrow);
       }
     }
-    if (jump.optional) mark(5.7, 6.05, jump.takeoff - 165, jump.takeoff - 1);
     mark(
-      jump.optional ? 6.2 : -13.5,
-      13.5,
+      -halfWidth + 0.5,
+      halfWidth - 0.5,
       jump.takeoff - 3.2,
       jump.takeoff - 1.5,
     );
     mark(
-      jump.optional ? 6.2 : -13.5,
-      13.5,
+      -halfWidth + 0.5,
+      halfWidth - 0.5,
       jump.landingStart + 2,
       jump.landingStart + 5,
     );
@@ -570,7 +558,14 @@ export function createVesperRoad({ track, shape = false }) {
   if (!shape) {
     const volumeMaterials = new Set([amber, polished, core]);
     group.traverse((mesh) => {
-      if (!mesh.isMesh || !volumeMaterials.has(mesh.material)) return;
+      if (
+        !mesh.isMesh ||
+        !(
+          volumeMaterials.has(mesh.material) ||
+          (mesh.material === milk && mesh.userData.drivingSurface)
+        )
+      )
+        return;
       const { position, uv } = mesh.geometry.attributes;
       const active = new Float32Array(position.count);
       const coordinates = new Float32Array(position.count * 3);

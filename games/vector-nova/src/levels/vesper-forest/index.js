@@ -29,6 +29,8 @@ export default function createLevel({ shape = false } = {}) {
       bloomThreshold: 1.1,
       fillHeight: 70,
       sunShadowNormalBias: 0.06,
+      sunShadowRadius: 3,
+      sunShadowIntensity: 0.72,
       sunShadowBias: -0.00009,
       reflectionFar: 1800,
       contact: shape ? undefined : { surfaceStep: 3, opacity: 0.5 },
@@ -47,7 +49,9 @@ export default function createLevel({ shape = false } = {}) {
     createEnvironment: async (context) =>
       shape
         ? { group: new T.Group(), dispose() {} }
-        : withVesperSapEffects(await createVesperEnvironment(context)),
+        : withVesperSapEffects(await createVesperEnvironment(context), {
+            track: context.track,
+          }),
     createBackdrop: (context) =>
       shape
         ? {

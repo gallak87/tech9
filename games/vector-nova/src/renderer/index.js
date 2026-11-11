@@ -115,6 +115,8 @@ export async function createRenderer(
     });
     sun.shadow.bias = options.sunShadowBias ?? -0.00007;
     sun.shadow.normalBias = options.sunShadowNormalBias ?? 0.025;
+    sun.shadow.radius = options.sunShadowRadius ?? 1;
+    sun.shadow.intensity = options.sunShadowIntensity ?? 1;
     scene.add(sun, sun.target);
     // Soft cool back light is a sky contribution, deliberately below the sunset key.
     const fill = new T.DirectionalLight(

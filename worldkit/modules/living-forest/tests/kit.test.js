@@ -176,3 +176,40 @@ test('slate outcrops have a buried foot, broad cleaved form and shared worn norm
     kit.dispose();
   }
 });
+
+test('natural branch finish is opt-in, preserves default art, and retains all near/far terminal shoots', () => {
+  const original = createLivingForestKit(),
+    cut = createLivingForestKit({ branchFinish: 'cut' }),
+    natural = createLivingForestKit({ branchFinish: 'natural' }),
+    far = createLivingForestKit({ detail: 'low', branchFinish: 'natural' });
+  try {
+    for (let i = 0; i < 3; i++) {
+      assert.deepEqual(
+        original.prototypes[i].treeParts[0].geometry.attributes.position.array,
+        cut.prototypes[i].treeParts[0].geometry.attributes.position.array,
+      );
+      assert.notDeepEqual(
+        original.prototypes[i].treeParts[0].geometry.attributes.position.array,
+        natural.prototypes[i].treeParts[0].geometry.attributes.position.array,
+      );
+      assert.equal(natural.prototypes[i].foliageClusterCount, 150);
+      assert.equal(far.prototypes[i].foliageClusterCount, 150);
+      assert.equal(natural.prototypes[i].foliageCardCount, 450);
+      assert.equal(far.prototypes[i].foliageCardCount, 300);
+      assert.ok(
+        triangleCount(far.prototypes[i].treeParts) <= 6000,
+        'natural distant forms stay in the established far mesh budget',
+      );
+      assert.equal(
+        natural.prototypes[i].treeParts.length,
+        2,
+        'finish keeps merged wood/leaf draw structure',
+      );
+    }
+  } finally {
+    original.dispose();
+    cut.dispose();
+    natural.dispose();
+    far.dispose();
+  }
+});

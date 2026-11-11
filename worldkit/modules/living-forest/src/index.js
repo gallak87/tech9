@@ -8,7 +8,9 @@ import {
 } from './geometry.js';
 import { createLivingForestMaterials } from './materials.js';
 
-function matureTree(seed, variant, detail, materials) {
+function matureTree(seed, variant, detail, materials, branchFinish) {
+  const natural = branchFinish === 'natural';
+  const finishRandom = randomSource(seed + 8077);
   const random = randomSource(seed),
     high = detail === 'high';
   const wood = [],
@@ -36,8 +38,8 @@ function matureTree(seed, variant, detail, materials) {
       }),
     );
   addWood(
-    [trunk(0), trunk(18), trunk(44), trunk(65), trunk(86)],
-    [10, 7.8, 5.5, 3.7, 1.4],
+    [trunk(0), trunk(18), trunk(44), trunk(65), trunk(natural ? 94 : 86)],
+    [10, 7.8, 5.5, 3.7, natural ? 0.06 : 1.4],
     36,
     24,
     0.23,
@@ -80,7 +82,19 @@ function matureTree(seed, variant, detail, materials) {
       .clone()
       .lerp(end, 0.48)
       .add(new T.Vector3(0, -4, 0));
-    addWood([start, elbow, end], [4.5 - i * 0.28, 2.8, 0.6], 20, 16);
+    if (natural) {
+      // Start within the bole and follow its upward grain before the collar
+      // peels outward. The buried cap no longer forms a circular pipe socket.
+      const buried = trunk(y - 8);
+      const collar = trunk(y + 3).addScaledVector(direction, 2);
+      addWood(
+        [buried, collar, elbow, end],
+        [2.6, 5 - i * 0.23, 2.8, 0.045],
+        26,
+        18,
+        0.18,
+      );
+    } else addWood([start, elbow, end], [4.5 - i * 0.28, 2.8, 0.6], 20, 16);
     crowns.push({ center: end, angle, size: 15 + random() * 7 });
   }
   crowns.push({ center: trunk(88), angle: variant, size: 17 });
@@ -109,6 +123,38 @@ function matureTree(seed, variant, detail, materials) {
         8,
         0.06,
       );
+      if (natural) {
+        // Living terminal shoots complete the main limbs instead of exposing
+        // a broad cut cap beyond the last lateral foliage attachment.
+        const shootTip = tip
+          .clone()
+          .addScaledVector(radial, 4.2)
+          .add(new T.Vector3(0, 1.8, 0));
+        // Distant cards already attach at the retained parent tip; subpixel
+        // twig extension tubes add cost without changing that silhouette.
+        if (high)
+          addWood(
+            [tip, tip.clone().lerp(shootTip, 0.55), shootTip],
+            [0.12, 0.065, 0.012],
+            7,
+            6,
+            0.04,
+          );
+        const sprayLength = 8.5 + finishRandom() * 2.5;
+        for (let card = 0; card < (high ? 3 : 2); card++) {
+          const spray = createFoliageSprayGeometry({
+            length: sprayLength,
+            width: sprayLength * 0.85,
+            bend: 1.15,
+            tint: [0.93, 1, 0.94],
+          });
+          spray.rotateZ([-0.62, 0.62, 0][card]);
+          spray.rotateX(-0.24 + (card === 2 ? 0.13 : 0));
+          spray.rotateY(Math.PI / 2 - angle);
+          spray.translate(tip.x, tip.y, tip.z);
+          leaves.push(spray);
+        }
+      }
       for (let fork = 0; fork < 4; fork++) {
         const ft = 0.19 + fork * 0.2 + random() * 0.05;
         const forkBase = start.clone().lerp(tip, ft);
@@ -172,7 +218,7 @@ function matureTree(seed, variant, detail, materials) {
   return {
     name: ['cathedral', 'windward', 'forked'][variant],
     treeParts,
-    foliageClusterCount: crowns.length * 5 * 4,
+    foliageClusterCount: crowns.length * 5 * (natural ? 5 : 4),
     foliageCardCount: leaves.length,
     bounds,
     height: bounds.max.y - bounds.min.y,
@@ -226,12 +272,15 @@ export function createLivingForestKit({
   detail = 'high',
   seed = 7319,
   textures,
+  branchFinish = 'cut',
 } = {}) {
   if (!['high', 'low'].includes(detail))
     throw new Error('Living Forest detail must be high or low');
+  if (!['cut', 'natural'].includes(branchFinish))
+    throw new Error('Living Forest branchFinish must be cut or natural');
   const palette = createLivingForestMaterials({ textures });
   const prototypes = [0, 1, 2].map((variant) =>
-    matureTree(seed + variant * 517, variant, detail, palette),
+    matureTree(seed + variant * 517, variant, detail, palette, branchFinish),
   );
   const shrubParts = shrub(seed + 333, detail, palette);
   const rockParts = [0, 1, 2].map((i) => ({

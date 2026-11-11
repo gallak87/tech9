@@ -56,3 +56,16 @@ The three `rockParts` are worn, cleaved slate forms with a flat buried foot,
 shared-corner normals, layered fissures and restrained upper-surface lichen.
 Their reusable geometry and metre-scale procedural finish belong to this kit;
 consumers own instance scale, ground seating and clustering.
+
+`branchFinish: 'natural'` optionally gives the monumental trees upward-grown,
+flared branch collars, tapered bole/bough ends and attached terminal twig sprays.
+It retains two merged draws per prototype and all 150 foliage attachment sites
+at both detail levels. Distant trees omit the subpixel terminal wood extensions
+while their leaf cards remain attached to the retained parent-limb tips. The default `'cut'` finish preserves existing consumers'
+geometry; consumers choose the finish and still own placement/route clearances.
+
+`createLivingHollow({ ageRelief: 1, ... })` opts into deep asymmetric cambium
+bays, eroded crossing arches and uneven rolled wound lips. Relief ranges from
+0 (the existing shape) to 1, carves away from the protected cavity, and reuses
+the same shell tessellation. Games still own heartwood/rim materials and the
+route points that establish portal clearances.

@@ -200,3 +200,48 @@ test('generic hollow without a route has intact shell and a jagged open crown', 
   hollow.dispose();
   material.dispose();
 });
+
+test('optional aged cambium bays and asymmetric wound lips keep closed portals and actual route clearance', () => {
+  const material = new T.MeshStandardMaterial({ vertexColors: true });
+  const route = [
+    new T.Vector3(-400, 62, -24),
+    new T.Vector3(-75, 76, -24),
+    new T.Vector3(0, 118, 72),
+    new T.Vector3(80, 168, 65),
+    new T.Vector3(400, 185, 65),
+  ];
+  const hollow = createLivingHollow({
+    radius: 185,
+    base: -112,
+    top: 410,
+    routePoints: route,
+    clearance: 34,
+    ageRelief: 1,
+    materials: { bark: material, inner: material, rim: material },
+  });
+  try {
+    assert.equal(hollow.metrics.ageRelief, 1);
+    assert.equal(hollow.metrics.portalLoops, 2);
+    assert.equal(hollow.metrics.openPortalVertices, 0);
+    assert.ok(
+      hollow.metrics.triangles < 110000,
+      'relief reuses the existing tessellation budget',
+    );
+    minimumClearance(hollow.group, samplePolyline(route, 3), 34);
+    const outer = pointsOf(hollow.group.children[0].geometry),
+      inner = pointsOf(hollow.group.children[1].geometry);
+    const p = hollow.group.children[2].geometry.attributes.position,
+      rows = hollow.metrics.rimRows;
+    for (let i = 0; i < p.count; i += rows) {
+      assert.ok(outer.has(key(p.getX(i), p.getY(i), p.getZ(i))));
+      assert.ok(
+        inner.has(
+          key(p.getX(i + rows - 1), p.getY(i + rows - 1), p.getZ(i + rows - 1)),
+        ),
+      );
+    }
+  } finally {
+    hollow.dispose();
+    material.dispose();
+  }
+});

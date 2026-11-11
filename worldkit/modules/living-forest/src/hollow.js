@@ -93,11 +93,14 @@ export function createLivingHollow({
   radialSegments = 192,
   heightSegments = 112,
   seed = 19,
+  ageRelief = 0,
 } = {}) {
   if (!materials?.bark || !materials?.inner || !materials?.rim)
     throw new Error('Living hollow requires bark, inner and rim materials');
   if (!(radius > 40) || !(top > base + 100) || !(clearance > 0))
     throw new Error('Living hollow dimensions are invalid');
+  if (!Number.isFinite(ageRelief) || ageRelief < 0 || ageRelief > 1)
+    throw new Error('Living hollow ageRelief must be between zero and one');
   radialSegments = Math.max(160, Math.floor(radialSegments));
   heightSegments = Math.max(80, Math.floor(heightSegments));
   const origin = asVector(center),
@@ -115,6 +118,14 @@ export function createLivingHollow({
       })),
     )
     .filter((point) => Math.hypot(point.x, point.z) < radius - 55);
+  const portalAxes = route.filter(
+    (segment) =>
+      Math.max(
+        Math.hypot(segment.x, segment.z),
+        Math.hypot(segment.x + segment.dx, segment.z + segment.dz),
+      ) >
+      radius - 15,
+  );
   const shell = (u, v) => {
     const twist = u + v * 0.19 + 0.09 * Math.sin(v * 3 + seed);
     const distanceAngle = (a, b) =>
@@ -190,7 +201,50 @@ export function createLivingHollow({
           parallel + Math.sqrt(reserve * reserve - perpendicularSquared),
         );
     }
-    outerRadius = Math.max(outerRadius, innerRadius + 10);
+    if (ageRelief) {
+      // Unequal cambium bays are carved outwards from the protected cavity.
+      // Existing ribs remain in front of deeper, twisting pockets instead of
+      // making a smooth cylindrical inner wall.
+      const pockets =
+        8 +
+        18 * Math.pow(0.5 + 0.5 * Math.sin(u * 3 + v * 4.7 + 0.8), 3) +
+        11 * Math.pow(0.5 + 0.5 * Math.sin(u * 11 - v * 2.3), 4);
+      innerRadius += ageRelief * pockets * T.MathUtils.smoothstep(v, 0, 0.12);
+    }
+    outerRadius = Math.max(outerRadius, innerRadius + 10 + ageRelief * 8);
+    if (ageRelief) {
+      const wx = leanX + cos * innerRadius,
+        wz = leanZ + sin * innerRadius;
+      let nearest = Infinity,
+        sideBias = 0;
+      for (const segment of portalAxes) {
+        const t = clamp(
+          ((wx - segment.x) * segment.dx +
+            (y - segment.y) * segment.dy +
+            (wz - segment.z) * segment.dz) /
+            segment.lengthSquared,
+        );
+        const dx = wx - segment.x - segment.dx * t,
+          dy = y - segment.y - segment.dy * t,
+          dz = wz - segment.z - segment.dz * t;
+        const d2 = dx * dx + dy * dy + dz * dz;
+        if (d2 < nearest) {
+          nearest = d2;
+          sideBias =
+            (dx * segment.dz - dz * segment.dx) /
+            (Math.max(1, Math.hypot(segment.dx, segment.dz)) *
+              Math.max(1, Math.sqrt(d2)));
+        }
+      }
+      // Unequal healed shoulders thicken the wound into real wood. Their mass
+      // grows outward; the route field still clips every aperture afterwards.
+      const wound = Math.exp(
+        -1 * ((Math.sqrt(nearest) - cutClearance - 26) / 33) ** 2,
+      );
+      const shoulderMass =
+        14 + 22 * T.MathUtils.clamp(0.5 - sideBias * 0.5, 0, 1);
+      outerRadius += ageRelief * wound * shoulderMass;
+    }
     const shade =
       0.45 +
       0.38 * T.MathUtils.clamp(shoulder / 40, 0, 1) +
@@ -253,7 +307,25 @@ export function createLivingHollow({
       6 * (0.5 + 0.5 * Math.sin(pair.u * 5 + pair.v * 8)) +
       24 * above * (0.65 + 0.35 * Math.sin(pair.u * 3 + 0.8)) +
       12 * Math.max(0, side);
-    return Math.sqrt(squared) - cutClearance - portalWeight * arch;
+    const agedCrossing = T.MathUtils.smoothstep(
+      Math.hypot(nearX, nearZ),
+      radius - 30,
+      radius + 15,
+    );
+    const tornArch =
+      7 +
+      9 * Math.pow(Math.max(0, Math.sin(pair.u * 7 + pair.v * 11 + seed)), 2) +
+      10 * Math.max(0, -side) +
+      12 * above * above +
+      22 * above * Math.max(0, -side);
+    // Erosion expands actual crossings only. It never reduces the requested
+    // clearance or cuts extra windows beside the deeper interior spiral.
+    return (
+      Math.sqrt(squared) -
+      cutClearance -
+      portalWeight * arch -
+      ageRelief * agedCrossing * tornArch
+    );
   };
   const sample = (u, v) => {
     const pair = shell(u, v);
@@ -374,8 +446,14 @@ export function createLivingHollow({
         .addScaledVector(tangentV, gradientV)
         .normalize();
     } else retreat = new T.Vector3(0, -1, 0);
-    const thickness = pair.outer.distanceTo(pair.inner),
-      amplitude = Math.min(22, thickness * 0.38);
+    const thickness = pair.outer.distanceTo(pair.inner);
+    let amplitude = Math.min(22, thickness * 0.38);
+    if (ageRelief)
+      amplitude *=
+        1 +
+        ageRelief *
+          (0.4 * Math.sin(vertex.u * 9 + vertex.v * 12) +
+            0.16 * Math.sin(vertex.u * 21));
     const points = profile.map((t) =>
       pair.outer
         .clone()
@@ -458,7 +536,11 @@ export function createLivingHollow({
       const shade =
         [0.62, 0.79, 0.94, 1, 0.93, 0.78, 0.64][row] *
         (0.92 + 0.08 * Math.sin(vertex.u * 7 + vertex.v * 13));
-      colors.push(shade, shade, shade);
+      colors.push(
+        shade * (1 + ageRelief * 0.04),
+        shade * (1 - ageRelief * 0.04),
+        shade * (1 - ageRelief * 0.14),
+      );
     }
     lookup.set(key, start);
     retreats.set(start, retreat);
@@ -682,6 +764,7 @@ export function createLivingHollow({
     cutClearance,
     rimRows: profile.length,
     outerRadius: radius,
+    ageRelief,
     base,
     top,
   };

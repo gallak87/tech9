@@ -9,6 +9,7 @@ import {
 import { createRiverWaterLayer } from '@worldkit/environment/water';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { createForestTerrain, randomSource } from './terrain.js';
+import { createForestRouteClearance } from './clearance.js';
 import { createLifetime } from '../../../core/lifecycle.js';
 
 const UP = new T.Vector3(0, 1, 0);
@@ -97,23 +98,36 @@ function buildEnvironment({ track, settings = {}, view }, textures, lifetime) {
     createBatches(parts, placements, name, target, lifetime);
   const terrain = lifetime.own(createForestTerrain(track));
   group.add(terrain.mesh);
-  const kit = lifetime.own(createLivingForestKit({ detail: 'high', textures })),
-    farKit = lifetime.own(createLivingForestKit({ detail: 'low', textures }));
+  const kit = lifetime.own(
+      createLivingForestKit({
+        detail: 'high',
+        textures,
+        branchFinish: 'natural',
+      }),
+    ),
+    farKit = lifetime.own(
+      createLivingForestKit({
+        detail: 'low',
+        textures,
+        branchFinish: 'natural',
+      }),
+    );
   const inner = lifetime.own(kit.materials.wood.clone());
   inner.name = 'Living Forest / warm heartwood';
-  inner.color.set('#8a9684');
-  inner.emissive.set('#273d35');
-  inner.emissiveIntensity = 0.12;
+  inner.color.set('#9b866b');
+  inner.emissive.set('#3d2d1d');
+  inner.emissiveIntensity = 0.08;
   inner.bumpScale = 0.65;
   const rim = lifetime.own(kit.materials.wood.clone());
   rim.name = 'Living Forest / pale rolled wound';
-  rim.color.set('#a1a090');
+  rim.color.set('#b39b78');
   rim.bumpScale = 0.6;
   const hollowData = track.landmarks.hollow;
   const route = [];
   for (let s = 0; s < track.length; s += 6)
     route.push(track.sample(s).position.clone());
   route.push(route[0].clone());
+  const routeClearance = createForestRouteClearance(track);
   const hollow = lifetime.own(
     createLivingHollow({
       center: hollowData.center,
@@ -122,6 +136,7 @@ function buildEnvironment({ track, settings = {}, view }, textures, lifetime) {
       top: 410,
       routePoints: route,
       clearance: 34,
+      ageRelief: 1,
       materials: { bark: kit.materials.wood, inner, rim },
     }),
   );
@@ -160,6 +175,17 @@ function buildEnvironment({ track, settings = {}, view }, textures, lifetime) {
       if ((d / (crownRadius + 24)) ** 2 + vertical ** 2 < 1) return false;
     }
     const item = placement(p, scale, random() * Math.PI * 2);
+    // Conservative cylinders do not describe leaning limbs or broad buttresses.
+    // Both rendered qualities must leave the complete driver/camera corridor clear.
+    if (
+      [kit.prototypes[variant], farKit.prototypes[variant]].some((prototype) =>
+        routeClearance.intersectsGeometry(
+          prototype.treeParts.find((part) => part.kind === 'wood').geometry,
+          item.matrix,
+        ),
+      )
+    )
+      return false;
     item.height = targetHeight;
     item.detailCenter = p.clone().addScaledVector(UP, targetHeight * 0.6);
     stands[variant].push(item);
@@ -293,6 +319,7 @@ function buildEnvironment({ track, settings = {}, view }, textures, lifetime) {
     'Living Forest / living inner cambium',
   );
   const raycaster = new T.Raycaster();
+  let rejectedRoots = 0;
   for (let s = 24; s < track.length; s += 130) {
     if (track.isGap(s)) continue;
     const f = track.sample(s),
@@ -303,8 +330,18 @@ function buildEnvironment({ track, settings = {}, view }, textures, lifetime) {
       : [-1, 1]) {
       const top = f.position
         .clone()
-        .addScaledVector(f.right, side * 9)
-        .addScaledVector(f.up, -5);
+        .addScaledVector(f.right, side * 11)
+        .addScaledVector(f.up, -6.3);
+      // Leave the deck beneath its edge before turning toward soil. A world-down
+      // column alone crosses its owning lane when that lane rolls or inverts.
+      const neck = top
+        .clone()
+        .addScaledVector(f.right, side * 12)
+        .addScaledVector(f.up, -7);
+      const shoulder = top
+        .clone()
+        .addScaledVector(f.right, side * 32)
+        .addScaledVector(f.up, -18);
       let foot;
       if (inHollow) {
         const origin = top.clone().addScaledVector(f.up, -27);
@@ -312,33 +349,40 @@ function buildEnvironment({ track, settings = {}, view }, textures, lifetime) {
         raycaster.far = 300;
         const hit = raycaster.intersectObject(innerShell, false)[0];
         if (!hit) continue;
-        foot = hit.point.clone().addScaledVector(radial, 4);
+        foot = hit.point.clone().addScaledVector(radial, 8);
       } else {
-        foot = top
+        const outward = f.up
           .clone()
-          .addScaledVector(f.right, side * 28)
-          .addScaledVector(f.tangent, -30);
-        foot.y = terrain.height(foot.x, foot.z) - 8;
-        if (foot.y > top.y - 14) continue;
+          .multiplyScalar(-1)
+          .setY(0)
+          .add(
+            f.right
+              .clone()
+              .multiplyScalar(side * 0.65)
+              .setY(0),
+          );
+        if (outward.lengthSq() < 0.1)
+          outward.set(f.tangent.z, 0, -f.tangent.x).multiplyScalar(side);
+        outward.normalize();
+        foot = f.position
+          .clone()
+          .addScaledVector(outward, 78)
+          .addScaledVector(f.tangent, -24);
+        foot.y = terrain.surfaceHeight(foot.x, foot.z) - 8;
       }
-      const mid = foot.clone().lerp(top, 0.58).addScaledVector(f.up, -10);
-      const curve = new T.CatmullRomCurve3([foot, mid, top]);
-      const samples = curve.getPoints(16);
-      const unsafe = route.some((p, i) => {
-        const difference = Math.abs(i * 6 - s),
-          arc = Math.min(difference, track.length - difference);
-        return (
-          arc > 36 && samples.some((q) => q.distanceToSquared(p) < 29 ** 2)
-        );
-      });
-      if (unsafe) continue;
-      rootPieces.push(
-        createWoodGeometry(
-          [foot, mid, top],
-          inHollow ? [8, 5, 2.4] : [11, 6, 2.4],
-          { segments: 18, sides: 12, fluting: 0.2, seed: s },
-        ),
+      const geometry = createWoodGeometry(
+        [foot, foot.clone().lerp(shoulder, 0.55), shoulder, neck, top],
+        inHollow ? [2.6, 6, 4.2, 3, 2.2] : [11, 7, 4.8, 3, 2.2],
+        { segments: 30, sides: 12, fluting: 0.2, seed: s },
       );
+      // Test the real fluted tube triangles against all road layers, not a
+      // handful of centerline samples or an exemption around this attachment.
+      if (routeClearance.intersectsGeometry(geometry)) {
+        rejectedRoots++;
+        geometry.dispose();
+        continue;
+      }
+      rootPieces.push(geometry);
       connections.push({ distance: s, anchor: inHollow ? 'hollow' : 'soil' });
     }
   }
@@ -350,6 +394,7 @@ function buildEnvironment({ track, settings = {}, view }, textures, lifetime) {
   if (rootsGeometry) {
     const roots = new T.Mesh(rootsGeometry, kit.materials.wood);
     roots.name = 'Living Forest / rooted road foundations';
+    roots.userData.attachments = connections;
     roots.receiveShadow = true;
     roots.castShadow = true;
     group.add(roots);
@@ -385,6 +430,7 @@ function buildEnvironment({ track, settings = {}, view }, textures, lifetime) {
     rocks: rocks.flat().length,
     hollow: hollow.metrics,
     connections: connections.length,
+    rejectedRoots,
     oldAssetDependencies: 0,
     loadState: 'ready',
   };

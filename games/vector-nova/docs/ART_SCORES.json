@@ -1,5 +1,4 @@
 {
-  "vesper": 7.8,
   "zephyr": 7.5,
   "halcyon": 8.1,
   "helion": 7.2,
@@ -14,5 +13,6 @@
   "freestyle-ravel": 7.0,
   "eliminator-glasswake": 6.7,
   "eliminator-saffron": 6.7,
-  "eliminator-nomad": 7.8
+  "eliminator-nomad": 7.8,
+  "vesper-forest": 7.5
 }

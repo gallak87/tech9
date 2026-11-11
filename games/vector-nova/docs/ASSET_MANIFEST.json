@@ -1406,9 +1406,9 @@
     },
     {
       "id": "worldkit-forest-art",
-      "source": "../../worldkit/modules/living-forest/ and ../../worldkit/modules/island-ocean/",
+      "source": "../../worldkit/modules/living-forest/ and ../../worldkit/modules/pond-water/",
       "creator": "Worldkit project contributors and built-in imagegen; Three.js contributors for derived water code",
-      "provenance": "Living Forest supplies newly authored procedural tree, curved foliage, rock and hollow geometry. Packaged silver-bark-color-v1.png supplies bark color and artistic bump relief; leaf-spray-v1.png supplies transparent foliage on curved alpha-tested geometry. Generated-asset prompts, generation IDs, dimensions and checksums are retained in package provenance. The bark image is not a calibrated normal/roughness set. The ocean system reuses Worldkit island-ocean and its Three.js-derived water surface. Package assets are emitted by the consumer build; no old forest-kit GLB, Poly Haven fern or bark scan is used by this level.",
+      "provenance": "Living Forest supplies project-authored procedural tree, curved foliage, weathered slate and hollow geometry, including optional natural branch and aged hollow finishes. Packaged silver-bark-color-v1.png supplies bark color and artistic bump relief; leaf-spray-v1.png supplies transparent foliage on curved alpha-tested geometry. Exact generated-asset prompts, generation IDs and checksums remain in package provenance. The bark image is not a calibrated normal/roughness set. Pond-water supplies the depth-sampled river and Three.js-derived reflective water; reflection ownership excludes normal/depth prepasses. Package assets resolve in consumer builds.",
       "rights": "Project-authored/generated art; the private package grants no new licence. Derived Three.js water code retains its MIT notice.",
       "runtimeDependencies": ["three", "@worldkit/environment"],
       "runtimeAssets": [
@@ -1425,7 +1425,7 @@
       "id": "vesper-forest",
       "source": "src/levels/vesper-forest/",
       "creator": "VECTOR//NOVA project contributors",
-      "provenance": "Vesper Forest owns its approved route, opaque resin driving surface, rails and motion rules. Living Forest roots connect the underside to soil or the hollow wall. Its environment and backdrop combine the Living Forest artkit, river-cut terrain, rooted foundations, a procedural dusk sky and Worldkit ocean water. Collision extracts the driving surface and rails without decorative environment geometry.",
+      "provenance": "Vesper Forest owns its 5.3 km route, uniform 28 m opaque resin road, two jumps, rails and motion rules. Living Forest roots connect the underside to soil or hollow walls; retained root and near/far tree triangles respect the complete driving and camera corridor. The level owns old-growth forest composition, river-cut terrain, rooted foundations, dusk lighting and Worldkit river placement. Project-authored sap presentation borrows opaque hull geometry for localized dark amber wet film with faint warmth, stretching resin drips and a road-following collecting pool. Collision extracts driving surfaces and rails without decorative environment geometry.",
       "rights": "Project-authored integration and procedural geometry; Worldkit art and derived water code retain their separately registered rights.",
       "runtimeDependencies": [
         "three",

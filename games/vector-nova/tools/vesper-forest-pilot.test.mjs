@@ -312,7 +312,7 @@ test('Forest road geometry, materials and guidance retain the authored mesh cont
     assert.equal(
       fingerprint(meshes),
       // This revision includes two gaps, fine roll cells and visible sap films.
-      '62e0482deded1cd4488dd3ef1722ab9ad5b36f4e51994c4913061b2836f199b6',
+      '2e29fb61a636d4bd06f99ed7c7d370ea2e956e64b63639574dc0fe5680b580ee',
     );
   } finally {
     road.dispose();

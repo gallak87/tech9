@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import * as T from 'three';
-import skywell from '../src/levels/launchworks/index.js';
+import skywell from '../src/levels/zephyr-skywell/index.js';
 import oriel from '../src/levels/freestyle-oriel/index.js';
 import ravel from '../src/levels/freestyle-ravel/index.js';
 import { createVehicleState } from '../src/physics/index.js';
@@ -59,7 +59,7 @@ function contactCase(world, track, jump) {
 }
 
 for (const [id, factory] of [
-  ['launchworks', skywell],
+  ['zephyr-skywell', skywell],
   ['freestyle-oriel', oriel],
   ['freestyle-ravel', ravel],
 ]) {

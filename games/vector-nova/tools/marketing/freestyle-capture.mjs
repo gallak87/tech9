@@ -4,7 +4,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { join, resolve } from 'node:path';
 import { chromium } from 'playwright';
-import createLevel from '../../src/levels/launchworks/index.js';
+import createLevel from '../../src/levels/zephyr-skywell/index.js';
 import { createDeviceRuntime } from '../../src/pickups/runtime.js';
 import { createVehicleState } from '../../src/physics/index.js';
 import {
@@ -288,7 +288,7 @@ try {
   const page = await context.newPage();
   const faults = [];
   page.on('pageerror', (error) => faults.push(error.message));
-  await page.goto(`${base}/?intro=0&level=launchworks&music=0`);
+  await page.goto(`${base}/?intro=0&level=zephyr-skywell&music=0`);
   await page.locator('[data-action="launch"]').click();
   await page.waitForFunction(
     () => window.__VN?.ready && !window.__VN.getSnapshot().ship.loading,

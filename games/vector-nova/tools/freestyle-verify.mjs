@@ -29,7 +29,7 @@ profile.recordTrial('halcyon', true);
 profile.recordTrial('nacre', true);
 assert.equal(profile.snapshot().state.cups.includes('founders'), true);
 assert.equal(
-  profile.snapshot().state.finishedCourses.includes('launchworks'),
+  profile.snapshot().state.finishedCourses.includes('zephyr-skywell'),
   false,
 );
 const seed = Array.from({ length: storage.length }, (_, i) => {
@@ -121,7 +121,7 @@ async function focusByPad(selector) {
 }
 try {
   const url = new URL(
-    '/?intro=0&level=launchworks&music=0',
+    '/?intro=0&level=zephyr-skywell&music=0',
     process.env.VN_URL ?? 'http://127.0.0.1:5213',
   );
   await page.goto(url.href);

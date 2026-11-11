@@ -63,7 +63,13 @@ export function includePublic(path, edition) {
       edition === 'full' ||
       Object.hasOwn(DEMO_REQUIREMENTS, path.split('/').at(-1).slice(0, -4))
     );
-  if (policy.levels.some((id) => path.startsWith(`assets/levels/${id}/`)))
+  if (
+    policy.levels.some((id) =>
+      path.startsWith(
+        `assets/levels/${id === 'zephyr-skywell' ? 'launchworks' : id}/`,
+      ),
+    )
+  )
     return true;
   if (policy.levels.some((id) => path === `assets/menu/${id}.webp`))
     return true;

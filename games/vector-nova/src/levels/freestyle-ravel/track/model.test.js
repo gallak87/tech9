@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as T from 'three';
 import { createRavelFreestyleTrack } from './model.js';
-import { createLaunchworksTrack } from '../../launchworks/track/model.js';
-import { createLaunchworksRoad } from '../../launchworks/track/road.js';
+import { createSkywellTrack } from '../../zephyr-skywell/track/model.js';
+import { createSkywellRoad } from '../../zephyr-skywell/track/road.js';
 import {
   createSailbreakPlan,
   createSailGeometry,
@@ -12,7 +12,7 @@ import {
 
 test('Sailbreak preserves the generous source envelopes with two full-width pipe arrivals', () => {
   const track = createRavelFreestyleTrack(),
-    source = createLaunchworksTrack();
+    source = createSkywellTrack();
   assert.equal(track.jumps.length, 5);
   assert.equal(track.tubes.length, 2);
   assert.ok(track.width >= 54);
@@ -42,7 +42,7 @@ test('Sailbreak preserves the generous source envelopes with two full-width pipe
     assert.ok(track.sampleSurface(s, 0));
     assert.ok(track.sampleSurface(s, Math.PI * tube.radius));
   }
-  const road = createLaunchworksRoad({ track, shape: true });
+  const road = createSkywellRoad({ track, shape: true });
   try {
     assert.ok(road.group.children.some((mesh) => mesh.userData.drivingSurface));
   } finally {

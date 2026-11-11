@@ -2,7 +2,7 @@ import { createDeviceLayout } from '../../pickups/layout.js';
 
 // Three powered entries end before release, leaving road angle and braking to
 // determine the launch. The two plunges supply their own speed through gravity.
-export function createLaunchworksDevices(track) {
+export function createSkywellDevices(track) {
   return createDeviceLayout(
     track,
     [0, 2, 3].map((index) => {

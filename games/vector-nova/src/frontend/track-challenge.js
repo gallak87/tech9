@@ -16,7 +16,7 @@ const challenges = {
   worldspire: 'Medium',
   nightweir: 'Medium',
   colossus: 'Hard',
-  launchworks: 'Easy',
+  'zephyr-skywell': 'Easy',
   'freestyle-oriel': 'Medium',
   'freestyle-ravel': 'Hard',
   'eliminator-glasswake': 'Easy',

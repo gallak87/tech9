@@ -1,5 +1,5 @@
 export default {
-  id: 'launchworks',
+  id: 'zephyr-skywell',
   name: 'Zephyr Skywell',
   order: 40,
   freestyle: true,

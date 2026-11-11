@@ -116,7 +116,7 @@ try {
         camera.up.set(0, 1, 0);
         camera.fov = 58;
         camera.clearViewOffset();
-        if (id === 'launchworks') {
+        if (id === 'zephyr-skywell') {
           // Crown's flight corridor reveals the court and receiving bank;
           // the generic starting overview is blocked by a foreground shore.
           const frame = track.sample(track.jumps[0].takeoff);

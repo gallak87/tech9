@@ -36,7 +36,7 @@ const UP = new T.Vector3(0, 1, 0);
 // Canonical Zephyr stone, cultivated islands, hydrology and sky become a new
 // transfer district. Its islands support the decks; its flight corridors stay
 // open and every receiver has a silhouette above the lower cloud shelf.
-export async function createLaunchworksEnvironment({
+export async function createSkywellEnvironment({
   track,
   view,
   road,

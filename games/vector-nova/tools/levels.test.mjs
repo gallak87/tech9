@@ -55,8 +55,12 @@ test('catalog lists metadata eagerly but loads only the selected implementation'
   assert.equal(calls.length, 1);
 });
 
-test('retired encounter links load their new biome without adding duplicate course cards', async () => {
-  const destinations = ['interceptor-helion', 'interceptor-nightweir'];
+test('prototype links load canonical courses without adding duplicate course cards', async () => {
+  const destinations = [
+    'interceptor-helion',
+    'interceptor-nightweir',
+    'zephyr-skywell',
+  ];
   const calls = [];
   const catalog = createCatalog(
     {
@@ -84,6 +88,7 @@ test('retired encounter links load their new biome without adding duplicate cour
   for (const [oldId, newId] of [
     ['interceptor-orbital', destinations[0]],
     ['interceptor-halcyon', destinations[1]],
+    ['launchworks', destinations[2]],
   ]) {
     assert.equal((await catalog.load(oldId)).metadata.id, newId);
     const url = circuitURL('http://localhost/', oldId);
@@ -93,7 +98,9 @@ test('retired encounter links load their new biome without adding duplicate cour
   assert.ok(
     catalog.list.every(
       (entry) =>
-        !['interceptor-orbital', 'interceptor-halcyon'].includes(entry.id),
+        !['interceptor-orbital', 'interceptor-halcyon', 'launchworks'].includes(
+          entry.id,
+        ),
     ),
   );
 });

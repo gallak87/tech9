@@ -171,11 +171,13 @@ class Assembly:
                 "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
 
 
-def beacon(name, small=False):
+def beacon():
     def transform(p):
         x,y,z = p
-        return (x*.7, y*(29/188) if y >= 0 else y*.7, z*.7) if small else p
-    kit = Assembly(name, transform)
+        # One 70 m locator family at every receiver. Keep the full-width stone
+        # shoe and form the shorter upper body before applying metric bevels.
+        return (x, y*(70/188) if y >= 0 else y, z)
+    kit = Assembly("arrival-beacon", transform)
     # Closed stone anchor shoe and stepped bronze collar have a real load path.
     kit.taper([(-14,5,5.8),(-12.5,5,5.8),(-11.8,4.5,5.2),(-7.5,4.5,5.2),(-6.5,3.6,3.7)], "stone")
     kit.taper([(-6.6,3.7,3.8),(-4.8,3.7,3.8),(-3.7,3.2,2.7)], "bronze")
@@ -217,7 +219,16 @@ def beacon(name, small=False):
     # A front/back ridge and a low stone inset keep the base legible up close.
     kit.box((0,12,1.94),(1.3,35,.5),"bronze")
     kit.box((0,10,-2.3),(2.25,10,.18),"recess")
-    return kit.finish()
+    kit.finish()
+    # The angled tip beams have finite width; seat their actual outermost
+    # vertex at 70 m, rather than only their centreline endpoint.
+    tip = max(vertex.co.z for obj in kit.objects for vertex in obj.data.vertices)
+    for obj in kit.objects:
+        for vertex in obj.data.vertices:
+            if vertex.co.z > 0:
+                vertex.co.z *= 70 / tip
+        obj.data.update()
+    return kit
 
 
 def saddle():
@@ -306,7 +317,7 @@ def veil_spill_lip():
     return kit.finish()
 
 
-assets=[beacon("arrival-beacon-crown"),beacon("arrival-beacon-small",True),saddle(),veil_spill_lip()]
+assets=[beacon(),saddle(),veil_spill_lip()]
 manifest={"version":1,"source":"build_arrival_art.py; skywell-arrival-kit.blend",
           "coordinateConvention":"Metres, X lateral / Y up / +Z forward; identity glTF node transforms",
           "reference":{"file":"../zephyr/zephyr-scene-reference.png",
@@ -339,6 +350,6 @@ proxy.display_type="WIRE"
 proxy.hide_render=True
 proxy["source"]="Unchanged Skywell road keel profile for fit inspection only; never exported"
 for collection in bpy.data.collections:
-    collection.hide_viewport=collection.name!="arrival-beacon-crown"
+    collection.hide_viewport=collection.name!="arrival-beacon"
 bpy.ops.wm.save_as_mainfile(filepath=str(SOURCE/"skywell-arrival-kit.blend"))
 print(json.dumps(manifest,indent=2))

@@ -14,14 +14,14 @@ export const SKYWELL_FLIGHT_RULES = Object.freeze({
   timeout: 10,
   missBelow: 220,
 });
-export function createLaunchworksDynamics({ collisionWorld }) {
+export function createSkywellDynamics({ collisionWorld }) {
   return createRapierWorld({
     collisionWorld,
     gravity: SKYWELL_FLIGHT_RULES.gravity,
   });
 }
 
-export function createLaunchworksRuntime(context) {
+export function createSkywellRuntime(context) {
   const { track, dynamics } = context;
   let physicalActor = null;
   const observedDynamics = dynamics && {
@@ -39,9 +39,9 @@ export function createLaunchworksRuntime(context) {
   const motion = model.createRuntime(
     { ...context, dynamics: observedDynamics },
     {
-      id: 'launchworks-freestyle',
+      id: 'zephyr-skywell-freestyle',
       version: 6,
-      rulesId: `launchworks-v6:${JSON.stringify({ rules: FREESTYLE_RULES, pace: track.pace, flight: SKYWELL_FLIGHT_RULES })}`,
+      rulesId: `zephyr-skywell-v6:${JSON.stringify({ rules: FREESTYLE_RULES, pace: track.pace, flight: SKYWELL_FLIGHT_RULES })}`,
       scenarios: Object.fromEntries(
         Object.entries(track.scenarios).map(([id, state]) => [
           id,

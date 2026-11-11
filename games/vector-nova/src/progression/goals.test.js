@@ -185,7 +185,7 @@ test('Freestyle progress supports full results with missed catches and explains 
       landed: index < 2,
     })),
   };
-  const context = { mode: 'freestyle', trackId: 'launchworks' };
+  const context = { mode: 'freestyle', trackId: 'zephyr-skywell' };
   const earned = raceProgressView(before, after, context, result);
   assert.match(earned, /<h3>\+3 race progress<\/h3>/);
   assert.match(earned, /0 → 3\/6 progress/);

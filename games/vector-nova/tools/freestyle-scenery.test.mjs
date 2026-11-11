@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import * as T from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import createLevel from '../src/levels/launchworks/index.js';
-import { createLaunchworksEnvironment } from '../src/levels/launchworks/environment.js';
-import { batchSkywellScenery } from '../src/levels/launchworks/scenery-batches.js';
+import createLevel from '../src/levels/zephyr-skywell/index.js';
+import { createSkywellEnvironment } from '../src/levels/zephyr-skywell/environment.js';
+import { batchSkywellScenery } from '../src/levels/zephyr-skywell/scenery-batches.js';
 import { createDeviceRuntime } from '../src/pickups/runtime.js';
 import { createVehicleState } from '../src/physics/index.js';
 import { createCameraRig } from '../src/camera/index.js';
@@ -369,7 +369,7 @@ test('completed Skywell scenery clears real native transfers and owns its resour
       }
     });
   }
-  const environment = await createLaunchworksEnvironment({
+  const environment = await createSkywellEnvironment({
     track,
     async loadAsset(url) {
       const data = await readFile(
@@ -438,7 +438,7 @@ test('Skywell composition rejection releases loaded source art and limestone exa
     );
   }
   await assert.rejects(
-    createLaunchworksEnvironment({
+    createSkywellEnvironment({
       track,
       async loadAsset(url) {
         const data = await readFile(

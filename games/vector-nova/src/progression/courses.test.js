@@ -13,6 +13,7 @@ import { isCareerComplete, careerUnlockProgress } from './completion.js';
 import {
   createProfileStore,
   freshProfile,
+  PROFILE_KEY,
   validateProfile,
 } from './profile.js';
 import { settleRaceResult } from './result-coordinator.js';
@@ -51,22 +52,23 @@ function result(mode, { won = true, valid = true, medal = 'Complete' } = {}) {
 
 test('course finishes are unique, known, sequential and independent of reward claims', () => {
   const s = stores();
-  assert.equal(s.profileStore.recordCourseFinish('launchworks'), false);
+  assert.equal(s.profileStore.recordCourseFinish('zephyr-skywell'), false);
   s.profileStore.recordCup('founders');
   const before = s.profileStore.snapshot().state;
   assert.equal(s.profileStore.recordCourseFinish('freestyle-oriel'), false);
-  assert.equal(s.profileStore.recordCourseFinish('launchworks'), true);
-  assert.equal(s.profileStore.recordCourseFinish('launchworks'), false);
+  assert.equal(s.profileStore.recordCourseFinish('zephyr-skywell'), true);
+  assert.equal(s.profileStore.recordCourseFinish('zephyr-skywell'), false);
   assert.equal(s.profileStore.recordCourseFinish('oriel'), false);
-  assert.equal(s.profileStore.recordCourseFinish('unknown'), false);
+  for (const id of ['unknown', null, undefined, { toString: null }])
+    assert.equal(s.profileStore.recordCourseFinish(id), false);
   const after = s.profileStore.snapshot().state;
-  assert.deepEqual(after.finishedCourses, ['launchworks']);
+  assert.deepEqual(after.finishedCourses, ['zephyr-skywell']);
   assert.deepEqual(after.claims, before.claims);
   assert.equal(after.points, before.points);
   assert.equal(after.finishes, before.finishes);
   assert.deepEqual(
     stores(s.storage).profileStore.snapshot().state.finishedCourses,
-    ['launchworks'],
+    ['zephyr-skywell'],
   );
   assert.equal(
     levelAvailable('freestyle-oriel', {
@@ -148,7 +150,7 @@ test('event losses retain consolation points without advancing, while invalid an
   ])
     settleRaceResult(s, data, {
       sessionIntent: intent,
-      courseId: 'launchworks',
+      courseId: 'zephyr-skywell',
       attemptId: 'invalid-flight',
     });
   assert.equal(s.profileStore.snapshot().state.points, 0);
@@ -178,13 +180,14 @@ test('course state is validated and save transfer carries it without changing th
     null,
     {},
     ['unknown'],
-    ['launchworks', 'launchworks'],
-    Array(10).fill('launchworks'),
+    [{ toString: null }],
+    ['zephyr-skywell', 'zephyr-skywell'],
+    Array(10).fill('zephyr-skywell'),
   ])
     assert.equal(validateProfile({ ...freshProfile(), finishedCourses }), null);
   const source = stores();
   source.profileStore.recordCup('founders');
-  source.profileStore.recordCourseFinish('launchworks');
+  source.profileStore.recordCourseFinish('zephyr-skywell');
   const transfer = (s) =>
     createSaveTransfer({
       ...s,
@@ -195,9 +198,51 @@ test('course state is validated and save transfer carries it without changing th
   const destination = transfer(target);
   destination.replace(destination.parse(file));
   assert.deepEqual(target.profileStore.snapshot().state.finishedCourses, [
-    'launchworks',
+    'zephyr-skywell',
   ]);
   assert.equal(target.profileStore.snapshot().state.version, 3);
+});
+
+test('the Skywell rename preserves legacy careers and imported course progress', () => {
+  const legacy = freshProfile();
+  legacy.cups = ['founders'];
+  legacy.finishedCourses = ['launchworks', 'freestyle-oriel'];
+  const storage = createMemoryStorage();
+  storage.setItem(PROFILE_KEY, JSON.stringify(legacy));
+  const source = stores(storage);
+  const restored = source.profileStore.snapshot();
+  assert.equal(restored.notice, '');
+  assert.deepEqual(restored.state.finishedCourses, [
+    'zephyr-skywell',
+    'freestyle-oriel',
+  ]);
+  assert.equal(
+    levelAvailable('freestyle-ravel', {
+      cupWins: restored.state.cups,
+      finishedCourses: restored.state.finishedCourses,
+    }),
+    true,
+  );
+  assert.equal(source.profileStore.recordCourseFinish('launchworks'), false);
+  assert.equal(
+    validateProfile({
+      ...legacy,
+      finishedCourses: ['launchworks', 'zephyr-skywell'],
+    }),
+    null,
+    'a legacy alias cannot duplicate the canonical completion',
+  );
+  const makeTransfer = (s) =>
+    createSaveTransfer({ ...s, storage: () => s.storage });
+  const backup = JSON.parse(makeTransfer(source).export());
+  backup.profile.finishedCourses = legacy.finishedCourses;
+  const target = stores();
+  const transfer = makeTransfer(target);
+  transfer.replace(transfer.parse(JSON.stringify(backup)));
+  assert.deepEqual(
+    target.profileStore.snapshot().state.finishedCourses,
+    restored.state.finishedCourses,
+  );
 });
 
 test('storage failure retains completed course state for the session and export', () => {
@@ -206,14 +251,14 @@ test('storage failure retains completed course state for the session and export'
   s.storage.setItem = () => {
     throw new Error('storage denied');
   };
-  assert.equal(s.profileStore.recordCourseFinish('launchworks'), true);
+  assert.equal(s.profileStore.recordCourseFinish('zephyr-skywell'), true);
   assert.equal(s.profileStore.snapshot().saved, false);
   assert.deepEqual(s.profileStore.snapshot().state.finishedCourses, [
-    'launchworks',
+    'zephyr-skywell',
   ]);
   const transfer = createSaveTransfer({ ...s, storage: () => s.storage });
   assert.deepEqual(JSON.parse(transfer.export()).profile.finishedCourses, [
-    'launchworks',
+    'zephyr-skywell',
   ]);
 });
 

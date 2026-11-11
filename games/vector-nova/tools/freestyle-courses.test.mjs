@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import createSkywell from '../src/levels/launchworks/index.js';
+import createSkywell from '../src/levels/zephyr-skywell/index.js';
 import createOriel from '../src/levels/freestyle-oriel/index.js';
 import createRavel from '../src/levels/freestyle-ravel/index.js';
 import { createDeviceRuntime } from '../src/pickups/runtime.js';

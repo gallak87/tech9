@@ -286,7 +286,7 @@ test('demo saves carry rewards and trophy to full; full saves round-trip through
   target.profile.chooseExotic('kestrel');
   for (const [i, id] of ['jump', 'lance', 'injector', 'deflector'].entries())
     target.profile.equip('kestrel', i, id);
-  target.profile.recordCourseFinish('launchworks');
+  target.profile.recordCourseFinish('zephyr-skywell');
   target.profile.recordCourseFinish('freestyle-oriel');
   target.cup.start('apex', 'kestrel', 'hard');
   const original = target.profile.snapshot().state;
@@ -349,7 +349,7 @@ test('demo saves carry rewards and trophy to full; full saves round-trip through
   assert.equal(inDemo.profile.removeExotic(), false);
   assert.equal(inDemo.profile.recordCourseFinish('freestyle-ravel'), false);
   assert.deepEqual(inDemo.profile.snapshot().state.finishedCourses, [
-    'launchworks',
+    'zephyr-skywell',
     'freestyle-oriel',
   ]);
   assert.deepEqual(inDemo.profile.snapshot().state, original);

@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as T from 'three';
-import { createLaunchworksTrack } from './track/model.js';
+import { createSkywellTrack } from './track/model.js';
 import { createSkywellWaterways } from './waterways.js';
 import { createZephyrWater } from '../zephyr/environment/water.js';
 
 test('the actual canal and basin water clears its opaque bed and stays inside the masonry banks', () => {
-  const track = createLaunchworksTrack(),
+  const track = createSkywellTrack(),
     texture = new T.Texture(),
     water = createZephyrWater(track, texture),
     waterways = createSkywellWaterways({

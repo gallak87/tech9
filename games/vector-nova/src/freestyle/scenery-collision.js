@@ -4,7 +4,7 @@ import {
   indexedTriangles,
 } from '../physics/collision-world.js';
 import { collectProductionSolids } from '../physics/production-solids.js';
-import { createLaunchworksRoad } from '../levels/launchworks/track/road.js';
+import { createSkywellRoad } from '../levels/zephyr-skywell/track/road.js';
 
 const decode = (encoded, Type) =>
   new Type(
@@ -30,7 +30,7 @@ export async function createFreestyleCollisionWorld({
     track,
     id: `${id}-solids`,
     geometryId: track.geometryVersion,
-    road: createLaunchworksRoad({ track, shape: true }),
+    road: createSkywellRoad({ track, shape: true }),
     select: (object) =>
       object.userData.drivingSurface
         ? { kind: 'deck' }

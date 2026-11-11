@@ -11,7 +11,7 @@ const root = resolve(import.meta.dirname, '..');
 const base = process.env.VN_URL;
 assert.ok(base, 'VN_URL must point to the selected checkout dev server');
 const courses = {
-  launchworks: 'Zephyr Skywell / suspended water gardens',
+  'zephyr-skywell': 'Zephyr Skywell / suspended water gardens',
   'freestyle-oriel':
     'Oriel Sunvault / the inhabited cylinder and five arrival courts',
   'freestyle-ravel': 'Ravel Sailbreak / five folded-sail fleet stations',
@@ -55,7 +55,7 @@ try {
             response,
             body: source.replace(
               anchor,
-              `$1\nreturn collectProductionSolids({track,id: id + '-authoring-solids',geometryId: track.geometryVersion,road: createLaunchworksRoad({track,shape:true}),select: object => object.userData.drivingSurface ? {kind:'deck'} : /Low outboard rail/.test(object.name) ? {kind:'rail',roadBoundary:true} : null});\n`,
+              `$1\nreturn collectProductionSolids({track,id: id + '-authoring-solids',geometryId: track.geometryVersion,road: createSkywellRoad({track,shape:true}),select: object => object.userData.drivingSurface ? {kind:'deck'} : /Low outboard rail/.test(object.name) ? {kind:'rail',roadBoundary:true} : null});\n`,
             ),
           });
         },

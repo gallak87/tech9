@@ -38,7 +38,7 @@ test('each championship victory unlocks its own mode and only its starter course
     [
       'founders',
       'freestyle',
-      ['launchworks', 'freestyle-oriel', 'freestyle-ravel'],
+      ['zephyr-skywell', 'freestyle-oriel', 'freestyle-ravel'],
     ],
     [
       'frontier',
@@ -92,7 +92,7 @@ test('career completion does not substitute for a mode cup win or add another mo
 test('each course requires all earlier finishes and cannot skip its cup or another discipline', () => {
   const access = {
     cupWins: ['founders'],
-    finishedCourses: ['launchworks'],
+    finishedCourses: ['zephyr-skywell'],
   };
   assert.equal(courseAvailable('freestyle-oriel', access), true);
   assert.equal(courseAvailable('freestyle-ravel', access), false);
@@ -121,7 +121,7 @@ test('each course requires all earlier finishes and cannot skip its cup or anoth
       type: 'course',
       mode: 'freestyle',
       label: 'Freestyle',
-      courseId: 'launchworks',
+      courseId: 'zephyr-skywell',
       winRequired: false,
     },
   );
@@ -157,7 +157,7 @@ test('the nine-course collection distinguishes availability from completion and 
   assert.ok(fresh.courses.every((course) => course.status === 'locked'));
   const started = courseCollection({
     cups: ['founders'],
-    finishedCourses: ['launchworks'],
+    finishedCourses: ['zephyr-skywell'],
     claims: [],
   });
   assert.equal(started.unlocked, 2);
@@ -165,7 +165,7 @@ test('the nine-course collection distinguishes availability from completion and 
   assert.equal(started.courses[0].status, 'completed');
   assert.equal(started.courses[1].status, 'available');
   assert.equal(started.courses[2].status, 'locked');
-  assert.equal(started.courses[1].previousId, 'launchworks');
+  assert.equal(started.courses[1].previousId, 'zephyr-skywell');
   const completed = courseCollection({
     cups: ['founders', 'frontier', 'horizon'],
     finishedCourses: COURSE_IDS,

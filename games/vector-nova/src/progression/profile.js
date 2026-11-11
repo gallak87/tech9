@@ -2,6 +2,7 @@ import { IS_DEMO, CAREER_SHIPS, FULL_CUPS, fullCupWins } from './edition.js';
 import { SHIPS } from '../ships/catalog.js';
 import { isCareerComplete } from './completion.js';
 import { COURSE_IDS, courseAvailable } from '../levels/access.js';
+import { canonicalLevelId } from '../levels/aliases.js';
 import {
   REWARDS,
   ALL_REWARDS,
@@ -56,6 +57,11 @@ const strings = (value, max, valid = () => true) =>
     (entry) => typeof entry === 'string' && entry.length <= 160 && valid(entry),
   );
 export function validateProfile(value) {
+  const finishedCourses = Array.isArray(value?.finishedCourses)
+    ? value.finishedCourses.map((id) =>
+        typeof id === 'string' ? canonicalLevelId(id) : id,
+      )
+    : value?.finishedCourses;
   if (
     !value ||
     value.version !== CAREER_VERSION ||
@@ -66,7 +72,7 @@ export function validateProfile(value) {
     !strings(value.cups, cups.length, (id) => cups.includes(id)) ||
     !strings(value.trialTracks, 100) ||
     (value.finishedCourses !== undefined &&
-      !strings(value.finishedCourses, COURSE_IDS.length, (id) =>
+      !strings(finishedCourses, COURSE_IDS.length, (id) =>
         COURSE_IDS.includes(id),
       )) ||
     !strings(value.claims, ALL_REWARDS.length, (id) =>
@@ -89,7 +95,7 @@ export function validateProfile(value) {
     'exoticShip',
   ])
     next[key] = copy(value[key]);
-  next.finishedCourses = copy(value.finishedCourses ?? []);
+  next.finishedCourses = copy(finishedCourses ?? []);
   if (
     !Number.isSafeInteger(value.finishes) ||
     value.finishes < next.wins ||
@@ -367,6 +373,7 @@ export function createProfileStore(storage = () => localStorage) {
       return award(next);
     },
     recordCourseFinish(id) {
+      if (typeof id === 'string') id = canonicalLevelId(id);
       if (
         !COURSE_IDS.includes(id) ||
         state.finishedCourses.includes(id) ||

@@ -28,7 +28,7 @@
 
 Never show **Oriel, Ravel or Nomad Procession**, their canonical course thumbnails, the Encore Cup/event list, or the career-completion cinematic. Also exclude **Oriel Sunvault, Ravel Sailbreak and Nomad Last Convoy**: their mode variants reveal the same worlds even though their entry rules differ.
 
-Freestyle footage uses **Zephyr Skywell (`launchworks`)** only. Crucible Dispatch/Goliath, Helion Breach/Wraith and Nightweir Lockdown/Bulwark are safe Interceptor settings. The approved cut uses Goliath for its readable turn/fire/dodge/core-opening story. Eliminator is omitted.
+Freestyle footage uses **Zephyr Skywell (`zephyr-skywell`)** only. Crucible Dispatch/Goliath, Helion Breach/Wraith and Nightweir Lockdown/Bulwark are safe Interceptor settings. The approved cut uses Goliath for its readable turn/fire/dodge/core-opening story. Eliminator is omitted.
 
 Use an isolated **production-access career** for menu shots, not an unrestricted developer menu. Own the 28 item rewards and original cup trophies, but leave the sequential mode-course chains unfinished; this naturally leaves the collection below 37/37 and keeps the bonus courses/Encore hidden. Audit visible names, thumbnails, links and trophy cabinet before recording. A developer profile can expose secrets even when its displayed collection is incomplete.
 

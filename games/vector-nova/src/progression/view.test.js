@@ -121,13 +121,13 @@ test('course requirements name the immediate prerequisite and authored challenge
     courseRequirementText('freestyle-ravel', access(profile), catalog),
     'Complete Course 2 to unlock this course.',
   );
-  profile.finishedCourses = ['launchworks'];
+  profile.finishedCourses = ['zephyr-skywell'];
   assert.equal(
     courseRequirementText('freestyle-ravel', access(profile), catalog),
     'Complete Course 2 to unlock this course.',
   );
   assert.equal(
-    courseRequirementText('launchworks', access(profile), catalog),
+    courseRequirementText('zephyr-skywell', access(profile), catalog),
     '',
   );
   for (const mode of MODE_UNLOCKS) {
@@ -140,7 +140,7 @@ test('results name the newly opened course and distinguish completing the mode',
   const before = freshProfile();
   before.cups = ['founders'];
   const after = structuredClone(before);
-  after.finishedCourses = ['launchworks'];
+  after.finishedCourses = ['zephyr-skywell'];
   const opened = courseResultsView(before, after, catalog);
   assert.match(opened, /Course complete/);
   assert.match(opened, /Course 1 completed/);

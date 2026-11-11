@@ -4,8 +4,7 @@ import { assetURL } from '../../assets/url.js';
 import { batchSkywellScenery } from './scenery-batches.js';
 import { finishZephyrMaterial } from '../zephyr/environment/materials.js';
 
-// Original Skywell furniture. The first receiver is deliberately the default
-// proof; explicit IDs can expand the accepted treatment after visual review.
+// Every receiver borrows the same 70 m Gothic beacon and material-role meshes.
 export async function createSkywellArrivalArt({
   track,
   jumpIds = [track.jumps[0]?.id],
@@ -17,15 +16,7 @@ export async function createSkywellArrivalArt({
   const group = new T.Group();
   group.name = 'Skywell / fitted Gothic arrival furniture';
   const selected = track.jumps.filter((jump) => jumpIds.includes(jump.id));
-  const names = [
-    ...new Set(
-      selected.map((jump) =>
-        jump === track.jumps[0]
-          ? 'arrival-beacon-crown'
-          : 'arrival-beacon-small',
-      ),
-    ),
-  ];
+  const names = selected.length ? ['arrival-beacon'] : [];
   if (includeSaddles) names.push('terrace-saddle');
   if (veilSource) names.push('veil-spill-lip');
   const owned = [],
@@ -89,17 +80,14 @@ export async function createSkywellArrivalArt({
     });
   for (const jump of selected) {
     const beacons = [];
-    const asset =
-      jump === track.jumps[0] ? 'arrival-beacon-crown' : 'arrival-beacon-small';
     const frame = track.sample(jump.landingStart + 15);
-    // Bell's steep, banked approach has a wider swept hull and chase sightline
-    // than the settled road. Its furniture stays outside that native envelope.
-    // Crown's boosted wide entry returns to the road after passing these
-    // towers; keep their actual bronze/recess faces outside that swept hull.
+    // Give wide airborne entries another 60 m on either side before reaching
+    // the actual bronze/recess faces, with one consistent beacon silhouette.
+    // Bell and Crown retain their wider spacing for the banked/boosted catch.
     const offset =
-      jump === track.jumps[0] ? 49 : jump === track.jumps[1] ? 41 : 31;
+      jump === track.jumps[0] ? 109 : jump === track.jumps[1] ? 101 : 91;
     for (const side of [-1, 1]) {
-      const beacon = library[asset].clone(true);
+      const beacon = library['arrival-beacon'].clone(true);
       beacon.name = `Skywell / ${jump.label} / fitted arrival beacon ${side}`;
       beacon.position
         .copy(frame.position)

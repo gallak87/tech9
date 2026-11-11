@@ -3,12 +3,12 @@ import assert from 'node:assert/strict';
 import * as T from 'three';
 import { getCollisionHull } from '../../../ships/collision-hulls.js';
 import { createOrielFreestyleTrack } from './model.js';
-import { createLaunchworksTrack } from '../../launchworks/track/model.js';
-import { createLaunchworksRoad } from '../../launchworks/track/road.js';
+import { createSkywellTrack } from '../../zephyr-skywell/track/model.js';
+import { createSkywellRoad } from '../../zephyr-skywell/track/road.js';
 
 test('Sunvault staging supports the complete footprint of every starting hull', () => {
   const track = createOrielFreestyleTrack(),
-    road = createLaunchworksRoad({ track, shape: true });
+    road = createSkywellRoad({ track, shape: true });
   try {
     road.group.updateMatrixWorld(true);
     const surfaces = [];
@@ -44,7 +44,7 @@ test('Sunvault staging supports the complete footprint of every starting hull', 
 
 test('Sunvault retains proven generous flights, smooth releases and three real pipe catches', () => {
   const track = createOrielFreestyleTrack(),
-    source = createLaunchworksTrack();
+    source = createSkywellTrack();
   assert.equal(track.jumps.length, 5);
   assert.equal(track.tubes.length, 3);
   assert.notEqual(track.id, source.id);
@@ -71,7 +71,7 @@ test('Sunvault retains proven generous flights, smooth releases and three real p
     assert.ok(track.sampleSurface(s, 0));
     assert.ok(track.sampleSurface(s, Math.PI * tube.radius));
   }
-  const road = createLaunchworksRoad({ track, shape: true });
+  const road = createSkywellRoad({ track, shape: true });
   try {
     assert.ok(road.group.children.some((mesh) => mesh.userData.drivingSurface));
   } finally {

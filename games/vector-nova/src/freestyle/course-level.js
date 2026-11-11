@@ -1,4 +1,4 @@
-import createSkywell from '../levels/launchworks/index.js';
+import createSkywell from '../levels/zephyr-skywell/index.js';
 import { createFreestyleCollisionWorld } from './scenery-collision.js';
 
 /** The established Freestyle owner supplies contact, scoring, sound and catch

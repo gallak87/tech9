@@ -1,14 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createLaunchworksTrack } from './track/model.js';
-import { createLaunchworksRuntime } from './runtime.js';
+import { createSkywellTrack } from './track/model.js';
+import { createSkywellRuntime } from './runtime.js';
 import { createVehicleState } from '../../physics/index.js';
 import { createDeviceRuntime } from '../../pickups/runtime.js';
 import { readRuntimeFrame } from '../../core/session-runtime.js';
 
 test('the production lightweight frame reader carries real Freestyle flight and receiver feedback', () => {
-  const track = createLaunchworksTrack();
-  const motion = createLaunchworksRuntime({ track });
+  const track = createSkywellTrack();
+  const motion = createSkywellRuntime({ track });
   const runtime = createDeviceRuntime({
     track,
     devices: [],

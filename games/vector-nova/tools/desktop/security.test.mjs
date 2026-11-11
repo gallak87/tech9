@@ -44,7 +44,7 @@ test('full packages every original and bonus course without exposing bonus conte
 });
 test('the full policy includes all nine sequential mode courses and their runtime stills, while the demo excludes them', () => {
   const expected = [
-    'launchworks',
+    'zephyr-skywell',
     'freestyle-oriel',
     'freestyle-ravel',
     'eliminator-glasswake',
@@ -57,12 +57,13 @@ test('the full policy includes all nine sequential mode courses and their runtim
   const full = editionPolicy('full');
   assert.equal(new Set(full.levels).size, full.levels.length);
   for (const id of expected) {
+    const assetDirectory = id === 'zephyr-skywell' ? 'launchworks' : id;
     assert.equal(full.levels.includes(id), true, id);
     assert.equal(editionPolicy('demo').levels.includes(id), false, id);
     for (const path of [
       `assets/menu/${id}.webp`,
-      `assets/levels/${id}/runtime.glb`,
-      `assets/levels/${id}/finish.png`,
+      `assets/levels/${assetDirectory}/runtime.glb`,
+      `assets/levels/${assetDirectory}/finish.png`,
     ]) {
       assert.equal(includePublic(path, 'full'), true, path);
       assert.equal(includePublic(path, 'demo'), false, path);
@@ -83,7 +84,7 @@ test('the full policy includes all nine sequential mode courses and their runtim
 });
 test('mode courses retain their borrowed canonical biome exports without pulling the worlds into the demo', () => {
   for (const path of [
-    'assets/levels/launchworks/arrival-beacon-crown.glb',
+    'assets/levels/launchworks/arrival-beacon.glb',
     'assets/levels/launchworks/veil-spill-lip.glb',
     'assets/levels/zephyr/cathedral-facade.glb',
     'assets/levels/zephyr/zephyr-limestone-v1.png',

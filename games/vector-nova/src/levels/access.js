@@ -11,7 +11,7 @@ export const MODE_UNLOCKS = Object.freeze(
       label: 'Freestyle',
       cupId: 'founders',
       cupName: 'Founders Cup',
-      levelIds: ['launchworks', 'freestyle-oriel', 'freestyle-ravel'],
+      levelIds: ['zephyr-skywell', 'freestyle-oriel', 'freestyle-ravel'],
     },
     {
       mode: 'eliminator',

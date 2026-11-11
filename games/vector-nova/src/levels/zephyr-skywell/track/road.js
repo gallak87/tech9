@@ -58,7 +58,7 @@ function tubeGeometry(track, chunk) {
   geometry.computeBoundingSphere();
   return geometry;
 }
-export function createLaunchworksRoad({ track, shape = false }) {
+export function createSkywellRoad({ track, shape = false }) {
   const group = new T.Group();
   group.name = 'Skywell / suspended bronze and woven transfer works';
   const borrowed = new Set(),

@@ -34,7 +34,7 @@ function heightAt(knots, station) {
 
 // Five different pieces of flight architecture. The launch vectors come from
 // the real driven road; no target-seeking force steers a racer across a gap.
-export function createLaunchworksTrack() {
+export function createSkywellTrack() {
   const sourceLips = [650, 2050, 3450, 4850, 6250];
   // Add space to the actual flight corridors and a smaller amount to each
   // receiving runout. Grounded setups retain their authored turns and rolls.

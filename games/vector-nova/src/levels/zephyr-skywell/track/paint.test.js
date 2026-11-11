@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Texture } from 'three';
-import { createLaunchworksTrack } from './model.js';
-import { createLaunchworksRoad } from './road.js';
+import { createSkywellTrack } from './model.js';
+import { createSkywellRoad } from './road.js';
 
 test('the finished road releases its shared and cloned surface resources once while borrowing its reflection', () => {
-  const road = createLaunchworksRoad({ track: createLaunchworksTrack() });
+  const road = createSkywellRoad({ track: createSkywellTrack() });
   const resources = new Map();
   const observe = (resource) => {
     if (!resource || resources.has(resource)) return;
@@ -38,8 +38,8 @@ test('the finished road releases its shared and cloned surface resources once wh
 });
 
 test('receiver paint marks the actual accepted lane across its runout without adding a driving surface', () => {
-  const track = createLaunchworksTrack();
-  const road = createLaunchworksRoad({ track, shape: true });
+  const track = createSkywellTrack();
+  const road = createSkywellRoad({ track, shape: true });
   try {
     const fields = road.group.children.filter(
       (mesh) => mesh.userData.receiverId,

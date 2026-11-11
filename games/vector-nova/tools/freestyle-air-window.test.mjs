@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import createLevel from '../src/levels/launchworks/index.js';
+import createLevel from '../src/levels/zephyr-skywell/index.js';
 import { createDeviceRuntime } from '../src/pickups/runtime.js';
 import { createVehicleState } from '../src/physics/index.js';
 import { SHIPS } from '../src/ships/catalog.js';

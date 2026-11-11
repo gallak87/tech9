@@ -93,7 +93,10 @@ test('course unlocks are derived from earned progress and cannot be supplied as 
   assert.equal(progress.courseCount, 0);
   assert.equal(isCareerComplete({ ...profile, developer: true }), false);
   assert.equal(
-    validateProfile({ ...profile, claims: [...profile.claims, 'launchworks'] }),
+    validateProfile({
+      ...profile,
+      claims: [...profile.claims, 'zephyr-skywell'],
+    }),
     null,
   );
   assert.ok(
@@ -185,7 +188,7 @@ test('remaining equipment still counts for Race and Championships while event ba
   const store = completedStore(createMemoryStorage());
   const profile = store.snapshot().state;
   profile.claims = profile.claims.filter((id) => id !== 'speed-1');
-  profile.finishedCourses = ['launchworks'];
+  profile.finishedCourses = ['zephyr-skywell'];
   assert.deepEqual(remainingModeUnlocks(profile), {
     race: 1,
     cup: 1,

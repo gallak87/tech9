@@ -1,5 +1,5 @@
 import * as T from 'three';
-import { createLaunchworksTrack } from '../levels/launchworks/track/model.js';
+import { createSkywellTrack } from '../levels/zephyr-skywell/track/model.js';
 import { createTubeSurface } from '../levels/shatterline/track/tube-surface.js';
 
 const up = new T.Vector3(0, 1, 0);
@@ -19,7 +19,7 @@ export function createTransferCourse({
   width = 52,
   offset = [0, 0, 0],
 }) {
-  const source = createLaunchworksTrack();
+  const source = createSkywellTrack();
   const knots = [[0, turns[0]]];
   for (let i = 1; i < source.jumps.length; i++) {
     knots.push([source.jumps[i - 1].recovery + 20, turns[i - 1]]);

@@ -972,7 +972,7 @@
     },
     {
       "id": "zephyr-skywell",
-      "source": "src/levels/launchworks/",
+      "source": "src/levels/zephyr-skywell/",
       "creator": "VECTOR//NOVA project contributors",
       "provenance": "Original source-authored Zephyr Skywell five-transfer route, banked receivers and descending water-garden composition. Reuses registered canonical Zephyr islands, cathedral/abbey/chapel/tower/halo/aqueduct/waterfall GLBs, the Blender-authored open aqueduct bay, limestone image, road weave, material/water/lighting helpers and sky backdrop. Skywell owns stacked shores, close architectural precinct compositions, connected stepped water streets and bounded receiving cisterns. Its local metric deck finish adds fitted cassette joints and restrained satin coating; garden-finish.js wraps the canonical mineral finish with broad muted cultivated courts using existing noise/relief and no new images. The separately registered original arrival kit supplies formed bronze beacons and underside carriages, while the original garden-terrace kit constructs the Crown, Counterbank and Last Light receiving shores. Other private island clones retain natural mineral bodies with old loose ornament roles hidden. Cultivated groves use the public Worldkit Living Forest kit and its canonical bark/leaf images, ray-seated on actual terrace triangles; package assets retain their existing provenance. The short receiving tube shares Shatterline tube-surface.js and tube-tessellation.js geometry/contact mechanics; three powered approaches reuse shared Vector hardware. Good, Great and Perfect magnetic catches and completed-trick ticks use original deterministic runtime synthesis in src/freestyle/audio.js through the shared effects mixer. No new downloaded media or runtime image assets.",
       "rights": "Derived from this project's registered Zephyr and equipment assets, project-authored Shatterline geometry mechanics and Worldkit Living Forest assets; their original provenance and rights apply",
@@ -984,7 +984,7 @@
         "assets/levels/launchworks/README.md",
         "assets/levels/launchworks/arrival-art-manifest.json",
         "assets/levels/launchworks/terrace-art-manifest.json",
-        "src/levels/launchworks/garden-finish.js"
+        "src/levels/zephyr-skywell/garden-finish.js"
       ]
     },
     {
@@ -995,7 +995,7 @@
       "rights": "Project-authored derivation of the registered Zephyr, Oriel, Ravel, Worldkit and private Freestyle sources; their existing licences and provenance remain applicable.",
       "runtimeDependencies": ["three", "@dimforge/rapier3d-compat"],
       "sourceAssets": [
-        "src/levels/launchworks/landing-solids.json",
+        "src/levels/zephyr-skywell/landing-solids.json",
         "src/levels/freestyle-oriel/landing-solids.json",
         "src/levels/freestyle-ravel/landing-solids.json",
         "tools/bake-freestyle-scenery.mjs",
@@ -1264,9 +1264,9 @@
     },
     {
       "id": "skywell-arrival-kit",
-      "source": "assets/levels/launchworks/build_arrival_art.py and skywell-arrival-kit.blend; src/levels/launchworks/arrival-art.js",
+      "source": "assets/levels/launchworks/build_arrival_art.py and skywell-arrival-kit.blend; src/levels/zephyr-skywell/arrival-art.js",
       "creator": "VECTOR//NOVA project contributors",
-      "provenance": "Original editable Blender-authored Gothic-bronze arrival furniture, derived from this project's selected Zephyr scene reference and its retained exact imagegen prompt. Tall Crown and separately proportioned small beacons use tapered formed exoskeletons, real recessed twin induction lancets, ivory stone anchor shoes, fitted collars and fasteners. Matching deep bronze terrace saddles retain stone bearing pads outside the approved road corridor; four tapered bronze pickup webs connect their formed spine to seated flanges beneath the unchanged keel, with an editable non-exported keel reference retained for inspection. A compact closed Veil distributor adds carved source cheeks, deep recesses, fitted coping and four actual open mouths aligned to the unchanged curtain strands; it copies that curtain's world matrix without adding water geometry or changing opacity. Exported GLBs use game metres, Y up and +Z forward, with baked identity node transforms, actual bevel geometry, four or fewer merged material-role meshes and restrained original vertex-color finish. Skywell spatially instances the private asset library without adding driving surfaces, colliders, hoops or point lights. The rebuild script, editable source, exact mesh bounds, triangle counts and runtime hashes are retained; no downloaded meshes, texture images, fonts or generated runtime imagery are used.",
+      "provenance": "Original editable Blender-authored Gothic-bronze arrival furniture, derived from this project's selected Zephyr scene reference and its retained exact imagegen prompt. One shared 70 m beacon design supplies all five receiving pairs, with a 10 m wide stone anchor shoe, tapered formed exoskeleton, real recessed twin induction lancets, fitted collars and fasteners. The editable source proportions the upper body before metric beveling; runtime placements retain unit scale and broad outboard spacing. Matching deep bronze terrace saddles retain stone bearing pads outside the approved road corridor; four tapered bronze pickup webs connect their formed spine to seated flanges beneath the unchanged keel, with an editable non-exported keel reference retained for inspection. A compact closed Veil distributor adds carved source cheeks, deep recesses, fitted coping and four actual open mouths aligned to the unchanged curtain strands; it copies that curtain's world matrix without adding water geometry or changing opacity. Exported GLBs use game metres, Y up and +Z forward, with baked identity node transforms, actual bevel geometry, four or fewer merged material-role meshes and restrained original vertex-color finish. Skywell spatially instances the private asset library without adding driving surfaces, hoops or point lights; physical contacts use the separately registered receiver scenery bake. The rebuild script, editable source, exact mesh bounds, triangle counts and runtime hashes are retained; no downloaded meshes, texture images, fonts or generated runtime imagery are used.",
       "rights": "Project-authored geometry, materials and vertex finish; no third-party model or texture inputs. The existing registered Zephyr concept reference retains its original provenance.",
       "runtimeDependencies": ["three"],
       "provenanceRecord": "assets/levels/launchworks/arrival-art-manifest.json",
@@ -1278,15 +1278,14 @@
         "assets/levels/zephyr/zephyr-scene-reference.png"
       ],
       "runtimeAssets": [
-        "public/assets/levels/launchworks/arrival-beacon-crown.glb",
-        "public/assets/levels/launchworks/arrival-beacon-small.glb",
+        "public/assets/levels/launchworks/arrival-beacon.glb",
         "public/assets/levels/launchworks/terrace-saddle.glb",
         "public/assets/levels/launchworks/veil-spill-lip.glb"
       ]
     },
     {
       "id": "skywell-garden-terrace",
-      "source": "assets/levels/launchworks/build_terrace_art.py and skywell-garden-terrace.blend; src/levels/launchworks/terrace-art.js",
+      "source": "assets/levels/launchworks/build_terrace_art.py and skywell-garden-terrace.blend; src/levels/zephyr-skywell/terrace-art.js",
       "creator": "VECTOR//NOVA project contributors",
       "provenance": "Original editable Blender-authored limestone garden promenade, with continuous fitted coping, twenty-eight real pointed-arch balustrade bays, open canal and walking entrances, and six formed bronze straps. The canonical island-grand GLB is imported unchanged as a dimensional reference: Blender BVH rays measure its actual upward mineral top and fit the anchor straps to its eroded sides. Only the four original merged limestone, pale coping, bronze and recess meshes are exported; canonical mineral geometry remains owned by the registered Zephyr kit. The local helper copies selected private island matrices and replaces only their decorative rim roles, retaining the mineral surface. Game-local metres, identity glTF transforms and restrained original vertex finish are retained alongside the editable blend, rebuild script, exact bounds, triangle count and runtime hash. No downloaded media, new textures, lights or driving surfaces.",
       "rights": "Project-authored geometry, materials and vertex finish; the project-owned Zephyr dimensional reference and selected concept retain their existing registered provenance.",

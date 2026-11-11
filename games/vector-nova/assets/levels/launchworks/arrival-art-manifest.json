@@ -32,26 +32,15 @@
   },
   "assets": [
     {
-      "file": "arrival-beacon-crown.glb",
+      "file": "arrival-beacon.glb",
       "boundsMetres": {
         "min": [-5.0, -14.0, -5.800000190734863],
-        "max": [5.0, 188.02243041992188, 5.800000190734863]
-      },
-      "triangles": 8160,
-      "materialDraws": 4,
-      "bytes": 719028,
-      "sha256": "10180bc76c013ea358246d46bd1eae2ae6961fe1172c7f750c4e18bc75f0a3a0"
-    },
-    {
-      "file": "arrival-beacon-small.glb",
-      "boundsMetres": {
-        "min": [-3.5, -9.800000190734863, -4.059999942779541],
-        "max": [3.5, 29.004117965698242, 4.059999942779541]
+        "max": [5.0, 70.0, 5.800000190734863]
       },
       "triangles": 7264,
       "materialDraws": 4,
-      "bytes": 645456,
-      "sha256": "bf0a7814d3151b2e8ce3d5ad2d12c5e0b7edc14981571570d46c3ecea2d2c2f0"
+      "bytes": 642840,
+      "sha256": "63feca6bf00871b7a31660d2d84320fa48f2376e72eb5243b63c9ad0336d540c"
     },
     {
       "file": "terrace-saddle.glb",

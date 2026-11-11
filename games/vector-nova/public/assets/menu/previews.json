@@ -127,12 +127,12 @@
       "sourceDirty": true,
       "routeSignature": "465f763b58be5b17"
     },
-    "launchworks": {
-      "file": "launchworks.webp",
+    "zephyr-skywell": {
+      "file": "zephyr-skywell.webp",
       "width": 640,
       "height": 400,
       "preset": "route-overview-v1",
-      "sourceRevision": "47abc5d10b889a964c25ec570f7611a81478caf1",
+      "sourceRevision": "9d5058f7db6da983e8c1f46d2bf351e9f25dd62b",
       "sourceDirty": true,
       "routeSignature": "479e230c74decc05"
     },

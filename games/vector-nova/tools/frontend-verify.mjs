@@ -468,7 +468,7 @@ try {
         const careerBefore = (await front(page)).career;
         let returned = 0;
         for (const [mode, id, won] of [
-          ['freestyle', 'launchworks', true],
+          ['freestyle', 'zephyr-skywell', true],
           ['race', 'halcyon', true],
           ['race', 'shatterline', true],
           ['time-trial', 'shatterline', true],
@@ -1440,7 +1440,7 @@ try {
         );
         await page.keyboard.press('Enter');
         await expectLockedPreview(
-          'launchworks',
+          'zephyr-skywell',
           'freestyle',
           /Win Founders Cup/,
         );
@@ -1763,7 +1763,7 @@ try {
     );
     for (const [id, mode, racers] of [
       ['halcyon', 'race', 10],
-      ['launchworks', 'freestyle', 0],
+      ['zephyr-skywell', 'freestyle', 0],
       ['freestyle-oriel', 'freestyle', 0],
       ['freestyle-ravel', 'freestyle', 0],
       ['eliminator-glasswake', 'eliminator', 10],
@@ -2036,7 +2036,7 @@ try {
         assert.equal(await page.locator('[data-difficulty]').count(), 0);
         await page.locator('[data-action="freestyle"]').click();
         assert.equal((await front(page)).intent, 'freestyle');
-        assert.equal((await front(page)).selected, 'launchworks');
+        assert.equal((await front(page)).selected, 'zephyr-skywell');
         assert.equal(await page.locator('.circuit-card').count(), 3);
         assert.equal(await page.locator('[data-difficulty]').count(), 0);
         assert.match(

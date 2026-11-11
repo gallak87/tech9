@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createInput } from './index.js';
 import { EQUIPMENT_CONTROLS } from '../equipment/controls.js';
+import * as T from 'three';
+import { createFreestyleController } from '../freestyle/controller.js';
 
 function harness(t, options = {}, settings = {}) {
   let pad = null;
@@ -100,8 +102,12 @@ test('Freestyle two-hand keys compose attitude independently of driving and neve
   ])
     key('keydown', code);
   let sample = input.sample();
-  assert.equal(sample.aerialRoll, 1, 'left arrow rolls left');
-  assert.equal(sample.aerialPitch, -1, 'up arrow lifts the nose');
+  assert.equal(
+    sample.aerialRoll,
+    -1,
+    'left arrow rolls left in the chase view',
+  );
+  assert.equal(sample.aerialPitch, 1, 'up arrow pitches the nose forward');
   assert.equal(sample.aerialYaw, 1, 'E spins right');
   assert.equal(sample.throttle, 1);
   assert.equal(sample.steer, 1, 'D steering is independent of left-roll input');
@@ -114,8 +120,8 @@ test('Freestyle two-hand keys compose attitude independently of driving and neve
   for (const code of ['ArrowDown', 'ArrowRight', 'KeyQ', 'Space'])
     key('keydown', code);
   sample = input.sample();
-  assert.equal(sample.aerialRoll, -1);
-  assert.equal(sample.aerialPitch, 1);
+  assert.equal(sample.aerialRoll, 1);
+  assert.equal(sample.aerialPitch, -1, 'down arrow pulls the nose back');
   assert.equal(sample.aerialYaw, -1);
   assert.equal(
     sample.throttle,
@@ -154,8 +160,8 @@ test('Freestyle arrows never drive and opposing rotation keys cancel without a m
   assert.equal(sample.aerialYaw, 0);
   for (const code of ['ArrowDown', 'ArrowRight', 'KeyE']) key('keyup', code);
   sample = input.sample();
-  assert.equal(sample.aerialPitch, -1);
-  assert.equal(sample.aerialRoll, 1);
+  assert.equal(sample.aerialPitch, 1);
+  assert.equal(sample.aerialRoll, -1);
   assert.equal(sample.aerialYaw, -1);
   assert.equal(sample.throttle, 0);
   assert.equal(sample.brake, 0);
@@ -249,8 +255,11 @@ test('Freestyle right stick pitches and rolls while X/Y spin independently acros
     pad.axes = [0.4, 0.8, 0.6, -0.9];
     pad.buttons[2] = { value: 1, pressed: true };
     let sample = input.sample();
-    assert.ok(sample.aerialPitch < -0.8, 'right stick up lifts the nose');
-    assert.ok(sample.aerialRoll < -0.5, 'right stick right rolls right');
+    assert.ok(
+      sample.aerialPitch > 0.8,
+      'right stick up pitches the nose forward',
+    );
+    assert.ok(sample.aerialRoll > 0.5, 'right stick right rolls right');
     assert.equal(sample.aerialYaw, -1, 'X spins left');
     assert.ok(sample.steer > 0.2, 'left stick still steers');
     assert.equal(sample.throttle, 0, preset);
@@ -268,8 +277,11 @@ test('Freestyle right stick pitches and rolls while X/Y spin independently acros
     pad.axes = [0.4, -0.8, -0.6, 0.9];
     sample = input.sample();
     assert.equal(sample.aerialYaw, 1, 'Y spins right');
-    assert.ok(sample.aerialRoll > 0.5, 'right stick left rolls left');
-    assert.ok(sample.aerialPitch > 0.8, 'right stick down lowers the nose');
+    assert.ok(sample.aerialRoll < -0.5, 'right stick left rolls left');
+    assert.ok(
+      sample.aerialPitch < -0.8,
+      'right stick down pulls the nose back',
+    );
     pad.buttons[3] = { value: 0, pressed: false };
     input.sample();
   }
@@ -277,6 +289,91 @@ test('Freestyle right stick pitches and rolls while X/Y spin independently acros
   assert.equal(input.sample().aerialPitch, 0);
   assert.equal(input.sample().aerialYaw, 0);
   assert.equal(input.sample().aerialRoll, 0);
+});
+
+test('Freestyle pulling down raises the actual nose for a backflip with keyboard or stick', (t) => {
+  const { input, key, setPad } = harness(t, { freestyle: true });
+  const pad = {
+    id: 'freestyle-pitch-direction',
+    index: 0,
+    connected: true,
+    mapping: 'standard',
+    axes: [0, 0, 0, 0],
+    buttons: Array.from({ length: 17 }, () => ({ value: 0, pressed: false })),
+  };
+  setPad(pad);
+  input.sample();
+  for (const [code, stickY, backflip] of [
+    ['ArrowDown', 0, true],
+    ['ArrowUp', 0, false],
+    [null, 0.9, true],
+    [null, -0.9, false],
+  ]) {
+    if (code) key('keydown', code);
+    pad.axes[3] = stickY;
+    const controller = createFreestyleController({ jumps: [] });
+    controller.launch('pitch-direction');
+    for (let tick = 0; tick < 30; tick++)
+      controller.step(input.sample(), 1 / 120);
+    const orientation = new T.Quaternion();
+    controller.attitude(orientation);
+    const nose = new T.Vector3(0, 0, 1).applyQuaternion(orientation);
+    assert.ok(
+      backflip ? nose.y > 0.05 : nose.y < -0.05,
+      `${code ?? `stick Y ${stickY}`}: ${backflip ? 'backflip raises' : 'frontflip lowers'} the actual forward axis`,
+    );
+    if (code) key('keyup', code);
+    pad.axes[3] = 0;
+  }
+});
+
+test('Freestyle left and right bank the actual hull toward that side of the rear chase view', (t) => {
+  const { input, key, setPad } = harness(t, { freestyle: true });
+  const pad = {
+    id: 'freestyle-roll-direction',
+    index: 0,
+    connected: true,
+    mapping: 'standard',
+    axes: [0, 0, 0, 0],
+    buttons: Array.from({ length: 17 }, () => ({ value: 0, pressed: false })),
+  };
+  setPad(pad);
+  input.sample();
+  const chase = new T.PerspectiveCamera();
+  chase.position.set(0, 6, -18);
+  chase.lookAt(0, 0, 12);
+  const screenRight = new T.Vector3(1, 0, 0).applyQuaternion(chase.quaternion);
+  const screenUp = new T.Vector3(0, 1, 0).applyQuaternion(chase.quaternion);
+  for (const [code, stickX, left] of [
+    ['ArrowLeft', 0, true],
+    ['ArrowRight', 0, false],
+    [null, -0.9, true],
+    [null, 0.9, false],
+  ]) {
+    if (code) key('keydown', code);
+    pad.axes[2] = stickX;
+    const controller = createFreestyleController({ jumps: [] });
+    controller.launch('roll-direction');
+    for (let tick = 0; tick < 30; tick++)
+      controller.step(input.sample(), 1 / 120);
+    const orientation = new T.Quaternion();
+    controller.attitude(orientation);
+    const hullUp = new T.Vector3(0, 1, 0).applyQuaternion(orientation);
+    const wing = screenRight
+      .clone()
+      .multiplyScalar(left ? -1 : 1)
+      .applyQuaternion(orientation);
+    assert.ok(
+      left ? hullUp.dot(screenRight) < -0.05 : hullUp.dot(screenRight) > 0.05,
+      `${code ?? `stick X ${stickX}`}: the hull visibly banks ${left ? 'left' : 'right'}`,
+    );
+    assert.ok(
+      wing.dot(screenUp) < -0.05,
+      'the commanded side wing drops in the chase view',
+    );
+    if (code) key('keyup', code);
+    pad.axes[2] = 0;
+  }
 });
 
 test('ordinary races retain WASD and arrow driving while controller right-stick movement stays unused', (t) => {

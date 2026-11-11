@@ -1,8 +1,46 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import * as T from 'three';
+import { getCollisionHull } from '../../../ships/collision-hulls.js';
 import { createOrielFreestyleTrack } from './model.js';
 import { createLaunchworksTrack } from '../../launchworks/track/model.js';
 import { createLaunchworksRoad } from '../../launchworks/track/road.js';
+
+test('Sunvault staging supports the complete footprint of every starting hull', () => {
+  const track = createOrielFreestyleTrack(),
+    road = createLaunchworksRoad({ track, shape: true });
+  try {
+    road.group.updateMatrixWorld(true);
+    const surfaces = [];
+    road.group.traverse((mesh) => {
+      if (mesh.userData.drivingSurface) surfaces.push(mesh);
+    });
+    const frame = track.sample(0),
+      ray = new T.Raycaster();
+    for (const id of ['shrike', 'kestrel', 'bastion', 'needle']) {
+      const hull = getCollisionHull(id),
+        bounds = new T.Box3();
+      for (let i = 0; i < hull.vertices.length; i += 3)
+        bounds.expandByPoint(new T.Vector3().fromArray(hull.vertices, i));
+      for (const x of [bounds.min.x, bounds.max.x])
+        for (const z of [bounds.min.z, bounds.max.z]) {
+          const point = frame.position
+            .clone()
+            .addScaledVector(frame.right, x)
+            .addScaledVector(frame.tangent, z)
+            .addScaledVector(frame.up, 12);
+          ray.set(point, frame.up.clone().negate());
+          const hits = ray.intersectObjects(surfaces, false);
+          assert.ok(
+            hits.some((hit) => Math.abs(hit.distance - 12) < 0.02),
+            `${id}: complete nose/stern footprint stays over actual starting deck`,
+          );
+        }
+    }
+  } finally {
+    road.dispose();
+  }
+});
 
 test('Sunvault retains proven generous flights, smooth releases and three real pipe catches', () => {
   const track = createOrielFreestyleTrack(),

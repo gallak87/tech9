@@ -155,17 +155,18 @@ export function createInput(
         // Driving and attitude stay separate for the entire discipline. The
         // flight controller ignores attitude on support, so a held arrow can
         // never turn into steering when the ship touches down.
+        // Pulling down/back raises the nose; pushing up pitches forward.
         i.aerialPitch = active
           ? clamp(
-              Number(down('ArrowDown')) -
-                Number(down('ArrowUp')) +
+              Number(down('ArrowUp')) -
+                Number(down('ArrowDown')) -
                 (pad.aerialStickY ?? 0),
             )
           : 0;
         i.aerialRoll = active
           ? clamp(
-              Number(down('ArrowLeft')) -
-                Number(down('ArrowRight')) -
+              Number(down('ArrowRight')) -
+                Number(down('ArrowLeft')) +
                 (pad.aerialStickX ?? 0),
             )
           : 0;

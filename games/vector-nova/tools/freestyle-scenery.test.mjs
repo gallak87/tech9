@@ -116,7 +116,7 @@ async function routeAndFlightCorridors(level, track) {
       ),
     );
   }
-  const collisionWorld = level.createCollisionWorld({ track }),
+  const collisionWorld = await level.createCollisionWorld({ track }),
     dynamics = await level.createDynamics({ track, collisionWorld }),
     runtime = createDeviceRuntime({
       track,

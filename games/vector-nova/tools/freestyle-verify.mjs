@@ -8,14 +8,15 @@ import {
   collectPageErrors,
 } from './verification-browser.mjs';
 import {
+  CAREER_SLOTS_KEY,
   createCareerSlots,
   createMemoryStorage,
 } from '../src/progression/careers.js';
 import { createProfileStore } from '../src/progression/profile.js';
 
-// Completed, acknowledged career, using the real progression reducer. This
-// exercises production Freestyle entry with an earned Founders Cup. The fully
-// earned fleet also keeps the native landing regression on its existing hull.
+// Earned rewards/cups use the real progression reducer. Founders opens Skywell;
+// its own course finish remains unearned until the native run below. The full
+// fleet keeps the established landing gesture on its existing hull.
 const storage = createMemoryStorage();
 const careers = createCareerSlots({ storage: () => storage, now: () => 1 });
 careers.create(1);
@@ -26,8 +27,11 @@ for (const cup of ['founders', 'frontier', 'horizon', 'apex'])
   profile.recordCup(cup);
 profile.recordTrial('halcyon', true);
 profile.recordTrial('nacre', true);
-profile.queueCompletion('shrike');
-profile.acknowledgeCompletion();
+assert.equal(profile.snapshot().state.cups.includes('founders'), true);
+assert.equal(
+  profile.snapshot().state.finishedCourses.includes('launchworks'),
+  false,
+);
 const seed = Array.from({ length: storage.length }, (_, i) => {
   const key = storage.key(i);
   return [key, storage.getItem(key)];
@@ -35,21 +39,35 @@ const seed = Array.from({ length: storage.length }, (_, i) => {
 const browser = await launchVerificationBrowser();
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 const errors = collectPageErrors(page);
-await page.addInitScript((values) => {
-  for (const [key, value] of values) localStorage.setItem(key, value);
-  localStorage.setItem(
-    'vector-nova.settings',
-    // Chromium is host-muted; an enabled effects mix still exercises real cues.
-    JSON.stringify({ quality: 'low', volume: 0.35 }),
-  );
-}, seed);
+await page.addInitScript(
+  ({ values, registryKey }) => {
+    // A later navigation must preserve real course finishes and ranked records,
+    // rather than replacing the active career with its initial fixture again.
+    if (localStorage.getItem(registryKey) === null)
+      for (const [key, value] of values) localStorage.setItem(key, value);
+    localStorage.setItem(
+      'vector-nova.settings',
+      // Chromium is host-muted; an enabled effects mix still exercises real cues.
+      JSON.stringify({ quality: 'low', volume: 0.35 }),
+    );
+  },
+  { values: seed, registryKey: CAREER_SLOTS_KEY },
+);
 // Fixed ticks still run the live native session with bounded normalized input.
 // This response-only hook freezes between assertions, never changes poses,
 // contacts or outcomes, and is absent from the application and its builds.
 await page.route('**/src/core/game.js*', async (route) => {
   const response = await route.fetch();
   let source = await response.text();
-  assert.ok(source.includes('function advanceTick(control) {'));
+  for (const anchor of [
+    'const errors = [];',
+    'function advanceTick(control) {',
+    'getSnapshot() {',
+  ])
+    assert.ok(
+      source.includes(anchor),
+      `the maintained fixed-step hook is present: ${anchor}`,
+    );
   source = source.replace(
     'const errors = [];',
     'const errors = []; let __fsFrozen = false;',
@@ -205,8 +223,8 @@ try {
     [
       ['ArrowLeft', 'ArrowUp', 'KeyE', 'KeyW'],
       {
-        aerialRoll: 1,
-        aerialPitch: -1,
+        aerialRoll: -1,
+        aerialPitch: 1,
         aerialYaw: 1,
         boost: false,
         throttle: 1,
@@ -217,8 +235,8 @@ try {
     [
       ['ArrowRight', 'ArrowDown', 'KeyQ', 'Space'],
       {
-        aerialRoll: -1,
-        aerialPitch: 1,
+        aerialRoll: 1,
+        aerialPitch: -1,
         aerialYaw: -1,
         airbrake: true,
         throttle: 0,
@@ -256,8 +274,8 @@ try {
         'held axes turn the actual native hull',
       );
     if (
-      input.aerialRoll === 1 &&
-      input.aerialPitch === -1 &&
+      input.aerialRoll === -1 &&
+      input.aerialPitch === 1 &&
       input.aerialYaw === 1
     ) {
       const partialFlight = motion(turned).freestyle.flight;
@@ -441,8 +459,8 @@ try {
   const padInput = (await read()).input;
   assert.ok(
     padInput.steer > 0.2 &&
-      padInput.aerialPitch < -0.8 &&
-      padInput.aerialRoll < -0.5,
+      padInput.aerialPitch > 0.8 &&
+      padInput.aerialRoll > 0.5,
   );
   assert.equal(
     padInput.aerialYaw,
@@ -563,7 +581,9 @@ try {
   assert.equal(careerAfterRun.points, careerBeforeRun.points + earnedProgress);
   assert.equal(careerAfterRun.finishes, careerBeforeRun.finishes + 1);
   assert.equal(
-    await page.locator('.race-reward-progress h3').textContent(),
+    await page
+      .locator('.race-reward-progress:not(.course-result-progress) > h3')
+      .textContent(),
     `+${earnedProgress} race progress`,
   );
   console.log(
@@ -775,16 +795,16 @@ try {
     0,
     'retry has no old landing voices',
   );
-  // Deliberate gesture: hold a right line, roll right550ms, trim400ms, then settle.
+  // Deliberate gesture: hold a right line, roll left550ms, trim400ms, then settle.
   // No receiver quaternion, future contact or controller steers this gesture.
   await page.keyboard.down('KeyW');
   await page.keyboard.down('KeyD');
   await heldTicks(18);
-  await page.keyboard.down('ArrowRight');
+  await page.keyboard.down('ArrowLeft');
   await heldTicks(66);
   await page.keyboard.down('Space');
   await heldTicks(48);
-  await page.keyboard.up('ArrowRight');
+  await page.keyboard.up('ArrowLeft');
   await page.keyboard.up('KeyD');
   let observedContact = false;
   for (let i = 0; i < 100; i++) {

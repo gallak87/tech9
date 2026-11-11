@@ -1,5 +1,5 @@
 export const FREESTYLE_RULES = Object.freeze({
-  version: 6,
+  version: 7,
   rotationPointsPerSecond: 800,
   landingWindow: 0.3,
   stableWindow: 0.1,

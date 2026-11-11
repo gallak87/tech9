@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
+import { seedInterceptorCareer } from './interceptor-career-seed.mjs';
 
 // The pilot supplies only supported steering/throttle. Boost and issued weapons
 // always come from production input.sample(), through real keyboard/pad input.
@@ -11,6 +12,7 @@ const browser = await chromium.launch({
   args: ['--mute-audio'],
 });
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+await seedInterceptorCareer(page, 'interceptor-helion');
 const faults = [];
 page.on('pageerror', (error) => faults.push(error.message));
 page.on('console', (message) => {
@@ -94,6 +96,7 @@ await page.route('**/src/core/game.js*', async (route) => {
     `
     freezeWraithClock() { cancelAnimationFrame(raf); return this.readWraith(); },
     stepWraith(n=1) {
+      const { devices } = simulationActors.prepareRacing();
       cancelAnimationFrame(raf);
       for(let i=0;i<Math.min(1200,Math.max(0,Math.floor(n)))&&mode==='racing';i++) {
         const native=input.sample();
@@ -105,6 +108,7 @@ await page.route('**/src/core/game.js*', async (route) => {
           equipment1:native.equipment1,equipment2:native.equipment2,
           equipment3:native.equipment3,equipment4:native.equipment4};
         advanceTick(control);
+        input.consumeEquipment();
         const attack=interceptor.snapshot().counterattack;
         if(attack.warning)(window.__wraithNativeTrace??=[]).push({time:state.time,index:attack.attackIndex,
           rawBoost:native.boost,acceptedBoost:state.boosting,rawLance:native.equipment1,
@@ -370,7 +374,9 @@ function auditDamage(state) {
 }
 
 try {
-  await page.goto(new URL('?level=interceptor-helion&music=0', base).href);
+  await page.goto(
+    new URL('?level=interceptor-helion&intro=0&music=0', base).href,
+  );
   await page.waitForFunction(
     () => window.__VN_FRONTEND?.getState().screen === 'home',
   );

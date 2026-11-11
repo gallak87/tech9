@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
+import { seedInterceptorCareer } from './interceptor-career-seed.mjs';
 
 // This pilot supplies only ordinary steering/throttle intent. Every boost,
 // issued shot and Injector request comes from production input.sample(), driven
@@ -11,6 +12,7 @@ const browser = await chromium.launch({
   args: ['--mute-audio'],
 });
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+await seedInterceptorCareer(page, 'interceptor-nightweir');
 const faults = [];
 page.on('pageerror', (error) => faults.push(error.message));
 page.on('console', (message) => {
@@ -105,6 +107,7 @@ await page.route('**/src/core/game.js*', async (route) => {
       return this.readBulwark();
     },
     stepBulwark(n = 1) {
+      const { devices } = simulationActors.prepareRacing();
       cancelAnimationFrame(raf);
       for (let i = 0; i < Math.min(1200, Math.max(0, Math.floor(n))) && mode === 'racing'; i++) {
         const native = input.sample();
@@ -118,6 +121,7 @@ await page.route('**/src/core/game.js*', async (route) => {
           boost: native.boost, airbrake: native.airbrake,
           equipment1: native.equipment1, equipment2: native.equipment2,
           equipment3: native.equipment3, equipment4: native.equipment4});
+        input.consumeEquipment();
       }
       render(last || performance.now());
       cancelAnimationFrame(raf);
@@ -393,7 +397,9 @@ function auditDamage(state) {
 }
 
 try {
-  await page.goto(new URL('?level=interceptor-nightweir&music=0', base).href);
+  await page.goto(
+    new URL('?level=interceptor-nightweir&intro=0&music=0', base).href,
+  );
   await page.waitForFunction(
     () => window.__VN_FRONTEND?.getState().screen === 'home',
   );

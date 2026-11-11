@@ -450,9 +450,17 @@ test('a course-composed boss retains real furnace heat, cooling, reversed contac
     }),
     { getYaw: (state) => facingAt(state.time) },
   );
+  const courseMotion = createHelionBreach().racing.createMotion({
+    track: f.track,
+    settings: { steeringAssist: 0.3 },
+    presentation: false,
+  });
   try {
     assert.equal(f.runtime.id, 'interceptor-helion-thermal-flight');
-    assert.ok(f.runtime.rulesId.includes('helion-thermal-flight-v4:'));
+    assert.ok(
+      f.runtime.rulesId.startsWith(`${courseMotion.rulesId}:`),
+      'the boss retains the current course motion identity',
+    );
     assert.ok(
       f.runtime.rulesId.endsWith(
         'courier-facing-v3-driving-axis:self-contact-100:other-contact-180:boss-support-footprint-v1',
@@ -517,6 +525,7 @@ test('a course-composed boss retains real furnace heat, cooling, reversed contac
       'real cooling surfaces still discharge stored boss heat',
     );
   } finally {
+    courseMotion.dispose();
     f.dispose();
   }
 });

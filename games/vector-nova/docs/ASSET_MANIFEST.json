@@ -976,6 +976,21 @@
       ]
     },
     {
+      "id": "freestyle-receiver-collision",
+      "source": "tools/bake-freestyle-scenery.mjs and tools/freestyle-scenery-geometry.mjs",
+      "creator": "VECTOR//NOVA project contributors",
+      "provenance": "Current CPU collision geometry derived from each Freestyle course's actual composed receiving scenery. Bounded banked receiver corridors retain opaque structural faces; water, alpha foliage and decorative glows are excluded. Welded, error-tolerant index simplification retains real openings and the exact placed transforms without enclosing boxes. Small fittings use a 0.025 m simplifier budget and large bodies a 0.25 m budget, with a conservative transform norm and half-budget solver margin. Each data file identifies its current source GLBs, route identity and collision fingerprint. Rendering, approved road geometry, controls and landing rules are unchanged.",
+      "rights": "Project-authored derivation of the registered Zephyr, Oriel, Ravel, Worldkit and private Freestyle sources; their existing licences and provenance remain applicable.",
+      "runtimeDependencies": ["three", "@dimforge/rapier3d-compat"],
+      "sourceAssets": [
+        "src/levels/launchworks/landing-solids.json",
+        "src/levels/freestyle-oriel/landing-solids.json",
+        "src/levels/freestyle-ravel/landing-solids.json",
+        "tools/bake-freestyle-scenery.mjs",
+        "tools/freestyle-scenery-geometry.mjs"
+      ]
+    },
+    {
       "id": "oriel-sunvault-course",
       "source": "src/levels/freestyle-oriel/ and src/freestyle/course-track.js",
       "creator": "VECTOR//NOVA project contributors",

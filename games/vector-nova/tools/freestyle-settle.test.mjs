@@ -1,17 +1,124 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import createLevel from '../src/levels/launchworks/index.js';
+import createOriel from '../src/levels/freestyle-oriel/index.js';
 import { createDeviceRuntime } from '../src/pickups/runtime.js';
 import { createVehicleState } from '../src/physics/index.js';
 import { createTransferPilot } from './freestyle-pilot.mjs';
+import { withMagneticBoundaries } from '../src/physics/magnetic-boundaries.js';
 
 const DT = 1 / 120;
 const copy = (value) => JSON.parse(JSON.stringify(value));
 
+test('Oriel second-transfer late rotation that physically reattaches and drives on earns Good', async (t) => {
+  const level = createOriel(),
+    track = level.createTrack();
+  const collisionWorld = await level.createCollisionWorld({ track });
+  const dynamics = await level.createDynamics({
+    track,
+    collisionWorld: withMagneticBoundaries(track, collisionWorld),
+  });
+  const runtime = createDeviceRuntime({
+    track,
+    devices: level.racing.createDevices(track),
+    equipmentEnabled: false,
+    motion: level.createRuntime({
+      track,
+      collisionWorld,
+      dynamics,
+      presentation: false,
+      settings: { steeringAssist: 0.3 },
+    }),
+  });
+  t.after(() => {
+    runtime.dispose();
+    dynamics.dispose();
+    collisionWorld.dispose();
+  });
+  const state = {
+    ...createVehicleState('shrike'),
+    ...track.scenarios['jump2-approach'],
+  };
+  runtime.reset({ state, seed: 7 });
+  const pilot = createTransferPilot(track, { reaction: 0.15, quantum: 0.25 });
+  const events = [];
+  let contact = null,
+    beforeContact = null,
+    contactDistance = null;
+  for (let tick = 0; tick < 2400; tick++) {
+    const before = runtime.snapshot();
+    const input = {
+      ...pilot({ state, motion: before, pose: runtime.pose(1) }),
+    };
+    if (before.flight?.elapsed >= 4.8 && before.flight.elapsed < 5.32)
+      input.aerialRoll = -1;
+    const emitted = runtime.advance(state, input, DT);
+    events.push(...emitted);
+    contact = emitted.find((event) => event.type === 'jump-transfer');
+    if (contact) {
+      beforeContact = before;
+      contactDistance = state.distance;
+      break;
+    }
+  }
+  assert.ok(contact, 'ordinary held controls reach the native receiving bank');
+  assert.equal(contact.payload.outcome, 'landed');
+  assert.equal(
+    contact.payload.tractionRestored,
+    true,
+    'the hull really reattaches after the awkward deck contact',
+  );
+  assert.ok(
+    events.some(
+      (event) => event.type === 'jump-miss' && event.payload.reason === 'deck',
+    ),
+  );
+  assert.equal(
+    beforeContact.freestyle.flight.failed,
+    true,
+    'this reproduces the sticky failure flag that formerly overruled successful driving',
+  );
+  assert.equal(runtime.snapshot().freestyle.pendingLanding.clean, false);
+  assert.equal(runtime.snapshot().freestyle.score, 0);
+  for (let tick = 0; tick < 120; tick++) {
+    const input = pilot({
+      state,
+      motion: runtime.snapshot(),
+      pose: runtime.pose(1),
+    });
+    events.push(...runtime.advance(state, input, DT));
+    assert.equal(
+      runtime.pose(1).grounded,
+      true,
+      'the actual hull stays attached and drives on',
+    );
+  }
+  const banks = events.filter((event) => event.type === 'freestyle-bank');
+  assert.equal(banks.length, 1);
+  assert.equal(banks[0].payload.landed, true);
+  assert.equal(banks[0].payload.clean, false);
+  assert.equal(banks[0].payload.perfect, false);
+  assert.equal(banks[0].payload.chain, 1);
+  assert.ok(banks[0].payload.bank >= 1000);
+  assert.ok(state.distance > contactDistance + 60);
+  assert.equal(
+    events.some(
+      (event) =>
+        event.type === 'jump-transfer' && event.payload.outcome === 'recovered',
+    ),
+    false,
+    'automatic teleport recovery never supplies this credit',
+  );
+  assert.equal(
+    events.some((event) => event.type === 'road-recovery'),
+    false,
+  );
+});
+
 test('a real late-roll landing earns recovered credit after sustained native support and replays once', async (t) => {
   const level = createLevel();
   const track = level.createTrack();
-  const collisionWorld = level.createCollisionWorld({ track });
+  const collisionWorld = await level.createCollisionWorld({ track });
   const dynamics = await level.createDynamics({ track, collisionWorld });
   const runtime = createDeviceRuntime({
     track,

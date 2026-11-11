@@ -171,7 +171,8 @@ export function createLaunchworksRoad({ track, shape = false }) {
     );
   }
   const runs = [];
-  let start = 0;
+  // The spawn is at zero; the full hull needs real deck behind its centre.
+  let start = -12;
   for (const jump of track.jumps) {
     runs.push([start, jump.takeoff]);
     start = jump.landingStart;

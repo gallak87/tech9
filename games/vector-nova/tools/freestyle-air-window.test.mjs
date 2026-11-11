@@ -11,7 +11,7 @@ import { createTransferPilot } from './freestyle-pilot.mjs';
 test('the long-air course receives every stock hull and boosted transfers without recovery snaps', async (t) => {
   const level = createLevel(),
     track = level.createTrack();
-  const collisionWorld = level.createCollisionWorld({ track });
+  const collisionWorld = await level.createCollisionWorld({ track });
   const dynamics = await level.createDynamics({ track, collisionWorld });
   const runtime = createDeviceRuntime({
     track,

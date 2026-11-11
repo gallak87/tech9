@@ -7,7 +7,7 @@ import {
 } from './runtime.js';
 import { createLaunchworksDevices } from './devices.js';
 import { createZephyrBackdrop } from '../zephyr/backdrop/index.js';
-import { collectProductionSolids } from '../../physics/production-solids.js';
+import { createFreestyleCollisionWorld } from '../../freestyle/scenery-collision.js';
 import { createFreestyleOverlay } from '../../freestyle/overlay.js';
 import { createFreestyleCatchVfx } from '../../freestyle/catch-vfx.js';
 import { createFreestyleAudio } from '../../freestyle/audio.js';
@@ -82,17 +82,10 @@ export default function createLevel() {
       };
     },
     createCollisionWorld: ({ track }) =>
-      collectProductionSolids({
+      createFreestyleCollisionWorld({
         track,
-        id: 'launchworks-solids',
-        geometryId: track.geometryVersion,
-        road: createLaunchworksRoad({ track, shape: true }),
-        select: (object) =>
-          object.userData.drivingSurface
-            ? { kind: 'deck' }
-            : /Low outboard rail/.test(object.name)
-              ? { kind: 'rail', roadBoundary: true }
-              : null,
+        id: 'launchworks',
+        loadScenery: () => import('./landing-solids.js'),
       }),
     createRuntime: createLaunchworksRuntime,
     createDynamics: createLaunchworksDynamics,

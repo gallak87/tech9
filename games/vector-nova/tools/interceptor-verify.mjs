@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { chromium } from 'playwright';
+import { seedInterceptorCareer } from './interceptor-career-seed.mjs';
 
 const base = process.env.VN_URL ?? 'http://127.0.0.1:5215';
 const probeOnly = process.env.VN_INTERCEPTOR_PROBE === '1';
@@ -12,6 +13,7 @@ const browser = await chromium.launch({
   args: ['--mute-audio'],
 });
 const page = await browser.newPage({ viewport: { width: 1440, height: 960 } });
+await seedInterceptorCareer(page);
 const faults = [];
 page.on('pageerror', (error) => faults.push(error.message));
 await page.addInitScript(
@@ -49,7 +51,7 @@ await page.route('**/src/core/game.js*', async (route) => {
   assert.ok(source.includes('getSnapshot() {'));
   assert.ok(source.includes('onHit(payload) {'));
   const contactAnchor = 'for (const hit of interceptor.hit({';
-  const combatAnchor = 'runtimeContext.combat = combat;';
+  const combatAnchor = 'const { combat } = simulationActors.prepareRacing();';
   assert.ok(
     source.includes(contactAnchor),
     'the live owner still receives physical contacts',
@@ -120,9 +122,11 @@ await page.route('**/src/core/game.js*', async (route) => {
       `
     stepMission(n,control={}) {
       if(interceptor?.snapshot().result)return this.getSnapshot();
+      const { devices } = simulationActors.prepareRacing();
       cancelCountdown();mode='racing';ui.setMode(mode);
       for(let i=0;i<Math.min(n,1200)&&mode==='racing';i++) {
         advanceTick(typeof control==='function'?control({state:{...state},motion:runtime.snapshot(),track,racers,devices,avoidance:runtime.avoidance?.()}):control);
+        input.consumeEquipment();
         const attack = interceptor.snapshot().counterattack;
         const quarry = racers.opponents.find(opponent => opponent.specification.id === 'goliath');
         const physical = quarry.runtime.pose(1), routeFrame = track.sample(quarry.state.distance);
@@ -689,7 +693,7 @@ async function verifyGarageAfterWin() {
   const interceptor = await garage();
   const speed = interceptor.stats.find((stat) => stat.id === 'speed');
   assert.equal(speed.notches, 1);
-  assert.match(speed.text, /5% earned improvement/);
+  assert.match(speed.text, /5% fleet improvement/);
   assert.deepEqual(
     interceptor.equipment.map((item) => item.id).sort(),
     profile.claims
@@ -1013,7 +1017,7 @@ async function runMission(label, driver) {
 }
 
 try {
-  await page.goto(new URL('?level=halcyon&music=0', base).href);
+  await page.goto(new URL('?level=halcyon&intro=0&music=0', base).href);
   await page.waitForFunction(
     () => window.__VN_FRONTEND?.getState().screen === 'home',
   );

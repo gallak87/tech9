@@ -18,6 +18,7 @@ export default function createLevel() {
       fillIntensity: 0.24,
       environmentIntensity: 0.36,
     }),
+    loadScenery: () => import('./landing-solids.js'),
     renderer: {
       world: 'oriel-sunvault',
       // This five-times-scale habitat needs enough depth precision for the

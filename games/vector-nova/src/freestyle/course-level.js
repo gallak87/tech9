@@ -1,4 +1,5 @@
 import createSkywell from '../levels/launchworks/index.js';
+import { createFreestyleCollisionWorld } from './scenery-collision.js';
 
 /** The established Freestyle owner supplies contact, scoring, sound and catch
  * feedback. Sibling courses replace only their authored world and road finish.
@@ -10,6 +11,7 @@ export function createFreestyleCourse({
   createBackdrop,
   renderer,
   palette,
+  loadScenery,
 }) {
   const base = createSkywell();
   return {
@@ -19,6 +21,8 @@ export function createFreestyleCourse({
     createTrack,
     createEnvironment,
     createBackdrop,
+    createCollisionWorld: ({ track }) =>
+      createFreestyleCollisionWorld({ track, id, loadScenery }),
     createRoad(context) {
       const road = base.createRoad(context);
       road.group.name = `${id} / manufactured transfer deck and receiving throats`;

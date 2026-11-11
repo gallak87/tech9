@@ -34,7 +34,7 @@ function settle(controller, options = {}, seconds = 0.3) {
   }
   return leg;
 }
-function contact(controller, index = 0) {
+function contact(controller, index = 0, outcome = 'landed') {
   const jump = track.jumps[index];
   const quaternion = new T.Quaternion().fromArray(
     controller.snapshot().orientation,
@@ -42,7 +42,7 @@ function contact(controller, index = 0) {
   return (
     controller.land({
       jump,
-      outcome: 'landed',
+      outcome,
       position: new T.Vector3(0, 0.72, jump.target),
       quaternion,
       velocity: new T.Vector3(0, 0, 145),
@@ -233,7 +233,8 @@ test('an unrecovered landing breaks the link while a supported scrape can recove
   c.launch('jump-1');
   steps(c, { aerialRoll: 1 }, 1);
   steps(c, { airbrake: true }, 0.25);
-  assert.equal(contact(c, 1).clean, false);
+  c.fail();
+  assert.equal(contact(c, 1, 'recovered').landed, false);
   assert.equal(c.snapshot().chain, 0);
   assert.equal(c.snapshot().score, 2500);
   c.launch('jump-2');
@@ -341,30 +342,42 @@ test('a recovered rotation or off-bank arrival receives landing points and prese
   }
 });
 
-test('settlement retains the marked receiver boundary instead of crediting arbitrary supported road', () => {
-  const c = createFreestyleController({ track });
-  c.launch('jump-0');
-  c.land({
-    jump: track.jumps[0],
-    distance: 0,
-    lateral: 9,
-    outcome: 'landed',
-    position: new T.Vector3(9, 0.72, 0),
-    quaternion: new T.Quaternion(),
-    velocity: new T.Vector3(0, 0, 145),
-  });
-  const leg = settle(c, { distance: 0, lateral: 9 });
-  assert.equal(leg.landed, false);
-  assert.equal(leg.bank, 0);
-  assert.equal(leg.reason, 'Outside landing zone');
+test('the marked strip reserves clean bonuses rather than vetoing genuine native landings', () => {
+  for (const [distance, lateral] of [
+    [0, 9],
+    [160, 0],
+  ]) {
+    const c = createFreestyleController({ track });
+    c.launch('jump-0');
+    c.land({
+      jump: track.jumps[0],
+      distance,
+      lateral,
+      outcome: 'landed',
+      position: new T.Vector3(lateral, 0.72, distance),
+      quaternion: new T.Quaternion(),
+      velocity: new T.Vector3(0, 0, 145),
+    });
+    const leg = settle(c, { distance, lateral });
+    assert.equal(leg.landed, true);
+    assert.equal(leg.clean, false);
+    assert.equal(leg.perfect, false);
+    assert.equal(leg.bank, 1000);
+    assert.equal(leg.reason, 'Recovered landing');
+  }
 });
 
-test('bouncing away, staying unsettled or a real miss cannot bank a landing', () => {
+test('sustained native support earns Good despite rotation, tilt or noisy settlement measurements', () => {
   for (const observation of [
-    { supported: false },
     { angularSpeed: 2 },
     { normalSpeed: 12 },
     { supportError: 3 },
+    {
+      quaternion: new T.Quaternion().setFromAxisAngle(
+        new T.Vector3(0, 0, 1),
+        0.7,
+      ),
+    },
   ]) {
     const c = createFreestyleController({ track });
     c.launch('jump-0');
@@ -376,24 +389,106 @@ test('bouncing away, staying unsettled or a real miss cannot bank a landing', ()
       velocity: new T.Vector3(0, 0, 145),
     });
     const leg = settle(c, observation);
+    assert.equal(leg.landed, true);
+    assert.equal(leg.clean, false);
+    assert.equal(leg.perfect, false);
+    assert.equal(leg.bank, 1000);
+    assert.equal(leg.chain, 1);
+  }
+});
+
+test('a provisional failed contact can genuinely reattach and continue its existing chain', () => {
+  const c = createFreestyleController({ track });
+  c.launch('jump-0');
+  contact(c);
+  assert.equal(c.snapshot().chain, 1);
+  c.launch('jump-1');
+  steps(c, { aerialRoll: 1 }, 0.3);
+  const style = freestyleAirPoints(c.snapshot());
+  c.fail();
+  assert.equal(
+    c.snapshot().chain,
+    1,
+    'a provisional miss cannot break a subsequently recovered landing',
+  );
+  assert.equal(
+    c.settle({ supported: true }),
+    null,
+    'support alone cannot fabricate the native landed outcome',
+  );
+  c.land({
+    jump: track.jumps[1],
+    distance: 100,
+    lateral: 9,
+    outcome: 'landed',
+    position: new T.Vector3(9, 0.72, 100),
+    quaternion: new T.Quaternion(),
+    velocity: new T.Vector3(0, 0, 145),
+  });
+  const leg = settle(c, { angularSpeed: 2 });
+  assert.equal(leg.landed, true);
+  assert.equal(leg.clean, false);
+  assert.equal(leg.perfect, false);
+  assert.equal(leg.chain, 2);
+  assert.equal(leg.bank, Math.round((1000 + style) * 2));
+});
+
+test('lost support, automatic teleports and failures without native reattachment remain misses', () => {
+  for (const outcome of ['landed', 'recovered']) {
+    const c = createFreestyleController({ track });
+    c.launch('jump-0');
+    if (outcome === 'recovered') c.fail();
+    const immediate = c.land({
+      jump: track.jumps[0],
+      outcome,
+      position: new T.Vector3(0, 0.72, 0),
+      quaternion: new T.Quaternion(),
+      velocity: new T.Vector3(0, 0, 145),
+    });
+    if (outcome === 'landed') c.fail();
+    const leg = immediate ?? settle(c, { supported: false });
     assert.equal(leg.landed, false);
     assert.equal(leg.bank, 0);
     assert.equal(leg.chain, 0);
   }
   const c = createFreestyleController({ track });
   c.launch('jump-0');
-  c.land({
-    jump: track.jumps[0],
-    outcome: 'landed',
-    position: new T.Vector3(0, 0.72, 0),
-    quaternion: new T.Quaternion(),
-    velocity: new T.Vector3(0, 0, 145),
-  });
   c.fail();
   assert.equal(
-    c.settle({ supported: true, quaternion: new T.Quaternion() }).landed,
-    false,
+    settle(c),
+    null,
+    'a failed flight without native reattachment cannot bank support',
   );
+  assert.equal(c.snapshot().score, 0);
+  assert.equal(c.snapshot().legs.length, 0);
+});
+
+test('a provisional failure during pending touchdown still earns Good when native support sticks', () => {
+  for (const brieflyLostSupport of [false, true]) {
+    const c = createFreestyleController({ track });
+    c.launch('jump-0');
+    contact(c);
+    c.launch('jump-1');
+    c.land({
+      jump: track.jumps[1],
+      outcome: 'landed',
+      position: new T.Vector3(0, 0.72, 100),
+      quaternion: new T.Quaternion(),
+      velocity: new T.Vector3(0, 0, 145),
+    });
+    assert.equal(settle(c, {}, 0.08), null);
+    c.fail();
+    assert.equal(c.snapshot().pendingLanding.failed, false);
+    assert.equal(c.snapshot().pendingLanding.damaged, true);
+    if (brieflyLostSupport)
+      assert.equal(settle(c, { supported: false }, 0.05), null);
+    const leg = settle(c, {}, 0.25);
+    assert.equal(leg.landed, true);
+    assert.equal(leg.clean, false);
+    assert.equal(leg.perfect, false);
+    assert.equal(leg.chain, 2);
+    assert.equal(leg.bank, 2000);
+  }
 });
 
 test('settling snapshots replay exactly; held grounded axes cannot farm tricks, upgrade arrival quality or bank twice', () => {

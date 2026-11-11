@@ -34,10 +34,6 @@ export function createFreestyleController({ track }) {
   function bankLanding(landed, failureReason = 'Unsettled landing') {
     const pending = data.pendingLanding;
     if (!pending) return null;
-    if (landed && !pending.line) {
-      landed = false;
-      failureReason = 'Outside landing zone';
-    }
     const clean = landed && pending.clean && !pending.damaged;
     const perfect = clean && pending.perfect;
     data.chain = landed ? data.chain + 1 : 0;
@@ -270,8 +266,9 @@ export function createFreestyleController({ track }) {
         data.flight.failed = true;
         data.flight.damaged = true;
       }
-      if (data.pendingLanding) data.pendingLanding.failed = true;
-      data.chain = 0;
+      // A pending native landing may stick after this provisional contact.
+      // Downgrade its quality; sustained support still decides Good vs Miss.
+      if (data.pendingLanding) data.pendingLanding.damaged = true;
       data.angular = [0, 0, 0];
     },
     invalidate() {
@@ -351,6 +348,7 @@ export function createFreestyleController({ track }) {
         elapsed: 0,
         lastObservedAt: data.clock,
         stableTime: 0,
+        qualityTime: 0,
         distance,
         lateral,
         line,
@@ -358,7 +356,10 @@ export function createFreestyleController({ track }) {
         perfect,
         tube,
         style,
-        failed: !!data.flight.failed || outcome !== 'landed',
+        // A hard contact can still regain real traction before the automatic
+        // recovery teleport. Native reattachment may earn Good after support
+        // is sustained; the sticky damage/failure flags still forbid bonuses.
+        failed: outcome !== 'landed',
         damaged: !!data.flight.damaged || edgeCaught,
         speed: velocity.length(),
         tricks: [...data.flight.tricks],
@@ -400,14 +401,20 @@ export function createFreestyleController({ track }) {
           Math.cos(0.48) &&
         new T.Vector3(0, 0, 1).applyQuaternion(quaternion).dot(frame.tangent) >
           Math.cos(0.58);
-      const stable =
+      const settledQuality =
         supported &&
         aligned &&
         angularSpeed < 1.2 &&
         Math.abs(normalSpeed) < 8 &&
         Math.abs(supportError) < 1.5;
-      pending.stableTime = stable ? pending.stableTime + dt : 0;
+      // Native magnetic support decides whether a landing worked. A spinning,
+      // tilted or off-centre hull that actually sticks and drives away still
+      // earns Good; these extra measurements reserve the higher grades.
+      pending.stableTime = supported ? pending.stableTime + dt : 0;
+      pending.qualityTime = settledQuality ? pending.qualityTime + dt : 0;
       if (pending.elapsed + 1e-9 < FREESTYLE_RULES.landingWindow) return null;
+      pending.clean &&=
+        pending.qualityTime + 1e-9 >= FREESTYLE_RULES.stableWindow;
       return bankLanding(
         pending.stableTime + 1e-9 >= FREESTYLE_RULES.stableWindow,
         supported ? 'Unsettled landing' : 'Lost receiver support',

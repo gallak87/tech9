@@ -14,7 +14,7 @@ const validCoordinates = (point) =>
   (point && Number.isFinite(point.distance) && Number.isFinite(point.lateral));
 
 // Thirty route metres clears the largest fully rotated boss + fleet nose
-// (about 25.24m) while keeping the ordinary 36m Repulsor useful. The extra
+// (about 25.24m) while keeping the ordinary Repulsor useful. The extra
 // 1.5m approach margin covers sudden contact/braking and projection tolerance.
 // Limit the hunter's physical movement, never the quarry's progress. Distances
 // are unwrapped route metres between chassis centres, not straight-line world

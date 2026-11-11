@@ -106,11 +106,12 @@ await page.route('**/src/core/game.js*', async (route) => {
       if(eliminator?.snapshot().result)return this.getSnapshot();
       cancelCountdown();mode='racing';ui.setMode(mode);
       for(let i=0;i<Math.min(n,1200)&&mode==='racing';i++)
-        advanceTick(typeof control==='function'?control({state:{...state},motion:runtime.snapshot(),track,racers,devices,avoidance:runtime.avoidance?.()}):control);
+        advanceTick(typeof control==='function'?control({state:{...state},motion:runtime.snapshot(),track,racers,devices:simulationActors.prepareRacing().devices,avoidance:runtime.avoidance?.()}):control);
       if(mode==='racing')pause();return this.getSnapshot();
     },
     eventDiagnostics() {
-      return {actors:dynamics?.snapshot().actors.map(({id,active})=>({id,active}))??[],
+      const physical=dynamics?.snapshot();
+      return {actors:(physical?.actors??physical?.world?.actors??[]).map(({id,active})=>({id,active})),
         opponents:racers.opponents.map(opponent=>({id:opponent.specification.id,eliminated:opponent.eliminated,state:{...opponent.state}}))};
     },getSnapshot() {`,
     ),
@@ -179,10 +180,14 @@ async function installPilot() {
               track.length,
           ),
       );
-      input.boost &&=
-        state.speed < vehicleHandling(state).boostSpeed - 8 &&
-        nextStrip > 170 &&
-        state.energy > (state.boosting ? 15 : 35);
+      // The moving convoy's production pilot predicts its large transfers
+      // with normal held boost. Preserve that native flight policy rather
+      // than applying the closed circuit's reserve-saving test driver to it.
+      if (track.closed !== false)
+        input.boost &&=
+          state.speed < vehicleHandling(state).boostSpeed - 8 &&
+          nextStrip > 170 &&
+          state.energy > (state.boosting ? 15 : 35);
       const slots = motion.equipment?.slots ?? [];
       input.equipment1 =
         slots[0]?.id === 'injector' &&
@@ -505,16 +510,34 @@ try {
   assert.equal(
     result.won,
     true,
-    'a real stock or legitimately earned build reaches last survivor with ordinary inputs',
+    'a real stock or legitimately earned build wins with ordinary inputs',
   );
   assert.equal(result.playerPosition, 1);
   assert.equal(result.playerValid, true);
-  assert.equal(result.elapsed, 102);
-  assert.equal(result.cuts.length, 9);
+  const reachedTerminus = result.reason === 'finish-line';
+  if (reachedTerminus) {
+    assert.equal(levelId, 'eliminator-nomad');
+    const finishDistance = await page.evaluate(
+      () => window.__VN.getTrack().finishDistance,
+    );
+    assert.ok(Number.isFinite(finishDistance) && finishDistance > 0);
+    assert.ok(result.vehicle.distance >= finishDistance);
+    assert.equal(result.winnerId, 'player');
+    assert.ok(result.elapsed > 0 && result.elapsed < 102);
+    assert.equal(
+      result.cuts.length,
+      Math.max(0, Math.floor((result.elapsed - 22) / 10) + 1),
+      'a qualified terminal can end the convoy before the remaining cuts',
+    );
+  } else {
+    assert.equal(result.reason, 'last-survivor');
+    assert.equal(result.elapsed, 102);
+    assert.equal(result.cuts.length, 9);
+  }
   assert.deepEqual(result.errors, []);
   assert.match(
     await page.locator('.eliminator-results h1').textContent(),
-    /Last racer standing/,
+    reachedTerminus ? /First to the lead deck/ : /Last racer standing/,
   );
   const afterWin = (await front()).career.state;
   assert.equal(afterWin.finishes, beforeWinCareer.finishes + 1);
@@ -532,7 +555,7 @@ try {
     ),
   );
   console.log(
-    'PASS · nine physical cuts, last-survivor result, win award once and restored full field',
+    `PASS · ${reachedTerminus ? 'qualified convoy terminal' : 'nine physical cuts and last survivor'}, win award once and restored full field`,
   );
   assert.deepEqual(faults, [], 'no uncaught browser exceptions');
 } finally {

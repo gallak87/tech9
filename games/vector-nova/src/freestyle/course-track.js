@@ -53,21 +53,46 @@ export function createTransferCourse({
   shift.x -= (bounds.min.x + bounds.max.x) / 2;
   shift.z -= (bounds.min.z + bounds.max.z) / 2;
   for (const point of points) point.add(shift);
+  // Retain the authored metre nodes while giving the contact chart a continuous
+  // first derivative. Tube support differentiates this centreline over 2 mm;
+  // linear chords otherwise turn every metre boundary into a camera/ship kick.
+  const derivatives = points.map((_, index) => {
+    const before = Math.max(0, index - 1),
+      after = Math.min(steps, index + 1);
+    return points[after]
+      .clone()
+      .sub(points[before])
+      .divideScalar(
+        Math.min(after, source.length) - Math.min(before, source.length),
+      );
+  });
   function sample(distance) {
     const s = clamp(distance, 0, source.length),
       index = Math.floor(s);
-    const frame = source.sample(s),
-      yaw = turnAt(s);
+    const frame = source.sample(s);
     const span = Math.min(index + 1, source.length) - index;
+    const next = Math.min(index + 1, steps),
+      t = span > 0 ? (s - index) / span : 0,
+      t2 = t * t,
+      t3 = t2 * t;
     const position = points[index]
       .clone()
-      .lerp(
-        points[Math.min(index + 1, steps)],
-        span > 0 ? (s - index) / span : 0,
-      );
-    const tangent = frame.tangent.applyAxisAngle(up, yaw);
-    const right = frame.right.applyAxisAngle(up, yaw);
-    const normal = frame.up.applyAxisAngle(up, yaw);
+      .multiplyScalar(2 * t3 - 3 * t2 + 1)
+      .addScaledVector(derivatives[index], span * (t3 - 2 * t2 + t))
+      .addScaledVector(points[next], -2 * t3 + 3 * t2)
+      .addScaledVector(derivatives[next], span * (t3 - t2));
+    const tangent = points[index]
+      .clone()
+      .multiplyScalar(6 * t2 - 6 * t)
+      .addScaledVector(derivatives[index], span * (3 * t2 - 4 * t + 1))
+      .addScaledVector(points[next], -6 * t2 + 6 * t)
+      .addScaledVector(derivatives[next], span * (3 * t2 - 2 * t))
+      .normalize();
+    if (!span) tangent.copy(derivatives[index]).normalize();
+    const right = new T.Vector3(tangent.z, 0, -tangent.x)
+      .normalize()
+      .applyAxisAngle(tangent, frame.roll);
+    const normal = new T.Vector3().crossVectors(tangent, right).normalize();
     // Keep the supported rear staging extension; forward lookahead must stop
     // at the road endpoint rather than invent a continuation beyond the finish.
     if (distance < 0) position.addScaledVector(tangent, distance);
@@ -117,7 +142,7 @@ export function createTransferCourse({
     width,
     sample,
     jumps,
-    geometryVersion: `${id}-wide-pipe-arrivals-v1:${source.geometryVersion}`,
+    geometryVersion: `${id}-c1-pipe-arrivals-v2:${source.geometryVersion}`,
     curtains: [],
     sections: source.sections.map((section, i) => ({
       ...section,

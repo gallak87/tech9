@@ -94,7 +94,10 @@ export async function createSkywellArrivalArt({
     const frame = track.sample(jump.landingStart + 15);
     // Bell's steep, banked approach has a wider swept hull and chase sightline
     // than the settled road. Its furniture stays outside that native envelope.
-    const offset = jump === track.jumps[1] ? 41 : 31;
+    // Crown's boosted wide entry returns to the road after passing these
+    // towers; keep their actual bronze/recess faces outside that swept hull.
+    const offset =
+      jump === track.jumps[0] ? 49 : jump === track.jumps[1] ? 41 : 31;
     for (const side of [-1, 1]) {
       const beacon = library[asset].clone(true);
       beacon.name = `Skywell / ${jump.label} / fitted arrival beacon ${side}`;

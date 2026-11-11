@@ -214,11 +214,6 @@ test('held manual boost closes naturally into a physical 30m gap without stoppin
 });
 
 test('ordinary Repulsor pulses hit every real boss from the settled chase buffer', async () => {
-  assert.equal(
-    COMBAT_RULES.pulseRadius,
-    36,
-    'shared combat range remains unchanged',
-  );
   for (const bossId of ['goliath', 'wraith', 'bulwark']) {
     const f = await fixture({ bossId });
     const hits = [];

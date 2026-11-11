@@ -9,6 +9,7 @@ export default function createLevel() {
     createTrack: createRavelFreestyleTrack,
     createEnvironment: createRavelFreestyleEnvironment,
     createBackdrop: createRavelBackdrop,
+    loadScenery: () => import('./landing-solids.js'),
     renderer: {
       world: 'ravel-sailbreak',
       background: '#030812',

@@ -56,6 +56,17 @@ to inspect the baked mesh objects does not require the extension.
   and +Z lateral after export. Its base is at the local origin. Consumers fit
   bearings into their hollow shell and own route/camera clearance; Worldkit's
   hollow factory can accept these parts without changing its default form.
+- Only the Crown recipe softly limits distal leader progress beyond 45 m and
+  radial limb reach with a 58 m hyperbolic-tangent envelope. An orthogonal
+  growth/radial rotation then preserves the grown oak's three-dimensional crown
+  volume. Circular wood sections are swept around the resulting directions;
+  the four ordinary grove forms keep their original grown shapes.
+- Leaf vertices export `_WIND_ANCHOR`, `_WIND_WEIGHT`, `_WIND_GRADIENT` and
+  `_WIND_PHASE`: a spray's branch bearing, normalized tip weight, weight gradient
+  and deterministic phase. Anchors/gradients are explicitly written in exported
+  +Y-up coordinates because Blender's generic custom-vector export does not
+  rotate them. Near/far sprays share their attachment sites and phases; the
+  Weather response owns runtime motion and borrows its shared condition clock.
 - The runtime GLB has eighteen mesh primitives and no embedded images or material
   payload. The narrow Worldkit loader supplies the existing Living Forest finish.
 

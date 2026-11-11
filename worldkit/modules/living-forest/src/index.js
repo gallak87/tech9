@@ -7,6 +7,7 @@ import {
   randomSource,
 } from './geometry.js';
 import { createLivingForestMaterials } from './materials.js';
+import { transformFoliageWindGeometry } from '../../weather/src/foliage-geometry.js';
 
 function matureTree(seed, variant, detail, materials, branchFinish) {
   const natural = branchFinish === 'natural';
@@ -226,7 +227,7 @@ function matureTree(seed, variant, detail, materials, branchFinish) {
   };
 }
 
-function shrub(seed, detail, materials) {
+function shrub(seed, detail, materials, foliageWind) {
   const random = randomSource(seed),
     wood = [],
     leaves = [];
@@ -249,11 +250,21 @@ function shrub(seed, detail, materials) {
         length: 5.5 + random() * 2,
         width: 6.5,
         bend: 0.5,
+        wind: foliageWind,
+        phase: stem * 2.399 + seed * 0.013,
       });
       leaf.rotateZ(card ? 0.7 : -0.7);
       leaf.rotateX(-0.35);
       leaf.rotateY(a);
       leaf.translate(tip.x, tip.y - 1, tip.z);
+      if (foliageWind) {
+        const matrix = new T.Matrix4()
+          .makeTranslation(tip.x, tip.y - 1, tip.z)
+          .multiply(new T.Matrix4().makeRotationY(a))
+          .multiply(new T.Matrix4().makeRotationX(-0.35))
+          .multiply(new T.Matrix4().makeRotationZ(card ? 0.7 : -0.7));
+        transformFoliageWindGeometry(leaf, matrix);
+      }
       leaves.push(leaf);
     }
   }
@@ -274,6 +285,7 @@ export function createLivingForestKit({
   textures,
   branchFinish = 'cut',
   includeTrees = true,
+  foliageWind = false,
 } = {}) {
   if (!['high', 'low'].includes(detail))
     throw new Error('Living Forest detail must be high or low');
@@ -281,6 +293,8 @@ export function createLivingForestKit({
     throw new Error('Living Forest branchFinish must be cut or natural');
   if (typeof includeTrees !== 'boolean')
     throw new Error('Living Forest includeTrees must be boolean');
+  if (typeof foliageWind !== 'boolean')
+    throw new Error('Living Forest foliageWind must be boolean');
   const palette = createLivingForestMaterials({ textures });
   const prototypes = includeTrees
     ? [0, 1, 2].map((variant) =>
@@ -293,7 +307,7 @@ export function createLivingForestKit({
         ),
       )
     : [];
-  const shrubParts = shrub(seed + 333, detail, palette);
+  const shrubParts = shrub(seed + 333, detail, palette, foliageWind);
   const rockParts = [0, 1, 2].map((i) => ({
     geometry: createRockGeometry(seed + i * 17, detail),
     material: palette.rock,

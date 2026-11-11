@@ -52,8 +52,8 @@
         "../art/sapling/variants.json"
       ],
       "editableSource": "../art/sapling/sapling-forest.blend",
-      "bytes": 4053220,
-      "sha256": "41d7603a7b75dbb071536351064f39b237b71f2fa362470bf81013469ace81ba",
+      "bytes": 5869268,
+      "sha256": "70701a9579bd4ea25584354dd0404ab4aca16771f3f0f6a77185b2eb3af990f5",
       "variants": [
         {
           "name": "GroveA",
@@ -102,11 +102,11 @@
         {
           "name": "Crown",
           "seed": 733,
-          "saplingCurves": 188,
-          "foliageSites": 240,
-          "sprayScale": 1.8,
-          "woodTriangles": 14308,
-          "leavesTriangles": 2880
+          "saplingCurves": 305,
+          "foliageSites": 464,
+          "sprayScale": 1.55,
+          "woodTriangles": 30012,
+          "leavesTriangles": 5568
         }
       ],
       "textures": ["silver-bark-color-v1.png", "leaf-spray-v1.png"],

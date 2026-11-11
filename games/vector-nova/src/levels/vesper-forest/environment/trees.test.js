@@ -77,16 +77,19 @@ test('all four Sapling grove forms and both rendered qualities clear the complet
             Math.abs(scale.x - scale.z) < 1e-6,
           'tree transforms retain uniform authored scale',
         );
-        const hull = {
-          halfWidth: (track.width / 2 + 1.5) / scale.x,
-          hover: 13 / scale.x,
-          halfLength: 1.5 / scale.x,
-        };
         const local = (pose) => ({
           position: pose.position.clone().applyMatrix4(inverse),
           quaternion: rotation.clone().multiply(pose.quaternion),
         });
         for (const mesh of [near, far]) {
+          // Inflate the independent swept hull by the complete shader offset
+          // bound. Every possible leaf displacement stays outside this space.
+          const margin = mesh.geometry.attributes.windAnchor ? 2.4 : 0;
+          const hull = {
+            halfWidth: (track.width / 2 + 1.5 + margin) / scale.x,
+            hover: (13 + margin) / scale.x,
+            halfLength: (1.5 + margin) / scale.x,
+          };
           const geometry = mesh.geometry,
             world = worldFor(geometry);
           const bounds = geometry.boundingBox

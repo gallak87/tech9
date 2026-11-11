@@ -59,6 +59,8 @@ const river = createRiverWaterLayer({
   waterColor: '#174f52',
   depthAt: (x, z) => -2 - terrainHeight(x, z),
   quality: 'balanced',
+  flowSpeed: 5, // metres per second, in the order of the supplied points
+  foamStrength: 0.65,
 });
 river.init({ scene });
 ```
@@ -72,7 +74,31 @@ across the ribbon, interpolating the signed depth before shading clear shallows,
 deeper current and soft bank contact. The consumer owns the bed and its sampling
 callback; the layer does not retain a terrain object.
 
-Directional ripples, filtered fine normals, broad sun glints and Fresnel-weighted
+The centreline point order establishes downstream. `flowSpeed=5` is the deep-current
+speed in metres per second; local speed falls to one quarter in the shallow
+margins and zero below dry banks. `foamStrength=0.65` (0–1) controls sparse,
+broken current filaments. Multiscale normal fields and filaments advect in
+channel coordinates, following bends. Two overlapping 24-second phases hide
+field resets and limit accumulated shear. The existing mipmapped normal texture
+is shared by both scales; no extra texture, mesh draw or reflection pass is added.
+
+`configure({flowSpeed,foamStrength,reducedMotion,quality})` updates these controls.
+`update(dt)` advances the owned clock in seconds. Alternatively,
+`update(dt,{time,paused,reducedMotion})` accepts absolute nonnegative `time` for
+deterministic presentation/seek; `paused` or `reducedMotion` freezes the current
+field. Consumers own their presentation clock and must pass the same frozen time
+after resume when using absolute time. `stats.time`, `.flowSpeed`, `.foamStrength`,
+`.flowPeriod` and `.length` expose the current state.
+
+`sampleFlow(distance,lateral=0,time=stats.time)` queries retained ribbon samples,
+returning world `position`, downstream XZ `direction`/`velocity`, signed `depth`,
+local `speed`, and both advection `layers` (`phase`, `weight`, `sourceDistance`).
+Distance is measured along the supplied centreline; lateral is signed metres to
+its left, clamped to the ribbon. Invalid/uninitialized/disposed queries return
+null. Terrain callbacks run only during initialization. The probe describes
+visual surface transport, not a hydrodynamics or gameplay-current simulation.
+
+Advected directional ripples, filtered fine normals, broad sun glints and Fresnel-weighted
 forest reflections remain visible together. Planar reflection images are softened
 spatially; high-frequency ripple energy fades with pixel footprint. Shared Water
 ignores normal/depth override passes when refreshing reflection images, while its

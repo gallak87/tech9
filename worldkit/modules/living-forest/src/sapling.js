@@ -1,6 +1,10 @@
 import * as T from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { createLivingForestMaterials } from './materials.js';
+import {
+  decodeFoliageWindAttributes,
+  transformFoliageWindGeometry,
+} from '../../weather/src/foliage-geometry.js';
 
 /** Baked grove variants and crown boughs; images remain consumer-owned. */
 export const saplingForestURL = new URL(
@@ -40,7 +44,9 @@ function readPart(scene, name, kind, geometries) {
     throw new Error(`Sapling forest is missing the ${name} mesh`);
   const geometry = mesh.geometry.clone();
   geometries.add(geometry);
+  decodeFoliageWindAttributes(geometry);
   geometry.applyMatrix4(mesh.matrixWorld);
+  transformFoliageWindGeometry(geometry, mesh.matrixWorld);
   // Blender's glTF convention expects flipY=false. Worldkit's borrowed
   // TextureLoader maps use flipY=true; restore their matching UV convention.
   const uv = geometry.attributes.uv;

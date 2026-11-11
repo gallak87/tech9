@@ -188,6 +188,100 @@ test('baked Sapling forest has four matched grove LODs and an attached crown mod
   }
 });
 
+test('canonical Sapling sprays retain Y-up stem anchors, gradients and stable near/far phases', async (t) => {
+  const bytes = await readFile(new URL(saplingForestURL));
+  const parsed = await new GLTFLoader().parseAsync(
+    bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
+    '',
+  );
+  t.mock.method(GLTFLoader.prototype, 'loadAsync', async () => parsed);
+  const kit = await loadSaplingForestKit();
+  const records = (geometry, stride) => {
+    const a = geometry.attributes;
+    for (const [name, size] of Object.entries({
+      windAnchor: 3,
+      windWeight: 1,
+      windGradient: 3,
+      windPhase: 1,
+    })) {
+      assert.equal(a[name].count, a.position.count);
+      assert.equal(a[name].itemSize, size);
+      assert.ok(Array.from(a[name].array).every(Number.isFinite));
+    }
+    assert.equal(a.position.count % stride, 0);
+    const result = new Map();
+    for (let base = 0; base < a.position.count; base += stride) {
+      const anchor = new T.Vector3().fromBufferAttribute(a.windAnchor, base);
+      const gradient = new T.Vector3().fromBufferAttribute(
+        a.windGradient,
+        base,
+      );
+      const phase = a.windPhase.getX(base);
+      const bottom = new T.Vector3()
+        .fromBufferAttribute(a.position, base)
+        .add(new T.Vector3().fromBufferAttribute(a.position, base + 1))
+        .multiplyScalar(0.5);
+      const tip = new T.Vector3()
+        .fromBufferAttribute(a.position, base + stride - 2)
+        .add(new T.Vector3().fromBufferAttribute(a.position, base + stride - 1))
+        .multiplyScalar(0.5);
+      assert.ok(
+        bottom.distanceTo(anchor) < 2e-5,
+        'row-zero midpoint is the exported branch bearing',
+      );
+      assert.ok(
+        Math.abs(gradient.dot(tip.sub(bottom)) - 1) < 2e-5,
+        'gradient points along complete source row progress',
+      );
+      assert.ok(phase >= 0 && phase <= Math.PI * 2);
+      for (let row = 0; row < stride; row++) {
+        assert.ok(
+          new T.Vector3()
+            .fromBufferAttribute(a.windAnchor, base + row)
+            .distanceTo(anchor) < 1e-6,
+        );
+        assert.equal(a.windPhase.getX(base + row), phase);
+        const position = new T.Vector3().fromBufferAttribute(
+          a.position,
+          base + row,
+        );
+        assert.ok(
+          Math.abs(
+            gradient.dot(position.sub(anchor)) - a.windWeight.getX(base + row),
+          ) < 2e-5,
+        );
+      }
+      assert.equal(a.windWeight.getX(base), 0);
+      assert.equal(a.windWeight.getX(base + stride - 1), 1);
+      result.set(
+        [...anchor.toArray(), phase].map((value) => value.toFixed(5)).join(','),
+        gradient.toArray(),
+      );
+    }
+    return result;
+  };
+  try {
+    for (const prototype of kit.prototypes) {
+      const near = records(prototype.treeParts[1].geometry, 6);
+      const far = records(prototype.farParts[1].geometry, 4);
+      assert.equal(
+        near.size,
+        far.size,
+        'all attachment sites persist across LODs',
+      );
+      for (const [key, gradient] of far)
+        assert.deepEqual(
+          gradient,
+          near.get(key),
+          'same spray phase and wind gradient across LODs',
+        );
+    }
+    records(kit.crownParts[1].geometry, 6);
+  } finally {
+    kit.dispose();
+  }
+});
+
 test('Sapling loader flattens hierarchy transforms, releases imports and borrows caller maps', async (t) => {
   const source = fixture();
   source.meshes[1].geometry.attributes.uv.setY(0, 0.75);

@@ -2,6 +2,21 @@ import * as T from 'three';
 import { Water } from './WaterSurface.js';
 import { createOceanNormals } from '../../island-ocean/src/oceanNormals.js';
 
+const FLOW_PERIOD = 24;
+const currentSpeed = (depth, speed) =>
+  depth <= 0
+    ? 0
+    : speed * (0.25 + 0.75 * T.MathUtils.smoothstep(depth, 0.15, 12));
+const flowPhases = (time, speed, distance) =>
+  [0, 0.5].map((offset) => {
+    const phase = (((time / FLOW_PERIOD + offset) % 1) + 1) % 1;
+    return {
+      phase,
+      weight: 1 - Math.abs(phase * 2 - 1),
+      sourceDistance: distance - speed * phase * FLOW_PERIOD,
+    };
+  });
+
 /** A bounded reflective ribbon. Consumers own the banks and centreline recipe. */
 export function createRiverWaterLayer({
   id = 'river-water',
@@ -15,6 +30,9 @@ export function createRiverWaterLayer({
   depthAt = () => 12,
   crossSegments = 32,
   maxSegmentLength = 12,
+  flowSpeed = 5,
+  foamStrength = 0.65,
+  reducedMotion = false,
 } = {}) {
   if (
     !Array.isArray(points) ||
@@ -42,6 +60,19 @@ export function createRiverWaterLayer({
     throw new RangeError(
       'River subdivisions require 2–128 cross segments and a positive segment length.',
     );
+  const validateFlow = (speed, foam) => {
+    if (
+      !Number.isFinite(speed) ||
+      speed < 0 ||
+      !Number.isFinite(foam) ||
+      foam < 0 ||
+      foam > 1
+    )
+      throw new RangeError(
+        'River flowSpeed must be nonnegative and foamStrength must be 0–1.',
+      );
+  };
+  validateFlow(flowSpeed, foamStrength);
   const route = [];
   for (let i = 0; i < points.length - 1; i++) {
     const a = points[i],
@@ -57,6 +88,16 @@ export function createRiverWaterLayer({
       ]);
   }
   route.push([...points.at(-1)]);
+  const stations = [0];
+  for (let i = 1; i < route.length; i++)
+    stations.push(
+      stations[i - 1] +
+        Math.hypot(
+          route[i][0] - route[i - 1][0],
+          route[i][1] - route[i - 1][1],
+        ),
+    );
+  let clock = 0;
   let water,
     geometry,
     normals,
@@ -68,7 +109,13 @@ export function createRiverWaterLayer({
       quality: 'balanced',
       reflectionSize: 0,
       reflectionStride: 0,
-      geometry: 'depth-sampled river ribbon',
+      geometry: 'depth-sampled advected river ribbon',
+      time: 0,
+      flowSpeed,
+      foamStrength,
+      reducedMotion: Boolean(reducedMotion),
+      flowPeriod: FLOW_PERIOD,
+      length: stations.at(-1),
     },
     init(ctx) {
       if (disposed || context)
@@ -115,6 +162,7 @@ export function createRiverWaterLayer({
             }
           }
         }
+        depthAt = null; // Bathymetry is retained in the ribbon; release the consumer callback.
         geometry = new T.BufferGeometry();
         geometry.setAttribute(
           'position',
@@ -144,17 +192,50 @@ export function createRiverWaterLayer({
           ).normalize(),
           sunColor: sun?.color ?? '#e1eee8',
           surface: {
-            declarations: `varying float vRiverDepth; varying vec2 vRiverUv,vRiverFlow;
-              float riverBand(float phase){return cos(phase)*(1.-smoothstep(.35,1.5,fwidth(phase)));}`,
+            declarations: `
+              varying float vRiverDepth;
+              varying vec2 vRiverUv,vRiverFlow;
+              uniform float riverTime,riverSpeed,riverFoamStrength;
+              // Thin, broken current filaments have long downstream extent and sparse coverage.
+              float riverThread(float phase,float width){
+                float distance=abs(fract(phase/6.2831853+.5)-.5)*6.2831853;
+                float aa=max(fwidth(phase)*.6,.004);
+                return (1.-smoothstep(width-aa,width+aa,distance))*min(1.,width/aa);
+              }
+              float riverFilaments(vec2 p){
+                float wander=sin(p.y*.065)*1.8+sin(p.y*.13-p.x*.071)*.4;
+                float phase=p.x*.46+wander;
+                float thread=riverThread(phase,.065);
+                float arm=riverThread(phase+sin(p.y*.073)*.22+.19,.045);
+                float packet=pow(max(0.,sin(p.y*.19+sin(p.x*.11)*2.4+p.x*.037)),2.);
+                float tears=smoothstep(-.45,.6,sin(p.y*1.6+sin(p.x*.7)*3.));
+                return (thread*.72+arm*.28)*smoothstep(.18,.72,packet)*mix(.25,1.,tears);
+              }
+              vec2 riverWarp(vec2 p){
+                p.x+=sin(p.y*.032+p.x*.015)*2.3+sin(p.y*.081-p.x*.053)*1.1;
+                return p;
+              }`,
             normal: `
               vec2 flow=normalize(vRiverFlow),crossFlow=vec2(-flow.y,flow.x);
-              vec2 riverP=vec2(vRiverUv.y,vRiverUv.x);
-              float broad=riverBand(riverP.x*.31+riverP.y*.17-time*1.7);
-              float crossing=riverBand(riverP.x*.83-riverP.y*.59-time*2.2);
-              float fine=riverBand(riverP.x*1.73+riverP.y*1.21+time*2.8);
+              vec2 riverP=vec2(vRiverUv.x,vRiverUv.y);
+              float localSpeed=riverSpeed*(.25+.75*smoothstep(.15,12.,max(0.,vRiverDepth)))*step(.00001,vRiverDepth);
+              float phase0=fract(riverTime/24.);
+              float phase1=fract(riverTime/24.+.5);
+              float blend0=1.-abs(phase0*2.-1.);
+              float blend1=1.-abs(phase1*2.-1.);
+              // Overlapping 24-second advection phases hide resets before shear can stretch the field.
+              vec2 current0=riverWarp(riverP-vec2(0.,localSpeed*phase0*24.));
+              vec2 current1=riverWarp(riverP-vec2(0.,localSpeed*phase1*24.));
+              vec2 broad0=texture2D(normalSampler,current0/vec2(230.,380.)).rg*2.-1.;
+              vec2 broad1=texture2D(normalSampler,current1/vec2(230.,380.)).rg*2.-1.;
+              vec2 fine0=texture2D(normalSampler,current0/vec2(25.,50.)+vec2(.37,.61)).rg*2.-1.;
+              vec2 fine1=texture2D(normalSampler,current1/vec2(25.,50.)+vec2(.37,.61)).rg*2.-1.;
+              vec2 broad=broad0*blend0+broad1*blend1;
+              vec2 fine=fine0*blend0+fine1*blend1;
               float farRipples=smoothstep(110.,650.,length(cameraPosition-worldPosition.xyz));
-              vec2 slopes=flow*(broad*.095+crossing*.055)+crossFlow*(broad*.045-crossing*.07+fine*.035);
-              slopes += noise.xy * mix(.58,.2,farRipples);
+              float filterFine=1.-farRipples*.8;
+              vec2 slopes=flow*(broad.y*.26+fine.y*.12*filterFine)
+                +crossFlow*(broad.x*.18+fine.x*.085*filterFine);
               vec3 surfaceNormal=normalize(vec3(slopes.x,1.,slopes.y));`,
             shading: `
               // Current view direction is per draw; throttled mirror matrices stay with their cached image.
@@ -163,7 +244,7 @@ export function createRiverWaterLayer({
               float riverFresnel=.025+.975*pow(1.-riverTheta,5.);
               float waterDepth=max(0.,vRiverDepth);
               float deep=1.-exp(-waterDepth*.075);
-              float caustic=.5+.5*sin(riverP.x*.37+riverP.y*.59+crossing*.9-time*.65);
+              float caustic=.5+.5*(broad.x+broad.y);
               vec3 shallows=vec3(.075,.13,.095)*(.88+caustic*.17);
               vec3 volume=mix(shallows,waterColor*.56,deep);
               volume*=mix(.62,1.,getShadowMask());
@@ -184,8 +265,13 @@ export function createRiverWaterLayer({
               float glint=pow(sunFacing,48.)*.18+pow(sunFacing,110.)*.08*(1.-farRipples);
               albedo+=sunColor*glint*mix(.6,1.,getShadowMask());
               float rim=1.-smoothstep(.12,1.6,abs(vRiverDepth));
-              float foamPatch=smoothstep(.55,.92,.5+.5*sin(riverP.x*.41+crossing*1.1-time*.35));
-              albedo=mix(albedo,vec3(.38,.48,.42),rim*foamPatch*.25);`,
+              float carriedFoam=riverFilaments(current0)*blend0+riverFilaments(current1)*blend1;
+              float currentBody=smoothstep(.35,2.8,waterDepth);
+              float contactFoam=carriedFoam*rim*.22;
+              // Muted aerated streaks travel along the channel; banks retain dark, wet contact.
+              float foam=(carriedFoam*currentBody*.7+contactFoam)*riverFoamStrength;
+              vec3 foamColor=vec3(.4,.51,.45)*mix(.72,1.,getShadowMask());
+              albedo=mix(albedo,foamColor,clamp(foam,0.,.7));`,
           },
         });
         // River-specific varyings extend this owned material; shared pond/ocean shaders stay unchanged.
@@ -196,6 +282,11 @@ export function createRiverWaterLayer({
             'void main() {',
             'void main() {\n vRiverDepth=riverWaterDepth;vRiverUv=uv;vRiverFlow=riverFlow;',
           );
+        Object.assign(water.material.uniforms, {
+          riverTime: { value: clock },
+          riverSpeed: { value: flowSpeed },
+          riverFoamStrength: { value: foamStrength },
+        });
         water.name = id;
         water.rotation.x = -Math.PI / 2;
         water.position.y = level;
@@ -209,23 +300,94 @@ export function createRiverWaterLayer({
     },
     configure(settings = {}) {
       if (!water || disposed) return;
-      water.setQuality(settings.quality);
+      const nextSpeed = settings.flowSpeed ?? flowSpeed;
+      const nextFoam = settings.foamStrength ?? foamStrength;
+      validateFlow(nextSpeed, nextFoam);
+      flowSpeed = nextSpeed;
+      foamStrength = nextFoam;
+      reducedMotion = settings.reducedMotion ?? reducedMotion;
+      if (settings.quality !== undefined) water.setQuality(settings.quality);
+      water.material.uniforms.riverSpeed.value = flowSpeed;
+      water.material.uniforms.riverFoamStrength.value = foamStrength;
       Object.assign(this.stats, {
         quality: water.quality,
         reflectionSize: water.renderTarget.width,
         reflectionStride: water.reflectionStride,
+        flowSpeed,
+        foamStrength,
+        reducedMotion: Boolean(reducedMotion),
       });
     },
     invalidateReflection() {
       if (!disposed) water?.invalidateReflection();
     },
-    update(dt) {
-      if (water && !disposed && Number.isFinite(dt) && dt > 0)
-        water.material.uniforms.time.value += dt * 0.5;
+    update(
+      dt,
+      { time, paused = false, reducedMotion: freeze = reducedMotion } = {},
+    ) {
+      if (!water || disposed || paused || freeze) return;
+      if (Number.isFinite(time) && time >= 0) clock = time;
+      else if (Number.isFinite(dt) && dt > 0) clock += dt;
+      water.material.uniforms.time.value = clock * 0.5;
+      water.material.uniforms.riverTime.value = clock;
+      this.stats.time = clock;
+    },
+    /** Query retained ribbon data; the consumer's terrain callback is not invoked after initialization. */
+    sampleFlow(distance, lateral = 0, time = clock) {
+      if (
+        !water ||
+        disposed ||
+        ![distance, lateral, time].every(Number.isFinite)
+      )
+        return null;
+      const s = T.MathUtils.clamp(distance, 0, stations.at(-1));
+      const x = T.MathUtils.clamp(lateral, -halfWidth, halfWidth);
+      let row = 0;
+      while (row < stations.length - 2 && stations[row + 1] < s) row++;
+      const along = (s - stations[row]) / (stations[row + 1] - stations[row]);
+      const column = (x / halfWidth + 1) * 0.5 * crossSegments;
+      const c = Math.min(crossSegments - 1, Math.floor(column)),
+        across = column - c;
+      const stride = crossSegments + 1;
+      const a = row * stride + c;
+      // Match the two actual ribbon triangles rather than bilinear interpolation.
+      const indices =
+        along + across <= 1
+          ? [a, a + 1, a + stride]
+          : [a + 1, a + stride + 1, a + stride];
+      const weights =
+        along + across <= 1
+          ? [1 - along - across, across, along]
+          : [1 - along, along + across - 1, 1 - across];
+      const read = (attribute, component) =>
+        indices.reduce(
+          (sum, index, i) =>
+            sum +
+            attribute.array[index * attribute.itemSize + component] *
+              weights[i],
+          0,
+        );
+      const depth = read(geometry.attributes.riverWaterDepth, 0);
+      const flow = geometry.attributes.riverFlow;
+      const tangent = new T.Vector2(read(flow, 0), read(flow, 1)).normalize();
+      const position = geometry.attributes.position;
+      const speed = currentSpeed(depth, flowSpeed);
+      return {
+        distance: s,
+        lateral: x,
+        time,
+        depth,
+        speed,
+        position: [read(position, 0), level, -read(position, 1)],
+        direction: [tangent.x, tangent.y],
+        velocity: [tangent.x * speed, tangent.y * speed],
+        layers: flowPhases(time, speed, s),
+      };
     },
     dispose() {
       if (disposed) return;
       disposed = true;
+      depthAt = null;
       if (water) context?.scene.remove(water);
       water?.dispose();
       geometry?.dispose();

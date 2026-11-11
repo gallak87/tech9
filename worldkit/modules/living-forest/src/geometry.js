@@ -137,6 +137,8 @@ export function createFoliageSprayGeometry({
   width = 16,
   bend = 1.4,
   tint = [1, 1, 1],
+  wind = false,
+  phase = 0,
 } = {}) {
   const positions = [],
     colors = [],
@@ -164,6 +166,31 @@ export function createFoliageSprayGeometry({
   geometry.setAttribute('uv', new T.Float32BufferAttribute(uvs, 2));
   geometry.setAttribute('color', new T.Float32BufferAttribute(colors, 3));
   geometry.setIndex(indices);
+  if (wind) {
+    const count = positions.length / 3;
+    geometry.setAttribute(
+      'windAnchor',
+      new T.Float32BufferAttribute(new Float32Array(count * 3), 3),
+    );
+    geometry.setAttribute(
+      'windWeight',
+      new T.Float32BufferAttribute(
+        uvs.filter((_, index) => index % 2),
+        1,
+      ),
+    );
+    geometry.setAttribute(
+      'windGradient',
+      new T.Float32BufferAttribute(
+        Array.from({ length: count }, () => [0, 0, 1 / length]).flat(),
+        3,
+      ),
+    );
+    geometry.setAttribute(
+      'windPhase',
+      new T.Float32BufferAttribute(new Float32Array(count).fill(phase), 1),
+    );
+  }
   geometry.computeVertexNormals();
   return geometry;
 }

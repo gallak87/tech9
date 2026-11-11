@@ -44,19 +44,23 @@
   ],
   "crown": {
     "name": "Crown",
-    "sprayScale": 1.8,
+    "sprayScale": 1.55,
     "settings": {
       "seed": 733,
-      "branches": [0, 14, 14, 0],
-      "baseSize": 0.22,
-      "baseSplits": 1,
-      "splitHeight": 0.2,
+      "branches": [0, 16, 18, 0],
+      "baseSize": 0.1,
+      "baseSplits": 2,
+      "splitHeight": 0.16,
       "segSplits": [0.07, 0.05, 0.02, 0],
       "ratio": 0.1,
       "ratioPower": 2.0,
       "rootFlare": 1.1,
-      "length": [1, 0.5, 0.35, 0.1],
-      "pruneWidth": 0.68
+      "length": [1, 0.7, 0.42, 0.1],
+      "downAngle": [0, 72, 65, 0],
+      "curve": [0, -18, 0, 0],
+      "curveV": [35, 45, 35, 0],
+      "pruneRatio": 0,
+      "pruneWidth": 1.0
     }
   }
 }

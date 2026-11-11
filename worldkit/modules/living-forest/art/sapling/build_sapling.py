@@ -31,11 +31,13 @@ RECIPES = json.loads((HERE / "variants.json").read_text())
 class Surface:
     def __init__(self):
         self.positions, self.faces, self.uvs, self.colors = [], [], [], []
+        self.wind = []
 
-    def vertex(self, p, uv, color=(1, 1, 1, 1)):
+    def vertex(self, p, uv, color=(1, 1, 1, 1), wind=None):
         self.positions.append(tuple(p))
         self.uvs.append(tuple(uv))
         self.colors.append(tuple(color))
+        self.wind.append(wind)
         return len(self.positions) - 1
 
     def object(self, name):
@@ -48,6 +50,20 @@ class Surface:
         color = mesh.color_attributes.new(name="Color", type="FLOAT_COLOR", domain="POINT")
         for i, value in enumerate(self.colors):
             color.data[i].color = value
+        if any(value is not None for value in self.wind):
+            # glTF rotates positions/normals to Y-up, but exports generic vector
+            # attributes verbatim. Store these covectors/points in that frame.
+            for attr_name, kind, field in [("_WIND_ANCHOR", "FLOAT_VECTOR", 0),
+                                      ("_WIND_WEIGHT", "FLOAT", 1),
+                                      ("_WIND_GRADIENT", "FLOAT_VECTOR", 2),
+                                      ("_WIND_PHASE", "FLOAT", 3)]:
+                attribute = mesh.attributes.new(name=attr_name, type=kind, domain="POINT")
+                for i, value in enumerate(self.wind):
+                    if kind == "FLOAT_VECTOR":
+                        p = value[field]
+                        attribute.data[i].vector = (p.x, p.z, -p.y)
+                    else:
+                        attribute.data[i].value = value[field]
         ob = bpy.data.objects.new(name, mesh)
         bpy.context.collection.objects.link(ob)
         for face in mesh.polygons:
@@ -116,7 +132,16 @@ def grow(recipe, label):
 def crown_point(p):
     # Transform the grown skeleton into a bough, then sweep circular sections
     # around its new directions. In exported Y-up space it grows toward +X.
-    return Vector((p.z * .72 + p.x * .7, p.y * .8, p.z * .52 + p.x * .18))
+    # A low-forking oak spreads laterally instead of becoming a narrow feather
+    # when the consumer seats several leaders around an ancient trunk.
+    # Preserve the grown forks, but saturate distal leader progress and long
+    # secondary limbs into a round oak envelope instead of three spear tips.
+    z = p.z if p.z <= 45 else 45 + 30 * (1 - math.exp(-(p.z - 45) / 30))
+    x, y = 58 * math.tanh(p.x / 58), 58 * math.tanh(p.y / 58)
+    # Orthogonal growth/radial bases retain the source crown's 3D volume.
+    # Adding both axes in the same direction collapses an oak into a leaf fan.
+    return Vector((z * .78 + x * .625, y * 1.1,
+                   z * .625 - x * .78))
 
 
 def samples(curve, detail, crown=False):
@@ -233,6 +258,8 @@ def sprays(surface, sites, detail, spray_scale=1):
         length = (7.5 + rng.random() * 3) * spray_scale
         width = length * (.78 + rng.random() * .2)
         forward = (direction + Vector((0, 0, .22))).normalized()
+        phase = random.Random(8419 + index).random() * math.tau
+        gradient = forward / length
         side = forward.cross(Vector((0, 0, 1)))
         if side.length < .01:
             side = Vector((1, 0, 0))
@@ -248,7 +275,8 @@ def sprays(surface, sites, detail, spray_scale=1):
                 center = anchor + forward * (t * length) + up * (math.sin(t * math.pi) * .65)
                 tint = .88 + rng.random() * .12
                 rows.append([surface.vertex(center + lateral * ((s - .5) * width), (s, t),
-                                             (tint * .96, tint, tint * .97, 1)) for s in [0, 1]])
+                                             (tint * .96, tint, tint * .97, 1),
+                                             (anchor, t, gradient, phase)) for s in [0, 1]])
                 if row:
                     surface.faces.append((rows[-2][0], rows[-2][1], rows[-1][1], rows[-1][0]))
 
@@ -290,6 +318,7 @@ for ob in exports:
 output = ASSETS / "sapling-forest-v1.glb"
 bpy.ops.export_scene.gltf(filepath=str(output), export_format="GLB", use_selection=True,
                           export_yup=True, export_apply=True, export_materials="NONE", export_extras=False,
+                          export_attributes=True,
                           export_vertex_color="ACTIVE", export_all_vertex_colors=True)
 manifest = {"generator": "Sapling Tree Gen 1.0.0", "blender": bpy.app.version_string,
             "variants": stats, "glbBytes": output.stat().st_size,

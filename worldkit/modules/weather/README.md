@@ -44,6 +44,58 @@ Upright +Y pine impostors use `{material: basicMaterial, snowMask, depth:0, wind
 
 Disable unneeded features with `features: {rain:false, snowfall:false, wetness:false, snow:false, wind:false, impacts:false, audio:false}`. Targets may be empty for precipitation-only scenes. Surface data is still needed for receiving surfaces and shelter; without a query, particles have no receiving surface and no impacts spawn.
 
+## Anchored foliage wind
+
+`createFoliageWind({maxOffset: 2.4, response: 1})` is an opt-in response to an
+existing Weather layer. It reads that layer's `condition.time`, `windX`, `windZ`
+and `paused`, including the shared gust field; it creates no second weather
+state, clock or frame loop.
+
+```js
+import { createFoliageWind } from '@worldkit/environment/weather';
+const foliageWind = createFoliageWind({ maxOffset: 2.4 });
+for (const mesh of leafMeshes) foliageWind.bind(mesh);
+// In the existing frame loop, after weather.update(dt):
+foliageWind.update(weather.condition, {
+  reducedMotion: settings.reducedMotion,
+});
+// Dispose before the participating leaf materials/geometries:
+foliageWind.dispose();
+```
+
+Bindings support baked static and instanced leaf meshes using Standard/Physical,
+Lambert or Phong materials. Per-vertex `windAnchor` (vec3), `windWeight` (0–1),
+`windGradient` (vec3 gradient of that weight) and `windPhase` (radians shared by a
+spray) pin branch bases while the GPU bends tips through slow gusts and subtle
+flutter. Sapling exports these as `_WIND_*` custom glTF attributes; its loader
+decodes them. Living Forest understory supplies them with
+`createLivingForestKit({includeTrees:false, foliageWind:true})`. Other consumers
+remain static unless explicitly bound. `transformFoliageWindGeometry` transforms
+anchors and inverse-transpose gradients alongside cloned/merged geometry; it
+does not move positions itself.
+
+`maxOffset` is a strict world-space displacement bound, independent of giant or
+nonuniform instance scales. `response` is clamped by its 0–1 contract; short
+sprays also cap their reach to avoid folding over. Consumers must reserve this
+margin in route/camera exclusions. Binding expands culling spheres and preserves
+the margin through normal instance-bound refreshes; bind again after changing
+an object's own transform. Motion adds no meshes or render passes, and makes no
+per-leaf CPU updates. Conservative bounds may correctly include an additional
+existing shadow-frustum draw near a boundary.
+
+Beauty normals use the analytic deformation differential. Directional/point
+shadow materials share the displacement and alpha cutout; normal and depth
+override passes retain the same deformed surface. Pause freezes shared weather
+time; reduced motion holds the existing static pose. Disposal restores owned
+hooks, override policy, shadow bindings and culling wrappers, disposes only
+owned shadow materials, and preserves borrowed textures/materials/geometries.
+
+Run `node --test modules/weather/tests/foliage-wind.test.js` for focused checks.
+`node modules/weather/tests/foliage-wind.browser.mjs` uses a temporary local Vite
+server and hidden muted Chrome to verify visible movement, normal/depth and both
+shadow paths, pause/reduced-motion stability and matched-bound draw counts. It
+captures no media and removes its temporary files/server/browser afterward.
+
 ## Surface and cover contract
 
 `sampleSurface(x,z)` returns a downward receiving hit: `position` and `normal` are three-number arrays; normal is normalized by the module. Return null outside your world. `exposure` (0–1) is the fraction of precipitation reaching that hit below `coverHeight`. A canyon overhang can return ledge/ground position, exposure 0 and its overhead roof height. An open ledge returns exposure 1 and coverHeight equal to its own height. Forest canopy returns fractional throughfall. `snowRetention` controls ground deposition, for example a worn path; `puddle` marks suitable pooling spots, additionally filtered by slope and exposure. Rock/log hits need their own height and normal, not the terrain height beneath them.

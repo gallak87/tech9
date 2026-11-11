@@ -20,9 +20,14 @@ function sceneResources(group) {
   group.traverse((object) => {
     if (object.isInstancedMesh) resources.push(object);
     if (object.geometry) resources.push(object.geometry);
-    for (const material of Array.isArray(object.material)
+    const materials = Array.isArray(object.material)
       ? object.material
-      : [object.material]) {
+      : [object.material];
+    for (const material of [
+      ...materials,
+      object.customDepthMaterial,
+      object.customDistanceMaterial,
+    ]) {
       if (!material) continue;
       resources.push(material);
       for (const key of ['map', 'bumpMap', 'normalMap', 'roughnessMap'])
@@ -132,6 +137,18 @@ test('the complete environment respects inherited reduced motion and owns shared
       settings: { quality: 'high', reducedMotion: false },
     });
     assert.ok(water.material.uniforms.time.value > time);
+    const motionTime = environment.group.userData.metrics.motion.time;
+    assert.equal(water.material.uniforms.riverTime.value, motionTime);
+    assert.equal(environment.group.userData.metrics.motion.windMeshes, 10);
+    for (const mode of ['paused', 'fly', 'inspection']) {
+      environment.update({
+        mode,
+        dt: 1,
+        settings: { quality: 'high', reducedMotion: false },
+      });
+      assert.equal(environment.group.userData.metrics.motion.time, motionTime);
+      assert.equal(water.material.uniforms.riverTime.value, motionTime);
+    }
     assert.equal(water.renderTarget.width, 768);
     environment.update({
       dt: 0,

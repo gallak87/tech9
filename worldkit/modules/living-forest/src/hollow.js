@@ -5,6 +5,10 @@ import {
   attachHollowCrown,
   createCrownRouteClearance,
 } from './hollow-crown.js';
+import {
+  prepareHollowBodyProfile,
+  prepareHollowForkTransition,
+} from './hollow-profile.js';
 
 const TAU = Math.PI * 2;
 const clamp = (v) => Math.max(0, Math.min(1, v));
@@ -111,6 +115,10 @@ export function createLivingHollow({
   crownParts,
   crownScale,
   crownBearings,
+  bodyProfile,
+  fluteDepth = 6,
+  crownMotionMargin = 0,
+  forkTransition,
 } = {}) {
   if (!materials?.bark || !materials?.inner || !materials?.rim)
     throw new Error('Living hollow requires bark, inner and rim materials');
@@ -118,10 +126,15 @@ export function createLivingHollow({
     throw new Error('Living hollow dimensions are invalid');
   if (!Number.isFinite(ageRelief) || ageRelief < 0 || ageRelief > 1)
     throw new Error('Living hollow ageRelief must be between zero and one');
+  if (!Number.isFinite(crownMotionMargin) || crownMotionMargin < 0)
+    throw new RangeError(
+      'Living hollow crownMotionMargin must be finite and nonnegative',
+    );
   radialSegments = Math.max(160, Math.floor(radialSegments));
   heightSegments = Math.max(80, Math.floor(heightSegments));
   const origin = asVector(center),
     height = top - base;
+  const bodyPlan = prepareHollowBodyProfile(bodyProfile, fluteDepth);
   const crownPlan = prepareHollowCrown(
     crownParts,
     crownScale,
@@ -129,6 +142,12 @@ export function createLivingHollow({
     seed,
     materials,
     crownBearings,
+  );
+  const forkCrest = prepareHollowForkTransition(
+    forkTransition,
+    bodyPlan,
+    crownPlan,
+    height,
   );
   const route = makeRoute(routePoints, origin, radius, base, top, clearance);
   // Grid chords are slightly inside the analytic shell. Keep an explicit margin
@@ -177,11 +196,15 @@ export function createLivingHollow({
     }
     const minorRib = Math.cos(twist * 15 + 0.5 * Math.sin(v * 6 + u * 2));
     const main = radius * (1 - 0.22 * v + 0.055 * Math.sin(v * Math.PI));
-    const crown =
-      29 * Math.sin(u * 3 + 0.6) +
-      17 * Math.sin(u * 7 - 0.4) +
-      24 * Math.pow(Math.max(0, Math.cos(u * 5 + 1.2)), 5);
-    const y = base + v * (height + crown);
+    const crown = bodyPlan
+      ? 5 * Math.sin(u * 3 + 0.6) + 3 * Math.sin(u * 7 - 0.4)
+      : 29 * Math.sin(u * 3 + 0.6) +
+        17 * Math.sin(u * 7 - 0.4) +
+        24 * Math.pow(Math.max(0, Math.cos(u * 5 + 1.2)), 5);
+    const y =
+      base +
+      v * (height + (forkCrest ? 0 : crown)) +
+      (forkCrest ? forkCrest(u, v) : 0);
     const leanX = 11 * Math.sin(v * 2.1) + 10 * v * v;
     const leanZ = -9 * Math.sin(v * 1.7);
     let outerRadius =
@@ -207,6 +230,15 @@ export function createLivingHollow({
       outerRadius - 10,
       Math.max(main - 39, main - 20 + fold - shelfA - shelfB + root * 0.09),
     );
+    if (bodyPlan) {
+      const section = bodyPlan.sample(v);
+      const flutes =
+        bodyPlan.fluteDepth *
+        (0.68 * Math.cos(u * 17 + 0.16 * Math.sin(v * 4)) +
+          0.32 * Math.cos(u * 29 - 0.4 + v * 0.07));
+      outerRadius = radius * section.outer + flutes;
+      innerRadius = radius * section.inner + flutes * 0.35;
+    }
     // Fold the inner wood around the protected interior route, rather than
     // allowing protruding folds to generate extra circular safety windows.
     const reserve = cutClearance + 6,
@@ -226,7 +258,7 @@ export function createLivingHollow({
           parallel + Math.sqrt(reserve * reserve - perpendicularSquared),
         );
     }
-    if (ageRelief) {
+    if (ageRelief && !bodyPlan) {
       // Unequal cambium bays are carved outwards from the protected cavity.
       // Existing ribs remain in front of deeper, twisting pockets instead of
       // making a smooth cylindrical inner wall.
@@ -237,7 +269,7 @@ export function createLivingHollow({
       innerRadius += ageRelief * pockets * T.MathUtils.smoothstep(v, 0, 0.12);
     }
     outerRadius = Math.max(outerRadius, innerRadius + 10 + ageRelief * 8);
-    if (ageRelief) {
+    if (ageRelief && !bodyPlan) {
       const wx = leanX + cos * innerRadius,
         wz = leanZ + sin * innerRadius;
       let nearest = Infinity,
@@ -270,17 +302,18 @@ export function createLivingHollow({
         14 + 22 * T.MathUtils.clamp(0.5 - sideBias * 0.5, 0, 1);
       outerRadius += ageRelief * wound * shoulderMass;
     }
-    if (crownPlan)
+    if (crownPlan && !bodyPlan)
       outerRadius += crownPlan.growth(
         u,
         v,
         outerRadius - innerRadius,
         outerRadius,
       );
-    const shade =
-      0.45 +
-      0.38 * T.MathUtils.clamp(shoulder / 40, 0, 1) +
-      0.15 * (0.5 + minorRib * 0.5);
+    const shade = bodyPlan
+      ? 0.7 + 0.1 * (0.5 + 0.5 * Math.cos(u * 17 + 0.16 * Math.sin(v * 4)))
+      : 0.45 +
+        0.38 * T.MathUtils.clamp(shoulder / 40, 0, 1) +
+        0.15 * (0.5 + minorRib * 0.5);
     return {
       outer: new T.Vector3(
         leanX + Math.cos(u) * outerRadius,
@@ -481,8 +514,10 @@ export function createLivingHollow({
         .normalize();
     } else retreat = new T.Vector3(0, -1, 0);
     const thickness = pair.outer.distanceTo(pair.inner);
-    let amplitude = Math.min(22, thickness * 0.38);
-    if (ageRelief)
+    let amplitude = bodyPlan
+      ? Math.min(6, thickness * 0.12)
+      : Math.min(22, thickness * 0.38);
+    if (ageRelief && !bodyPlan)
       amplitude *=
         1 +
         ageRelief *
@@ -567,20 +602,23 @@ export function createLivingHollow({
       if (previousPoint) acrossDistance += point.distanceTo(previousPoint);
       previousPoint = point;
       uvs.push(along / 11, acrossDistance / 11);
-      const shade =
-        [0.62, 0.79, 0.94, 1, 0.93, 0.78, 0.64][row] *
-        (0.92 + 0.08 * Math.sin(vertex.u * 7 + vertex.v * 13));
+      const grownCrown = forkCrest && vertex.v === 1 && !vertex.boundary;
+      const shade = grownCrown
+        ? 0.75 + 0.04 * Math.sin(vertex.u * 7)
+        : [0.62, 0.79, 0.94, 1, 0.93, 0.78, 0.64][row] *
+          (0.92 + 0.08 * Math.sin(vertex.u * 7 + vertex.v * 13));
       colors.push(
-        shade * (1 + ageRelief * 0.04),
-        shade * (1 - ageRelief * 0.04),
-        shade * (1 - ageRelief * 0.14),
+        shade * (1 + (grownCrown ? 0 : ageRelief) * 0.04),
+        shade * (1 - (grownCrown ? 0 : ageRelief) * 0.04),
+        shade * (1 - (grownCrown ? 0 : ageRelief) * 0.14),
       );
     }
     lookup.set(key, start);
     retreats.set(start, retreat);
     return start;
   };
-  for (const [a, b] of boundaryEdges) {
+  let portalIndexCount = 0;
+  for (const [edgeIndex, [a, b]] of boundaryEdges.entries()) {
     const ca = charts.get(parameterKey(a)),
       cb = charts.get(parameterKey(b));
     let alongA = ca.distance,
@@ -614,8 +652,18 @@ export function createLivingHollow({
       if (reverse) indices.push(x, x + 1, y, x + 1, y + 1, y);
       else indices.push(x, y, x + 1, x + 1, y, y + 1);
     }
+    if (edgeIndex < rimEdges.size) portalIndexCount = indices.length;
   }
   const rimGeometry = finishGeometry(positions, uvs, colors, indices);
+  if (forkCrest) {
+    if (portalIndexCount) rimGeometry.addGroup(0, portalIndexCount, 0);
+    if (indices.length > portalIndexCount)
+      rimGeometry.addGroup(
+        portalIndexCount,
+        indices.length - portalIndexCount,
+        1,
+      );
+  }
   // Match each rim attachment to the actual fluted shell normal. Retaining
   // separate material draws does not leave a hard shading ring at the seam.
   const positionKey = (x, y, z) =>
@@ -694,7 +742,7 @@ export function createLivingHollow({
   );
   attach(
     rimGeometry,
-    materials.rim,
+    forkCrest ? [materials.rim, materials.bark] : materials.rim,
     'Living Forest / rolled portal wounds and broken crown',
   );
 
@@ -709,20 +757,32 @@ export function createLivingHollow({
       clearance,
       false,
     );
-    const clearsRoute = createCrownRouteClearance(
+    const clearsWood = createCrownRouteClearance(
       allRoute,
       cutClearance,
       segmentDistanceSquared,
     );
+    const clearsLeaves = crownMotionMargin
+      ? createCrownRouteClearance(
+          allRoute,
+          cutClearance + crownMotionMargin,
+          segmentDistanceSquared,
+        )
+      : clearsWood;
     try {
       const insideWood = (point) => {
         let u = Math.atan2(point.z, point.x),
           v = (point.y - base) / height;
+        if (forkCrest) v = T.MathUtils.clamp(v, 0.001, 0.999);
         for (let i = 0; i < 7; i++) {
           if (v <= 0 || v >= 1) return false;
           const pair = shell(u, v);
-          const span = (pair.outer.y - base) / v;
-          v += (point.y - pair.outer.y) / span;
+          const lo = Math.max(0, v - 0.0005),
+            hi = Math.min(1, v + 0.0005);
+          const slope = forkCrest
+            ? (shell(u, hi).outer.y - shell(u, lo).outer.y) / (hi - lo)
+            : (pair.outer.y - base) / v;
+          v += (point.y - pair.outer.y) / slope;
           u = Math.atan2(point.z - pair.axisZ, point.x - pair.axisX);
         }
         if (v <= 0 || v >= 1) return false;
@@ -741,7 +801,8 @@ export function createLivingHollow({
       const crown = attachHollowCrown(
         crownPlan,
         shell,
-        clearsRoute,
+        (geometry, kind) =>
+          (kind === 'leaf' ? clearsLeaves : clearsWood)(geometry),
         insideWood,
       );
       branchCount = crown.attachments.length;
@@ -856,7 +917,11 @@ export function createLivingHollow({
     ).length,
     crownEdges: radialSegments,
     branches: branchCount,
-    draws: group.children.length,
+    draws: group.children.reduce(
+      (sum, mesh) =>
+        sum + (Array.isArray(mesh.material) ? mesh.geometry.groups.length : 1),
+      0,
+    ),
     triangles: geometries.reduce(
       (sum, geometry) => sum + geometry.index.count / 3,
       0,
@@ -866,6 +931,9 @@ export function createLivingHollow({
     rimRows: profile.length,
     outerRadius: radius,
     ageRelief,
+    ...(bodyPlan ? { bodyProfile: true, fluteDepth } : {}),
+    ...(forkCrest ? { forkTransition: true } : {}),
+    ...(crownMotionMargin ? { crownMotionMargin } : {}),
     base,
     top,
   };

@@ -8,16 +8,26 @@ import {
 } from '@worldkit/environment/living-forest';
 import { loadSaplingForestKit } from '@worldkit/environment/living-forest/sapling';
 import { createRiverWaterLayer } from '@worldkit/environment/water';
+import {
+  createWeather,
+  createFoliageWind,
+} from '@worldkit/environment/weather';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { createForestTerrain, randomSource } from './terrain.js';
 import { createForestRouteClearance } from './clearance.js';
-import { VESPER_CROWN_BEARINGS } from './forest-composition.js';
+import {
+  VESPER_BODY_PROFILE,
+  VESPER_CROWN_BEARINGS,
+  VESPER_FORK_TRANSITION,
+} from './forest-composition.js';
 import { createLifetime } from '../../../core/lifecycle.js';
+import { createVesperPresentationClock } from './presentation-clock.js';
 
 const UP = new T.Vector3(0, 1, 0);
 const DETAIL_DISTANCE = { high: 330, low: 130 };
 const DRAW_DISTANCE = 1550;
 const DETAIL_REFRESH_DISTANCE = 30;
+const FOLIAGE_MOTION_MARGIN = 2.4;
 
 function createBatches(parts, placements, name, group, lifetime) {
   const meshes = parts.map(({ geometry, material }) => {
@@ -111,6 +121,7 @@ function buildEnvironment(
       detail: 'high',
       textures,
       includeTrees: false,
+      foliageWind: true,
     }),
   );
   const inner = lifetime.own(kit.materials.wood.clone());
@@ -129,18 +140,26 @@ function buildEnvironment(
     route.push(track.sample(s).position.clone());
   route.push(route[0].clone());
   const routeClearance = createForestRouteClearance(track);
+  const foliageClearance = createForestRouteClearance(track, {
+    margin: FOLIAGE_MOTION_MARGIN,
+  });
   const hollow = lifetime.own(
     createLivingHollow({
       center: hollowData.center,
       radius: 185,
       base: -112,
-      top: 410,
+      top: 260,
       routePoints: route,
       clearance: 34,
       ageRelief: 1,
+      bodyProfile: VESPER_BODY_PROFILE,
+      fluteDepth: 6,
       materials: { bark: kit.materials.wood, inner, rim },
       crownParts: forestKit.crownParts,
       crownBearings: VESPER_CROWN_BEARINGS,
+      forkTransition: VESPER_FORK_TRANSITION,
+      crownScale: 3.2,
+      crownMotionMargin: FOLIAGE_MOTION_MARGIN,
     }),
   );
   group.add(hollow.group);
@@ -182,7 +201,10 @@ function buildEnvironment(
     if (
       [proto.treeParts, proto.farParts].some((parts) =>
         parts.some(({ geometry }) =>
-          routeClearance.intersectsGeometry(geometry, item.matrix),
+          (geometry.attributes.windAnchor
+            ? foliageClearance
+            : routeClearance
+          ).intersectsGeometry(geometry, item.matrix),
         ),
       )
     )
@@ -389,6 +411,8 @@ function buildEnvironment(
       waterColor: '#174f52',
       depthAt: (x, z) => terrain.river.level - terrain.surfaceHeight(x, z),
       distortionScale: 0.6,
+      flowSpeed: 7,
+      foamStrength: 0.5,
       normalSize: 128,
     }),
   );
@@ -403,6 +427,36 @@ function buildEnvironment(
   const waterMesh = group.getObjectByName(
     'Living Forest / reflective floodplain',
   );
+  const weather = lifetime.own(
+    createWeather({
+      settings: { wind: 0.65, windDirection: 35, transition: 0 },
+      features: {
+        rain: false,
+        snowfall: false,
+        wetness: false,
+        snow: false,
+        impacts: false,
+        audio: false,
+      },
+      surfaceBounds: { minX: -1400, maxX: 2000, minZ: -1400, maxZ: 1400 },
+      fieldResolution: 8,
+    }),
+  );
+  weather.init({
+    scene: group,
+    camera: view?.camera ?? new T.PerspectiveCamera(),
+  });
+  const foliageWind = lifetime.own(
+    createFoliageWind({ maxOffset: FOLIAGE_MOTION_MARGIN }),
+  );
+  group.traverse((mesh) => {
+    if (mesh.isMesh && mesh.geometry.attributes.windAnchor)
+      foliageWind.bind(mesh);
+  });
+  // Select the same static phase even when motion starts disabled, so enabling
+  // it later continues from this pose instead of snapping from unbent cards.
+  foliageWind.update(weather.condition);
+  const advancePresentation = createVesperPresentationClock();
   // The mirror belongs to the real scene when rendered; the layer may own a group.
   // Current normals use metre-scaled ripples; the body tint stays visible at grazing angles.
   const metrics = {
@@ -416,6 +470,11 @@ function buildEnvironment(
     rejectedRoots,
     oldAssetDependencies: 0,
     loadState: 'ready',
+    motion: {
+      time: 0,
+      windMeshes: foliageWind.stats.meshes,
+      maxOffset: FOLIAGE_MOTION_MARGIN,
+    },
   };
   group.userData.metrics = metrics;
   let disposed = false,
@@ -472,7 +531,21 @@ function buildEnvironment(
       if (disposed) return;
       const currentSettings = frame.settings ?? settings;
       configure(frame.camera ?? view?.camera, currentSettings.quality);
-      water.update(currentSettings.reducedMotion ? 0 : (frame.dt ?? 0));
+      const presentation = advancePresentation({
+        ...frame,
+        settings: currentSettings,
+      });
+      weather.configure({ paused: presentation.paused });
+      weather.update(presentation.dt);
+      foliageWind.update(weather.condition, {
+        reducedMotion: currentSettings.reducedMotion,
+      });
+      water.update(presentation.dt, {
+        time: presentation.time,
+        paused: presentation.paused,
+        reducedMotion: currentSettings.reducedMotion,
+      });
+      metrics.motion.time = presentation.time;
     },
     dispose() {
       if (disposed) return;

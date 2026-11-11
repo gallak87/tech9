@@ -3,7 +3,13 @@ import * as T from 'three';
 /** A complete swept road/driver/camera exclusion, including the owning arc. */
 export function createForestRouteClearance(
   track,
-  { step = 3, halfWidth = track.width / 2 + 4, minUp = -1, maxUp = 26 } = {},
+  {
+    step = 3,
+    halfWidth = track.width / 2 + 4,
+    minUp = -1,
+    maxUp = 26,
+    margin = 0,
+  } = {},
 ) {
   const cell = 48,
     buckets = new Map(),
@@ -11,7 +17,7 @@ export function createForestRouteClearance(
   const localBox = new T.Box3(
     new T.Vector3(-halfWidth, minUp, -step * 0.7),
     new T.Vector3(halfWidth, maxUp, step * 0.7),
-  );
+  ).expandByScalar(margin);
   const cells = (bounds, visit) => {
     const a = bounds.min,
       b = bounds.max;

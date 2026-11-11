@@ -5,7 +5,7 @@
   "description": "Composable Three.js environment systems and canonical forest art assets.",
   "type": "module",
   "scripts": {
-    "test": "node --test tests/package.test.mjs modules/landscape/tests/*.test.js modules/island-ocean/tests/*.test.js modules/pond-water/tests/*.test.js modules/weather/tests/weather.test.js modules/living-forest/tests/*.test.js",
+    "test": "node --test tests/package.test.mjs modules/landscape/tests/*.test.js modules/island-ocean/tests/*.test.js modules/pond-water/tests/*.test.js modules/weather/tests/*.test.js modules/living-forest/tests/*.test.js",
     "build": "node tools/verify-package.mjs",
     "check": "npm test && npm run build",
     "lint": "eslint src tests/package.test.mjs tools/verify-package.mjs --max-warnings 0",

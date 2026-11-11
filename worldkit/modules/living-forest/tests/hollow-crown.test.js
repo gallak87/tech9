@@ -227,6 +227,71 @@ test('invalid source crown parts fail before shell geometry allocation', () => {
   }
 });
 
+test('merged leaf crowns retain transformed wind anchors and inverse-transpose weight gradients', () => {
+  const source = fixture(),
+    leaf = source.parts[1].geometry,
+    p = leaf.attributes.position;
+  const anchors = [],
+    gradients = [],
+    weights = [],
+    phases = [];
+  for (let i = 0; i < p.count; i++) {
+    anchors.push(25, 15, 0);
+    gradients.push(0, 0.04, 0);
+    weights.push((p.getY(i) - 15) * 0.04);
+    phases.push(0.7);
+  }
+  leaf.setAttribute('windAnchor', new T.Float32BufferAttribute(anchors, 3));
+  leaf.setAttribute('windGradient', new T.Float32BufferAttribute(gradients, 3));
+  leaf.setAttribute('windWeight', new T.Float32BufferAttribute(weights, 1));
+  leaf.setAttribute('windPhase', new T.Float32BufferAttribute(phases, 1));
+  const hollow = createLivingHollow({
+    radius: 185,
+    base: -112,
+    top: 410,
+    materials: source.materials,
+    crownParts: source.parts,
+    crownScale: 1.5,
+  });
+  try {
+    const output = hollow.group.children.find(
+      (mesh) => mesh.userData.crownKind === 'leaf',
+    ).geometry;
+    const pos = output.attributes.position,
+      anchor = output.attributes.windAnchor,
+      gradient = output.attributes.windGradient;
+    assert.equal(anchor.count, p.count * 5);
+    const point = new T.Vector3(),
+      origin = new T.Vector3(),
+      covector = new T.Vector3();
+    for (let i = 0; i < pos.count; i++) {
+      point.fromBufferAttribute(pos, i);
+      origin.fromBufferAttribute(anchor, i);
+      covector.fromBufferAttribute(gradient, i);
+      assert.ok(
+        Math.abs(point.sub(origin).dot(covector) - weights[i % p.count]) < 1e-5,
+        'baked clone transforms preserve the wind weight field',
+      );
+      assert.equal(
+        output.attributes.windWeight.getX(i),
+        leaf.attributes.windWeight.getX(i % p.count),
+      );
+      assert.equal(
+        output.attributes.windPhase.getX(i),
+        leaf.attributes.windPhase.getX(i % p.count),
+      );
+    }
+    assert.deepEqual(
+      leaf.attributes.windAnchor.array,
+      new Float32Array(anchors),
+      'source anchors remain borrowed and unchanged',
+    );
+  } finally {
+    hollow.dispose();
+    source.dispose();
+  }
+});
+
 test('the actual Sapling crown root fan is buried within both skins at all eight authored bearings', async (t) => {
   const bytes = await readFile(new URL(saplingForestURL));
   const parsed = await new GLTFLoader().parseAsync(

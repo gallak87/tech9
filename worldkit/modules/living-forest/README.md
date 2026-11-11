@@ -53,6 +53,10 @@ palette, skipping all three mature-tree meshes. `prototypes` and `treeParts`
 are empty in this mode; ownership/disposal remain the same. The default is
 `true` and preserves the existing procedural tree geometry. This lets consumers
 combine the understory with a separately loaded tree family.
+`foliageWind: true` adds branch-anchored wind attributes to those understory
+sprays without changing their positions, normals, images or default finish.
+Bind their meshes to the existing [Weather foliage response](../weather/README.md#anchored-foliage-wind)
+to animate them; the option alone creates no clock or movement.
 
 `livingForestLeafURL` resolves the RGBA foliage spray. Pass its loaded sRGB texture as `textures.leaf.map`; the shared leaf material uses `alphaTest: 0.5`, depth writes and double-sided cutout rendering. Each tree retains all 120 attached spray clusters in both qualities, with three crossed cards per cluster near and two far. No foliage renders until a real spray map is supplied.
 
@@ -90,8 +94,36 @@ fits a reference pitched bough's rise to 62% of its height. Optional
 bearings: angles are radians, `v` is normalized shell height with `0 < v < 1`,
 and each positive `scale` multiplies `crownScale`. `splay` adjusts outward yaw
 and `pitch` tilts the module upward. Custom descriptors replace the seeded
-default composition; the consumer owns their layout, as Vesper does for its
-eight bearings. Seating and route clearance can adjust or reject a bearing.
+default composition; the consumer owns their layout. Seating and route clearance
+can adjust or reject a bearing. `crownMotionMargin` defaults to zero and adds a
+world-space displacement reserve to the foliage corridor only; use the same
+maximum offset as the consumer's foliage wind.
+
+Optional `bodyProfile: [{ v, outer, inner }, ...]` supplies an independent torso
+cross-section. Rings run from `v: 0` at `base` to `v: 1` at `top`; `outer` and
+`inner` are positive radius ratios multiplied by `radius`, with `inner < outer`.
+Shape-preserving interpolation follows the authored taper without intermediate
+bulges. In this mode the original broad shoulders, deep cambium shelves, wound
+masses and crown pads are absent. `fluteDepth` (default 6 metres) adds only slim
+longitudinal relief. Without a fork transition, the upper rim varies by at most
+8 metres. The supplied
+route still reserves the complete road/camera corridor before clipping openings.
+Consumers may close the unused upper cavity inward above that reserve to seat
+major forks in real wood while keeping the outer silhouette tapered. Vesper owns
+its shorter torso profile and three unequal fork placements. Omit `bodyProfile`
+to preserve the existing hollow geometry exactly.
+
+`forkTransition: { rise, crotchDrop, start, halfWidth }` continues an authored
+torso into unequal fork-bearing crests aligned with `crownBearings`, replacing
+the horizontal terminal annulus with real intervening crotches. `rise` and
+`crotchDrop` are metres above/below `top`, `start` is the normalized torso height
+where this transition begins, and `halfWidth` is each crest's angular half-width
+in radians. Its vertical mapping stays monotone. This option requires both a
+`bodyProfile` and grown crown parts; the consumer owns proportions and source
+bough choice. Root seating solves the resulting nonlinear surface and retains
+the full route and motion clearances. Carved portal lips retain the borrowed
+`materials.rim`; grown terminal fork surfaces use borrowed `materials.bark` in
+one additional material group/draw. No material or image ownership changes.
 
 ## Baked Sapling forest
 
@@ -121,6 +153,11 @@ never disposes those images. They use the regular TextureLoader `flipY: true`
 convention; the loader restores that convention on its cloned baked glTF UVs.
 Without a supplied leaf-spray map, the material keeps foliage invisible rather
 than drawing opaque card rectangles.
+The baked leaves retain per-spray anchor, normalized tip weight, weight gradient
+and deterministic phase attributes. The loader converts exported glTF custom
+attributes and transforms anchors/gradients with the source hierarchy; near/far
+sprays retain matching attachment sites and phases. Animation remains an opt-in
+consumer binding to the reusable Weather response.
 
 The source recipe, settings and tool attribution are in the
 [Sapling source guide](art/sapling/README.md). The game needs only the baked GLB

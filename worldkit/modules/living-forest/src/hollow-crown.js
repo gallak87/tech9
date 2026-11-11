@@ -1,5 +1,6 @@
 import * as T from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { transformFoliageWindGeometry } from '../../weather/src/foliage-geometry.js';
 
 /** Validate borrowed module parts before the hollow allocates any geometry. */
 export function prepareHollowCrown(
@@ -240,11 +241,19 @@ export function attachHollowCrown(plan, shell, clearsRoute, insideWood) {
             )
           )
             continue;
-          const copies = plan.parts.map((part) =>
-            part.geometry.clone().applyMatrix4(matrix),
-          );
+          const copies = plan.parts.map((part) => {
+            const geometry = part.geometry.clone().applyMatrix4(matrix);
+            if (part.kind === 'leaf')
+              transformFoliageWindGeometry(geometry, matrix);
+            return geometry;
+          });
           try {
-            if (copies.some((geometry) => !clearsRoute(geometry))) continue;
+            if (
+              copies.some(
+                (geometry, i) => !clearsRoute(geometry, plan.parts[i].kind),
+              )
+            )
+              continue;
             copies.forEach((geometry, i) => {
               buckets[i].push(geometry);
             });

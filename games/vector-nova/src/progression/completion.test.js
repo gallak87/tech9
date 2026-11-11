@@ -130,9 +130,9 @@ test('mode unlock counts keep Time Trials discoverable after every cup is won', 
   });
   const fresh = remainingModeUnlocks(freshProfile());
   assert.ok(fresh.race > 0);
-  assert.equal(fresh.freestyle, fresh.race);
-  assert.equal(fresh.eliminator, fresh.race);
-  assert.equal(fresh.interceptor, fresh.race);
+  assert.equal(fresh.freestyle, 0);
+  assert.equal(fresh.eliminator, 0);
+  assert.equal(fresh.interceptor, 0);
   const gearOnly = store.snapshot().state;
   gearOnly.finishedCourses = [];
   assert.deepEqual(remainingModeUnlocks(gearOnly), {
@@ -146,6 +146,55 @@ test('mode unlock counts keep Time Trials discoverable after every cup is won', 
   });
   gearOnly.cups = [];
   assert.equal(remainingModeUnlocks(gearOnly).cup, 3);
+});
+
+test('event mode badges count locked successor courses, not equipment rewards or unfinished open courses', () => {
+  for (const { mode, cupId, levelIds } of MODE_UNLOCKS) {
+    const storage = createMemoryStorage();
+    const store = createProfileStore(() => storage);
+    const expectCount = (expected) => {
+      const profile = store.snapshot().state;
+      for (const claims of [
+        profile.claims,
+        [],
+        ALL_REWARDS.map(({ id }) => id),
+      ])
+        assert.equal(
+          remainingModeUnlocks({ ...profile, claims })[mode],
+          expected,
+          `${mode}: gear collection cannot change unopened course count`,
+        );
+    };
+    expectCount(0);
+    store.recordCup(cupId);
+    expectCount(2);
+    assert.equal(store.recordCourseFinish(levelIds[0]), true);
+    expectCount(1);
+    assert.equal(store.recordCourseFinish(levelIds[1]), true);
+    assert.equal(
+      store.snapshot().state.finishedCourses.includes(levelIds[2]),
+      false,
+    );
+    expectCount(0);
+    assert.equal(store.recordCourseFinish(levelIds[2]), true);
+    expectCount(0);
+  }
+});
+
+test('remaining equipment still counts for Race and Championships while event badges show only unopened courses', () => {
+  const store = completedStore(createMemoryStorage());
+  const profile = store.snapshot().state;
+  profile.claims = profile.claims.filter((id) => id !== 'speed-1');
+  profile.finishedCourses = ['launchworks'];
+  assert.deepEqual(remainingModeUnlocks(profile), {
+    race: 1,
+    cup: 1,
+    freestyle: 1,
+    eliminator: 2,
+    interceptor: 2,
+    'time-trial': 0,
+    practice: 0,
+  });
 });
 
 test('completion retains the last racer, resumes interrupted playback and acknowledges once per career', () => {

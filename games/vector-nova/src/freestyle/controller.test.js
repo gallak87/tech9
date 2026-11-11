@@ -187,7 +187,7 @@ test('continuous air points survive snapshots, freeze at touchdown and bank exac
   assert.deepEqual(a.snapshot(), b.snapshot());
 });
 
-test('five clean geometric transfers grow a chain, bank only once each, and earn gold without mandatory tricks', () => {
+test('five clean geometric transfers grow a chain and bank only once each without tricks', () => {
   const c = createFreestyleController({ track });
   for (let i = 0; i < 5; i++) {
     c.launch(track.jumps[i].id);
@@ -203,8 +203,31 @@ test('five clean geometric transfers grow a chain, bank only once each, and earn
   const result = c.complete('kestrel');
   assert.equal(result.bestChain, 5);
   assert.equal(result.score, 37500);
-  assert.equal(result.medal, 'Gold');
+  assert.equal(result.medal, 'Bronze');
   assert.equal(result.playerValid, true);
+});
+
+test('medals use the higher thresholds, including a silver 61k run', () => {
+  const c = createFreestyleController({ track });
+  for (let i = 0; i < track.jumps.length; i++) {
+    c.launch(track.jumps[i].id);
+    contact(c, i);
+  }
+  const finished = c.snapshot();
+  for (const [score, medal] of [
+    [12499, 'Complete'],
+    [12500, 'Bronze'],
+    [38999, 'Bronze'],
+    [39000, 'Silver'],
+    [61185, 'Silver'],
+    [74999, 'Silver'],
+    [75000, 'Gold'],
+  ]) {
+    c.restore({ ...finished, score });
+    const result = c.complete('kestrel');
+    assert.equal(result.playerValid, true);
+    assert.equal(result.medal, medal, `${score} points`);
+  }
 });
 
 test('held or early brake can settle a legitimate landing without the fresh-brake precision bonus', () => {

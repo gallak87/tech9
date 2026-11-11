@@ -830,7 +830,12 @@ export async function createFrontend(
         const locked = !modeAvailable(mode, contentAccess());
         const requirement = modeUnlockRequirement(mode);
         const hint = locked ? `Win ${requirement.cupName}` : '';
-        return `<button data-action="${action}" aria-pressed="${intent === mode}" data-locked="${locked}" aria-label="${label}${locked ? `, locked. ${hint} to unlock. Preview courses.` : remaining[mode] ? `, ${remaining[mode]} unlocks remaining` : ''}"${mode === 'cup' && activeCup ? ` aria-describedby="active-cup-description" title="${cupStatus}"` : ''}><span class="mode-label">${label}</span><span class="mode-status">${mode === 'cup' && activeCup ? `<img class="mode-cup-trophy" src="${cupArt(activeCup.id).trophy}" alt="" aria-hidden="true">` : ''}${!locked && remaining[mode] ? `<span class="mode-unlock-badge" aria-hidden="true">${remaining[mode]}</span>` : ''}</span></button>`;
+        const badgeText = remaining[mode]
+          ? requirement
+            ? `${remaining[mode]} course${remaining[mode] === 1 ? '' : 's'} left to unlock`
+            : `${remaining[mode]} unlocks remaining`
+          : '';
+        return `<button data-action="${action}" aria-pressed="${intent === mode}" data-locked="${locked}" aria-label="${label}${locked ? `, locked. ${hint} to unlock. Preview courses.` : badgeText ? `, ${badgeText}` : ''}"${mode === 'cup' && activeCup ? ` aria-describedby="active-cup-description" title="${cupStatus}"` : !locked && requirement && badgeText ? ` title="${badgeText}"` : ''}><span class="mode-label">${label}</span><span class="mode-status">${mode === 'cup' && activeCup ? `<img class="mode-cup-trophy" src="${cupArt(activeCup.id).trophy}" alt="" aria-hidden="true">` : ''}${!locked && remaining[mode] ? `<span class="mode-unlock-badge" aria-hidden="true">${remaining[mode]}</span>` : ''}</span></button>`;
       })
       .join(
         '',

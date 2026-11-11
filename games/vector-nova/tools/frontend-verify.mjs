@@ -501,7 +501,7 @@ try {
                       totalTime: 65,
                     },
                   ],
-                  score: 4500,
+                  score: 12500,
                   medal: 'Bronze',
                   improved: false,
                   bestChain: 1,
@@ -1297,6 +1297,26 @@ try {
       'cup mode and sequential course gates allow locked previews without constructing worlds',
       async (page) => {
         const ready = () => page.waitForFunction(() => !!window.__VN_FRONTEND);
+        const expectCourseBadge = async (mode, count) => {
+          const button = page.locator(`[data-action="${mode}"]`);
+          const badge = button.locator('.mode-unlock-badge');
+          assert.equal(await badge.count(), count ? 1 : 0);
+          if (count) {
+            const text = `${count} course${count === 1 ? '' : 's'} left to unlock`;
+            assert.equal(await badge.textContent(), String(count));
+            assert.equal(await button.getAttribute('title'), text);
+            assert.match(
+              await button.getAttribute('aria-label'),
+              new RegExp(text),
+            );
+          } else {
+            assert.equal(await button.getAttribute('title'), null);
+            assert.doesNotMatch(
+              await button.getAttribute('aria-label'),
+              /left to unlock/,
+            );
+          }
+        };
         const expectModes = async (wins) => {
           for (const { mode, cupId, cupName, label } of MODE_UNLOCKS) {
             const control = page.locator(`[data-action="${mode}"]`);
@@ -1312,6 +1332,7 @@ try {
             assert.equal(await control.getAttribute('aria-disabled'), null);
             assert.doesNotMatch(await control.textContent(), /pilot/i);
             if (!wins.includes(cupId)) {
+              await expectCourseBadge(mode, 0);
               assert.match(
                 await control.getAttribute('aria-label'),
                 new RegExp(`Win ${cupName} to unlock`),
@@ -1492,6 +1513,7 @@ try {
           await page.goto(url('level=halcyon&music=0'));
           await ready();
           await expectModes(wins);
+          await expectCourseBadge(mode, 2);
           assert.ok((await front(page)).career.state.claims.length < 28);
           await page.locator(`[data-action="${mode}"]`).press('Enter');
           assert.equal((await front(page)).selected, levelIds[0]);
@@ -1523,6 +1545,7 @@ try {
           }, courseSeeds.get(levelIds[0]));
           await page.reload();
           await ready();
+          await expectCourseBadge(mode, 1);
           assert.equal(
             await page.locator('[data-action="launch"]').isEnabled(),
             true,
@@ -1532,6 +1555,25 @@ try {
             .textContent();
           await page.locator(`[data-level="${levelIds[2]}"]`).click();
           await expectLockedPreview(levelIds[2], mode, new RegExp(nextName));
+          await page.evaluate((entries) => {
+            for (const [key, value] of entries)
+              localStorage.setItem(key, value);
+          }, courseSeeds.get(levelIds[1]));
+          await page.reload();
+          await ready();
+          await expectCourseBadge(mode, 0);
+          assert.equal(
+            await page.locator('[data-action="launch"]').isEnabled(),
+            true,
+          );
+          assert.ok(
+            Number(
+              await page
+                .locator('[data-action="quick-race"] .mode-unlock-badge')
+                .textContent(),
+            ) > 0,
+            'unclaimed gear remains on the ordinary reward badge',
+          );
         }
         await page.goto(url('level=oriel&music=0'));
         await ready();

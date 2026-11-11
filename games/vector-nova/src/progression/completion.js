@@ -73,9 +73,6 @@ export function remainingModeUnlocks(profile) {
     if (requirement.points || requirement.finishes) {
       counts.race++;
       counts.cup++;
-      counts.freestyle++;
-      counts.eliminator++;
-      counts.interceptor++;
     } else if (requirement.trials) counts['time-trial']++;
     else if (requirement.cup || requirement.cups) counts.cup++;
   }
@@ -87,6 +84,7 @@ export function remainingModeUnlocks(profile) {
       };
       if (!courseEarned(mode.levelIds[0], access)) counts.cup++;
       else
+        // These mode badges describe their course chains, not shared gear.
         counts[mode.mode] += mode.levelIds
           .slice(1)
           .filter((id) => !courseEarned(id, access)).length;

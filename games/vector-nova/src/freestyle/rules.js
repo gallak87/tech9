@@ -9,7 +9,7 @@ export const FREESTYLE_RULES = Object.freeze({
   angularSpeed: [2.8, 2.6, 3.1],
   acceleration: 4.8,
   releaseDamping: 3.5,
-  medals: { bronze: 4500, silver: 14000, gold: 27000 },
+  medals: { bronze: 12500, silver: 39000, gold: 75000 },
 });
 export const TRICKS = Object.freeze({
   roll: { name: 'Barrel roll', points: 1000 },

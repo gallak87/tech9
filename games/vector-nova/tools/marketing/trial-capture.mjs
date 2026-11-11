@@ -1,9 +1,14 @@
 import assert from 'node:assert/strict';
 import { spawn, execFileSync } from 'node:child_process';
-import { access, appendFile, mkdir, writeFile } from 'node:fs/promises';
+import { access, mkdir, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { join, resolve } from 'node:path';
 import { chromium } from 'playwright';
+import {
+  installNativeAudioTap,
+  startTabRecording,
+  stopTabRecording,
+} from './tab-recorder.mjs';
 
 // Genuine records: production countdown, fixed-step physics, checkpoints and
 // persistence. The only automation is ordinary standard-gamepad input.
@@ -11,7 +16,7 @@ const root = resolve(import.meta.dirname, '../..');
 const args = process.argv.slice(2);
 if (args.includes('--help')) {
   console.log(
-    'node tools/marketing/trial-capture.mjs [--record] [--output DIRECTORY] [--level halcyon] [--ship kestrel]\nDefault: headless real-time full-lap rehearsal. --record: headed dedicated-tab capture with native game audio. VN_URL reuses an existing server; otherwise starts and closes an owned server.',
+    'node tools/marketing/trial-capture.mjs [--record] [--output DIRECTORY] [--level halcyon] [--ship kestrel] [--diagnostic-seconds 30]\nDefault: headless real-time full-lap rehearsal. --record: headed dedicated-tab capture with native game audio. --diagnostic-seconds runs at most 30 seconds of input/motion diagnostics without creating records or a movie. VN_URL reuses an existing server; otherwise starts and closes an owned server.',
   );
   process.exit(0);
 }
@@ -26,6 +31,16 @@ const output = resolve(
 const level = option('--level', 'halcyon');
 const ship = option('--ship', 'kestrel');
 const record = args.includes('--record');
+const diagnosticSeconds = Number(option('--diagnostic-seconds', '0'));
+assert.ok(
+  Number.isFinite(diagnosticSeconds) &&
+    diagnosticSeconds >= 0 &&
+    diagnosticSeconds <= 30,
+);
+assert.ok(
+  !record || diagnosticSeconds === 0,
+  'Diagnostics never create a partial movie.',
+);
 for (const name of ['trial-fixture.json', 'trial-race.webm']) {
   const path = join(output, name);
   try {
@@ -68,7 +83,14 @@ try {
         String(port),
         '--strictPort',
       ],
-      { cwd: root, stdio: 'ignore' },
+      {
+        cwd: root,
+        stdio: 'ignore',
+        env: {
+          ...process.env,
+          VN_VITE_CACHE_DIR: `node_modules/.vite-marketing-${port}`,
+        },
+      },
     );
     let ready = false;
     for (let attempt = 0; attempt < 100; attempt++) {
@@ -112,28 +134,10 @@ try {
           controllerPreset: 'classic',
         }),
       );
-      const original = AudioNode.prototype.connect;
-      const taps = new WeakMap();
-      window.__VN_TRIAL_AUDIO = [];
-      AudioNode.prototype.connect = function (...args) {
-        const result = original.apply(this, args);
-        if (args[0] === this.context.destination) {
-          let tap = taps.get(this.context);
-          if (!tap) {
-            tap = this.context.createMediaStreamDestination();
-            taps.set(this.context, tap);
-            window.__VN_TRIAL_AUDIO.push({
-              context: this.context,
-              stream: tap.stream,
-            });
-          }
-          original.call(this, tap);
-        }
-        return result;
-      };
     },
     { record },
   );
+  await installNativeAudioTap(context);
   const page = await context.newPage();
   const faults = [];
   page.on('pageerror', (error) => faults.push(error.message));
@@ -241,14 +245,18 @@ try {
           state.done = true;
           return;
         }
-        const mode = s.runtime.state.flight?.mode ?? s.runtime.state.mode;
+        const motion = s.runtime.state.motion ?? s.runtime.state;
+        const mode = motion.flight?.mode ?? motion.mode;
+        // Plain magnetic bodies have no mode field. Only an explicit airborne
+        // runtime should suppress the ordinary ground driver's steering.
+        const grounded = mode == null || mode === 'magnetic';
         const control = getRacerControl(s.vehicle, track, {
           difficulty: 'hard',
           // A real line change after the flying lap lets its newly saved ghost
           // become visible beside us instead of fading at exact hull overlap.
           lane: s.lap.lap >= 3 ? 7 : 0,
           pace: 1,
-          runtime: { pose: () => ({ grounded: mode === 'magnetic' }) },
+          runtime: { pose: () => ({ grounded }) },
         });
         // Run the flying lap at the ordinary hard driver's full pace. Do not
         // pace or brake against the standing ghost. Settle boost before the line
@@ -306,6 +314,7 @@ try {
             timeTrial: trial,
             vehicle: s.vehicle,
             input: s.input,
+            motionMode: mode ?? 'magnetic',
             ghost,
             camera: s.camera.mode,
             events: s.events.slice(-10),
@@ -335,162 +344,26 @@ try {
   assert.equal(initial.vehicle.distance, 0);
   assert.equal(initial.vehicle.energy, 100);
   if (record) {
-    const raw = join(output, 'trial-race.webm');
-    await writeFile(raw, Buffer.alloc(0));
-    await page.exposeFunction('writeTrialCapture', (chunk) =>
-      appendFile(raw, Buffer.from(chunk, 'base64')),
-    );
+    await startTabRecording(page, {
+      outputFile: join(output, 'trial-race.webm'),
+      title: 'VN Genuine Time Trial Capture',
+      audioGain: 0.55,
+    });
     await page.evaluate(() => {
-      document.title = 'VN Genuine Time Trial Capture';
-      const button = document.createElement('button');
-      button.id = 'record-trial';
-      button.textContent = 'Record genuine Time Trial';
-      button.style =
-        'position:fixed;left:20px;top:90px;z-index:99999;padding:16px';
-      document.body.append(button);
-      button.onclick = async () => {
-        try {
-          const stream = await navigator.mediaDevices.getDisplayMedia({
-            preferCurrentTab: true,
-            selfBrowserSurface: 'include',
-            monitorTypeSurfaces: 'exclude',
-            surfaceSwitching: 'exclude',
-            video: {
-              displaySurface: 'browser',
-              width: { ideal: 1920, max: 1920 },
-              height: { ideal: 1080, max: 1080 },
-              frameRate: { ideal: 60, max: 60 },
-              cursor: 'never',
-            },
-            audio: false,
-          });
-          const video = stream.getVideoTracks()[0];
-          if (video.getSettings().displaySurface !== 'browser') {
-            stream.getTracks().forEach((track) => track.stop());
-            throw new Error('Refusing non-tab capture.');
-          }
-          const mixer = new AudioContext({ sampleRate: 48000 });
-          const output = mixer.createMediaStreamDestination();
-          if (!window.__VN_TRIAL_AUDIO.length)
-            throw new Error('No native game audio taps.');
-          for (const tap of window.__VN_TRIAL_AUDIO) {
-            await tap.context.resume();
-            const gain = mixer.createGain();
-            gain.gain.value = 0.55;
-            mixer
-              .createMediaStreamSource(tap.stream)
-              .connect(gain)
-              .connect(output);
-          }
-          await mixer.resume();
-          const mix = new MediaStream([
-            video,
-            output.stream.getAudioTracks()[0],
-          ]);
-          const recorder = new MediaRecorder(mix, {
-            mimeType: 'video/webm;codecs=vp9,opus',
-            videoBitsPerSecond: 24000000,
-            audioBitsPerSecond: 192000,
-          });
-          const capture = {
-            pending: Promise.resolve(),
-            video,
-            done: false,
-            settings: video.getSettings(),
-            audioBuses: window.__VN_TRIAL_AUDIO.length,
-          };
-          window.__VN_TRIAL_RECORDING = capture;
-          recorder.ondataavailable = (event) => {
-            if (!event.data.size) return;
-            capture.pending = capture.pending.then(async () => {
-              const data = await new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onerror = () => reject(reader.error);
-                reader.onload = () =>
-                  resolve(
-                    reader.result.slice(reader.result.indexOf(';base64,') + 8),
-                  );
-                reader.readAsDataURL(event.data);
-              });
-              await window.writeTrialCapture(data);
-            });
-          };
-          recorder.onerror = (event) => {
-            capture.error = String(event.error);
-          };
-          recorder.onstop = async () => {
-            try {
-              await capture.pending;
-            } catch (error) {
-              capture.error = String(error);
-            }
-            mix.getTracks().forEach((track) => track.stop());
-            await mixer.close();
-            capture.done = true;
-          };
-          capture.stop = () => recorder.stop();
-          button.remove();
-          recorder.start(500);
-          capture.startedAt = performance.now();
-          capture.active = true;
-        } catch (error) {
-          window.__VN_TRIAL_RECORDING_ERROR = String(error);
-        }
-      };
+      window.__VN_TRIAL_RECORDING = window.__VN_TAB_RECORDING;
     });
-    await page.addStyleTag({
-      content:
-        '.sound-panel,.dev-tools{display:none!important}body{cursor:none!important}',
-    });
-    await page.bringToFront();
-    await page.locator('#record-trial').click();
-    await page.waitForFunction(
-      () =>
-        window.__VN_TRIAL_RECORDING?.active ||
-        window.__VN_TRIAL_RECORDING_ERROR,
-      null,
-      { timeout: 20000 },
-    );
-    const error = await page.evaluate(() => window.__VN_TRIAL_RECORDING_ERROR);
-    if (error) throw new Error(error);
-    const cdp = await context.newCDPSession(page);
-    await page.waitForTimeout(300);
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const current = await page.evaluate(() => ({
-        settings: window.__VN_TRIAL_RECORDING.video.getSettings(),
-        width: innerWidth,
-      }));
-      const missing =
-        (current.settings.width * 9) / 16 - current.settings.height;
-      if (Math.abs(missing) <= 2) break;
-      const { windowId, bounds } = await cdp.send('Browser.getWindowForTarget');
-      await cdp.send('Browser.setWindowBounds', {
-        windowId,
-        bounds: {
-          height:
-            bounds.height +
-            Math.ceil(missing / (current.settings.width / current.width)),
-        },
-      });
-      await page.waitForTimeout(250);
-    }
-    await cdp.detach();
-    const settings = await page.evaluate(() => {
-      const capture = window.__VN_TRIAL_RECORDING;
-      capture.settings = capture.video.getSettings();
-      return capture.settings;
-    });
-    assert.ok(
-      Math.abs(settings.width / settings.height - 16 / 9) <= 0.005,
-      `Unclipped 16:9 capture: ${settings.width}x${settings.height}`,
-    );
   }
   console.log(
     `START ${level}/${ship}: length ${initial.track.length.toFixed(1)}m, real-time standard input, stock Time Trial`,
   );
   await page.evaluate(() => window.__VN_TRIAL_CAPTURE.start());
   let done = false;
-  for (let poll = 0; poll < 120 && !done; poll++) {
+  for (
+    let poll = 0;
+    poll < (diagnosticSeconds ? Math.ceil(diagnosticSeconds / 5) : 120) &&
+    !done;
+    poll++
+  ) {
     await page.waitForTimeout(5000);
     const progress = await page.evaluate(() => {
       const state = window.__VN_TRIAL_CAPTURE;
@@ -501,6 +374,11 @@ try {
         seconds: s.timeTrial.elapsed,
         distance: s.vehicle.distance,
         speed: s.vehicle.speed,
+        lateral: s.vehicle.lateral,
+        heading: s.vehicle.heading,
+        input: s.input,
+        motionMode:
+          (s.runtime.state.motion ?? s.runtime.state).mode ?? 'magnetic',
         valid: s.lap.valid,
         errors: state.errors,
       };
@@ -508,143 +386,158 @@ try {
     done = progress.done;
     console.log(JSON.stringify(progress));
   }
-  if (record) {
-    await page.evaluate(() => window.__VN_TRIAL_RECORDING.stop());
-    await page.waitForFunction(() => window.__VN_TRIAL_RECORDING.done, null, {
-      timeout: 30000,
-    });
-    const recording = await page.evaluate(() => {
-      const recording = window.__VN_TRIAL_RECORDING;
-      const drive = window.__VN_TRIAL_CAPTURE;
-      const firstVisible = drive.ghostFrames.find(
-        (frame) => frame.ghostStart === 'flying' && frame.ghost?.inFrame,
-      );
+  if (diagnosticSeconds) {
+    const diagnostic = await page.evaluate(() => {
+      window.__VN.pause();
       return {
-        settings: recording.settings,
-        audioBuses: recording.audioBuses,
-        error: recording.error ?? null,
-        greenAtRawSeconds: (drive.startedAt - recording.startedAt) / 1000,
-        secondFinishAtRawSeconds:
-          (drive.completions[1].wallTime - recording.startedAt) / 1000,
-        excerptInPoint:
-          (drive.completions[1].wallTime - recording.startedAt) / 1000 - 1,
-        secondFinishAtExcerptSeconds: 1,
-        excerptSeconds: 4,
-        postLineGhostFirstVisibleAtRawSeconds: firstVisible
-          ? (firstVisible.now - recording.startedAt) / 1000
-          : null,
+        ...window.__VN_TRIAL_CAPTURE,
+        start: undefined,
+        final: window.__VN.getSnapshot(),
       };
     });
     await writeFile(
-      join(output, 'recording.json'),
-      JSON.stringify(recording, null, 2),
+      join(output, 'diagnostic.json'),
+      JSON.stringify({ faults, ...diagnostic }, null, 2),
     );
-    assert.equal(recording.error, null);
-  }
-  const captured = await page.evaluate(async () => {
-    const { createCareerSlots } = await import('/src/progression/careers.js');
-    const { readTrialRecords } = await import('/src/race/time-trial.js');
-    const careers = createCareerSlots();
-    const storage = careers.storageFor(1);
-    const state = window.__VN_TRIAL_CAPTURE;
-    const storageEntries = [];
-    for (let index = 0; index < storage.length; index++) {
-      const key = storage.key(index);
-      if (key.startsWith('vector-nova.trial.v1.'))
-        storageEntries.push([key, storage.getItem(key)]);
+    assert.deepEqual(faults, []);
+    assert.deepEqual(diagnostic.errors, []);
+    console.log(`Diagnostic saved to ${join(output, 'diagnostic.json')}`);
+  } else {
+    if (record) {
+      await stopTabRecording(page);
+      const recording = await page.evaluate(() => {
+        const recording = window.__VN_TRIAL_RECORDING;
+        const drive = window.__VN_TRIAL_CAPTURE;
+        const firstVisible = drive.ghostFrames.find(
+          (frame) => frame.ghostStart === 'flying' && frame.ghost?.inFrame,
+        );
+        return {
+          settings: recording.settings,
+          audioBuses: recording.audioBuses,
+          error: recording.error ?? null,
+          greenAtRawSeconds: (drive.startedAt - recording.startedAt) / 1000,
+          secondFinishAtRawSeconds:
+            (drive.completions[1].wallTime - recording.startedAt) / 1000,
+          excerptInPoint:
+            (drive.completions[1].wallTime - recording.startedAt) / 1000 - 1,
+          secondFinishAtExcerptSeconds: 1,
+          excerptSeconds: 4,
+          postLineGhostFirstVisibleAtRawSeconds: firstVisible
+            ? (firstVisible.now - recording.startedAt) / 1000
+            : null,
+        };
+      });
+      await writeFile(
+        join(output, 'recording.json'),
+        JSON.stringify(recording, null, 2),
+      );
+      assert.equal(recording.error, null);
     }
-    return {
-      storageEntries,
-      records: readTrialRecords(storage),
-      completions: state.completions,
-      samples: state.samples,
-      ghostFrames: state.ghostFrames,
-      intervals: state.intervals,
-      errors: state.errors,
-      final: window.__VN.getSnapshot(),
+    const captured = await page.evaluate(async () => {
+      const { createCareerSlots } = await import('/src/progression/careers.js');
+      const { readTrialRecords } = await import('/src/race/time-trial.js');
+      const careers = createCareerSlots();
+      const storage = careers.storageFor(1);
+      const state = window.__VN_TRIAL_CAPTURE;
+      const storageEntries = [];
+      for (let index = 0; index < storage.length; index++) {
+        const key = storage.key(index);
+        if (key.startsWith('vector-nova.trial.v1.'))
+          storageEntries.push([key, storage.getItem(key)]);
+      }
+      return {
+        storageEntries,
+        records: readTrialRecords(storage),
+        completions: state.completions,
+        samples: state.samples,
+        ghostFrames: state.ghostFrames,
+        intervals: state.intervals,
+        errors: state.errors,
+        final: window.__VN.getSnapshot(),
+      };
+    });
+    const provenance = {
+      generatedAt: new Date().toISOString(),
+      sourceRevision: execFileSync('git', ['rev-parse', 'HEAD'], {
+        cwd: root,
+        encoding: 'utf8',
+      }).trim(),
+      sourceStatus: execFileSync('git', ['status', '--short', '--', '.'], {
+        cwd: root,
+        encoding: 'utf8',
+      }).trim(),
+      driver: {
+        firstLapBoost: false,
+        flyingLap: 'ordinary hard-driver pace, no standing-ghost pacing',
+        finalApproachBoostOffMetres: 350,
+        postLineRunoutSeconds: 3.5,
+        postLineTargetLaneMetres: 7,
+        excerptLineCrossingSeconds: 1,
+      },
+      method:
+        'A genuine standing warm-up followed by a full-pace flying lap and 3.5 seconds of the next lap. Ordinary virtual standard-gamepad input and unmodified stock Time Trial production runtime; no ghost pacing, scenario, finish, checkpoint, timer or ghost seeding.',
+      career:
+        'Fresh isolated browser Career 1; only chosen hull unlocked for selection. No personal browser profile or saves.',
+      completions: captured.completions,
+      rules: captured.records.map((record) => record.identity.rules),
     };
-  });
-  const provenance = {
-    generatedAt: new Date().toISOString(),
-    sourceRevision: execFileSync('git', ['rev-parse', 'HEAD'], {
-      cwd: root,
-      encoding: 'utf8',
-    }).trim(),
-    sourceStatus: execFileSync('git', ['status', '--short', '--', '.'], {
-      cwd: root,
-      encoding: 'utf8',
-    }).trim(),
-    driver: {
-      firstLapBoost: false,
-      flyingLap: 'ordinary hard-driver pace, no standing-ghost pacing',
-      finalApproachBoostOffMetres: 350,
-      postLineRunoutSeconds: 3.5,
-      postLineTargetLaneMetres: 7,
-      excerptLineCrossingSeconds: 1,
-    },
-    method:
-      'A genuine standing warm-up followed by a full-pace flying lap and 3.5 seconds of the next lap. Ordinary virtual standard-gamepad input and unmodified stock Time Trial production runtime; no ghost pacing, scenario, finish, checkpoint, timer or ghost seeding.',
-    career:
-      'Fresh isolated browser Career 1; only chosen hull unlocked for selection. No personal browser profile or saves.',
-    completions: captured.completions,
-    rules: captured.records.map((record) => record.identity.rules),
-  };
-  await writeFile(
-    join(output, 'rehearsal.json'),
-    JSON.stringify({ provenance, ...captured }, null, 2),
-  );
-  assert.ok(done, 'Both full laps completed before timeout.');
-  assert.deepEqual(faults, []);
-  assert.deepEqual(captured.errors, []);
-  assert.equal(captured.completions.length, 2);
-  assert.ok(
-    captured.completions.every(
-      (lap) => lap.playerValid && lap.saved?.ghostSaved,
-    ),
-  );
-  assert.ok(
-    captured.records.length >= 2 &&
-      captured.records.every((record) => record.saved && record.ghostSaved),
-  );
-  assert.ok(captured.final.vehicle.resetCount === 0);
-  assert.equal(captured.completions[1].start, 'flying');
-  assert.equal(captured.final.timeTrial.ghostStart, 'flying');
-  const postLineFrames = captured.ghostFrames.filter(
-    (frame) => frame.elapsed >= 0.1 && frame.elapsed <= 3,
-  );
-  const readableFrames = postLineFrames.filter(
-    (frame) => frame.ghostStart === 'flying' && frame.ghost?.inFrame,
-  );
-  assert.ok(
-    postLineFrames.length >= 30 &&
-      readableFrames.length >= 15 &&
-      readableFrames.length / postLineFrames.length >= 0.3,
-    'The genuine flying ghost appears visibly after the line in the next lap.',
-  );
-  const flying = captured.completions[1];
-  assert.ok(
-    captured.samples
-      .filter(
-        (sample) =>
-          sample.now >= flying.wallTime - 1000 &&
-          sample.now <= flying.wallTime + 3000,
-      )
-      .every((sample) => !sample.input.boost && !sample.vehicle.boosting),
-    'The line crossing and post-line ghost reveal have steady boost-free audio.',
-  );
-  const fixture = {
-    storageEntries: captured.storageEntries,
-    provenance,
-    level,
-    ship,
-  };
-  await writeFile(
-    join(output, 'trial-fixture.json'),
-    JSON.stringify(fixture, null, 2),
-  );
-  console.log(
-    `PASS ${captured.completions.map((lap) => `${lap.start} ${lap.playerTotalTime.toFixed(3)}s`).join(' / ')}; ${captured.records.length} persisted ghosts; fixture ${join(output, 'trial-fixture.json')}`,
-  );
+    await writeFile(
+      join(output, 'rehearsal.json'),
+      JSON.stringify({ provenance, ...captured }, null, 2),
+    );
+    assert.ok(done, 'Both full laps completed before timeout.');
+    assert.deepEqual(faults, []);
+    assert.deepEqual(captured.errors, []);
+    assert.equal(captured.completions.length, 2);
+    assert.ok(
+      captured.completions.every(
+        (lap) => lap.playerValid && lap.saved?.ghostSaved,
+      ),
+    );
+    assert.ok(
+      captured.records.length >= 2 &&
+        captured.records.every((record) => record.saved && record.ghostSaved),
+    );
+    assert.ok(captured.final.vehicle.resetCount === 0);
+    assert.equal(captured.completions[1].start, 'flying');
+    assert.equal(captured.final.timeTrial.ghostStart, 'flying');
+    const postLineFrames = captured.ghostFrames.filter(
+      (frame) => frame.elapsed >= 0.1 && frame.elapsed <= 3,
+    );
+    const readableFrames = postLineFrames.filter(
+      (frame) => frame.ghostStart === 'flying' && frame.ghost?.inFrame,
+    );
+    assert.ok(
+      postLineFrames.length >= 30 &&
+        readableFrames.length >= 15 &&
+        readableFrames.length / postLineFrames.length >= 0.3,
+      'The genuine flying ghost appears visibly after the line in the next lap.',
+    );
+    const flying = captured.completions[1];
+    assert.ok(
+      captured.samples
+        .filter(
+          (sample) =>
+            sample.now >= flying.wallTime - 1000 &&
+            sample.now <= flying.wallTime + 3000,
+        )
+        .every((sample) => !sample.input.boost && !sample.vehicle.boosting),
+      'The line crossing and post-line ghost reveal have steady boost-free audio.',
+    );
+    const fixture = {
+      storageEntries: captured.storageEntries,
+      provenance,
+      level,
+      ship,
+    };
+    await writeFile(
+      join(output, 'trial-fixture.json'),
+      JSON.stringify(fixture, null, 2),
+    );
+    console.log(
+      `PASS ${captured.completions.map((lap) => `${lap.start} ${lap.playerTotalTime.toFixed(3)}s`).join(' / ')}; ${captured.records.length} persisted ghosts; fixture ${join(output, 'trial-fixture.json')}`,
+    );
+  }
 } finally {
   await browser?.close();
   if (server && server.exitCode === null) {

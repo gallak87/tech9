@@ -14,12 +14,29 @@ import {
   createCareerSlots,
   createMemoryStorage,
 } from '../../src/progression/careers.js';
-import { createDeveloperSession } from '../../src/progression/developer.js';
+import {
+  freshProfile,
+  PROFILE_KEY,
+  validateProfile,
+} from '../../src/progression/profile.js';
+import { REWARDS } from '../../src/progression/catalog.js';
+import { careerUnlockProgress } from '../../src/progression/completion.js';
+import { BONUS_LEVEL_IDS, levelAvailable } from '../../src/levels/access.js';
+import { CUPS, createCupStore } from '../../src/race/cup.js';
+import { CUP_COLLECTION_KEY } from '../../src/progression/cup-collection.js';
+import { RACE_OPPONENTS } from '../../src/race/roster.js';
 import { readTrialRecords } from '../../src/race/time-trial.js';
 
 const root = resolve(import.meta.dirname, '../..');
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
-const sourceIds = ['intro', 'menu-circuits', 'menu-cups-trial', 'menu-garage'];
+const sourceIds = [
+  'intro',
+  'menu-circuits',
+  'menu-founders',
+  'menu-horizon',
+  'menu-trial',
+  'menu-garage',
+];
 
 function storageEntries(storage) {
   return Array.from({ length: storage.length }, (_, index) => {
@@ -79,22 +96,97 @@ function showcaseSeed(id, fixture) {
   const careers = createCareerSlots({ storage: () => source });
   careers.create(1);
   const selected = careers.storageFor(1);
-  const parameters = new URLSearchParams({
-    dev: '2',
-    ship: 'kestrel',
-    exotic: 'kestrel',
-    equipment: 'jump,injector,deflector,lance',
-  });
-  if (id !== 'menu-garage') parameters.set('upgrades', '1');
-  const showcase = createDeveloperSession(parameters).storage();
-  for (const [key, value] of storageEntries(showcase))
-    selected.setItem(key, value);
-  selected.setItem('vector-nova.ship', 'kestrel');
+  // A staged, valid production career: all gear is earned, while the mode-course
+  // chains remain unfinished. Launch permissions must never expose bonus worlds.
+  const profile = freshProfile();
+  profile.wins = 24;
+  profile.finishes = 24;
+  profile.points = 120;
+  profile.cups = ['founders', 'frontier', 'horizon', 'apex'];
+  profile.trialTracks = ['halcyon', 'orbital'];
+  profile.claims = REWARDS.map(({ id }) => id);
+  profile.exoticShip = 'kestrel';
+  profile.loadouts.kestrel = ['jump', 'injector', 'deflector', 'lance'];
+  for (const ship of ['shrike', 'bastion', 'needle'])
+    profile.loadouts[ship] = ['jump', 'injector', null, null];
+  if (!validateProfile(profile))
+    throw new Error('Invalid RC4 showcase profile.');
+  const collection = careerUnlockProgress(profile);
+  if (collection.collected !== 31 || collection.total !== 37)
+    throw new Error('RC4 must show 31/37, with bonus worlds still hidden.');
+  if (BONUS_LEVEL_IDS.some((id) => levelAvailable(id, { complete: false })))
+    throw new Error('Bonus course access changed.');
+  selected.setItem(PROFILE_KEY, JSON.stringify(profile));
+  selected.setItem(
+    CUP_COLLECTION_KEY,
+    JSON.stringify({
+      version: 1,
+      cups: Object.fromEntries(
+        CUPS.filter(({ bonus }) => !bonus).map((cup) => [
+          cup.id,
+          { earnedAt: 1, difficulty: 'hard', points: cup.tracks.length * 25 },
+        ]),
+      ),
+    }),
+  );
+  selected.setItem(
+    'vector-nova.ship',
+    id === 'menu-garage' ? 'shrike' : 'kestrel',
+  );
   selected.setItem('vector-nova.circuit', fixture?.level ?? 'nacre');
-  if (id === 'menu-cups-trial')
+  if (id === 'menu-trial')
     for (const [key, value] of fixture.storageEntries)
       selected.setItem(key, value);
   return storageEntries(source);
+}
+
+function foundersPresentation() {
+  const storage = createMemoryStorage();
+  const store = createCupStore(() => storage);
+  const cup = CUPS.find(({ id }) => id === 'founders');
+  const ids = ['player', ...RACE_OPPONENTS.map(({ id }) => id)];
+  store.start(cup.id, 'kestrel', 'hard');
+  for (let index = 0; index < cup.tracks.length; index++) {
+    store.finish({
+      final: true,
+      standings: ids.map((id, position) => ({
+        id,
+        finished: true,
+        valid: true,
+        totalTime: 100 + position,
+      })),
+    });
+    if (index < cup.tracks.length - 1) store.next();
+  }
+  return store.snapshot().state;
+}
+
+async function assertSpoilerSafe(page) {
+  const faults = await page.evaluate(() => {
+    const state = window.__VN_FRONTEND?.getState();
+    const faults = [];
+    if (state?.developer) faults.push('developer launch permissions');
+    if (new URL(location.href).searchParams.has('dev')) faults.push('dev URL');
+    const exposedName = document.body.innerText.match(
+      /\b(?:Oriel|Ravel|Nomad Procession|Encore Cup)\b/i,
+    );
+    if (exposedName) faults.push(`visible bonus name: ${exposedName[0]}`);
+    for (const node of document.querySelectorAll(
+      '[data-level],[data-cup],img',
+    )) {
+      const id = node.dataset.level ?? node.dataset.cup ?? '';
+      const source = node.getAttribute('src') ?? '';
+      if (
+        /^(oriel|ravel|nomad|encore|freestyle-oriel|freestyle-ravel|eliminator-nomad)$/.test(
+          id,
+        ) ||
+        /(?:\/|[-_])(oriel|ravel|nomad)(?:[/._-]|$)|\/encore-/i.test(source)
+      )
+        faults.push(`${node.tagName}: ${id || source}`);
+    }
+    return faults;
+  });
+  if (faults.length) throw new Error(`RC4 spoiler gate: ${faults.join('; ')}`);
 }
 
 async function command(program, args) {
@@ -119,6 +211,7 @@ async function command(program, args) {
 
 function installMenuCapture({ seed, visiblePointer }) {
   for (const [key, value] of seed) localStorage.setItem(key, value);
+  localStorage.setItem('startUpMusicOn', 'false');
   localStorage.setItem(
     'vector-nova.music',
     JSON.stringify({ volume: 0.4, collapsed: true }),
@@ -234,6 +327,8 @@ async function snapshot(page) {
       preview: state.preview,
       loading: state.loading,
       error: state.error,
+      developer: state.developer,
+      stagedPresentation: window.__VN_MENU_PRESENTATION ?? null,
       progress:
         document.querySelector('.career-progress')?.textContent.trim() ?? null,
       rewards: Number(
@@ -246,6 +341,8 @@ async function snapshot(page) {
       equipment:
         document.querySelector('.garage-equipment-count')?.textContent.trim() ??
         null,
+      loadout: state.career?.state?.loadouts?.[state.shipId] ?? null,
+      exoticShip: state.career?.state?.exoticShip ?? null,
       records: [...document.querySelectorAll('.records-list li')].map(
         (row) => ({
           description: row
@@ -473,10 +570,9 @@ async function flow(page, id, mark, pointer, fixture) {
   };
   if (id === 'menu-circuits') {
     await mark('main-progress');
-    await glide(page, '[data-action="circuits"]', pointer, 650);
-    await page.waitForTimeout(1450);
+    await page.waitForTimeout(500);
     await click('[data-action="circuits"]');
-    for (const level of ['glasswake', 'colossus', 'helion']) {
+    for (const level of ['vesper-forest', 'helion']) {
       await mark(`circuit-${level}-approach`);
       await glide(page, `[data-level="${level}"]`, pointer, 360, { x: 0.13 });
       await page.waitForFunction(
@@ -485,7 +581,7 @@ async function flow(page, id, mark, pointer, fixture) {
       );
       await settledImages(page);
       await mark(`circuit-${level}`);
-      await page.waitForTimeout(1400);
+      await page.waitForTimeout(1100);
       await mark(`circuit-${level}-hold-end`);
     }
     await page.mouse.click(pointer.x, pointer.y);
@@ -495,27 +591,55 @@ async function flow(page, id, mark, pointer, fixture) {
     await settledImages(page);
     await mark('selected-helion');
     await page.waitForTimeout(1000);
-  } else if (id === 'menu-cups-trial') {
-    await mark('main-before-cups');
-    await page.waitForTimeout(500);
+  } else if (id === 'menu-founders') {
+    await mark('founders-reveal-approach');
+    await page.evaluate(() => {
+      const shell = document.querySelector('#front-shell');
+      const backdrop = shell.querySelector('.menu-backdrop');
+      shell.className = '';
+      shell.style.isolation = 'isolate';
+      shell.innerHTML =
+        '<main class="front-content" data-page="results"></main>';
+      if (backdrop) shell.prepend(backdrop);
+      shell.querySelector('main').innerHTML = window.__VN_MENU_CUP_VIEW(
+        window.__VN_MENU_FOUNDERS_STATE,
+        { fresh: true, delay: 0.6 },
+      );
+      document.body.dataset.screen = 'results';
+      window.__VN_MENU_PRESENTATION = 'staged-production-founders-victory';
+    });
+    await mark('founders-native-reveal');
+    await settledImages(page);
+    await page.waitForTimeout(1650);
+    await page.waitForFunction(
+      () =>
+        document.querySelector('.cup-victory-unlock')?.textContent ===
+        'Freestyle unlocked',
+    );
+    await mark('founders-freestyle-unlocked');
+    await page.waitForTimeout(2800);
+    await mark('founders-unlock-hold-end');
+  } else if (id === 'menu-horizon') {
     await click('[data-action="cup-hub"]');
     await mark('cup-browse-start');
-    await glide(page, '[data-cup="frontier"]', pointer);
-    await settledImages(page);
-    await mark('cup-frontier-hover');
-    await page.waitForTimeout(800);
     await mark('cup-horizon-approach');
     await glide(page, '[data-cup="horizon"]', pointer);
     await settledImages(page);
     await mark('cup-horizon-hover');
-    await page.waitForTimeout(800);
     await page.mouse.click(pointer.x, pointer.y);
     await settledImages(page);
+    await page.waitForFunction(() =>
+      /Interceptor unlocked/.test(
+        document.querySelector('.cup-hero')?.textContent ?? '',
+      ),
+    );
     await mark('cup-horizon-details');
-    await page.waitForTimeout(2300);
+    await page.waitForTimeout(2500);
+    await mark('cup-horizon-hold-end');
+  } else if (id === 'menu-trial') {
     await click('[data-action="time-trial"]');
     await mark('time-trial-mode');
-    await page.waitForTimeout(1400);
+    await page.waitForTimeout(350);
     await click('[data-action="records"]');
     await page.waitForFunction(
       () => window.__VN_FRONTEND.getState().screen === 'records',
@@ -540,17 +664,15 @@ async function flow(page, id, mark, pointer, fixture) {
     await page.waitForTimeout(2300);
     await mark('time-trial-records-hold-end');
   } else if (id === 'menu-garage') {
-    await mark('all-28-progress');
-    await page.waitForTimeout(2000);
     await click('[data-action="garage-tab"]');
-    await readyShip(page, 'kestrel');
+    await readyShip(page, 'shrike');
     await mark('garage-open');
     for (const ship of ['bastion', 'needle', 'kestrel']) {
       await mark(`ship-${ship}-approach`);
       await glide(page, `button[data-ship="${ship}"]`, pointer);
       await readyShip(page, ship);
       await mark(`ship-${ship}-stats`);
-      await page.waitForTimeout(1800);
+      await page.waitForTimeout(1000);
       await mark(`ship-${ship}-hold-end`);
     }
     await page.mouse.click(pointer.x, pointer.y);
@@ -565,8 +687,14 @@ async function flow(page, id, mark, pointer, fixture) {
         ),
     );
     await mark('kestrel-selected-quad-core');
-    await glide(page, '.garage-equipment-count', pointer, 700, { x: 1.15 });
-    await page.waitForTimeout(3300);
+    await glide(page, '[data-fleet-upgrade="speed-3"]', pointer, 450);
+    await page.waitForTimeout(1100);
+    await mark('fleet-upgrade-tooltip');
+    await glide(page, '.garage-equipment-count', pointer, 450, { x: 0.7 });
+    await page.waitForTimeout(1000);
+    await mark('kestrel-four-slot-loadout');
+    await glide(page, '[data-equip="lance"]', pointer, 450);
+    await page.waitForTimeout(2200);
     await mark('kestrel-loadout-hold-end');
   } else throw new Error(`Unknown menu flow ${id}`);
 }
@@ -614,7 +742,7 @@ export async function captureMenus({
   )
     throw new Error(`Choose source ids from ${sourceIds.join(', ')}.`);
   const fixture = await trialFixture(recordFixture);
-  if (only.includes('menu-cups-trial') && !fixture)
+  if (only.includes('menu-trial') && !fixture)
     throw new Error(
       '--record-fixture is required for populated Time Trial records.',
     );
@@ -646,7 +774,11 @@ export async function captureMenus({
     pointer:
       'Menus draw a plain noninteractive arrow at actual pointermove coordinates because Chrome tab sharing omits the virtual OS cursor; native cursor hidden. Intro has no pointer.',
     profile:
-      'isolated throwaway Career1, showroom dev2 profile copied into dev1 memory: first two chunks16/28, final Garage28/28; Quad Core Kestrel; genuine trial entries copied unchanged; personal careers untouched',
+      'Isolated staged production-access Career 1, no developer URL or launch permissions. All 28 gear claims and four original cup wins; unfinished mode courses keep collection at 31/37. Quad Core Kestrel with Jump/Injector/Deflector/Lance. Genuine supplied trial entries copied unchanged. Personal careers untouched.',
+    spoilerPolicy:
+      'Exclude Oriel, Ravel, Nomad Procession, their revealing mode variants, Encore Cup and completion presentation from every menu source, including thumbnails.',
+    foundersPresentation:
+      'Staged completed Founders Cup state, classified through createCupStore, displayed with unchanged production cupVictoryView/styles/animation. This is an isolated UI presentation fixture, not footage or evidence of a played championship. No fabricated race/reward claim is made by this source; only native victory UI is shown.',
     trialFixture: fixture
       ? {
           source: fixture.source,
@@ -678,7 +810,14 @@ export async function captureMenus({
           String(port),
           '--strictPort',
         ],
-        { cwd: root, stdio: 'ignore' },
+        {
+          cwd: root,
+          stdio: 'ignore',
+          env: {
+            ...process.env,
+            VN_VITE_CACHE_DIR: `node_modules/.vite-${port}`,
+          },
+        },
       );
       let ready = false;
       for (let attempt = 0; attempt < 100; attempt++) {
@@ -722,7 +861,7 @@ export async function captureMenus({
         errors.push(error.message);
         console.error(error.message);
       });
-      const url = new URL('/?dev=1&ship=kestrel&level=nacre', base);
+      const url = new URL('/?intro=0&level=nacre', base);
       if (id === 'intro') {
         await page.route('**/src/core/main.js*', (route) =>
           route.fulfill({ contentType: 'text/javascript', body: '' }),
@@ -737,8 +876,7 @@ export async function captureMenus({
           await loadShipModel('kestrel');
         });
       } else {
-        if (id === 'menu-cups-trial')
-          url.searchParams.set('level', fixture.level);
+        if (id === 'menu-trial') url.searchParams.set('level', fixture.level);
         await page.goto(url.href);
         await page.waitForFunction(
           () => window.__VN_FRONTEND?.getState().screen === 'home',
@@ -750,6 +888,27 @@ export async function captureMenus({
         );
         await settledImages(page);
         await pauseMusic(page);
+        if (id === 'menu-founders') {
+          await page.evaluate(async (state) => {
+            const { cupVictoryView } = await import('/src/frontend/cup-art.js');
+            window.__VN_MENU_CUP_VIEW = cupVictoryView;
+            window.__VN_MENU_FOUNDERS_STATE = state;
+            const cup = cupVictoryView(state, { fresh: true, delay: 0.6 });
+            const parsed = new DOMParser().parseFromString(cup, 'text/html');
+            await Promise.all(
+              [...parsed.images].map(
+                (node) =>
+                  new Promise((done, reject) => {
+                    const image = new Image();
+                    image.onload = done;
+                    image.onerror = () =>
+                      reject(new Error(`Cup image failed: ${node.src}`));
+                    image.src = node.src;
+                  }),
+              ),
+            );
+          }, foundersPresentation());
+        }
       }
       await page.evaluate(() => {
         document.title = 'VN Menu Capture';
@@ -759,13 +918,14 @@ export async function captureMenus({
           '.sound-panel,.dev-tools,[data-action="inspect"]{display:none!important}html,body,body *{cursor:none!important}',
       });
       if (id !== 'intro') {
-        const expectedRewards = id === 'menu-garage' ? '28' : '16';
         await page.waitForFunction(
-          (expectedRewards) =>
+          () =>
             document
               .querySelector('.career-progress-bar')
-              ?.getAttribute('aria-valuenow') === expectedRewards,
-          expectedRewards,
+              ?.getAttribute('aria-valuenow') === '31' &&
+            document
+              .querySelector('.career-progress-bar')
+              ?.getAttribute('aria-valuemax') === '37',
         );
         const progressBox = await page
           .locator('.career-progress')
@@ -779,6 +939,7 @@ export async function captureMenus({
             'Career progress bar is outside the recording viewport.',
           );
       }
+      await assertSpoilerSafe(page);
       const pointer = { x: 1540, y: 850 };
       await page.mouse.move(pointer.x, pointer.y);
       const capture = flowOnly
@@ -804,6 +965,7 @@ export async function captureMenus({
       );
       const actions = [];
       const mark = async (name) => {
+        await assertSpoilerSafe(page);
         const rawSeconds = await page.evaluate(
           (start) => (performance.now() - start) / 1000,
           rawStartedAt,
@@ -834,6 +996,7 @@ export async function captureMenus({
         if (remaining > 0) await page.waitForTimeout(remaining);
         await mark('title-reveal-complete-handle');
       } else await flow(page, id, mark, pointer, fixture);
+      await assertSpoilerSafe(page);
       const seconds =
         (await page.evaluate(
           (start) => (performance.now() - start) / 1000,
@@ -860,10 +1023,22 @@ export async function captureMenus({
         throw new Error(
           'Garage ship, stats or Quad Core capacity is outside the recording viewport.',
         );
+      if (
+        id === 'menu-garage' &&
+        (end.shipId !== 'kestrel' ||
+          end.exoticShip !== 'kestrel' ||
+          JSON.stringify(end.loadout) !==
+            JSON.stringify(['jump', 'injector', 'deflector', 'lance']))
+      )
+        throw new Error(
+          'Garage finale build changed: expected Quad Core Kestrel and the approved four items.',
+        );
       if (errors.length || end.error)
         throw new Error(
           `Menu runtime error: ${[...errors, end.error].filter(Boolean).join('; ')}`,
         );
+      if (flowOnly)
+        await page.screenshot({ path: join(output, `${id}-settled.png`) });
       const take = {
         id,
         seconds,
@@ -930,7 +1105,7 @@ if (
   const args = process.argv.slice(2);
   if (args.includes('--help'))
     console.log(
-      `node tools/marketing/menu-capture.mjs [--output DIRECTORY] [--only ${sourceIds.join(',')}] [--record-fixture FILE] [--flow-only]\nCaptures the real title reveal and three isolated menu source takes, preserving pointer travel around settled markers.\n--record-fixture supplies genuine logical Time Trial record/ghost entries with provenance; required for menu-cups-trial.\n--flow-only verifies selected flows headless, without recording. VN_URL may select an existing server.`,
+      `node tools/marketing/menu-capture.mjs [--output DIRECTORY] [--only ${sourceIds.join(',')}] [--record-fixture FILE] [--flow-only]\nCaptures the native title reveal and five isolated RC4 menu source takes, preserving pointer movement and settled markers. Production-access career stays at 31/37, without revealing bonus worlds or Encore.\nFounders uses an explicitly staged completed-cup state and the unchanged production victory view; it is not a played championship recording.\n--record-fixture supplies genuine logical Time Trial record/ghost entries with provenance; required for menu-trial.\n--flow-only verifies selected flows headless, without recording. VN_URL may select an existing server.`,
     );
   else {
     const options = {};

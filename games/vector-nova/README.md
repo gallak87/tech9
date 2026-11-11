@@ -15,7 +15,7 @@ Start, choose or create a career, then configure a session. Browsing courses and
 
 Blue Hour is the startup track. Pausing music on the startup screens is remembered; starting a race respects that choice. Master, gameplay effects and Tunes have separate synchronized volume controls.
 
-Founders Cup opens the first Freestyle course, Frontier opens the first Eliminator course and Horizon opens the first Interceptor encounter. A valid full Freestyle finish opens its next course; Eliminator and Interceptor require wins. Locked courses remain selectable previews with Start disabled. See the [mode lineup](docs/level-types-and-rewards.md#modes-and-course-chains) and [roadmap](ROADMAP.md) for human review and release work.
+Founders Cup opens the first Freestyle course, Frontier opens the first Eliminator course and Horizon opens the first Interceptor encounter. A valid full Freestyle finish opens its next course; Eliminator and Interceptor require wins. Locked courses remain selectable previews with Start disabled. See [mode rules](ARCHITECTURE.md#session-devices-and-replay) and the [roadmap](ROADMAP.md) for human review and release work.
 
 Collecting all 37 unlocks opens the original Oriel, Ravel and Nomad Procession racing courses, their Encore Cup and a cinematic starring the last-used racer. Course unlocks are computed from cup wins and earlier course finishes; no extra equipment claims are stored. The mode variants have separate identities, so earning 37 does not require those bonus racing courses. Browser `?dev=1` or `?dev=2` also exposes them for development. Original 28-item requirements stay unchanged; Encore has its own trophy and is not required for completion.
 
@@ -67,7 +67,7 @@ On touch screens, the left pad steers and pulling down airbrakes; the right cont
 `npm run package:demo` and `npm run package:full` create separate offline applications. The demo includes Kestrel, Halcyon, Nacre and a two-race Demo Cup; release builds exclude developer tools. See [desktop build commands](docs/steam/desktop.md) and the [Steam release plan](docs/steam/release.md) for platform scope, packaging and launch decisions.
 
 - [Roadmap](ROADMAP.md): open work, integration and deferred ideas.
-- [Event and reward design](docs/level-types-and-rewards.md): mechanics, sidegrades and unresolved choices.
+- [Level and reward ideas](docs/level-types-and-rewards.md): parked mode and sidegrade concepts.
 - [Startup and careers](docs/intro-and-profiles.md): UI, names, isolated saves and global settings.
 - [Architecture](ARCHITECTURE.md) and [level API](docs/LEVEL_API.md): current runtime contracts and ownership.
 - [Art direction](docs/ART_BIBLE.md), [latest art scores](docs/ART_SCORES.json) and [road finish workflow](docs/expansion/roads/README.md): visual constraints, latest map scores and current material references.

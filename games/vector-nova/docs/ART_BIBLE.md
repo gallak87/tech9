@@ -4,6 +4,8 @@ The authorized [Saffron → Nacre art-pass sequence](levels/art-passes.md) recor
 
 ## Shared principles
 
+Preserve Vector Nova's anti-gravity racing identity, colossal scale and approved driving feel when adding modes or spectacle.
+
 The whole world and the raceway must share an identity: surface, edge silhouette, underside/supports, ordinary connectors, foreground, middle distance, sky and light. A strong hero vista cannot compensate for unfinished stretches.
 
 Engage early and spread climbs, drops, banks, corkscrews and inversions through the lap, with readable recovery space. Do not stretch flat straights to meet a length target or cluster every dramatic feature in one short sequence.

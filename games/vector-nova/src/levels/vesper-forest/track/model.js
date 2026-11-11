@@ -434,7 +434,7 @@ export function createVesperTrack() {
     revision: VESPER_REVISION,
     geometryVersion: VESPER_REVISION,
     sourceScale: scale,
-    review: { kind: 'vesper-forest', phase: 'pilot' },
+    review: { kind: 'vesper-forest' },
     showcases: sections.map(({ id, name, showcase }) => ({
       id,
       name,

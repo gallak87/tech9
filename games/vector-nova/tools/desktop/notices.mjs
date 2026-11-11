@@ -7,6 +7,8 @@ import { fileURLToPath } from 'node:url';
 const WORLDKIT_NOTICES = [
   'NOTICE.md',
   'modules/living-forest/assets/provenance.json',
+  'modules/living-forest/art/sapling/README.md',
+  'modules/living-forest/art/ancient-oak/README.md',
   'modules/landscape/THREE-LICENSE.txt',
   'modules/landscape/assets/runtime/ASSETS.md',
   'modules/landscape/assets/runtime/textures/SOURCES.md',

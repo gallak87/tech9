@@ -332,7 +332,7 @@ test('full desktop staging preserves registered Worldkit provenance byte-for-byt
     await import('node:fs/promises');
   const { tmpdir } = await import('node:os');
   const { join } = await import('node:path');
-  const { fileURLToPath } = await import('node:url');
+  const { fileURLToPath, pathToFileURL } = await import('node:url');
   const { copyWorldkitNotices } = await import('./notices.mjs');
   const scratch = await mkdtemp(join(tmpdir(), 'vn-worldkit-notices-'));
   const appRoot = fileURLToPath(new URL('../..', import.meta.url));
@@ -371,6 +371,31 @@ test('full desktop staging preserves registered Worldkit provenance byte-for-byt
         'worldkit/modules/landscape/assets/runtime/textures/SOURCES.md',
       ),
     );
+    const guides = [
+      'modules/living-forest/art/sapling/README.md',
+      'modules/living-forest/art/ancient-oak/README.md',
+    ];
+    for (const guide of guides) {
+      assert.ok(staged.includes(`worldkit/${guide}`));
+      assert.deepEqual(
+        await readFile(join(full, 'worldkit', guide)),
+        await readFile(resolve(appRoot, '../../worldkit', guide)),
+      );
+    }
+    for (const record of ['NOTICE.md', ...guides]) {
+      const document = await readFile(join(full, 'worldkit', record), 'utf8');
+      for (const [, link] of document.matchAll(/\[[^\]]*\]\(([^)]+)\)/g)) {
+        if (/^https?:/.test(link) || link.startsWith('#')) continue;
+        const target = new URL(
+          link,
+          pathToFileURL(join(full, 'worldkit', record)),
+        );
+        assert.ok(
+          (await stat(target)).isFile(),
+          `Staged attribution link resolves: ${record} -> ${link}`,
+        );
+      }
+    }
     assert.ok(
       staged.every((path) => /\.(md|txt|json)$/.test(path)),
       'Only notices and source metadata, no copied runtime art',

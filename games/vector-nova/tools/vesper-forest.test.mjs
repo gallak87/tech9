@@ -33,7 +33,7 @@ const fingerprint = (value) =>
     )
     .digest('hex');
 
-test('Vesper Forest is independently discoverable without constructing a world', async () => {
+test('Vesper Forest occupies its canonical circuit slot without constructing a world', async () => {
   const entries = await readdir(new URL('../src/levels/', import.meta.url), {
     withFileTypes: true,
   });
@@ -49,6 +49,10 @@ test('Vesper Forest is independently discoverable without constructing a world',
   const catalog = createCatalog(metadata, loaders);
   const forest = catalog.list.find((entry) => entry.id === 'vesper-forest');
   assert.equal(forest.name, 'Vesper Forest');
+  assert.deepEqual(
+    catalog.list.slice(2, 5).map((entry) => entry.id),
+    ['nacre', 'vesper-forest', 'glasswake'],
+  );
   assert.equal(
     catalog.list.filter((entry) => entry.id === forest.id).length,
     1,

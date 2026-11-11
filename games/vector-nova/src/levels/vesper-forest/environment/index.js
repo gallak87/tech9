@@ -116,7 +116,7 @@ async function buildEnvironment(
   lifetime,
 ) {
   const group = new T.Group();
-  group.name = 'Vesper Forest / new Living Forest world';
+  group.name = 'Vesper Forest / Living Forest world';
   lifetime.defer(() => group.clear());
   const batches = (parts, placements, name, target) =>
     createBatches(parts, placements, name, target, lifetime);

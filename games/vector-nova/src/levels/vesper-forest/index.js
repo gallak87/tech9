@@ -10,7 +10,7 @@ import { withVesperSapEffects } from './sap-effects.js';
 
 export default function createLevel({ shape = false } = {}) {
   return {
-    version: '0.6.0-living-forest-1',
+    version: '0.7.0',
     playtests: {
       jump: {
         scenario: 'crown-fast',

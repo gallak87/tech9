@@ -125,10 +125,7 @@ export async function createSaffronEliminatorEnvironment({ track, road }) {
       sedimentMaterial: finish.bedrock,
     });
     const gallery = createOssuaryGalleryPlan(track, templates, dunes);
-    const passages = OSSUARY_PASSAGES.filter(
-      (passage) => passage.prototype !== 'cortical_web',
-    );
-    for (const passage of passages)
+    for (const passage of OSSUARY_PASSAGES)
       for (const part of templates.get(passage.prototype).parts) {
         const geometry = resources.geometry(
           createOssuaryPassageGeometry(
@@ -338,7 +335,7 @@ export async function createSaffronEliminatorEnvironment({ track, road }) {
       asset: 'assets/levels/saffron/leviathan-kit.glb',
       staticWorld: true,
       cranioThoracic: 'assets/levels/eliminator-saffron/cranio-thoracic.glb',
-      passages,
+      passages: OSSUARY_PASSAGES,
       sceneryCount: plan.placements.length,
       supports: forks.length / 3,
       clearHalfWidth: 54,

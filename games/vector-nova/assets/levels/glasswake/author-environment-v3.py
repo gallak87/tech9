@@ -108,5 +108,5 @@ for o in bpy.context.scene.objects:
  if o.type=='MESH':
   o.data.calc_loop_triangles();manifest['meshes'].append({'name':o.name,'vertices':len(o.data.vertices),'triangles':len(o.data.loop_triangles)})
 manifest['triangles']=sum(m['triangles'] for m in manifest['meshes']);manifest['bytes']=os.path.getsize(os.path.join(OUT,'glasswake-environment-v3.glb'))
-with open(os.path.join(ROOT,'asset-manifest-v3.json'),'w') as f:json.dump(manifest,f,indent=2)
+with open(os.path.join(OUT,'asset-manifest-v3.json'),'w') as f:json.dump(manifest,f,indent=2)
 print('GLASSWAKE_V3',manifest['triangles'],manifest['bytes'])

@@ -1,5 +1,5 @@
 {
-  "policy": "Project-owned geometry/materials, generated sky/material imagery and explicitly registered CC0 material scans; detailed sources, licences and prompts retained in per-asset provenance. No copied reference-game artwork.",
+  "policy": "Project-owned geometry/materials, generated sky/material imagery and explicitly registered CC0 material scans; sources, licences and prompts retained in per-asset provenance. Track current exports and their required sources; remove superseded iterations. No copied reference-game artwork.",
   "assets": [
     {
       "id": "interceptor-bulwark-sfx",
@@ -392,49 +392,10 @@
       ]
     },
     {
-      "id": "reward-icons-v1",
-      "source": "assets/rewards/icons-v1/source/",
-      "creator": "Built-in imagegen tool, prompted by VECTOR//NOVA project",
-      "provenance": "28 original transparent reward icons: six stat families in green/blue/purple tiers, six equipment items, three epic hull unlocks and gold Quad Core. One generation per icon; exact prompts, original outputs and SHA-256 hashes retained. Runtime PNGs mechanically resized to 128px with alpha.",
-      "rights": "Generated for this project; no third-party reference artwork supplied",
-      "runtimeDependencies": [],
-      "provenanceRecord": "assets/rewards/icons-v1/provenance.json",
-      "runtimeAssets": [
-        "public/assets/rewards/icons-v1/speed-1.png",
-        "public/assets/rewards/icons-v1/speed-2.png",
-        "public/assets/rewards/icons-v1/speed-3.png",
-        "public/assets/rewards/icons-v1/acceleration-1.png",
-        "public/assets/rewards/icons-v1/acceleration-2.png",
-        "public/assets/rewards/icons-v1/acceleration-3.png",
-        "public/assets/rewards/icons-v1/handling-1.png",
-        "public/assets/rewards/icons-v1/handling-2.png",
-        "public/assets/rewards/icons-v1/handling-3.png",
-        "public/assets/rewards/icons-v1/braking-1.png",
-        "public/assets/rewards/icons-v1/braking-2.png",
-        "public/assets/rewards/icons-v1/braking-3.png",
-        "public/assets/rewards/icons-v1/boost-1.png",
-        "public/assets/rewards/icons-v1/boost-2.png",
-        "public/assets/rewards/icons-v1/boost-3.png",
-        "public/assets/rewards/icons-v1/toughness-1.png",
-        "public/assets/rewards/icons-v1/toughness-2.png",
-        "public/assets/rewards/icons-v1/toughness-3.png",
-        "public/assets/rewards/icons-v1/equipment-jump.png",
-        "public/assets/rewards/icons-v1/equipment-injector.png",
-        "public/assets/rewards/icons-v1/equipment-slipstream.png",
-        "public/assets/rewards/icons-v1/equipment-deflector.png",
-        "public/assets/rewards/icons-v1/equipment-stabilizer.png",
-        "public/assets/rewards/icons-v1/equipment-lance.png",
-        "public/assets/rewards/icons-v1/ship-bastion.png",
-        "public/assets/rewards/icons-v1/ship-needle.png",
-        "public/assets/rewards/icons-v1/ship-kestrel.png",
-        "public/assets/rewards/icons-v1/exotic-slot.png"
-      ]
-    },
-    {
       "id": "reward-icons-v2",
       "source": "assets/rewards/icons-v2/",
       "creator": "Built-in imagegen tool, prompted by VECTOR//NOVA project",
-      "provenance": "Current 28-icon reward set. Revised all 18 stat tiers plus Jump and Lance into plausible mounted ship modules; reused the remaining eight v1 icons. Exact edit prompts, project-owned image references, original PNGs and hashes retained. v1 is retained as source history; runtime uses v2 only.",
+      "provenance": "Current 28-icon reward set with self-contained original source PNGs, exact generation/edit prompts and source/runtime hashes. Stat tiers, equipment, hull unlocks and Quad Core share the same transparent artwork across progression views. Runtime PNGs are mechanically resized to 128px with alpha.",
       "rights": "Generated for this project using its own generated reward art as references. No third-party artwork supplied.",
       "runtimeDependencies": [],
       "provenanceRecord": "assets/rewards/icons-v2/provenance.json",
@@ -1200,7 +1161,7 @@
       "id": "saffron-ossuary-course",
       "source": "src/levels/eliminator-saffron/ and src/events/eliminator-course.js",
       "creator": "VECTOR//NOVA project contributors",
-      "provenance": "Original supported Eliminator route through fossil passages and a continuous dune mantle. Canonical skull, rib, scapula, vertebra and outcrop prototypes form connected cortical galleries, buried sediment beds and an unequal return fan with full-perimeter foundations. A separately registered original cranio-thoracic extension joins the actual far cheeks to a connected, daylit buried shoulder; the earlier cortical web is retained only as an authoring reference. Private cast-amber road finish, below-skin glass shoulders, pale cortex and warm marrow reuse the existing weathering/mineral volume and source highlight treatment. Borrows the existing Saffron panorama and Shatterline limestone image; original jump, moving sandfall and creature owners are not constructed. No new downloaded models or generated imagery.",
+      "provenance": "Original supported Eliminator route through fossil passages and a continuous dune mantle. Canonical skull, rib, scapula, vertebra and outcrop prototypes form connected cortical galleries, buried sediment beds and an unequal return fan with full-perimeter foundations. A separately registered original cranio-thoracic extension joins the actual far cheeks to a connected, daylit buried shoulder. Private cast-amber road finish, below-skin glass shoulders, pale cortex and warm marrow reuse the existing weathering/mineral volume and source highlight treatment. Borrows the existing Saffron panorama and Shatterline limestone image; original jump, moving sandfall and creature owners are not constructed. No new downloaded models or generated imagery.",
       "rights": "Project-authored route, terrain and placement; registered project-authored/generated Saffron and Shatterline sources retain their original rights.",
       "runtimeDependencies": ["three", "@dimforge/rapier3d-compat"],
       "borrowedAssets": [
@@ -1212,28 +1173,7 @@
       "provenanceRecords": [
         "assets/levels/saffron/PROVENANCE.md",
         "assets/levels/shatterline/rock-provenance-v1.json",
-        "assets/levels/eliminator-saffron/cortical-web-manifest.json",
         "assets/levels/eliminator-saffron/cranio-thoracic/manifest.json"
-      ]
-    },
-    {
-      "id": "saffron-ossuary-cortical-web",
-      "source": "assets/levels/eliminator-saffron/build_cortical_web.py and cortical-web.blend",
-      "creator": "VECTOR//NOVA project contributors using Blender",
-      "provenance": "Retained authoring reference, superseded in the live course by the connected cranio-thoracic landscape. Original closed branching cortical web, authored against the registered fossil-landscape concept and exact prompt using the project-owned cortical modeling language as a read-only technique reference. A fused unequal Y joins three surveyed cheek/roof triangles in the canonical skull, creating secondary upper apertures while preserving the road/camera envelope and bright exit. Broad tapered plates, real thickness and material cavity colouring use the canonical pale-fossil/chalk/marrow roles. The local manifest records source, Blend, export, reference and technique hashes, actual bounds, manifold/normal checks and attachment coordinates. No third-party mesh inputs, textures, new imagery or driving geometry.",
-      "rights": "Project-authored Blender geometry and cavity colouring; registered project-owned Saffron scalar material recipes, authoring techniques and generated reference retain their original provenance.",
-      "runtimeDependencies": ["three"],
-      "provenanceRecord": "assets/levels/eliminator-saffron/cortical-web-manifest.json",
-      "provenanceRecords": [
-        "assets/levels/eliminator-saffron/README.md",
-        "assets/levels/saffron/PROVENANCE.md"
-      ],
-      "sourceAssets": [
-        "assets/levels/eliminator-saffron/build_cortical_web.py",
-        "assets/levels/eliminator-saffron/cortical-web.blend"
-      ],
-      "runtimeAssets": [
-        "public/assets/levels/eliminator-saffron/cortical-web.glb"
       ]
     },
     {

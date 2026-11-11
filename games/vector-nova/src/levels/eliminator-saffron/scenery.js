@@ -101,7 +101,6 @@ export const OSSUARY_PASSAGES = [
   { prototype: 'rib', fraction: 0.135, scale: 1.16 },
   { prototype: 'rib_2', fraction: 0.19, scale: 1.25 },
   { prototype: 'skull', fraction: 0.245, scale: 1.2 },
-  { prototype: 'cortical_web', fraction: 0.245, scale: 1.2 },
   { prototype: 'vertebra_1', fraction: 0.44, scale: 1.2 },
   { prototype: 'vertebra', fraction: 0.585, scale: 1.16 },
   { prototype: 'vertebra_2', fraction: 0.64, scale: 1.3 },

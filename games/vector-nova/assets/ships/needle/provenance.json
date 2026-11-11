@@ -6,8 +6,7 @@
     "tool": "OpenAI built-in imagegen",
     "prompt": "assets/ships/needle/revision-03-prompt.txt",
     "sha256": "64db6f1aeadf652b378ba4a88c1c99584780b4dafa7305cead7bc6ba21569e29",
-    "sourceKind": "Original generated design reference",
-    "previousConceptInGitHistory": "concept-02.png"
+    "sourceKind": "Original generated design reference"
   },
   "model": {
     "source": "assets/ships/needle/needle.blend",
@@ -16,7 +15,7 @@
     "authorship": "Original project geometry authored from the generated concept, using shared original construction helpers. No downloaded models, external textures or fonts.",
     "materials": "Original authored metre-space ceramic, graphite and directional metal graphs with sparse contact scuffs, 6.5 cm cavity dirt and aft-localized heat tint; Blender-baked color, roughness, tangent normals and cavity occlusion. Main ceramic maps are 2048px, secondary maps 512px. Color is sRGB; data maps are linear. Original baked PNGs and editable source graphs are retained.",
     "textureSources": "assets/ships/needle/textures/",
-    "userDirection": "One large central engine, then broaden the actual hull and shoulders; concept 03 supersedes the earlier overly narrow body.",
+    "userDirection": "Broad-shouldered angular hull with one large central engine.",
     "approval": {
       "status": "approved for integration",
       "date": "2026-10-01",

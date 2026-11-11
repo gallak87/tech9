@@ -93,22 +93,17 @@ test('Ossuary dunes stay below both banked road edges and prop foundations are a
 
 test('Actual fitted fossil passage triangles preserve the complete racing/camera envelope', async () => {
   const scenes = await Promise.all(
-    ['saffron/leviathan-kit.glb', 'eliminator-saffron/cortical-web.glb'].map(
-      async (file) => {
-        const data = await fs.readFile(
-          new URL(`../../../public/assets/levels/${file}`, import.meta.url),
-        );
-        return (
-          await new GLTFLoader().parseAsync(
-            data.buffer.slice(
-              data.byteOffset,
-              data.byteOffset + data.byteLength,
-            ),
-            '',
-          )
-        ).scene;
-      },
-    ),
+    ['saffron/leviathan-kit.glb'].map(async (file) => {
+      const data = await fs.readFile(
+        new URL(`../../../public/assets/levels/${file}`, import.meta.url),
+      );
+      return (
+        await new GLTFLoader().parseAsync(
+          data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength),
+          '',
+        )
+      ).scene;
+    }),
   );
   const track = createSaffronEliminatorTrack(),
     owned = new Set(),

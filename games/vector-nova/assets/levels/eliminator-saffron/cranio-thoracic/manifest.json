@@ -46,10 +46,6 @@
         "sha256": "3ed6cbcb753df383837c446e9985e937ad4c2888b8bf2ea03c376d7734d38b7c"
       },
       {
-        "file": "public/assets/levels/eliminator-saffron/cortical-web.glb",
-        "sha256": "a34fa28644a058815137d460a4c56bb63c5324b3edbf2abce2d1bf90eadfba01"
-      },
-      {
         "file": "assets/levels/eliminator-saffron/authoring-views.json",
         "sha256": "16178b79785dc2bc43c91bc2768a5d2c3eebcb779331b840c769750ae0939ff6"
       },

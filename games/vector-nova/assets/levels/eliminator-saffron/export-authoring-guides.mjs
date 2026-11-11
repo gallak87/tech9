@@ -35,7 +35,6 @@ const sources = [
   'src/levels/eliminator-saffron/scenery.js',
   'src/levels/eliminator-saffron/gallery.js',
   'public/assets/levels/saffron/leviathan-kit.glb',
-  'public/assets/levels/eliminator-saffron/cortical-web.glb',
   'assets/levels/eliminator-saffron/authoring-views.json',
   'assets/levels/saffron/scene-reference.png',
   'assets/levels/saffron/PROVENANCE.md',
@@ -74,10 +73,6 @@ try {
   const fossils = [];
   for (const [file, name] of [
     ['public/assets/levels/saffron/leviathan-kit.glb', 'skull'],
-    [
-      'public/assets/levels/eliminator-saffron/cortical-web.glb',
-      'cortical_web',
-    ],
   ]) {
     const bytes = await readFile(resolve(root, file));
     const { scene } = await new GLTFLoader().parseAsync(
@@ -176,7 +171,7 @@ try {
   }
   for (const passage of OSSUARY_PASSAGES) {
     if (
-      ['skull', 'cortical_web'].includes(passage.prototype) ||
+      passage.prototype === 'skull' ||
       passage.fraction < 0.22 ||
       passage.fraction > 0.46
     )
@@ -267,7 +262,7 @@ try {
   await writeFile(temporary, JSON.stringify(guide));
   await rename(temporary, path);
   console.log(
-    `Wrote ${relative(root, path)}: ${frames.length} native road frames, ${fossils.length} fitted skull/web parts, ${roadMeshes.length} real running meshes and exact dune triangles.`,
+    `Wrote ${relative(root, path)}: ${frames.length} native road frames, ${fossils.length} fitted skull parts, ${roadMeshes.length} real running meshes and exact dune triangles.`,
   );
 } finally {
   road.dispose();

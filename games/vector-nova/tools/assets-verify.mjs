@@ -52,7 +52,7 @@ for (const file of runtime) {
   const path = relative(root, file);
   assert.match(
     path,
-    /^public\/assets\/(levels\/[a-z][a-z0-9-]*\/|ships\/(?:rivals\/)?[a-z][a-z0-9-]*\/|rewards\/icons-v[12]\/|menu\/|completion\/shatterline-v1\/)/,
+    /^public\/assets\/(levels\/[a-z][a-z0-9-]*\/|ships\/(?:rivals\/)?[a-z][a-z0-9-]*\/|rewards\/icons-v2\/|menu\/|completion\/shatterline-v1\/)/,
     `canonical ownership: ${path}`,
   );
   assert.ok(listed.has(path), `unindexed or obsolete runtime export: ${path}`);

@@ -1,7 +1,5 @@
 # Art direction
 
-Latest level art critic scores, out of 10, live in [ART_SCORES.json](ART_SCORES.json) as a plain mapping of level ID to number. Replace the previous score after each completed pass; keep detailed findings in chat or ignored `.experiments/`.
-
 The authorized [Saffron → Nacre art-pass sequence](levels/art-passes.md) records the current finite assignment and its stopping rules.
 
 ## Shared principles

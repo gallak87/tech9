@@ -6,7 +6,7 @@ import {
   FREESTYLE_SAMPLES,
 } from './audio.js';
 
-const durations = { good: 0.35, great: 0.45, perfect: 0.65, trick: 0.1 };
+const durations = { good: 0.16, great: 0.19, perfect: 0.23, trick: 0.06 };
 const sampleIds = Object.keys(FREESTYLE_SAMPLES);
 function rig({ missing = new Set() } = {}) {
   const requests = [],
@@ -153,7 +153,7 @@ test('only accepted banks play their distinct grade recording, separate from tou
   audio.dispose();
 });
 
-test('chain pitch rises subtly within a bound while gain and the authored grade remain unchanged', async () => {
+test('chains preserve the recorded pitch, gain and authored grade', async () => {
   const { audio, context } = rig();
   await audio.prepare();
   const rates = [];
@@ -171,12 +171,26 @@ test('chain pitch rises subtly within a bound while gain and the authored grade 
     assert.equal(source.stops[0], context.currentTime + audio.duration(event));
     source.onended();
   }
-  assert.equal(rates[0], 1);
-  assert.ok(rates[1] > rates[0] && rates[4] > rates[3]);
-  assert.ok(rates.every((rate) => rate >= 1 && rate < 1.09));
-  assert.equal(rates[5], rates[4]);
-  assert.equal(rates[6], 1);
-  assert.equal(rates[7], 1);
+  assert.deepEqual(rates, Array(8).fill(1));
+  audio.dispose();
+});
+
+test('every completed trick uses the same quiet source at its recorded pitch', async () => {
+  const { audio, context } = rig();
+  await audio.prepare();
+  let buffer;
+  for (const [index, kind] of ['roll', 'flip', 'spin', 'corkscrew'].entries()) {
+    const event = trick(index + 1, kind);
+    assert.equal(audio.trigger(event), true);
+    const source = sources(context).at(-1);
+    buffer ??= source.buffer;
+    assert.equal(source.buffer, buffer);
+    assert.equal(source.playbackRate.value, 1);
+    assert.equal(source.target.gain.value, FREESTYLE_AUDIO_RULES.gains.trick);
+    assert.equal(audio.duration(event), durations.trick);
+    assert.equal(source.stops[0], context.currentTime + durations.trick);
+    source.onended();
+  }
   audio.dispose();
 });
 
@@ -194,7 +208,8 @@ test('banks win over completed-trick ticks; rejected or over-budget cues are nev
     ticks[1].buffer,
     'trick kinds share the restrained source',
   );
-  assert.ok(ticks[1].playbackRate.value > ticks[0].playbackRate.value);
+  assert.equal(ticks[0].playbackRate.value, 1);
+  assert.equal(ticks[1].playbackRate.value, 1);
   assert.equal(audio.trigger(bank()), true);
   assert.ok(ticks.every((node) => node.disconnected));
   assert.equal(audio.getPresentation().activeVoices, 1);

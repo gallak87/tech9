@@ -6,7 +6,7 @@ export const LANDING_SAMPLE_URL = new URL(
 ).href;
 
 export const LANDING_AUDIO_RULES = Object.freeze({
-  gain: 0.72,
+  gain: 0.5,
   maxVoices: 2,
   rememberedContacts: 128,
 });

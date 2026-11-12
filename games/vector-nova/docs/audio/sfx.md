@@ -72,10 +72,14 @@ Runtime code is MIT. The model weights use the [Stability AI Community License](
 
 ## Landing and Freestyle set
 
-The road catch and Good/Great/Perfect bank phrases are separate actions: tactile magnetic support first, then a brighter scoring resolution. Completed tricks use a small tick; score counting stays silent. Current configs and WAVs are `landing-catch`, `freestyle-bank-good`, `freestyle-bank-great`, `freestyle-bank-perfect` and `freestyle-trick` under `assets/audio/sfx/`. Generate each source sequentially using its JSON and `--output .experiments/<cue>-source.wav`, then master the complete set:
+The current family uses a muted low thump and a clean dry latch click. Good, Great and Perfect differ only in body/click balance and decay; there are no musical reward phrases, chain pitch rises or trick pitch shifts. The completed-trick cue is a quiet click. Current configs and WAVs remain under `assets/audio/sfx/`.
+
+The four thump configs intentionally share one prompt/seed. Generate the two shared sources sequentially, then master all five cues:
 
 ```sh
+npm run sfx:generate -- --config assets/audio/sfx/landing-catch.json --output .experiments/landing-thump-source.wav
+npm run sfx:generate -- --config assets/audio/sfx/freestyle-trick.json --output .experiments/landing-click-source.wav
 python3 assets/audio/sfx/landing-feedback-master.py --sources .experiments
 ```
 
-The script records source/master hashes and exact trims, pitch-preserving phrase fitting, filtering, compression and silent fades in `landing-feedback-provenance.json`. Durations are 0.42 s for touchdown, 0.35/0.45/0.65 s for the grades and 0.10 s for a trick. The set is integrated for user audition; musical and gameplay mix approval remains with the owner. Use Sounds for isolated clips, or Ship inspector → Powerups, equipment & contact → Landing & Freestyle for the descent, shared ship seating and magnetic VFX, with optional engine sound.
+The script records both source hashes, each cue’s stem balance, filters, trims and silent fades in `landing-feedback-provenance.json`. It makes no pitch or tempo changes. Durations are 0.24 s for touchdown, 0.16/0.19/0.23 s for the grades and 0.06 s for a trick. This quieter set is integrated for user audition. Sounds and Ship inspector → Powerups, equipment & contact → Landing & Freestyle use the same recordings and levels as gameplay.

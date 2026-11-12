@@ -1,4 +1,5 @@
 import { freestyleLandingGrade } from './arcade.js';
+import { TRICKS } from './rules.js';
 import { createSampleBank } from '../audio/sample-bank.js';
 
 export const FREESTYLE_SAMPLES = Object.freeze({
@@ -20,24 +21,14 @@ export const FREESTYLE_SAMPLES = Object.freeze({
 
 export const FREESTYLE_AUDIO_RULES = Object.freeze({
   maxVoices: 2,
-  gains: Object.freeze({ good: 0.42, great: 0.49, perfect: 0.56, trick: 0.18 }),
+  gains: Object.freeze({ good: 0.28, great: 0.3, perfect: 0.32, trick: 0.1 }),
   durations: Object.freeze({
-    good: 0.35,
-    great: 0.45,
-    perfect: 0.65,
-    trick: 0.1,
+    good: 0.16,
+    great: 0.19,
+    perfect: 0.23,
+    trick: 0.06,
   }),
-  chainSemitones: 0.35,
-  maxChainSteps: 4,
 });
-
-const trickSemitones = Object.freeze({
-  roll: 0,
-  flip: 0.5,
-  spin: 0.25,
-  corkscrew: 0.75,
-});
-const rate = (semitones) => 2 ** (semitones / 12);
 
 function cueFor(event) {
   const payload = event?.payload ?? {};
@@ -46,25 +37,19 @@ function cueFor(event) {
     const grade = freestyleLandingGrade(payload);
     if (grade === 'miss' || !Number.isFinite(payload.at) || payload.at < 0)
       return null;
-    const steps = Number.isFinite(payload.chain)
-      ? Math.max(
-          0,
-          Math.min(FREESTYLE_AUDIO_RULES.maxChainSteps, payload.chain - 1),
-        )
-      : 0;
     return {
       sample: grade,
       cue: grade,
       grade,
       key: JSON.stringify(['bank', payload.id, payload.at]),
       gain: FREESTYLE_AUDIO_RULES.gains[grade],
-      playbackRate: rate(steps * FREESTYLE_AUDIO_RULES.chainSemitones),
+      playbackRate: 1,
     };
   }
   if (
     event?.type !== 'freestyle-trick' ||
     typeof payload.kind !== 'string' ||
-    !Object.hasOwn(trickSemitones, payload.kind) ||
+    !Object.hasOwn(TRICKS, payload.kind) ||
     !Number.isInteger(payload.ordinal) ||
     payload.ordinal < 1
   )
@@ -75,7 +60,7 @@ function cueFor(event) {
     grade: null,
     key: JSON.stringify(['trick', payload.id, payload.ordinal]),
     gain: FREESTYLE_AUDIO_RULES.gains.trick,
-    playbackRate: rate(trickSemitones[payload.kind]),
+    playbackRate: 1,
   };
 }
 
@@ -121,8 +106,8 @@ export function createFreestyleAudio(
       const buffer = bank.get(cue.sample);
       if (!buffer) return false;
       if (cue.grade) {
-        // The bank phrase wins over the last airborne trick tick. The common
-        // touchdown sound has its own voice and is not restarted here.
+        // The bank confirmation wins over the last airborne trick tick.
+        // Common touchdown has its own voice and is not restarted here.
         for (const voice of [...voices]) if (voice.trick) voice.stop();
       } else if ([...voices].some((voice) => !voice.trick)) return false;
       if (voices.size >= FREESTYLE_AUDIO_RULES.maxVoices) return false;

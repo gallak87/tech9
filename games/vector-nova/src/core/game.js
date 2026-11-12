@@ -449,7 +449,9 @@ export async function createGame({
         freestylePractice &&
         !freestylePractice.outcome &&
         e.payload?.id === freestylePractice.id &&
-        ['freestyle-bank', 'jump-miss'].includes(e.type)
+        // A provisional miss can regain real support and earn Good. Practice
+        // pauses only after the same final bank verdict as a full run.
+        e.type === 'freestyle-bank'
       )
         freestylePractice.outcome = freestylePracticeOutcome(e);
       try {

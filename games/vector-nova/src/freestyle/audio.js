@@ -15,17 +15,28 @@ export const FREESTYLE_SAMPLES = Object.freeze({
     '../../assets/audio/sfx/freestyle-bank-perfect.wav',
     import.meta.url,
   ).href,
+  miss: new URL(
+    '../../assets/audio/sfx/freestyle-bank-miss.wav',
+    import.meta.url,
+  ).href,
   trick: new URL('../../assets/audio/sfx/freestyle-trick.wav', import.meta.url)
     .href,
 });
 
 export const FREESTYLE_AUDIO_RULES = Object.freeze({
   maxVoices: 2,
-  gains: Object.freeze({ good: 0.28, great: 0.3, perfect: 0.32, trick: 0.1 }),
+  gains: Object.freeze({
+    good: 0.28,
+    great: 0.3,
+    perfect: 0.32,
+    miss: 0.26,
+    trick: 0.1,
+  }),
   durations: Object.freeze({
-    good: 0.16,
-    great: 0.19,
-    perfect: 0.23,
+    good: 0.26,
+    great: 0.3,
+    perfect: 0.36,
+    miss: 0.32,
     trick: 0.06,
   }),
 });
@@ -34,9 +45,13 @@ function cueFor(event) {
   const payload = event?.payload ?? {};
   if (typeof payload.id !== 'string' || !payload.id) return null;
   if (event?.type === 'freestyle-bank') {
-    const grade = freestyleLandingGrade(payload);
-    if (grade === 'miss' || !Number.isFinite(payload.at) || payload.at < 0)
+    if (
+      typeof payload.landed !== 'boolean' ||
+      !Number.isFinite(payload.at) ||
+      payload.at < 0
+    )
       return null;
+    const grade = freestyleLandingGrade(payload);
     return {
       sample: grade,
       cue: grade,
@@ -64,8 +79,8 @@ function cueFor(event) {
   };
 }
 
-// The physical landing is a separate, immediate cue. This owner only celebrates
-// confirmed banks and completed tricks; it never sounds the continuously rising
+// The physical landing is a separate, immediate cue. This owner confirms banks,
+// misses and completed tricks; it never sounds the continuously rising
 // score. Recorded sources are prepared at unlock, with no synthetic fallback.
 export function createFreestyleAudio(
   context,
@@ -106,7 +121,7 @@ export function createFreestyleAudio(
       const buffer = bank.get(cue.sample);
       if (!buffer) return false;
       if (cue.grade) {
-        // The bank confirmation wins over the last airborne trick tick.
+        // Confirmed banks and misses win over the last airborne trick tick.
         // Common touchdown has its own voice and is not restarted here.
         for (const voice of [...voices]) if (voice.trick) voice.stop();
       } else if ([...voices].some((voice) => !voice.trick)) return false;

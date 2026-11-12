@@ -68,7 +68,10 @@ export function createLandingPreview({
         environment: createGradedAudio,
       });
       if (!(await audio.unlock())) throw new Error('Audio unavailable');
-      if (audio.getStatus().landing?.loaded === false)
+      if (
+        kind !== 'freestyle-miss' &&
+        audio.getStatus().landing?.loaded === false
+      )
         throw new Error('Sample unavailable: landing-catch');
       if (
         kind.startsWith('freestyle-') &&
@@ -93,7 +96,10 @@ export function createLandingPreview({
         settings,
         motion: { freestyle: demo.freestyle },
       };
-      if (kind.startsWith('freestyle-')) {
+      if (kind === 'freestyle-miss') {
+        common?.reset();
+        graded?.reset();
+      } else if (kind.startsWith('freestyle-')) {
         common?.reset();
         graded?.update(renderFrame);
       } else {
@@ -123,7 +129,14 @@ export function createLandingPreview({
         grade: demo?.grade ?? null,
         airborne: demo?.airborne ?? false,
         contactAt: demo?.landing.contact?.at ?? null,
-        bankAt: demo?.freestyle.legs.at(-1)?.at ?? null,
+        bankAt:
+          demo?.freestyle.legs.at(-1)?.landed === true
+            ? demo.freestyle.legs.at(-1).at
+            : null,
+        failureAt:
+          demo?.freestyle.legs.at(-1)?.landed === false
+            ? demo.freestyle.legs.at(-1).at
+            : null,
         vfx: demo?.kind.startsWith('freestyle-')
           ? (graded?.getPresentation() ?? null)
           : (common?.getPresentation() ?? null),

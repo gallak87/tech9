@@ -6,7 +6,13 @@ import {
   FREESTYLE_SAMPLES,
 } from './audio.js';
 
-const durations = { good: 0.16, great: 0.19, perfect: 0.23, trick: 0.06 };
+const durations = {
+  good: 0.26,
+  great: 0.3,
+  perfect: 0.36,
+  miss: 0.32,
+  trick: 0.06,
+};
 const sampleIds = Object.keys(FREESTYLE_SAMPLES);
 function rig({ missing = new Set() } = {}) {
   const requests = [],
@@ -79,8 +85,8 @@ const bank = (id = 'transfer-1', quality = 'great', chain = 1) => ({
   payload: {
     id,
     at: 10,
-    landed: true,
-    clean: quality !== 'good',
+    landed: quality !== 'miss',
+    clean: quality === 'great' || quality === 'perfect',
     perfect: quality === 'perfect',
     chain,
   },
@@ -102,7 +108,7 @@ test('recorded reward sources prepare once and never replay an event missed duri
     true,
     true,
   ]);
-  assert.equal(requests.length, 4);
+  assert.equal(requests.length, 5);
   assert.deepEqual(decoded, sampleIds);
   assert.equal(audio.getPresentation().loaded, true);
   assert.deepEqual(audio.getPresentation().loadedSamples, sampleIds);
@@ -115,11 +121,11 @@ test('recorded reward sources prepare once and never replay an event missed duri
   );
   assert.equal(sources(context).length, 0);
   await audio.prepare();
-  assert.equal(requests.length, 4);
+  assert.equal(requests.length, 5);
   audio.dispose();
 });
 
-test('only accepted banks play their distinct grade recording, separate from touchdown and point counting', async () => {
+test('only confirmed banks and misses play their grade recording, separate from touchdown and point counting', async () => {
   const { audio, context } = rig();
   await audio.prepare();
   for (const event of [
@@ -128,13 +134,13 @@ test('only accepted banks play their distinct grade recording, separate from tou
     { type: 'freestyle-score', payload: { id: 'jump-1', points: 500 } },
     {
       type: 'freestyle-bank',
-      payload: { id: 'jump-1', at: 10, landed: false, perfect: true },
+      payload: { id: 'jump-1', at: 10, landed: 'false', perfect: true },
     },
     { type: 'freestyle-bank', payload: { landed: true } },
     { ...bank(), payload: { ...bank().payload, at: NaN } },
   ])
     assert.equal(audio.trigger(event), false);
-  for (const [index, grade] of ['good', 'great', 'perfect'].entries()) {
+  for (const [index, grade] of ['good', 'great', 'perfect', 'miss'].entries()) {
     const event = bank(`transfer-${index + 1}`, grade);
     assert.equal(audio.trigger(event), true);
     assert.equal(audio.trigger(event), false);
@@ -172,6 +178,62 @@ test('chains preserve the recorded pitch, gain and authored grade', async () => 
     source.onended();
   }
   assert.deepEqual(rates, Array(8).fill(1));
+  audio.dispose();
+});
+
+test('confirmed misses sound once after failure; airborne misses, pending recovery and transfers stay silent', async () => {
+  const { audio, context } = rig();
+  await audio.prepare();
+  assert.equal(audio.trigger(trick()), true);
+  const tick = sources(context).at(-1);
+  for (const event of [
+    { type: 'jump-miss', payload: { id: 'transfer-1', at: 10 } },
+    {
+      type: 'jump-transfer',
+      payload: { id: 'transfer-1', at: 10, outcome: 'missed' },
+    },
+    { type: 'road-recovery', payload: { id: 'transfer-1', at: 10 } },
+    { type: 'freestyle-score', payload: { id: 'transfer-1', points: 0 } },
+  ])
+    assert.equal(audio.trigger(event), false);
+  assert.equal(audio.getPresentation().lastGrade, null);
+  assert.equal(
+    sources(context).length,
+    1,
+    'no failure cue while recovery is pending',
+  );
+  const event = bank('transfer-1', 'miss', 0);
+  event.payload.bank = 0;
+  assert.equal(audio.trigger(event), true);
+  assert.equal(
+    tick.disconnected,
+    true,
+    'confirmed failure takes priority over trick ticks',
+  );
+  const source = sources(context).at(-1);
+  assert.equal(source.buffer.cue, 'miss');
+  assert.equal(source.playbackRate.value, 1);
+  assert.equal(source.target.gain.value, FREESTYLE_AUDIO_RULES.gains.miss);
+  assert.equal(audio.getPresentation().lastGrade, 'miss');
+  assert.ok(Math.abs(audio.remainingSeconds() - durations.miss) < 1e-12);
+  assert.equal(audio.duration(event), durations.miss);
+  assert.equal(audio.trigger(event), false);
+  assert.equal(
+    audio.trigger({ type: 'jump-miss', payload: event.payload }),
+    false,
+  );
+  assert.equal(
+    sources(context).length,
+    2,
+    'repeated failure delivery cannot double the cue',
+  );
+  source.onended();
+  assert.equal(
+    audio.trigger(event),
+    false,
+    'an already confirmed miss cannot arrive late',
+  );
+  assert.equal(audio.remainingSeconds(), 0);
   audio.dispose();
 });
 

@@ -5,7 +5,7 @@
       "id": "landing-freestyle-sfx",
       "source": "assets/audio/sfx/",
       "creator": "VECTOR//NOVA project contributors with Stable Audio 3 Small-SFX",
-      "provenance": "Five restrained physical cues derived from two locally generated Small-SFX sources: a muted low thump and a clean dry latch click. The four thump configs share one prompt/seed; Good/Great/Perfect differences come from modest stem balance, filtering and decay, not melodies, chords, flourishes or pitch/tempo changes. The completed-trick cue uses only the quieter click. Sources were generated sequentially using the pinned official MLX runtime without reference audio. The current script and provenance retain source/config/master hashes, trims, filters, stem weights and silent fades. Gameplay, Sounds and Ship inspector share the same lower levels and fixed-pitch WAVs. Reworked following user feedback; human listening approval remains pending.",
+      "provenance": "Five new independent local Small-SFX generations replace the rejected set: a crisp physical landing thump, a dim steady Good tone, a brighter Great tone, a fuller Perfect tone and a flat Miss tone with a subdued downward ending. The approved trick click, its config, master bytes, provenance and playback level are retained unchanged. Generated sequentially through the pinned official MLX runtime without reference conditioning. Current mastering trims actual attacks, filters, balances levels and applies silent fades without pitch or tempo changes. The landing borrows only a quiet accent from the approved click. Gameplay, Sounds and Ship inspector share current masters. Only final failed-bank verdicts sound Miss; recoverable provisional misses stay quiet. Exact prompt/source/master hashes and processing are retained. New cues are integrated for user listening review.",
       "rights": "AI-generated output. Runtime code is MIT; model weights use the Stability AI Community License and the T5Gemma encoder carries Gemma terms. See docs/audio/sfx.md.",
       "runtimeDependencies": [],
       "provenanceRecord": "assets/audio/sfx/landing-feedback-provenance.json",
@@ -14,6 +14,7 @@
         "assets/audio/sfx/freestyle-bank-good.json",
         "assets/audio/sfx/freestyle-bank-great.json",
         "assets/audio/sfx/freestyle-bank-perfect.json",
+        "assets/audio/sfx/freestyle-bank-miss.json",
         "assets/audio/sfx/freestyle-trick.json"
       ],
       "sourceAssets": [
@@ -25,6 +26,7 @@
         "assets/audio/sfx/freestyle-bank-good.wav",
         "assets/audio/sfx/freestyle-bank-great.wav",
         "assets/audio/sfx/freestyle-bank-perfect.wav",
+        "assets/audio/sfx/freestyle-bank-miss.wav",
         "assets/audio/sfx/freestyle-trick.wav"
       ]
     },

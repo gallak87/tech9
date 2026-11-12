@@ -190,3 +190,19 @@ test('a missing graded reward reports the missing recording and never substitute
   assert.equal(h.statuses.at(-1), 'Sample unavailable: freestyle-bank-great');
   h.preview.dispose();
 });
+
+test('the isolated Miss uses the failed-bank cue without claiming a landing or sounding touchdown', async () => {
+  const h = harness();
+  await h.preview.play('freestyle-bank-miss');
+  const driver = h.drivers[0];
+  assert.equal(typeof driver.options.environment, 'function');
+  assert.deepEqual(
+    driver.events.map(({ type }) => type),
+    ['freestyle-bank'],
+  );
+  assert.equal(driver.events[0].payload.landed, false);
+  assert.equal(driver.events[0].payload.clean, false);
+  assert.equal(driver.events[0].payload.perfect, false);
+  assert.equal(driver.events[0].payload.chain, 0);
+  h.preview.dispose();
+});

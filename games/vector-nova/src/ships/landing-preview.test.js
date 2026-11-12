@@ -108,3 +108,30 @@ test('paused capture frames freeze effects without playing historical sounds; St
     'shared VFX groups detach from the studio scene',
   );
 });
+
+test('the Miss preview clears success VFX and never emits a physical landing thump or positive bank', async () => {
+  const h = harness();
+  await h.owner.prepare('freestyle-perfect');
+  h.owner.update('freestyle-perfect', LANDING_PREVIEW_CONTACT + 0.11, true, -1);
+  assert.equal(h.owner.getSnapshot().vfx.visible, true);
+  h.owner.update('freestyle-miss', LANDING_PREVIEW_CONTACT + 0.11, false, 0);
+  assert.equal(h.owner.getSnapshot().vfx.visible, false);
+  assert.equal(h.owner.getSnapshot().contactAt, null);
+  assert.equal(h.owner.getSnapshot().bankAt, null);
+  assert.deepEqual(h.events, []);
+  h.owner.update(
+    'freestyle-miss',
+    LANDING_PREVIEW_BANK + 0.01,
+    false,
+    LANDING_PREVIEW_CONTACT + 0.11,
+  );
+  assert.equal(h.events.length, 1);
+  assert.equal(h.events[0].type, 'freestyle-bank');
+  assert.equal(h.events[0].payload.landed, false);
+  assert.equal(h.owner.getSnapshot().vfx.visible, false);
+  assert.equal(h.owner.getSnapshot().failureAt, LANDING_PREVIEW_BANK);
+  assert.equal(h.owner.getSnapshot().bankAt, null);
+  h.owner.stop();
+  assert.deepEqual(h.ship.position.toArray(), [0, 0, 0]);
+  h.owner.dispose();
+});

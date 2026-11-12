@@ -41,11 +41,13 @@ try {
       stepFeedback(n, until = '') {
         if (!Number.isInteger(n) || n < 0 || n > 2400) throw Error('Invalid tick count');
         const contacts = audio.getStatus().landing?.triggerCount ?? 0;
+        const firstTick = tick;
         __feedbackFrozen = false;
         for (let i = 0; i < n && mode === 'racing'; i++) {
           const controls = window.__feedbackPilot({state:{...state},motion:runtime.snapshot(),pose:runtime.pose(1)});
           advanceTick(controls);
           if (until === 'touchdown' && audio.getStatus().landing.triggerCount > contacts) break;
+          if (until === 'miss' && events.some(event => event.type === 'jump-miss' && event.tick >= firstTick)) break;
         }
         __feedbackFrozen = true; prev = {...state}; accumulator = 0;
         return this.readFeedback();
@@ -87,25 +89,38 @@ try {
     runtime,
     practice,
   });
-  async function practice() {
+  async function practice(id = 'transfer-1', airAlignment = true) {
     await page.evaluate(() => {
       const api = window.__VN;
       api.configure({ ...api.getSnapshot().settings, volume: 0.35 });
       api.pause();
     });
-    await page
-      .locator('#freestyle-practice-transfer')
-      .selectOption('transfer-1');
+    await page.locator('#freestyle-practice-transfer').selectOption(id);
     await page.locator('#freestyle-practice-start').click();
-    await page.evaluate(async () => {
+    await page.evaluate(async (align) => {
       const { createTransferPilot } =
         await import('/tools/freestyle-pilot.mjs');
-      window.__feedbackPilot = createTransferPilot(window.__VN.getTrack(), {
+      const pilot = createTransferPilot(window.__VN.getTrack(), {
         reaction: 0.15,
         quantum: 0.25,
         targetSpeed: 'course',
+        airAlignment: align,
       });
-    });
+      window.__feedbackPilot = (frame) => {
+        const control = pilot(frame);
+        // A deliberately held, bounded sideways flight input misses the bank;
+        // the native solver still decides collision, recovery and the verdict.
+        return !align && (frame.motion.flight || frame.motion.motion?.flight)
+          ? {
+              ...control,
+              steer: 1,
+              aerialPitch: 0,
+              aerialYaw: 0,
+              aerialRoll: 0,
+            }
+          : control;
+      };
+    }, airAlignment);
     await frames();
     assert.equal((await read()).mode, 'racing');
   }
@@ -251,9 +266,49 @@ try {
     retried.runtime.freestyle?.score ?? retried.runtime.motion.freestyle.score,
     0,
   );
-  assert.deepEqual(errors, []);
   console.log(
     'PASS · retry immediately stops old tails and resets to an unranked native approach',
+  );
+
+  await practice('transfer-4', false);
+  const beforeMiss = await read();
+  const provisional = await page.evaluate(() =>
+    window.__VN.stepFeedback(2400, 'miss'),
+  );
+  assert.equal(
+    provisional.mode,
+    'racing',
+    'provisional contact does not prematurely pause practice',
+  );
+  assert.equal(provisional.practice.outcome, null);
+  assert.equal(
+    provisional.reward.lastGrade,
+    beforeMiss.reward.lastGrade,
+    'provisional miss does not sound a failed grade',
+  );
+  const failed = await page.evaluate(() => window.__VN.stepFeedback(480));
+  assert.equal(failed.mode, 'paused');
+  assert.equal(failed.practice.outcome.landed, false);
+  assert.equal(failed.practice.outcome.kind, 'freestyle-bank');
+  assert.equal(failed.reward.lastGrade, 'miss');
+  assert.equal(failed.reward.activeVoices, 1);
+  const failedFixed = fixed(failed);
+  await frames();
+  assert.equal(
+    (await read()).reward.activeVoices,
+    1,
+    'confirmed Miss retains its short feedback tail',
+  );
+  await page.waitForFunction(
+    () => window.__VN.getSnapshot().environment.thunder.activeVoices === 0,
+    null,
+    { timeout: 2000 },
+  );
+  await frames();
+  assert.deepEqual(fixed(await read()), failedFixed);
+  assert.deepEqual(errors, []);
+  console.log(
+    'PASS · provisional miss keeps native recovery running; one confirmed failed bank sounds Miss over frozen practice',
   );
 } catch (error) {
   if (page)

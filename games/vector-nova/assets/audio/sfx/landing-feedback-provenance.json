@@ -1,170 +1,110 @@
 {
   "runtime": "Stable Audio 3 Small-SFX MLX",
   "toolchain": "tools/sfx-models.json",
-  "mastering": "landing-feedback-master.py; shared generated thump/click stems, filtering, balance and silent fades",
+  "mastering": "landing-feedback-master.py; five new generated sources, trim/filter/level and silent fades; approved trick retained",
   "referenceAudio": null,
   "format": "stereo 44100 Hz 16-bit PCM",
-  "direction": "Calm muted thump and clean dry click; no melody, chord, flourish or pitch progression.",
-  "approval": "Revised for user listening; no human approval claimed.",
+  "direction": "Crisp physical thump; dim Good tone, brighter Great, fuller Perfect and a subdued descending Miss. Approved trick click unchanged.",
+  "approval": "Replacement set generated for user listening; trick click approved, new cues pending listening review.",
   "cues": {
     "landing-catch": {
       "config": "landing-catch.json",
-      "configSha256": "da12466759d69e59229af90ab21c08939a32f973e82b853e932ce5123d75665c",
-      "inputs": [
-        {
-          "source": "thump",
-          "sourceSha256": "374824c241643cfca93f53267de4e81b86ef9ed007753677ad9cde099e54a05c",
-          "config": "landing-catch.json",
-          "configSha256": "da12466759d69e59229af90ab21c08939a32f973e82b853e932ce5123d75665c",
-          "startSeconds": 0.015,
-          "windowSeconds": 0.28,
-          "highpassHz": 35,
-          "lowpassHz": 700,
-          "weight": 1,
-          "delaySeconds": 0
-        },
-        {
-          "source": "click",
-          "sourceSha256": "00170d9fe5ce954de2c56ecf44f12ef33b9fdd2df579e88099f4160baa192dfe",
-          "config": "freestyle-trick.json",
-          "configSha256": "841fe051a52739b31f3d2f2ffd2c1c460582f6f19f3ba19a7a3c58a733443ed7",
-          "startSeconds": 0.95,
-          "windowSeconds": 0.08,
-          "highpassHz": 650,
-          "lowpassHz": 3200,
-          "weight": 0.22,
-          "delaySeconds": 0.018
-        }
-      ],
+      "configSha256": "334a19cd568f17955c164bfe065aacfe8a440fe49e50c34d6e87883ad20dd15b",
+      "sourceSha256": "f9636c4a07921bb85b4f681480a33ddb17f87c06b3ef92b93bc9b3fc9428f798",
       "master": "landing-catch.wav",
-      "masterSha256": "31a6a716a0a0e3021209238fe2abb7534eb7a0e26a244b15d642161b003afcb4",
+      "masterSha256": "ee8d105851f2fc3b38b4809a7f8869d8eb5810fd97efb0f0d36b888b2c2ada0c",
       "durationSeconds": 0.24,
+      "sourceStartSeconds": 0.99,
       "processing": {
+        "highpassHz": 35,
+        "lowpassHz": 3500,
         "pitchOrTempoChanges": false,
         "compressor": null,
         "peakDbfs": -2,
-        "fadeInSeconds": 0.0015,
-        "raisedCosineFadeOutSeconds": 0.035
+        "fadeInSeconds": 0.001,
+        "raisedCosineFadeOutSeconds": 0.045,
+        "approvedClickAccent": {
+          "file": "freestyle-trick.wav",
+          "sha256": "3700a9e4efd817246da8994927b4e666a764f4765dd82320199b9131cc6daecc",
+          "relativePeak": 0.12,
+          "delaySeconds": 0.012
+        }
       }
     },
     "freestyle-bank-good": {
       "config": "freestyle-bank-good.json",
-      "configSha256": "da12466759d69e59229af90ab21c08939a32f973e82b853e932ce5123d75665c",
-      "inputs": [
-        {
-          "source": "thump",
-          "sourceSha256": "374824c241643cfca93f53267de4e81b86ef9ed007753677ad9cde099e54a05c",
-          "config": "landing-catch.json",
-          "configSha256": "da12466759d69e59229af90ab21c08939a32f973e82b853e932ce5123d75665c",
-          "startSeconds": 0.015,
-          "windowSeconds": 0.28,
-          "highpassHz": 35,
-          "lowpassHz": 500,
-          "weight": 0.42,
-          "delaySeconds": 0
-        },
-        {
-          "source": "click",
-          "sourceSha256": "00170d9fe5ce954de2c56ecf44f12ef33b9fdd2df579e88099f4160baa192dfe",
-          "config": "freestyle-trick.json",
-          "configSha256": "841fe051a52739b31f3d2f2ffd2c1c460582f6f19f3ba19a7a3c58a733443ed7",
-          "startSeconds": 0.95,
-          "windowSeconds": 0.08,
-          "highpassHz": 650,
-          "lowpassHz": 2200,
-          "weight": 0.18,
-          "delaySeconds": 0.012
-        }
-      ],
+      "configSha256": "f8ba937f46ce4dd9b79958c5820c301a68466aaa0c79e2df8c9f8744086e4670",
+      "sourceSha256": "dd84321bd3e8e52e30c03c0a3d4bef635d8d2b2a06d96ce7519ce53d697bb7b8",
       "master": "freestyle-bank-good.wav",
-      "masterSha256": "ca5039bb149936e1103bc537da0728b74f996a8e94d0d779f2ad706f0e38f37c",
-      "durationSeconds": 0.16,
+      "masterSha256": "6acedb64be9a4014e6b68ebdb2a4a90b31803bf7b81da51333aa36315abfa604",
+      "durationSeconds": 0.26,
+      "sourceStartSeconds": 0,
       "processing": {
+        "highpassHz": 140,
+        "lowpassHz": 1000,
         "pitchOrTempoChanges": false,
         "compressor": null,
         "peakDbfs": -3,
-        "fadeInSeconds": 0.0015,
-        "raisedCosineFadeOutSeconds": 0.035
+        "fadeInSeconds": 0.004,
+        "raisedCosineFadeOutSeconds": 0.035,
+        "approvedClickAccent": null
       }
     },
     "freestyle-bank-great": {
       "config": "freestyle-bank-great.json",
-      "configSha256": "da12466759d69e59229af90ab21c08939a32f973e82b853e932ce5123d75665c",
-      "inputs": [
-        {
-          "source": "thump",
-          "sourceSha256": "374824c241643cfca93f53267de4e81b86ef9ed007753677ad9cde099e54a05c",
-          "config": "landing-catch.json",
-          "configSha256": "da12466759d69e59229af90ab21c08939a32f973e82b853e932ce5123d75665c",
-          "startSeconds": 0.015,
-          "windowSeconds": 0.28,
-          "highpassHz": 35,
-          "lowpassHz": 600,
-          "weight": 0.6,
-          "delaySeconds": 0
-        },
-        {
-          "source": "click",
-          "sourceSha256": "00170d9fe5ce954de2c56ecf44f12ef33b9fdd2df579e88099f4160baa192dfe",
-          "config": "freestyle-trick.json",
-          "configSha256": "841fe051a52739b31f3d2f2ffd2c1c460582f6f19f3ba19a7a3c58a733443ed7",
-          "startSeconds": 0.95,
-          "windowSeconds": 0.08,
-          "highpassHz": 650,
-          "lowpassHz": 2500,
-          "weight": 0.2,
-          "delaySeconds": 0.012
-        }
-      ],
+      "configSha256": "289022465cd9bbd5d904d2f36c449a9de156d0e8867285e17e54ccb394ff191f",
+      "sourceSha256": "b42bc938029385793caf74eadc0f8851fc011d172dfdd3238e8118213bca7b36",
       "master": "freestyle-bank-great.wav",
-      "masterSha256": "a2e9584d64ba3f071e30289b6e60285ad11699515e7c76102a1f828120c7a11f",
-      "durationSeconds": 0.19,
+      "masterSha256": "d62db8202e534d0d756d1b6332847e314dd0c10d34d54626ed891d7989e4ff97",
+      "durationSeconds": 0.3,
+      "sourceStartSeconds": 0.045,
       "processing": {
+        "highpassHz": 140,
+        "lowpassHz": 1800,
         "pitchOrTempoChanges": false,
         "compressor": null,
         "peakDbfs": -3,
-        "fadeInSeconds": 0.0015,
-        "raisedCosineFadeOutSeconds": 0.035
+        "fadeInSeconds": 0.004,
+        "raisedCosineFadeOutSeconds": 0.04,
+        "approvedClickAccent": null
       }
     },
     "freestyle-bank-perfect": {
       "config": "freestyle-bank-perfect.json",
-      "configSha256": "da12466759d69e59229af90ab21c08939a32f973e82b853e932ce5123d75665c",
-      "inputs": [
-        {
-          "source": "thump",
-          "sourceSha256": "374824c241643cfca93f53267de4e81b86ef9ed007753677ad9cde099e54a05c",
-          "config": "landing-catch.json",
-          "configSha256": "da12466759d69e59229af90ab21c08939a32f973e82b853e932ce5123d75665c",
-          "startSeconds": 0.015,
-          "windowSeconds": 0.28,
-          "highpassHz": 35,
-          "lowpassHz": 700,
-          "weight": 0.78,
-          "delaySeconds": 0
-        },
-        {
-          "source": "click",
-          "sourceSha256": "00170d9fe5ce954de2c56ecf44f12ef33b9fdd2df579e88099f4160baa192dfe",
-          "config": "freestyle-trick.json",
-          "configSha256": "841fe051a52739b31f3d2f2ffd2c1c460582f6f19f3ba19a7a3c58a733443ed7",
-          "startSeconds": 0.95,
-          "windowSeconds": 0.08,
-          "highpassHz": 650,
-          "lowpassHz": 2800,
-          "weight": 0.22,
-          "delaySeconds": 0.012
-        }
-      ],
+      "configSha256": "b32557cd9199ad75924d3926eae450b86532f7cc929148d6380a79032a49a02a",
+      "sourceSha256": "76d9a719f97a4bd29064d962496099c7106c313ab5c2d141649eee9bcc395477",
       "master": "freestyle-bank-perfect.wav",
-      "masterSha256": "105efbe07063dd9b8fe7cfc3779f378bfce4cfb458d1cbceac3e47eae55bd788",
-      "durationSeconds": 0.23,
+      "masterSha256": "cda19b153adb877e65508eb25ead3a7c60bc5293a4cfe8659823e05c839f503e",
+      "durationSeconds": 0.36,
+      "sourceStartSeconds": 0,
       "processing": {
+        "highpassHz": 120,
+        "lowpassHz": 2300,
         "pitchOrTempoChanges": false,
         "compressor": null,
         "peakDbfs": -3,
-        "fadeInSeconds": 0.0015,
-        "raisedCosineFadeOutSeconds": 0.035
+        "fadeInSeconds": 0.004,
+        "raisedCosineFadeOutSeconds": 0.05,
+        "approvedClickAccent": null
+      }
+    },
+    "freestyle-bank-miss": {
+      "config": "freestyle-bank-miss.json",
+      "configSha256": "ba54fbfce62ac91ad1e10c06563ab21affa94569a344232084a512c4cee1fa92",
+      "sourceSha256": "2a285df7a5cc5ddfcb0db6dd640a3d265b8a044ad43c00f8ca85f8e5bcafbad6",
+      "master": "freestyle-bank-miss.wav",
+      "masterSha256": "1fec8f11f2752f85af6bf85f9b790249a5932b3038a964c76f3601ddae4347bc",
+      "durationSeconds": 0.32,
+      "sourceStartSeconds": 0.055,
+      "processing": {
+        "highpassHz": 80,
+        "lowpassHz": 1200,
+        "pitchOrTempoChanges": false,
+        "compressor": null,
+        "peakDbfs": -3,
+        "fadeInSeconds": 0.006,
+        "raisedCosineFadeOutSeconds": 0.06,
+        "approvedClickAccent": null
       }
     },
     "freestyle-trick": {

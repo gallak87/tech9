@@ -1,9 +1,7 @@
-"""Master the calm thump/click landing family from two generated sources.
+"""Master the current thump/tonal set without replacing the approved trick click.
 
-Run: python3 assets/audio/sfx/landing-feedback-master.py --sources <directory>
-Inputs: landing-thump-source.wav and landing-click-source.wav.
-The four thump configs intentionally share a prompt/seed. Grade differences
-are restrained body/click balance and decay, without notes or pitch changes.
+Render each current non-click JSON into <cue>-source.wav in one directory,
+then run: python3 assets/audio/sfx/landing-feedback-master.py --sources <directory>
 """
 import argparse
 from array import array
@@ -18,17 +16,13 @@ import wave
 
 ROOT = Path(__file__).resolve().parent
 RATE = 44100
-# Duration, thump/click weights, click delay, body/click lowpass, peak dBFS.
+# Source start, final duration, high/low cut, peak dBFS, edge fades.
 RECIPES = {
-    "landing-catch": (.24, 1, .22, .018, 700, 3200, -2),
-    "freestyle-bank-good": (.16, .42, .18, .012, 500, 2200, -3),
-    "freestyle-bank-great": (.19, .60, .20, .012, 600, 2500, -3),
-    "freestyle-bank-perfect": (.23, .78, .22, .012, 700, 2800, -3),
-    "freestyle-trick": (.06, 0, .28, 0, 700, 2200, -6),
-}
-SOURCES = {
-    "thump": ("landing-thump-source.wav", "landing-catch.json", .015, .28, 35),
-    "click": ("landing-click-source.wav", "freestyle-trick.json", .95, .08, 650),
+    "landing-catch": (.99, .24, 35, 3500, -2, .001, .045),
+    "freestyle-bank-good": (0, .26, 140, 1000, -3, .004, .035),
+    "freestyle-bank-great": (.045, .30, 140, 1800, -3, .004, .04),
+    "freestyle-bank-perfect": (0, .36, 120, 2300, -3, .004, .05),
+    "freestyle-bank-miss": (.055, .32, 80, 1200, -3, .006, .06),
 }
 
 
@@ -36,15 +30,25 @@ def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def stem(source, start, seconds, low, high):
-    with wave.open(str(source), "rb") as wav:
+def decoded(path):
+    with wave.open(str(path), "rb") as wav:
         if (wav.getnchannels(), wav.getframerate(), wav.getsampwidth()) != (2, RATE, 2):
-            raise ValueError("Expected generated stereo 44.1 kHz 16-bit PCM")
-        if wav.getnframes() / RATE < start + seconds:
-            raise ValueError("Generated source is too short")
+            raise ValueError("Expected stereo 44.1 kHz 16-bit PCM")
+        data = array("h", wav.readframes(wav.getnframes()))
+    if sys.byteorder != "little":
+        data.byteswap()
+    return [value / 32768 for value in data]
+
+
+def master(cue, sources):
+    start, seconds, low, high, peak_db, fade_in, fade_out = RECIPES[cue]
+    source = sources / f"{cue}-source.wav"
+    raw = decoded(source)
+    if len(raw) / (RATE * 2) < start + seconds:
+        raise ValueError(f"Source is too short: {cue}")
     filters = [f"atrim=start={start}:duration={seconds}", "asetpts=PTS-STARTPTS",
                f"highpass=f={low}", f"lowpass=f={high}"]
-    with TemporaryDirectory(prefix="landing-stem-") as temporary:
+    with TemporaryDirectory(prefix="landing-master-") as temporary:
         pcm = Path(temporary) / "filtered.f32"
         subprocess.run([
             "ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "error", "-y",
@@ -54,36 +58,22 @@ def stem(source, start, seconds, low, high):
         data = array("f", pcm.read_bytes())
     if sys.byteorder != "little":
         data.byteswap()
-    peak = max(abs(value) for value in data)
-    if peak < .0001 or not all(math.isfinite(value) for value in data):
-        raise ValueError("Invalid source stem")
-    return [value / peak for value in data]
-
-
-def master(cue, sources):
-    seconds, body_weight, click_weight, delay, body_high, click_high, peak_db = RECIPES[cue]
     frames = round(seconds * RATE)
-    data = [0.] * (frames * 2)
-    inputs = []
-    for name, weight, offset, high in [
-        ("thump", body_weight, 0, body_high),
-        ("click", click_weight, delay, click_high),
-    ]:
-        if weight == 0:
-            continue
-        filename, config, start, window, low = SOURCES[name]
-        source = sources / filename
-        decoded = stem(source, start, window, low, high)
-        begin = round(offset * RATE) * 2
-        for index, value in enumerate(decoded[:len(data) - begin]):
-            data[index + begin] += value * weight
-        inputs.append({"source": name, "sourceSha256": digest(source),
-                       "config": config, "configSha256": digest(ROOT / config),
-                       "startSeconds": start, "windowSeconds": window,
-                       "highpassHz": low, "lowpassHz": high,
-                       "weight": weight, "delaySeconds": offset})
-    fade_in = .0015 if body_weight else .0008
-    fade_out = min(.035, seconds * .3)
+    if len(data) != frames * 2 or not all(math.isfinite(value) for value in data):
+        raise ValueError(f"Invalid mastered source: {cue}")
+    accent = None
+    if cue == "landing-catch":
+        # The approved click is only borrowed as a quiet crisp contact detail;
+        # its master/config and standalone playback remain byte-for-byte intact.
+        click = ROOT / "freestyle-trick.wav"
+        detail = decoded(click)
+        click_peak = max(abs(value) for value in detail)
+        body_peak = max(abs(value) for value in data)
+        begin = round(.012 * RATE) * 2
+        for index, value in enumerate(detail[:len(data) - begin]):
+            data[index + begin] += value / click_peak * body_peak * .12
+        accent = {"file": click.name, "sha256": digest(click),
+                  "relativePeak": .12, "delaySeconds": .012}
     for frame in range(frames):
         attack = min(1, frame / max(1, round(fade_in * RATE)))
         release = min(1, (frames - 1 - frame) / max(1, round(fade_out * RATE)))
@@ -91,6 +81,8 @@ def master(cue, sources):
         for channel in range(2):
             data[frame * 2 + channel] *= envelope
     peak = max(abs(value) for value in data)
+    if peak < .0001:
+        raise ValueError(f"Silent cue: {cue}")
     gain = 10 ** (peak_db / 20) / peak
     output = array("h", (round(value * gain * 32767) for value in data))
     if sys.byteorder != "little":
@@ -102,27 +94,39 @@ def master(cue, sources):
         wav.setframerate(RATE)
         wav.writeframes(output.tobytes())
     return {"config": f"{cue}.json", "configSha256": digest(ROOT / f"{cue}.json"),
-            "inputs": inputs, "master": target.name, "masterSha256": digest(target),
-            "durationSeconds": seconds,
-            "processing": {"pitchOrTempoChanges": False, "compressor": None,
+            "sourceSha256": digest(source), "master": target.name,
+            "masterSha256": digest(target), "durationSeconds": seconds,
+            "sourceStartSeconds": start,
+            "processing": {"highpassHz": low, "lowpassHz": high,
+                           "pitchOrTempoChanges": False, "compressor": None,
                            "peakDbfs": peak_db, "fadeInSeconds": fade_in,
-                           "raisedCosineFadeOutSeconds": fade_out}}
+                           "raisedCosineFadeOutSeconds": fade_out,
+                           "approvedClickAccent": accent}}
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--sources", type=Path, required=True)
     args = parser.parse_args()
+    record = ROOT / "landing-feedback-provenance.json"
+    prior = json.loads(record.read_text())
+    approved = prior["cues"]["freestyle-trick"]
+    if digest(ROOT / approved["master"]) != approved["masterSha256"]:
+        raise ValueError("Approved trick master does not match its provenance")
+    if digest(ROOT / approved["config"]) != approved["configSha256"]:
+        raise ValueError("Approved trick config does not match its provenance")
+    cues = {cue: master(cue, args.sources) for cue in RECIPES}
+    cues["freestyle-trick"] = approved
     provenance = {
         "runtime": "Stable Audio 3 Small-SFX MLX", "toolchain": "tools/sfx-models.json",
-        "mastering": "landing-feedback-master.py; shared generated thump/click stems, filtering, balance and silent fades",
+        "mastering": "landing-feedback-master.py; five new generated sources, trim/filter/level and silent fades; approved trick retained",
         "referenceAudio": None, "format": "stereo 44100 Hz 16-bit PCM",
-        "direction": "Calm muted thump and clean dry click; no melody, chord, flourish or pitch progression.",
-        "approval": "Revised for user listening; no human approval claimed.",
-        "cues": {cue: master(cue, args.sources) for cue in RECIPES},
+        "direction": "Crisp physical thump; dim Good tone, brighter Great, fuller Perfect and a subdued descending Miss. Approved trick click unchanged.",
+        "approval": "Replacement set generated for user listening; trick click approved, new cues pending listening review.",
+        "cues": cues,
     }
-    (ROOT / "landing-feedback-provenance.json").write_text(json.dumps(provenance, indent=2) + "\n")
-    print("Mastered calm thump/click family: " + ", ".join(provenance["cues"]))
+    record.write_text(json.dumps(provenance, indent=2) + "\n")
+    print("Replaced five cues; approved trick click/config/provenance preserved.")
 
 
 if __name__ == "__main__":

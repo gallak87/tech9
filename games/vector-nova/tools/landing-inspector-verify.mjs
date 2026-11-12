@@ -134,6 +134,7 @@ try {
     'freestyle-good',
     'freestyle-great',
     'freestyle-perfect',
+    'freestyle-miss',
     'freestyle-trick',
   ])
     assert.equal(await picker.locator(`option[value="${kind}"]`).count(), 1);
@@ -237,6 +238,49 @@ try {
   assert.equal((await read()).landing.vfx.visible, false);
   assert.equal((await read()).landing.audio.activeVoices, 0);
   assert.deepEqual((await read()).position, [0, 0, 0]);
+  await page.evaluate(() =>
+    window.__VN_INSPECTOR.audition('freestyle-miss', {
+      time: 0.76,
+      paused: true,
+    }),
+  );
+  const missedContact = await read();
+  assert.equal(missedContact.landing.vfx.visible, false);
+  assert.equal(missedContact.landing.contactAt, null);
+  assert.equal(missedContact.landing.bankAt, null);
+  assert.equal(missedContact.landing.failureAt, null);
+  await page.evaluate(() =>
+    window.__VN_INSPECTOR.audition('freestyle-miss', {
+      time: 1.03,
+      paused: true,
+    }),
+  );
+  const missedCapture = await read();
+  assert.equal(missedCapture.landing.vfx.visible, false);
+  assert.equal(missedCapture.landing.bankAt, null);
+  assert.ok(missedCapture.landing.failureAt > 0.94);
+  const beforeMiss = missedCapture.landing;
+  await page.evaluate(() => window.__VN_INSPECTOR.audition('freestyle-miss'));
+  await page.waitForFunction(() => {
+    const preview =
+      window.__VN_INSPECTOR.getSnapshot().inspection.demonstration;
+    return (
+      preview.kind === 'freestyle-miss' &&
+      preview.landing?.audio.lastGrade === 'miss'
+    );
+  });
+  const missed = (await read()).landing;
+  assert.equal(missed.audio.triggerCount, beforeMiss.audio.triggerCount + 1);
+  assert.equal(
+    missed.touchdownAudio.triggerCount,
+    beforeMiss.touchdownAudio.triggerCount,
+  );
+  assert.equal(missed.vfx.visible, false);
+  assert.equal(missed.bankAt, null);
+  assert.ok(missed.failureAt > 0.94);
+  await stop.click();
+  assert.equal((await read()).landing.audio.activeVoices, 0);
+  assert.deepEqual((await read()).position, [0, 0, 0]);
   await page.locator('[data-preview="autoRotate"]').click();
   for (const quality of ['low', 'high']) {
     await page.evaluate(
@@ -304,7 +348,7 @@ try {
   );
   assert.deepEqual(errors, []);
   console.log(
-    'PASS · desktop inspector keyboard/controller landings, graded shared VFX and ship seat, actual decoded audio, paused capture and Stop cleanup',
+    'PASS · desktop inspector keyboard/controller landings, graded shared VFX and ship seat, truthful Miss without touchdown or success VFX, actual decoded audio, paused capture and Stop cleanup',
   );
 } finally {
   await browser.close();

@@ -84,3 +84,87 @@ test('native Freestyle support produces one immediate touchdown before the credi
   assert.ok(delay >= FREESTYLE_RULES.landingWindow - dt - 1e-7);
   assert.ok(delay <= FREESTYLE_RULES.landingWindow + dt);
 });
+
+test('a genuine native flight miss remains provisional until its one failed bank verdict', async (t) => {
+  const level = createSkywell(),
+    track = level.createTrack(),
+    collisionWorld = await level.createCollisionWorld({ track }),
+    dynamics = await level.createDynamics({
+      track,
+      collisionWorld: withMagneticBoundaries(track, collisionWorld),
+    }),
+    runtime = createDeviceRuntime({
+      track,
+      devices: level.racing.createDevices(track),
+      equipmentEnabled: false,
+      motion: level.createRuntime({
+        track,
+        collisionWorld,
+        dynamics,
+        presentation: false,
+        settings: { steeringAssist: 0.3 },
+      }),
+    });
+  t.after(() => {
+    runtime.dispose();
+    dynamics.dispose();
+    collisionWorld.dispose();
+  });
+  const state = {
+    ...createVehicleState('kestrel'),
+    ...track.scenarios['jump4-approach'],
+  };
+  runtime.reset({ state, seed: 7 });
+  const pilot = createTransferPilot(track, {
+      reaction: 0.15,
+      quantum: 0.25,
+      targetSpeed: 'course',
+      airAlignment: false,
+    }),
+    events = [];
+  let provisionalAt = null,
+    verdictAt = null;
+  for (let tick = 0; tick < 3600; tick++) {
+    const motion = runtime.snapshot(),
+      control = pilot({ state, motion, pose: runtime.pose(1) });
+    const emitted = runtime.advance(
+      state,
+      motion.flight
+        ? { ...control, steer: 1, aerialPitch: 0, aerialYaw: 0, aerialRoll: 0 }
+        : control,
+      1 / 120,
+    );
+    events.push(...emitted);
+    if (emitted.some((event) => event.type === 'jump-miss')) {
+      provisionalAt ??= state.time;
+      assert.equal(runtime.snapshot().freestyle.legs.length, 0);
+      assert.equal(
+        emitted.some((event) => event.type === 'freestyle-bank'),
+        false,
+      );
+    }
+    const bank = emitted.find((event) => event.type === 'freestyle-bank');
+    if (bank) {
+      assert.equal(bank.payload.landed, false);
+      verdictAt = state.time;
+      break;
+    }
+  }
+  assert.ok(
+    provisionalAt !== null,
+    'ordinary held input reaches a genuine miss',
+  );
+  assert.ok(
+    verdictAt > provisionalAt,
+    'the provisional contact is not the final score verdict',
+  );
+  assert.equal(
+    events.filter((event) => event.type === 'freestyle-bank').length,
+    1,
+  );
+  assert.equal(
+    events.find((event) => event.type === 'jump-transfer')?.payload.outcome,
+    'recovered',
+  );
+  assert.equal(runtime.snapshot().freestyle.score, 0);
+});

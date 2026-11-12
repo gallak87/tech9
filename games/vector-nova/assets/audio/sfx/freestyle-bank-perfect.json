@@ -1,7 +1,7 @@
 {
-  "prompt": "One small rubber-damped actuator seating with a soft low thump and a clean dry click. Muted, calm precision machinery, close recording with almost no resonance. A single compact action. No music, voices or background ambience.",
+  "prompt": "A single soft rounded electronic tone with gentle harmonic fullness, settling cleanly. Short, calm, understated and dry. No flourish, melody, sequence, beat, voices or ambience.",
   "seconds": 2,
-  "seed": 74221,
+  "seed": 74314,
   "steps": 8,
   "cfg": 1
 }

@@ -27,18 +27,20 @@ export const soundEffects = [
     { id: 'sound-preview', at: 0, strength: 1 },
     0.7,
   ),
-  ...['good', 'great', 'perfect'].map((grade) => ({
+  ...['good', 'great', 'perfect', 'miss'].map((grade) => ({
     ...race(
       `freestyle-bank-${grade}`,
-      `Freestyle · ${grade[0].toUpperCase()}${grade.slice(1)} points bank`,
+      grade === 'miss'
+        ? 'Freestyle · Miss'
+        : `Freestyle · ${grade[0].toUpperCase()}${grade.slice(1)} points bank`,
       'freestyle-bank',
       {
         id: 'sound-preview',
         at: 0,
-        landed: true,
-        clean: grade !== 'good',
+        landed: grade !== 'miss',
+        clean: ['great', 'perfect'].includes(grade),
         perfect: grade === 'perfect',
-        chain: 1,
+        chain: grade === 'miss' ? 0 : 1,
       },
       0.9,
     ),

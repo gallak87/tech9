@@ -72,14 +72,16 @@ Runtime code is MIT. The model weights use the [Stability AI Community License](
 
 ## Landing and Freestyle set
 
-The current set separates a crisp physical landing thump from restrained tonal judgments: dim Good, brighter Great, fuller Perfect, and a flat Miss tone that settles downward. The approved completed-trick click is retained byte-for-byte, including its config and playback level. Runtime chain/trick pitch transposition stays disabled.
+The selected reference is the current `freestyle-bank-great.wav`: a thin, reedy two-breath “whaw-whaw,” with a strong first lobe, a quiet central notch and a softer second lobe. Great and the approved completed-trick click retain their exact WAVs, generator configs, provenance and runtime levels.
 
-Generate the five replacement sources sequentially using their current JSON configs and `--output .experiments/<cue>-source.wav`: `landing-catch`, `freestyle-bank-good`, `freestyle-bank-great`, `freestyle-bank-perfect` and `freestyle-bank-miss`. Then overwrite their masters together:
+Landing, Good, Perfect and Miss are now offline derivatives of that actual Great recording. Their JSON files are derivation recipes, not Small-SFX generation prompts. Landing has a shorter, drier front breath; Good is more closed and subdued; Perfect supports the second breath; Miss closes and softens on the second breath. No oscillator, new musical note, compression or runtime pitch transposition is added. Pitch-preserving duration fitting keeps the original reedy register and breath notch.
+
+Overwrite the four current masters from the selected reference:
 
 ```sh
-python3 assets/audio/sfx/landing-feedback-master.py --sources .experiments
+python3 assets/audio/sfx/landing-feedback-master.py
 ```
 
-The script verifies and preserves the approved trick master/config/provenance. Each replacement records its own generated source hash, onset trim, filters, level and silent fades. The physical landing borrows a quiet accent from the approved click without altering it. No pitch or tempo processing is added. Durations are 0.24 s for touchdown, 0.26/0.30/0.36 s for Good/Great/Perfect, 0.32 s for Miss and the unchanged 0.06 s click.
+The script verifies Great and the approved click before rebuilding. Each derivative records the exact source-master hash, recipe, spectral/lobe shaping, duration fitting and silent edge fades in `landing-feedback-provenance.json`. Durations remain 0.24 s for touchdown, 0.26/0.30/0.36 s for Good/Great/Perfect, 0.32 s for Miss and 0.06 s for the click.
 
-Only a confirmed failed bank sounds Miss. A provisional jump-miss can reattach and earn Good, so developer practice waits for the final bank verdict before pausing. Sounds and Ship inspector → Powerups, equipment & contact → Landing & Freestyle share the same recordings and levels as gameplay. Miss auditions show failed support and recovery without a landing thump or successful-catch VFX. New cues remain subject to user listening review.
+Only a confirmed failed bank sounds Miss. A provisional jump-miss can reattach and earn Good, so developer practice waits for the final bank verdict before pausing. Sounds and Ship inspector → Powerups, equipment & contact → Landing & Freestyle share the same recordings and levels as gameplay. New derivatives remain subject to user listening review.

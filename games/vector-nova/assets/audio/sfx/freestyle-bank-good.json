@@ -1,7 +1,14 @@
 {
-  "prompt": "A single soft muted electronic tone in the middle register, like a rounded sine-wave note. It holds one steady pitch briefly and fades cleanly. Dark, calm and dry, with very little high-frequency edge. No melody, sequence, beat, speech or ambience.",
-  "seconds": 2,
-  "seed": 74322,
-  "steps": 8,
-  "cfg": 1
+  "source": "freestyle-bank-great.wav",
+  "description": "Muted thin reedy whaw-whaw, with a softer second breath.",
+  "durationSeconds": 0.26,
+  "highpassHz": 180,
+  "lowpassStartHz": 1300,
+  "lowpassEndHz": 1150,
+  "firstLobeGain": 0.88,
+  "secondLobeGain": 0.73,
+  "tailGain": 0.16,
+  "fadeInSeconds": 0.003,
+  "fadeOutSeconds": 0.035,
+  "peakDbfs": -3
 }

@@ -1,53 +1,125 @@
 {
-  "runtime": "Stable Audio 3 Small-SFX MLX",
+  "runtime": "Great source generated with Stable Audio 3 Small-SFX MLX; derivatives authored offline",
   "toolchain": "tools/sfx-models.json",
-  "mastering": "landing-feedback-master.py; five new generated sources, trim/filter/level and silent fades; approved trick retained",
-  "referenceAudio": null,
+  "mastering": "landing-feedback-master.py; Great recording, pitch-preserving duration fitting, gentle spectral/lobe shaping and silent fades",
+  "referenceAudio": {
+    "file": "freestyle-bank-great.wav",
+    "sha256": "d62db8202e534d0d756d1b6332847e314dd0c10d34d54626ed891d7989e4ff97"
+  },
   "format": "stereo 44100 Hz 16-bit PCM",
-  "direction": "Crisp physical thump; dim Good tone, brighter Great, fuller Perfect and a subdued descending Miss. Approved trick click unchanged.",
-  "approval": "Replacement set generated for user listening; trick click approved, new cues pending listening review.",
+  "direction": "Thin reedy breathy whaw-whaw articulation, preserving the selected Great recording and its central breath notch.",
+  "approval": "Great structure selected by user; trick click approved; replacement derivatives pending listening review.",
   "cues": {
     "landing-catch": {
       "config": "landing-catch.json",
-      "configSha256": "334a19cd568f17955c164bfe065aacfe8a440fe49e50c34d6e87883ad20dd15b",
-      "sourceSha256": "f9636c4a07921bb85b4f681480a33ddb17f87c06b3ef92b93bc9b3fc9428f798",
+      "configSha256": "2f04613f140a8926977a828fb341a3c2fa3773174031529bad429150d7198a18",
+      "sourceMaster": "freestyle-bank-great.wav",
+      "sourceMasterSha256": "d62db8202e534d0d756d1b6332847e314dd0c10d34d54626ed891d7989e4ff97",
       "master": "landing-catch.wav",
-      "masterSha256": "ee8d105851f2fc3b38b4809a7f8869d8eb5810fd97efb0f0d36b888b2c2ada0c",
+      "masterSha256": "cf0015454a83104155e199c4787e1686cf3539a7876b043fe0d1dedbecaf59a6",
       "durationSeconds": 0.24,
-      "sourceStartSeconds": 0.99,
       "processing": {
-        "highpassHz": 35,
-        "lowpassHz": 3500,
-        "pitchOrTempoChanges": false,
+        "pitchPreservingTempo": 1.25,
+        "recipe": {
+          "source": "freestyle-bank-great.wav",
+          "description": "Short dry reedy whup, weighted toward the first breath.",
+          "durationSeconds": 0.24,
+          "highpassHz": 180,
+          "lowpassStartHz": 1900,
+          "lowpassEndHz": 1450,
+          "firstLobeGain": 1,
+          "secondLobeGain": 0.38,
+          "tailGain": 0.1,
+          "fadeInSeconds": 0.0008,
+          "fadeOutSeconds": 0.035,
+          "peakDbfs": -2
+        },
         "compressor": null,
-        "peakDbfs": -2,
-        "fadeInSeconds": 0.001,
-        "raisedCosineFadeOutSeconds": 0.045,
-        "approvedClickAccent": {
-          "file": "freestyle-trick.wav",
-          "sha256": "3700a9e4efd817246da8994927b4e666a764f4765dd82320199b9131cc6daecc",
-          "relativePeak": 0.12,
-          "delaySeconds": 0.012
-        }
+        "newTonesOrOscillators": false
       }
     },
     "freestyle-bank-good": {
       "config": "freestyle-bank-good.json",
-      "configSha256": "f8ba937f46ce4dd9b79958c5820c301a68466aaa0c79e2df8c9f8744086e4670",
-      "sourceSha256": "dd84321bd3e8e52e30c03c0a3d4bef635d8d2b2a06d96ce7519ce53d697bb7b8",
+      "configSha256": "1df187835d34547fccb6c1a79599ac5e10a1e6a2a6db8caecab07df73f982383",
+      "sourceMaster": "freestyle-bank-great.wav",
+      "sourceMasterSha256": "d62db8202e534d0d756d1b6332847e314dd0c10d34d54626ed891d7989e4ff97",
       "master": "freestyle-bank-good.wav",
-      "masterSha256": "6acedb64be9a4014e6b68ebdb2a4a90b31803bf7b81da51333aa36315abfa604",
+      "masterSha256": "2c03bf8bef0c1deefbfcd0448d58c8245641516418473f42439bf200389f87d9",
       "durationSeconds": 0.26,
-      "sourceStartSeconds": 0,
       "processing": {
-        "highpassHz": 140,
-        "lowpassHz": 1000,
-        "pitchOrTempoChanges": false,
+        "pitchPreservingTempo": 1.1538461538461537,
+        "recipe": {
+          "source": "freestyle-bank-great.wav",
+          "description": "Muted thin reedy whaw-whaw, with a softer second breath.",
+          "durationSeconds": 0.26,
+          "highpassHz": 180,
+          "lowpassStartHz": 1300,
+          "lowpassEndHz": 1150,
+          "firstLobeGain": 0.88,
+          "secondLobeGain": 0.73,
+          "tailGain": 0.16,
+          "fadeInSeconds": 0.003,
+          "fadeOutSeconds": 0.035,
+          "peakDbfs": -3
+        },
         "compressor": null,
-        "peakDbfs": -3,
-        "fadeInSeconds": 0.004,
-        "raisedCosineFadeOutSeconds": 0.035,
-        "approvedClickAccent": null
+        "newTonesOrOscillators": false
+      }
+    },
+    "freestyle-bank-perfect": {
+      "config": "freestyle-bank-perfect.json",
+      "configSha256": "479c695b9461beb2c609a8ba1a0928e04a25125719241f74dbbeea9c9059a165",
+      "sourceMaster": "freestyle-bank-great.wav",
+      "sourceMasterSha256": "d62db8202e534d0d756d1b6332847e314dd0c10d34d54626ed891d7989e4ff97",
+      "master": "freestyle-bank-perfect.wav",
+      "masterSha256": "c3d4504de3e52a68bd94e5fa179d0215d6174763985ea24f60d6d9ff1d7833ba",
+      "durationSeconds": 0.36,
+      "processing": {
+        "pitchPreservingTempo": 0.8333333333333334,
+        "recipe": {
+          "source": "freestyle-bank-great.wav",
+          "description": "Longer breathy whaw-whaw with more support in the second lobe, no new notes.",
+          "durationSeconds": 0.36,
+          "highpassHz": 150,
+          "lowpassStartHz": 1750,
+          "lowpassEndHz": 1750,
+          "firstLobeGain": 0.9,
+          "secondLobeGain": 1.2,
+          "tailGain": 0.4,
+          "fadeInSeconds": 0.003,
+          "fadeOutSeconds": 0.05,
+          "peakDbfs": -3
+        },
+        "compressor": null,
+        "newTonesOrOscillators": false
+      }
+    },
+    "freestyle-bank-miss": {
+      "config": "freestyle-bank-miss.json",
+      "configSha256": "83f7e64f36d228818906c23d8def5ccc1b20429aa6103db19457c31bde07448b",
+      "sourceMaster": "freestyle-bank-great.wav",
+      "sourceMasterSha256": "d62db8202e534d0d756d1b6332847e314dd0c10d34d54626ed891d7989e4ff97",
+      "master": "freestyle-bank-miss.wav",
+      "masterSha256": "5e683acdac1fae5bb14efcf2910a085d958d6b49eded164dfbe96710361fec4f",
+      "durationSeconds": 0.32,
+      "processing": {
+        "pitchPreservingTempo": 0.9375,
+        "recipe": {
+          "source": "freestyle-bank-great.wav",
+          "description": "The same reedy two-breath shape, closing and softening on the second breath.",
+          "durationSeconds": 0.32,
+          "highpassHz": 180,
+          "lowpassStartHz": 1600,
+          "lowpassEndHz": 820,
+          "firstLobeGain": 0.72,
+          "secondLobeGain": 0.65,
+          "tailGain": 0.08,
+          "fadeInSeconds": 0.004,
+          "fadeOutSeconds": 0.05,
+          "peakDbfs": -3
+        },
+        "compressor": null,
+        "newTonesOrOscillators": false
       }
     },
     "freestyle-bank-great": {
@@ -66,44 +138,6 @@
         "peakDbfs": -3,
         "fadeInSeconds": 0.004,
         "raisedCosineFadeOutSeconds": 0.04,
-        "approvedClickAccent": null
-      }
-    },
-    "freestyle-bank-perfect": {
-      "config": "freestyle-bank-perfect.json",
-      "configSha256": "b32557cd9199ad75924d3926eae450b86532f7cc929148d6380a79032a49a02a",
-      "sourceSha256": "76d9a719f97a4bd29064d962496099c7106c313ab5c2d141649eee9bcc395477",
-      "master": "freestyle-bank-perfect.wav",
-      "masterSha256": "cda19b153adb877e65508eb25ead3a7c60bc5293a4cfe8659823e05c839f503e",
-      "durationSeconds": 0.36,
-      "sourceStartSeconds": 0,
-      "processing": {
-        "highpassHz": 120,
-        "lowpassHz": 2300,
-        "pitchOrTempoChanges": false,
-        "compressor": null,
-        "peakDbfs": -3,
-        "fadeInSeconds": 0.004,
-        "raisedCosineFadeOutSeconds": 0.05,
-        "approvedClickAccent": null
-      }
-    },
-    "freestyle-bank-miss": {
-      "config": "freestyle-bank-miss.json",
-      "configSha256": "ba54fbfce62ac91ad1e10c06563ab21affa94569a344232084a512c4cee1fa92",
-      "sourceSha256": "2a285df7a5cc5ddfcb0db6dd640a3d265b8a044ad43c00f8ca85f8e5bcafbad6",
-      "master": "freestyle-bank-miss.wav",
-      "masterSha256": "1fec8f11f2752f85af6bf85f9b790249a5932b3038a964c76f3601ddae4347bc",
-      "durationSeconds": 0.32,
-      "sourceStartSeconds": 0.055,
-      "processing": {
-        "highpassHz": 80,
-        "lowpassHz": 1200,
-        "pitchOrTempoChanges": false,
-        "compressor": null,
-        "peakDbfs": -3,
-        "fadeInSeconds": 0.006,
-        "raisedCosineFadeOutSeconds": 0.06,
         "approvedClickAccent": null
       }
     },

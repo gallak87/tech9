@@ -1,7 +1,14 @@
 {
-  "prompt": "One crisp padded low thump as a heavy latch seats, with a small clean mechanical click. Tight dry attack and a short damped body. Solid, controlled and close. One action, no musical tone, voices or background ambience.",
-  "seconds": 2,
-  "seed": 74311,
-  "steps": 8,
-  "cfg": 1
+  "source": "freestyle-bank-great.wav",
+  "description": "Short dry reedy whup, weighted toward the first breath.",
+  "durationSeconds": 0.24,
+  "highpassHz": 180,
+  "lowpassStartHz": 1900,
+  "lowpassEndHz": 1450,
+  "firstLobeGain": 1,
+  "secondLobeGain": 0.38,
+  "tailGain": 0.1,
+  "fadeInSeconds": 0.0008,
+  "fadeOutSeconds": 0.035,
+  "peakDbfs": -2
 }

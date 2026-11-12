@@ -1,7 +1,14 @@
 {
-  "prompt": "A single soft rounded electronic tone with gentle harmonic fullness, settling cleanly. Short, calm, understated and dry. No flourish, melody, sequence, beat, voices or ambience.",
-  "seconds": 2,
-  "seed": 74314,
-  "steps": 8,
-  "cfg": 1
+  "source": "freestyle-bank-great.wav",
+  "description": "Longer breathy whaw-whaw with more support in the second lobe, no new notes.",
+  "durationSeconds": 0.36,
+  "highpassHz": 150,
+  "lowpassStartHz": 1750,
+  "lowpassEndHz": 1750,
+  "firstLobeGain": 0.9,
+  "secondLobeGain": 1.2,
+  "tailGain": 0.4,
+  "fadeInSeconds": 0.003,
+  "fadeOutSeconds": 0.05,
+  "peakDbfs": -3
 }

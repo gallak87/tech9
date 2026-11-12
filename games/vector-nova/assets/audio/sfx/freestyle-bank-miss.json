@@ -1,7 +1,14 @@
 {
-  "prompt": "One quiet rounded mid-register electronic tone. It remains almost flat, then gently settles a little lower into a soft muted whomp at the very end. Calm, brief and dry, clearly tonal without a hard impact. No melody, buzzer, dramatic slide, speech or ambience.",
-  "seconds": 2,
-  "seed": 74325,
-  "steps": 8,
-  "cfg": 1
+  "source": "freestyle-bank-great.wav",
+  "description": "The same reedy two-breath shape, closing and softening on the second breath.",
+  "durationSeconds": 0.32,
+  "highpassHz": 180,
+  "lowpassStartHz": 1600,
+  "lowpassEndHz": 820,
+  "firstLobeGain": 0.72,
+  "secondLobeGain": 0.65,
+  "tailGain": 0.08,
+  "fadeInSeconds": 0.004,
+  "fadeOutSeconds": 0.05,
+  "peakDbfs": -3
 }

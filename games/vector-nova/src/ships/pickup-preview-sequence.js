@@ -2,6 +2,7 @@ import { COMBAT_RULES } from '../pickups/combat.js';
 import { Vector3 } from 'three';
 import { sampleIonContact } from '../pickups/ion-contact.js';
 import { EQUIPMENT, equipmentById } from '../progression/catalog.js';
+import { LANDING_PREVIEWS } from './landing-demonstration.js';
 import {
   equipmentDemonstration,
   PREVIEW_TARGET_DISTANCE,
@@ -28,6 +29,7 @@ export const PICKUP_PREVIEWS = [
 ];
 
 export const DEVICE_PREVIEWS = [
+  ...LANDING_PREVIEWS,
   ...PICKUP_PREVIEWS.map((entry) => ({ ...entry, group: 'Road pickups' })),
   ...EQUIPMENT.map(({ id, name, detail }) => ({
     id,

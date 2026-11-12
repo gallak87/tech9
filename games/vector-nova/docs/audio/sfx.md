@@ -69,3 +69,13 @@ Interceptor boss recordings live separately in `assets/audio/sfx/bosses/`, prese
 ## Source and licences
 
 Runtime code is MIT. The model weights use the [Stability AI Community License](https://huggingface.co/stabilityai/stable-audio-3-optimized/blob/main/LICENSE.md); the bundled Google T5Gemma text encoder also carries [Gemma terms](https://huggingface.co/stabilityai/stable-audio-3-optimized/blob/main/LICENSE_GEMMA.md). Setup preserves both texts in `model-licenses/`. Downloads remain local; the game does not ship the runtime or weights. Record the pinned toolchain, config and any supplied reference audio when registering an accepted effect.
+
+## Landing and Freestyle set
+
+The road catch and Good/Great/Perfect bank phrases are separate actions: tactile magnetic support first, then a brighter scoring resolution. Completed tricks use a small tick; score counting stays silent. Current configs and WAVs are `landing-catch`, `freestyle-bank-good`, `freestyle-bank-great`, `freestyle-bank-perfect` and `freestyle-trick` under `assets/audio/sfx/`. Generate each source sequentially using its JSON and `--output .experiments/<cue>-source.wav`, then master the complete set:
+
+```sh
+python3 assets/audio/sfx/landing-feedback-master.py --sources .experiments
+```
+
+The script records source/master hashes and exact trims, pitch-preserving phrase fitting, filtering, compression and silent fades in `landing-feedback-provenance.json`. Durations are 0.42 s for touchdown, 0.35/0.45/0.65 s for the grades and 0.10 s for a trick. The set is integrated for user audition; musical and gameplay mix approval remains with the owner. Use Sounds for isolated clips, or Ship inspector → Powerups, equipment & contact → Landing & Freestyle for the descent, shared ship seating and magnetic VFX, with optional engine sound.

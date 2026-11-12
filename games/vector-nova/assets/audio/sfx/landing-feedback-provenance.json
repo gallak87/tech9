@@ -1,0 +1,125 @@
+{
+  "runtime": "Stable Audio 3 Small-SFX MLX",
+  "toolchain": "tools/sfx-models.json",
+  "mastering": "landing-feedback-master.py; FFmpeg filters and pitch-preserving atempo",
+  "referenceAudio": null,
+  "format": "stereo 44100 Hz 16-bit PCM",
+  "approval": "Integrated for user listening and gameplay review; no human approval claimed.",
+  "cues": {
+    "landing-catch": {
+      "config": "landing-catch.json",
+      "configSha256": "7b45f1a508d37b41d60bb1808a3e3b25eb5385b35f282f04b0008c4d34481003",
+      "sourceSha256": "b6e3c11374cc52f6de4cc8d72b3084fb27484fda5e345587716396fd41398b95",
+      "master": "landing-catch.wav",
+      "masterSha256": "a8fce946bda15534dcbc92cdb634f82735ce5d0c38b17d1833c512171c4f7530",
+      "durationSeconds": 0.42,
+      "sourceStartSeconds": 1.025,
+      "sourceWindowSeconds": 0.42,
+      "processing": {
+        "highpassHz": 35,
+        "lowpassHz": 6200,
+        "pitchPreservingTempo": [],
+        "compressor": {
+          "threshold": 0.1,
+          "ratio": 1.8,
+          "attackMs": 1,
+          "releaseMs": 45
+        },
+        "peakDbfs": -1.5,
+        "fadeInSeconds": 0.001,
+        "raisedCosineFadeOutSeconds": 0.045
+      }
+    },
+    "freestyle-bank-good": {
+      "config": "freestyle-bank-good.json",
+      "configSha256": "67cf82376543be28263e7816738dbfe8f54bd14fcdfd2e2e555f6ba2d393039c",
+      "sourceSha256": "fd3c5e06eb2935a2426875d7efdfff7383a3027dd20a5a670394586d1390d08c",
+      "master": "freestyle-bank-good.wav",
+      "masterSha256": "228c8c41febd86ed15a94fd627bf95c5fce59295880277d64c30e3feec91ebf0",
+      "durationSeconds": 0.35,
+      "sourceStartSeconds": 0.135,
+      "sourceWindowSeconds": 0.66,
+      "processing": {
+        "highpassHz": 90,
+        "lowpassHz": 6500,
+        "pitchPreservingTempo": [1.885714285714286],
+        "compressor": {
+          "threshold": 0.1,
+          "ratio": 1.8,
+          "attackMs": 1,
+          "releaseMs": 45
+        },
+        "peakDbfs": -2,
+        "fadeInSeconds": 0.002,
+        "raisedCosineFadeOutSeconds": 0.035
+      }
+    },
+    "freestyle-bank-great": {
+      "config": "freestyle-bank-great.json",
+      "configSha256": "9b030b1897ed54ac3fb89c1a3f73476096127ba0544cfc1ab71c6c2c74d26307",
+      "sourceSha256": "ccb162fecc6545ba39d3be3ffdb0052e26025206c514c68670d37871aba5ff20",
+      "master": "freestyle-bank-great.wav",
+      "masterSha256": "33693b7655364a86fde87b6d02e58e68aaf419d5240f3005f1c20b77116fdd5b",
+      "durationSeconds": 0.45,
+      "sourceStartSeconds": 0,
+      "sourceWindowSeconds": 1.08,
+      "processing": {
+        "highpassHz": 90,
+        "lowpassHz": 6500,
+        "pitchPreservingTempo": [2, 1.2],
+        "compressor": {
+          "threshold": 0.1,
+          "ratio": 1.8,
+          "attackMs": 1,
+          "releaseMs": 45
+        },
+        "peakDbfs": -2,
+        "fadeInSeconds": 0.002,
+        "raisedCosineFadeOutSeconds": 0.05
+      }
+    },
+    "freestyle-bank-perfect": {
+      "config": "freestyle-bank-perfect.json",
+      "configSha256": "60c89cdc7a8a010c1116bf8fb0ffb2ac0f916be586fccfd13b78ea16c41fc45b",
+      "sourceSha256": "329e9f9126ebb3cb2ace61a9307bd723c7fd4840e93028a793ccd4b84d4d17c6",
+      "master": "freestyle-bank-perfect.wav",
+      "masterSha256": "67c7e10efac17e10ea6565b0deaab9aeada6fc8e6f5bee71dc9f301fe765e396",
+      "durationSeconds": 0.65,
+      "sourceStartSeconds": 0.025,
+      "sourceWindowSeconds": 1.18,
+      "processing": {
+        "highpassHz": 80,
+        "lowpassHz": 7000,
+        "pitchPreservingTempo": [1.8153846153846152],
+        "compressor": {
+          "threshold": 0.1,
+          "ratio": 1.8,
+          "attackMs": 1,
+          "releaseMs": 45
+        },
+        "peakDbfs": -1.8,
+        "fadeInSeconds": 0.002,
+        "raisedCosineFadeOutSeconds": 0.065
+      }
+    },
+    "freestyle-trick": {
+      "config": "freestyle-trick.json",
+      "configSha256": "ba75c85f1aaf698f9c8988d6e14e68f3f5e9fbd5a88d8bf9ebe2c0eb2b5bc04d",
+      "sourceSha256": "ab0daece73b8f6a134ed69bf92a6f52ffb90873670d7a62d22b0b74e3a51a5cd",
+      "master": "freestyle-trick.wav",
+      "masterSha256": "500cb289f63e8dfbff218c6f834a64a0d547d92fb9916be0b525cd061af09235",
+      "durationSeconds": 0.1,
+      "sourceStartSeconds": 0,
+      "sourceWindowSeconds": 0.1,
+      "processing": {
+        "highpassHz": 180,
+        "lowpassHz": 5000,
+        "pitchPreservingTempo": [],
+        "compressor": null,
+        "peakDbfs": -4,
+        "fadeInSeconds": 0.0005,
+        "raisedCosineFadeOutSeconds": 0.018
+      }
+    }
+  }
+}

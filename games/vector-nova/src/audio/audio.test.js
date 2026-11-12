@@ -1,8 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createAudio } from './index.js';
-import { createLandingAudio, LANDING_AUDIO_RULES } from './landing.js';
-import { createFreestyleAudio } from '../freestyle/audio.js';
+import {
+  createLandingAudio,
+  LANDING_AUDIO_RULES,
+  LANDING_SAMPLE_URL,
+} from './landing.js';
+import { createFreestyleAudio, FREESTYLE_SAMPLES } from '../freestyle/audio.js';
 import { createPropulsion } from './propulsion.js';
 import { createPickupAudio } from '../pickups/audio.js';
 import { DEVICE_SAMPLES, deviceSample } from '../pickups/sample-cues.js';
@@ -11,6 +15,7 @@ import { createSoundPreview } from './sound-preview.js';
 import { soundEffects } from './sounds.js';
 import { RACE_SAMPLES, raceSample } from './sample-cues.js';
 import { EQUIPMENT } from '../progression/catalog.js';
+import { createLandingFeedback } from '../presentation/landing-feedback.js';
 import {
   createHazardContactAudio,
   HAZARD_CONTACT_AUDIO,
@@ -60,6 +65,7 @@ class Context {
       kind,
       gain: new Param(),
       frequency: new Param(),
+      playbackRate: new Param(),
       detune: new Param(),
       Q: new Param(),
       pan: new Param(),
@@ -146,10 +152,11 @@ function sampleContext(durations = {}) {
   return context;
 }
 
-test('neutral landing voices require confirmed presentation events, dedupe contacts and never queue past the voice cap', () => {
-  const context = new Context(),
+test('neutral landing voices require confirmed presentation events, dedupe contacts and never queue past the voice cap', async () => {
+  const context = sampleContext(),
     destination = {};
-  const landing = createLandingAudio(context, destination);
+  const landing = createLandingAudio(context, destination, { fetchAudio });
+  await landing.prepare();
   const contact = (at, strength = 1) => ({
     type: 'landing-catch',
     payload: { id: 'course-jump', at, strength },
@@ -212,12 +219,13 @@ test('neutral landing voices require confirmed presentation events, dedupe conta
 });
 
 test('common landing cues compose with biome audio and obey unlock, mute, pause, results, retry and disposal', async () => {
-  const context = new Context();
+  const context = sampleContext();
   let destination,
     biomeEvents = 0,
     biomeDisposed = 0;
   const audio = createAudio({
     createContext: () => context,
+    fetchAudio,
     engine: false,
     samples: {},
     environment: (_context, bus) => {
@@ -287,32 +295,169 @@ test('common landing cues compose with biome audio and obey unlock, mute, pause,
   assert.equal(audio.event(contact(3)), false);
 });
 
-test('Freestyle retains its one graded landing voice without also playing the common cue', async () => {
-  const context = new Context();
+test('Freestyle sounds the supported touchdown before its separate graded points reward', async () => {
+  const context = sampleContext();
   const audio = createAudio({
     createContext: () => context,
+    fetchAudio,
     engine: false,
     samples: {},
     environment: createFreestyleAudio,
   });
   await audio.unlock();
   audio.update(state, 0.5, true);
-  audio.event({
+  const feedback = createLandingFeedback();
+  feedback.sample({ clock: 0, grounded: false });
+  const contact = {
     type: 'jump-transfer',
+    time: 1,
     payload: { id: 'transfer-1', outcome: 'landed' },
-  });
+  };
+  feedback.event(contact);
+  context.currentTime = 1;
+  audio.event(feedback.sample({ clock: 1, grounded: true }));
+  assert.equal(audio.getStatus().landing.triggerCount, 1);
+  assert.equal(audio.getPresentation().triggerCount, 0);
+  const touchdown = context.nodes.filter((node) => node.kind === 'buffer');
+  assert.equal(touchdown.length, 1);
+  assert.deepEqual(touchdown[0].startTimes, [1]);
+  context.currentTime = 1.3;
   const event = {
     type: 'freestyle-bank',
-    payload: { id: 'transfer-1', at: 1, landed: true },
+    payload: { id: 'transfer-1', at: 1.3, landed: true },
   };
   audio.event(event);
   audio.event(event);
   assert.equal(
     context.nodes.filter((node) => node.kind === 'buffer').length,
-    1,
+    2,
   );
   assert.equal(audio.getPresentation().lastGrade, 'good');
-  assert.equal(audio.getStatus().landing.triggerCount, 0);
+  assert.equal(audio.getStatus().landing.triggerCount, 1);
+  const reward = context.nodes.filter((node) => node.kind === 'buffer').at(-1);
+  assert.deepEqual(reward.startTimes, [1.3]);
+  assert.notEqual(reward.buffer.sampleUrl, touchdown[0].buffer.sampleUrl);
+  assert.equal(audio.duration({ type: 'landing-catch' }), 0.5);
+  assert.equal(audio.duration(event), 0.5);
+  await audio.dispose();
+});
+
+test('completed-transfer feedback releases existing voices over frozen practice without admitting new cues', async () => {
+  const context = sampleContext();
+  const audio = createAudio({
+    createContext: () => context,
+    fetchAudio,
+    engine: false,
+    samples: {},
+    environment: createFreestyleAudio,
+  });
+  await audio.unlock();
+  audio.update(state, 0.5, true);
+  const contact = {
+    type: 'landing-catch',
+    payload: { id: 'transfer-1', at: 1, strength: 1 },
+  };
+  audio.event(contact);
+  context.currentTime = 0.3;
+  const bank = {
+    type: 'freestyle-bank',
+    payload: { id: 'transfer-1', at: 1.3, landed: true, perfect: true },
+  };
+  audio.event(bank);
+  assert.equal(audio.finishPracticeFeedback(), 0.5);
+  audio.update(state, 0.5, false, { practiceComplete: true });
+  assert.equal(audio.getStatus().audible, true);
+  assert.equal(audio.getStatus().landing.activeVoices, 1);
+  assert.equal(audio.getPresentation().activeVoices, 1);
+  const nodes = context.nodes.length;
+  audio.event({ ...contact, payload: { ...contact.payload, at: 2 } });
+  audio.event({ ...bank, payload: { ...bank.payload, id: 'transfer-2' } });
+  audio.event({ type: 'countdown-go' });
+  assert.equal(context.nodes.length, nodes, 'a tail cannot launch new sounds');
+  context.currentTime = 0.79;
+  audio.update(state, 0.5, false, { practiceComplete: true });
+  assert.equal(audio.getStatus().audible, true);
+  context.currentTime = 0.81;
+  audio.update(state, 0.5, false, { practiceComplete: true });
+  assert.equal(audio.getStatus().audible, false);
+  assert.equal(audio.getStatus().landing.activeVoices, 0);
+  assert.equal(audio.getPresentation().activeVoices, 0);
+  audio.update(state, 0.5, false, { practiceComplete: true });
+  assert.equal(
+    audio.getStatus().audible,
+    false,
+    'completion cannot rearm a tail',
+  );
+  await audio.dispose();
+});
+
+test('practice feedback is bounded and ordinary pause, mute, retry and disposal still stop it', async () => {
+  for (const cancel of [
+    'pause',
+    'mute',
+    'retry',
+    'resume',
+    'suspend',
+    'dispose',
+  ]) {
+    const context = sampleContext();
+    const audio = createAudio({
+      createContext: () => context,
+      fetchAudio,
+      engine: false,
+      samples: {},
+      environment: createFreestyleAudio,
+    });
+    await audio.unlock();
+    audio.update(state, 0.5, true);
+    audio.event({
+      type: 'freestyle-bank',
+      payload: { id: cancel, at: 1, landed: true },
+    });
+    assert.equal(audio.finishPracticeFeedback(), 0.5);
+    audio.update(state, 0.5, false, { practiceComplete: true });
+    if (cancel === 'pause') audio.update(state, 0.5, false);
+    if (cancel === 'mute')
+      audio.update(state, 0, false, { practiceComplete: true });
+    if (cancel === 'retry') audio.resetEnvironment();
+    if (cancel === 'resume') audio.cancelFeedbackTail();
+    if (cancel === 'suspend') {
+      context.state = 'suspended';
+      audio.update(state, 0.5, false, { practiceComplete: true });
+      context.state = 'running';
+    }
+    if (cancel === 'dispose') await audio.dispose();
+    assert.equal(audio.getPresentation().activeVoices, 0, cancel);
+    audio.update(state, 0.5, false, { practiceComplete: true });
+    assert.equal(
+      audio.getStatus().audible,
+      false,
+      `${cancel}: no delayed replay`,
+    );
+    await audio.dispose();
+  }
+  const context = sampleContext();
+  let stopped = 0;
+  const audio = createAudio({
+    createContext: () => context,
+    fetchAudio,
+    engine: false,
+    samples: {},
+    environment: () => ({
+      remainingSeconds: () => 30,
+      stop() {
+        stopped++;
+      },
+      dispose() {},
+    }),
+  });
+  await audio.unlock();
+  audio.update(state, 0.5, true);
+  assert.equal(audio.finishPracticeFeedback(), 1.5);
+  context.currentTime = 1.51;
+  audio.update(state, 0.5, false, { practiceComplete: true });
+  assert.equal(audio.getStatus().audible, false);
+  assert.ok(stopped > 0);
   await audio.dispose();
 });
 
@@ -1479,6 +1624,27 @@ test('every Sounds entry reaches a live cue or bed, using the current sample whe
         assert.equal(
           context.nodes.filter((node) => node.kind === 'oscillator').length,
           0,
+        );
+        preview.stop();
+        await driver.dispose();
+        continue;
+      }
+      if (sound.freestyle || sound.event?.type === 'landing-catch') {
+        const source = context.nodes.find(
+          (node) => node.kind === 'buffer' && !node.loop,
+        );
+        const cue = driver.getPresentation()?.lastCue;
+        assert.equal(
+          source.buffer.sampleUrl,
+          sound.freestyle
+            ? FREESTYLE_SAMPLES[cue.startsWith('trick:') ? 'trick' : cue]
+            : LANDING_SAMPLE_URL,
+          sound.id,
+        );
+        assert.equal(
+          context.nodes.filter((node) => node.kind === 'oscillator').length,
+          0,
+          'landing and reward auditions use the gameplay recording',
         );
         preview.stop();
         await driver.dispose();

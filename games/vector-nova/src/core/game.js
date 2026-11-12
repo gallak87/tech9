@@ -397,7 +397,7 @@ export async function createGame({
       effects = lifetime.own(createEffects(scene, definition.effects));
     let rig = createCameraRig(camera, definition.camera, inspectionBounds);
     const raceFeedback = createRaceFeedback();
-    const landingFeedback = freestyle ? null : createLandingFeedback();
+    const landingFeedback = createLandingFeedback();
     const landingVfx = freestyle
       ? null
       : lifetime.own(createLandingVfx({ track }));
@@ -767,7 +767,9 @@ export async function createGame({
           grounded: support?.grounded,
           recovering: support?.recovering,
         });
-        if (cue && mode === 'racing') {
+        // Jump Drive retains its dedicated equipment landing sample;
+        // its common contact envelope still supplies seating and catch VFX.
+        if (cue && mode === 'racing' && cue.payload.id !== 'equipment-jump') {
           try {
             audio.event(cue);
           } catch {
@@ -778,7 +780,7 @@ export async function createGame({
       tick++;
       if (freestylePractice?.outcome && !freestylePractice.notified) {
         freestylePractice.notified = true;
-        pause();
+        pause({ practiceComplete: true });
         return;
       }
       const freestyleResult = freestyle && runtime.snapshot().freestyle?.result;
@@ -1245,7 +1247,9 @@ export async function createGame({
         window.__VN.loadScenario('signature-entry', 47219);
       }
     }
-    function pause() {
+    function pause({ practiceComplete = false } = {}) {
+      if (practiceComplete) audio.finishPracticeFeedback();
+      else audio.cancelFeedbackTail();
       if (!['racing', 'countdown'].includes(mode)) return;
       pausedCountdown = mode === 'countdown';
       if (pausedCountdown) {
@@ -1258,6 +1262,7 @@ export async function createGame({
       ui.setMode(mode);
     }
     function resume() {
+      audio.cancelFeedbackTail();
       flyCamera?.leave();
       if (pausedCountdown) {
         armCountdown(true);
@@ -2037,6 +2042,8 @@ export async function createGame({
         {
           countdown: mode === 'countdown',
           results: mode === 'results' || (mode === 'racing' && finishing),
+          practiceComplete:
+            mode === 'paused' && freestylePractice?.notified === true,
         },
       );
       if (mode === 'countdown') {

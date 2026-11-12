@@ -20,6 +20,42 @@ const race = (id, label, type, payload = {}, seconds = 0.8) => ({
 });
 
 export const soundEffects = [
+  race(
+    'landing-catch',
+    'Landing · magnetic touchdown',
+    'landing-catch',
+    { id: 'sound-preview', at: 0, strength: 1 },
+    0.7,
+  ),
+  ...['good', 'great', 'perfect'].map((grade) => ({
+    ...race(
+      `freestyle-bank-${grade}`,
+      `Freestyle · ${grade[0].toUpperCase()}${grade.slice(1)} points bank`,
+      'freestyle-bank',
+      {
+        id: 'sound-preview',
+        at: 0,
+        landed: true,
+        clean: grade !== 'good',
+        perfect: grade === 'perfect',
+        chain: 1,
+      },
+      0.9,
+    ),
+    group: 'Freestyle',
+    freestyle: true,
+  })),
+  {
+    ...race(
+      'freestyle-trick',
+      'Freestyle · completed trick',
+      'freestyle-trick',
+      { id: 'sound-preview', ordinal: 1, kind: 'roll' },
+      0.35,
+    ),
+    group: 'Freestyle',
+    freestyle: true,
+  },
   {
     id: 'fire-contact',
     label: 'Fire · bonfire crackle',

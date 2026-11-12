@@ -2,6 +2,33 @@
   "policy": "Project-owned geometry/materials, generated sky/material imagery and explicitly registered CC0 material scans; sources, licences and prompts retained in per-asset provenance. Track current exports and their required sources; remove superseded iterations. No copied reference-game artwork.",
   "assets": [
     {
+      "id": "landing-freestyle-sfx",
+      "source": "assets/audio/sfx/",
+      "creator": "VECTOR//NOVA project contributors with Stable Audio 3 Small-SFX",
+      "provenance": "Five locally generated effects: one sticky electromagnetic road catch, distinct Good/Great/Perfect point-bank phrases and one restrained completed-trick tick. Generated sequentially using the pinned official Small-SFX MLX runtime without reference audio. The mastering script aligns actual attacks, trims unused padding, uses pitch-preserving tempo fitting for reward phrases, gently filters/compresses the body and applies normalized peaks and silent fades. Physical touchdown and confirmed scoring use separate events. Gameplay, Sounds and Ship inspector share the WAVs. Exact configs, source/master hashes and processing are retained. Integrated for user listening and playtest; no human listening approval claimed.",
+      "rights": "AI-generated output. Runtime code is MIT; model weights use the Stability AI Community License and the T5Gemma encoder carries Gemma terms. See docs/audio/sfx.md.",
+      "runtimeDependencies": [],
+      "provenanceRecord": "assets/audio/sfx/landing-feedback-provenance.json",
+      "generationConfigs": [
+        "assets/audio/sfx/landing-catch.json",
+        "assets/audio/sfx/freestyle-bank-good.json",
+        "assets/audio/sfx/freestyle-bank-great.json",
+        "assets/audio/sfx/freestyle-bank-perfect.json",
+        "assets/audio/sfx/freestyle-trick.json"
+      ],
+      "sourceAssets": [
+        "assets/audio/sfx/landing-feedback-master.py",
+        "tools/sfx-models.json"
+      ],
+      "runtimeAssets": [
+        "assets/audio/sfx/landing-catch.wav",
+        "assets/audio/sfx/freestyle-bank-good.wav",
+        "assets/audio/sfx/freestyle-bank-great.wav",
+        "assets/audio/sfx/freestyle-bank-perfect.wav",
+        "assets/audio/sfx/freestyle-trick.wav"
+      ]
+    },
+    {
       "id": "interceptor-bulwark-sfx",
       "source": "assets/audio/sfx/bosses/",
       "creator": "VECTOR//NOVA project contributors with Stable Audio 3 Small-SFX",
@@ -974,7 +1001,7 @@
       "id": "zephyr-skywell",
       "source": "src/levels/zephyr-skywell/",
       "creator": "VECTOR//NOVA project contributors",
-      "provenance": "Original source-authored Zephyr Skywell five-transfer route, banked receivers and descending water-garden composition. Reuses registered canonical Zephyr islands, cathedral/abbey/chapel/tower/halo/aqueduct/waterfall GLBs, the Blender-authored open aqueduct bay, limestone image, road weave, material/water/lighting helpers and sky backdrop. Skywell owns stacked shores, close architectural precinct compositions, connected stepped water streets and bounded receiving cisterns. Its local metric deck finish adds fitted cassette joints and restrained satin coating; garden-finish.js wraps the canonical mineral finish with broad muted cultivated courts using existing noise/relief and no new images. The separately registered original arrival kit supplies formed bronze beacons and underside carriages, while the original garden-terrace kit constructs the Crown, Counterbank and Last Light receiving shores. Other private island clones retain natural mineral bodies with old loose ornament roles hidden. Cultivated groves use the public Worldkit Living Forest kit and its canonical bark/leaf images, ray-seated on actual terrace triangles; package assets retain their existing provenance. The short receiving tube shares Shatterline tube-surface.js and tube-tessellation.js geometry/contact mechanics; three powered approaches reuse shared Vector hardware. Good, Great and Perfect magnetic catches and completed-trick ticks use original deterministic runtime synthesis in src/freestyle/audio.js through the shared effects mixer. No new downloaded media or runtime image assets.",
+      "provenance": "Original source-authored Zephyr Skywell five-transfer route, banked receivers and descending water-garden composition. Reuses registered canonical Zephyr islands, cathedral/abbey/chapel/tower/halo/aqueduct/waterfall GLBs, the Blender-authored open aqueduct bay, limestone image, road weave, material/water/lighting helpers and sky backdrop. Skywell owns stacked shores, close architectural precinct compositions, connected stepped water streets and bounded receiving cisterns. Its local metric deck finish adds fitted cassette joints and restrained satin coating; garden-finish.js wraps the canonical mineral finish with broad muted cultivated courts using existing noise/relief and no new images. The separately registered original arrival kit supplies formed bronze beacons and underside carriages, while the original garden-terrace kit constructs the Crown, Counterbank and Last Light receiving shores. Other private island clones retain natural mineral bodies with old loose ornament roles hidden. Cultivated groves use the public Worldkit Living Forest kit and its canonical bark/leaf images, ray-seated on actual terrace triangles; package assets retain their existing provenance. The short receiving tube shares Shatterline tube-surface.js and tube-tessellation.js geometry/contact mechanics; three powered approaches reuse shared Vector hardware. Physical touchdown, Good/Great/Perfect point-bank rewards and completed-trick ticks use the separately registered landing-freestyle-sfx recordings through the shared effects mixer. No new downloaded media or runtime image assets.",
       "rights": "Derived from this project's registered Zephyr and equipment assets, project-authored Shatterline geometry mechanics and Worldkit Living Forest assets; their original provenance and rights apply",
       "runtimeDependencies": ["three", "@worldkit/environment/living-forest"],
       "provenanceRecords": [

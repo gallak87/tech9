@@ -843,10 +843,15 @@ try {
     FREESTYLE_GRADES[landedGrade].label,
   );
   assert.equal((await read()).environment.freestyleCatch.grade, landedGrade);
+  await page.waitForFunction(
+    () => window.__VN.getSnapshot().environment.thunder.activeVoices === 0,
+    null,
+    { timeout: 2000 },
+  );
   assert.equal(
     (await read()).environment.thunder.activeVoices,
     0,
-    'practice pause stops landing voices',
+    'completed practice lets the current grade sample finish and then releases its voice',
   );
   assert.equal(
     await page.locator('.freestyle-payoff').isVisible(),

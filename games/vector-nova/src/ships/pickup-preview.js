@@ -4,6 +4,8 @@ import { createCombatPresentation } from '../pickups/combat-presentation.js';
 import { createHitFeedback } from '../pickups/hit-feedback.js';
 import { createPickupPreviewAudio } from './pickup-preview-audio.js';
 import { createEquipmentEffects } from '../equipment/effects.js';
+import { createLandingPreview } from './landing-preview.js';
+import { isLandingPreview } from './landing-demonstration.js';
 import {
   createThermalPreview,
   THERMAL_PREVIEW_CONTACT,
@@ -28,6 +30,7 @@ export function createPickupPreview({
   createFeedback = createShipFeedbackPresentation,
   createCombat = createCombatPresentation,
   createThermal = createThermalPreview,
+  createLanding = createLandingPreview,
 }) {
   const root = new Group();
   root.name = 'Inspector / isolated pickup audition';
@@ -83,6 +86,7 @@ export function createPickupPreview({
     camera,
     getSettings,
   });
+  const landing = createLanding({ ship, frame, getSettings });
   if (target) {
     target.position.set(0, 0, PREVIEW_TARGET_DISTANCE);
     frame.add(target);
@@ -93,6 +97,7 @@ export function createPickupPreview({
     current = null;
     audio.stop();
     thermal.stop();
+    landing.stop();
     feedback.reset();
     equipment.reset();
     targetFeedback?.update();
@@ -111,6 +116,23 @@ export function createPickupPreview({
     onStatus(status);
   }
   function render(previous, dt = 0) {
+    if (isLandingPreview(current.kind)) {
+      const demo = landing.update(
+        current.kind,
+        current.time,
+        current.paused,
+        previous,
+      );
+      if (ship) {
+        pose.position.copy(ship.position);
+        pose.quaternion.copy(ship.quaternion);
+      }
+      if (current.status !== demo.stage)
+        onStatus((current.status = demo.stage));
+      onDemonstration(demo);
+      current.end = demo.end;
+      return;
+    }
     if (current.kind === 'fire-contact') {
       thermal.update(current.time, current.paused);
       const status =
@@ -233,7 +255,11 @@ export function createPickupPreview({
       const token = request;
       try {
         const audioDuration = await (
-          kind === 'fire-contact' ? thermal : audio
+          kind === 'fire-contact'
+            ? thermal
+            : isLandingPreview(kind)
+              ? landing
+              : audio
         ).prepare(kind);
         if (disposed || token !== request) return false;
         current = {
@@ -244,8 +270,8 @@ export function createPickupPreview({
           shieldConsumed: false,
           paused,
         };
-        root.visible = kind !== 'fire-contact';
-        combatRoot.visible = kind !== 'fire-contact';
+        root.visible = kind !== 'fire-contact' && !isLandingPreview(kind);
+        combatRoot.visible = kind !== 'fire-contact' && !isLandingPreview(kind);
         render(-1);
         if (time > 0) {
           current.time = Math.max(0, time);
@@ -272,9 +298,12 @@ export function createPickupPreview({
       if (!disposed) {
         audio.update(
           getSettings(),
-          !!current && current.kind !== 'fire-contact',
+          !!current &&
+            current.kind !== 'fire-contact' &&
+            !isLandingPreview(current.kind),
         );
         thermal.configure();
+        landing.configure();
       }
     },
     setShip(next) {
@@ -284,6 +313,7 @@ export function createPickupPreview({
       ship = next;
       next?.add(root);
       thermal.setShip(next);
+      landing.setShip(next);
       if (target) target.visible = showTarget();
     },
     select(kind) {
@@ -298,6 +328,7 @@ export function createPickupPreview({
       quaternion: pose.quaternion.toArray(),
       target: targetPose.position.toArray(),
       thermal: selectedKind === 'fire-contact' ? thermal.getSnapshot() : null,
+      landing: isLandingPreview(selectedKind) ? landing.getSnapshot() : null,
     }),
     stop,
     dispose() {
@@ -306,6 +337,7 @@ export function createPickupPreview({
       disposed = true;
       audio.dispose();
       thermal.dispose();
+      landing.dispose();
       feedback.dispose();
       equipment.dispose();
       combat.dispose();

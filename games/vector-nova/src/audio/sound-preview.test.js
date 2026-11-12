@@ -18,8 +18,12 @@ function harness() {
       disposals: 0,
       loadedSamples: Object.keys({ ...DEVICE_SAMPLES, ...RACE_SAMPLES }),
       cueDuration: 0,
+      presentation: { loaded: true },
       getStatus() {
-        return { loadedSamples: this.loadedSamples };
+        return { loadedSamples: this.loadedSamples, landing: { loaded: true } };
+      },
+      getPresentation() {
+        return this.presentation;
       },
       duration() {
         return this.cueDuration;
@@ -148,5 +152,41 @@ test('a decoded cue keeps its full tail even when longer than the catalog estima
   resume();
   assert.equal(await playing, true);
   assert.equal([...h.timers][0].duration, 1300);
+  h.preview.dispose();
+});
+
+test('landing and Freestyle auditions route their real owners without propulsion or an extra landing thunk', async () => {
+  const h = harness();
+  await h.preview.play('landing-catch');
+  assert.deepEqual(
+    h.drivers[0].events.map(({ type }) => type),
+    ['landing-catch'],
+  );
+  assert.equal(h.drivers[0].options.engine, false);
+  await h.preview.play('freestyle-bank-perfect');
+  const driver = h.drivers[1];
+  assert.equal(driver.options.engine, false);
+  assert.equal(typeof driver.options.environment, 'function');
+  assert.deepEqual(driver.options.samples, {});
+  assert.deepEqual(
+    driver.events.map(({ type }) => type),
+    ['freestyle-bank'],
+  );
+  assert.equal(driver.events[0].payload.perfect, true);
+  await h.preview.play('freestyle-trick');
+  assert.equal(h.drivers[2].events[0].type, 'freestyle-trick');
+  assert.equal(h.drivers[2].events[0].payload.ordinal, 1);
+  h.preview.dispose();
+});
+
+test('a missing graded reward reports the missing recording and never substitutes synthesis', async () => {
+  const h = harness();
+  const resume = h.deferUnlock();
+  const playing = h.preview.play('freestyle-bank-great');
+  h.drivers[0].presentation.loaded = false;
+  resume();
+  assert.equal(await playing, false);
+  assert.equal(h.drivers[0].events.length, 0);
+  assert.equal(h.statuses.at(-1), 'Sample unavailable: freestyle-bank-great');
   h.preview.dispose();
 });

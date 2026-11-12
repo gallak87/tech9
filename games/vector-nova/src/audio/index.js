@@ -28,6 +28,8 @@ export function createAudio({
   let mixReady = false;
   let environmentActive = false;
   let resultsActive = false;
+  let practiceFeedbackUntil = null;
+  let practiceFeedbackActive = false;
 
   function release(owned) {
     owned.samples.dispose();
@@ -104,14 +106,15 @@ export function createAudio({
                     immersionAtOutput: Boolean(waterMix),
                   })
                 : null,
-              environment: environment?.(context, bus),
-              landing: createLandingAudio(context, bus),
+              environment: environment?.(context, bus, { fetchAudio }),
+              landing: createLandingAudio(context, bus, { fetchAudio }),
               shots: new Set(),
             };
           }
           await resources.context.resume();
           if (!disposed && resources.context.state === 'running') {
             await resources.samples.prepare();
+            await resources.landing.prepare?.();
             await resources.environment?.prepare?.();
           }
           return !disposed && resources.context.state === 'running';
@@ -132,7 +135,7 @@ export function createAudio({
       state,
       volume,
       running,
-      { countdown = false, results = false } = {},
+      { countdown = false, results = false, practiceComplete = false } = {},
     ) {
       resultsActive = results;
       active = (!!running || countdown || results) && !disposed;
@@ -141,6 +144,20 @@ export function createAudio({
       const level = Number.isFinite(volume)
         ? Math.max(0, Math.min(1, volume))
         : 0;
+      // Only a completed developer transfer can release already-playing catch
+      // and reward tails over frozen physics. This never admits new events.
+      const practiceFeedback =
+        practiceComplete &&
+        !running &&
+        !countdown &&
+        !results &&
+        context.state === 'running' &&
+        level > 0 &&
+        practiceFeedbackUntil !== null &&
+        context.currentTime < practiceFeedbackUntil;
+      practiceFeedbackActive = practiceFeedback;
+      if (!practiceFeedback) practiceFeedbackUntil = null;
+      active ||= practiceFeedback;
       audible = active && level > 0;
       environmentActive = !!running && audible;
       // Set the bus before its first transient instead of swallowing the attack.
@@ -157,18 +174,43 @@ export function createAudio({
       mixReady = audible;
       smooth(propulsionBus.gain, running ? 1 : 0, context.currentTime, 0.012);
       if (running) propulsion?.update(state);
-      if (!environmentActive) {
+      if (!environmentActive && !practiceFeedback) {
         resources.landing.stop();
         resources.environment?.stop();
         resources.thunder?.stop();
       }
       for (const shot of resources.shots)
-        if (!audible || (results && !shot.finish)) {
+        if (!audible || ((results || practiceFeedback) && !shot.finish)) {
           shot.stop();
           resources.shots.delete(shot);
         }
     },
+    finishPracticeFeedback() {
+      if (!resources || disposed || !environmentActive) return 0;
+      const seconds = Math.min(
+        1.5,
+        Math.max(
+          0,
+          resources.landing.remainingSeconds?.() ?? 0,
+          resources.environment?.remainingSeconds?.() ?? 0,
+        ),
+      );
+      practiceFeedbackUntil = resources.context.currentTime + seconds;
+      return seconds;
+    },
+    cancelFeedbackTail() {
+      if (practiceFeedbackUntil === null) return;
+      practiceFeedbackUntil = null;
+      if (practiceFeedbackActive) {
+        active = audible = mixReady = false;
+        practiceFeedbackActive = false;
+      }
+      resources?.landing.stop();
+      resources?.environment?.stop();
+    },
     resetEnvironment() {
+      practiceFeedbackUntil = null;
+      practiceFeedbackActive = false;
       resources?.landing.reset();
       resources?.thunder?.stop();
       resources?.environment?.stop();
@@ -202,6 +244,11 @@ export function createAudio({
       );
     },
     duration(event) {
+      if (event?.type === 'landing-catch')
+        return resources?.landing.duration?.() ?? 0;
+      const environmentDuration = resources?.environment?.duration?.(event);
+      if (Number.isFinite(environmentDuration) && environmentDuration > 0)
+        return environmentDuration;
       const sample = raceSample(event);
       return sample ? (resources?.samples.get(sample.id)?.duration ?? 0) : 0;
     },
@@ -228,6 +275,7 @@ export function createAudio({
         !resources ||
         disposed ||
         !audible ||
+        practiceFeedbackActive ||
         (resultsActive && !champion && !bossDisabled)
       )
         return;
@@ -354,7 +402,13 @@ export function createAudio({
     dispose() {
       if (disposed) return disposal || Promise.resolve();
       disposed = true;
-      active = false;
+      active =
+        audible =
+        environmentActive =
+        mixReady =
+        practiceFeedbackActive =
+          false;
+      practiceFeedbackUntil = null;
       if (!resources) return Promise.resolve();
       const owned = resources;
       owned.samples.dispose();

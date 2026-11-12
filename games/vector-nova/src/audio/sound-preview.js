@@ -4,6 +4,7 @@ import { deviceSample } from '../pickups/sample-cues.js';
 import { raceSample } from './sample-cues.js';
 import { soundEffects } from './sounds.js';
 import { effectsVolume } from '../progression/index.js';
+import { createFreestyleAudio } from '../freestyle/audio.js';
 import {
   createHazardContactAudio,
   HAZARD_CONTACT_AUDIO,
@@ -18,6 +19,7 @@ export function createSoundPreview({
   createRaceAudio = createAudio,
   createDeviceAudio = createPickupAudio,
   createContactAudio = createHazardContactAudio,
+  createGradedAudio = createFreestyleAudio,
   schedule = setTimeout,
   cancel = clearTimeout,
 } = {}) {
@@ -70,6 +72,10 @@ export function createSoundPreview({
           ? createDeviceAudio()
           : createRaceAudio({
               engine: Boolean(sound.state),
+              ...(sound.id === 'landing-catch' ? { samples: {} } : {}),
+              ...(sound.freestyle
+                ? { samples: {}, environment: createGradedAudio }
+                : {}),
               ...(sound.hazard
                 ? {
                     samples: {},
@@ -103,6 +109,19 @@ export function createSoundPreview({
       if (sound.hazard && audio.getPresentation()?.loaded !== true) {
         stop();
         onStatus(`Sample unavailable: ${sound.id}`);
+        return false;
+      }
+      if (sound.freestyle && audio.getPresentation()?.loaded !== true) {
+        stop();
+        onStatus(`Sample unavailable: ${sound.id}`);
+        return false;
+      }
+      if (
+        sound.id === 'landing-catch' &&
+        audio.getStatus().landing?.loaded === false
+      ) {
+        stop();
+        onStatus('Sample unavailable: landing-catch');
         return false;
       }
       if (!configure()) return false;

@@ -4,6 +4,7 @@ import { DEVICE_PREVIEWS } from './pickup-preview-sequence.js';
 import { createRivalPreview } from './rivals.js';
 import { createEnginePreview } from './engine-preview.js';
 import { createPairedFraming } from './inspection-framing.js';
+import { isLandingPreview } from './landing-demonstration.js';
 import './pickup-inspector.css';
 
 // Loaded only by the browser inspector with dev=1 or dev=2.
@@ -140,7 +141,13 @@ export async function createPickupInspector({
       box.min.z -= 4; // Driving exhaust extends beyond the authored hull bounds.
       if (select.value === 'stabilizer') box.min.x -= 3.2;
       box.max.y +=
-        select.value === 'jump' ? 9.4 : select.value === 'stabilizer' ? 4.5 : 0;
+        select.value === 'jump'
+          ? 9.4
+          : select.value === 'stabilizer'
+            ? 4.5
+            : isLandingPreview(select.value)
+              ? 2.8
+              : 0;
       if (select.value === 'slipstream') box.min.z = Math.min(box.min.z, -16);
       const subjects = [{ min: box.min.toArray(), max: box.max.toArray() }];
       if (

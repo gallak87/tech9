@@ -1,6 +1,6 @@
 {
-  "prompt": "A single soft mid-low electronic tone with a rounded, slightly brighter timbre. It holds one steady pitch briefly and fades cleanly. Calm minimal dry confirmation. No melody, sequence, beat, voices or ambience.",
-  "seconds": 2,
+  "prompt": "A short celebratory electronic finish sting. A quick glowing rise with a hint of suspense opens into a rich, layered synth bloom that starts in the middle register and bends sharply upward into a brighter mid-high finish, landing with a tight, punchy final accent. An open, bright beeahp shape with a light body and a little warmth underneath. Excited, uplifting and slightly awestruck, with a satisfying harmonic reveal and a brief smooth decay. One compact half-second celebration. No vocals, brass fanfare, rapid arpeggios or retro bleeps.",
+  "seconds": 1,
   "seed": 74313,
   "steps": 8,
   "cfg": 1

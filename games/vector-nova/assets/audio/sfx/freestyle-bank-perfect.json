@@ -1,14 +1,7 @@
 {
-  "source": "freestyle-bank-great.wav",
-  "description": "Longer breathy whaw-whaw with more support in the second lobe, no new notes.",
-  "durationSeconds": 0.36,
-  "highpassHz": 150,
-  "lowpassStartHz": 1750,
-  "lowpassEndHz": 1750,
-  "firstLobeGain": 0.9,
-  "secondLobeGain": 1.2,
-  "tailGain": 0.4,
-  "fadeInSeconds": 0.003,
-  "fadeOutSeconds": 0.05,
-  "peakDbfs": -3
+  "prompt": "A short celebratory electronic organ sting. Three quick, distinct notes, C5 then E5 then G5, stepping upward in that order. A warm, rounded electronic organ tone with a solid body, bright upper harmonics and crisp, softly percussive key attacks. The notes connect into one energetic rising gesture, with the final G5 a little fuller and more punchy, then a brief smooth release. Excited, uplifting and slightly awestruck. One compact half-second celebration. Dry and close, no church reverb, long sustained chords, rotary-speaker wobble, vocals or background ambience.",
+  "seconds": 1,
+  "seed": 74313,
+  "steps": 8,
+  "cfg": 1
 }

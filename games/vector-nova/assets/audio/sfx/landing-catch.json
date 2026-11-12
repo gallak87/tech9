@@ -1,14 +1,7 @@
 {
-  "source": "freestyle-bank-great.wav",
-  "description": "Short dry reedy whup, weighted toward the first breath.",
-  "durationSeconds": 0.24,
-  "highpassHz": 180,
-  "lowpassStartHz": 1900,
-  "lowpassEndHz": 1450,
-  "firstLobeGain": 1,
-  "secondLobeGain": 0.38,
-  "tailGain": 0.1,
-  "fadeInSeconds": 0.0008,
-  "fadeOutSeconds": 0.035,
-  "peakDbfs": -2
+  "prompt": "An anti-gravity ship snapping loudly into place in a magentic way. One tight mechanical thump, low ionic short loud buzz, crisp, weighty and close. One isolated 0.5-second activation. No melody, musical chords, voices or background ambience.",
+  "seconds": 1,
+  "seed": 74920,
+  "steps": 8,
+  "cfg": 1
 }

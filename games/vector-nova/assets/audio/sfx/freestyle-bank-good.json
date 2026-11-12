@@ -1,14 +1,7 @@
 {
-  "source": "freestyle-bank-great.wav",
-  "description": "Muted thin reedy whaw-whaw, with a softer second breath.",
-  "durationSeconds": 0.26,
-  "highpassHz": 180,
-  "lowpassStartHz": 1300,
-  "lowpassEndHz": 1150,
-  "firstLobeGain": 0.88,
-  "secondLobeGain": 0.73,
-  "tailGain": 0.16,
-  "fadeInSeconds": 0.003,
-  "fadeOutSeconds": 0.035,
-  "peakDbfs": -3
+  "prompt": "A single compact electronic whap for a good freestyle landing reward. A soft rounded attack opening into a warm, lightly layered synth body that closes in one quick gesture. Subdued, satisfying and slightly arcadey, with a little low-mid weight and a short dry release. One brief half-second accent. No repeated pulses, wobbling, melody, arpeggios, voices or background ambience.",
+  "seconds": 1,
+  "seed": 74313,
+  "steps": 8,
+  "cfg": 1
 }

@@ -7,6 +7,8 @@ import { createPairedFraming } from './inspection-framing.js';
 import { isLandingPreview } from './landing-demonstration.js';
 import './pickup-inspector.css';
 
+const preferenceKey = 'vector-nova.dev.inspector-preview';
+
 // Loaded only by the browser inspector with dev=1 or dev=2.
 export async function createPickupInspector({
   host,
@@ -52,6 +54,21 @@ export async function createPickupInspector({
   const shieldLabel = element.querySelector('[data-shield-label]');
   const engine = createEnginePreview({ getState: getDriving, getSettings });
   select.value = 'ion';
+  try {
+    const remembered = localStorage.getItem(preferenceKey);
+    if (DEVICE_PREVIEWS.some(({ id }) => id === remembered))
+      select.value = remembered;
+  } catch {
+    /* Auditions remain usable when browser storage is unavailable. */
+  }
+  const remember = () => {
+    if (!DEVICE_PREVIEWS.some(({ id }) => id === select.value)) return;
+    try {
+      localStorage.setItem(preferenceKey, select.value);
+    } catch {
+      /* Keep the current selection for this inspector's lifetime. */
+    }
+  };
   const updateShieldLabel = () => {
     const entry = DEVICE_PREVIEWS.find(({ id }) => id === select.value);
     element.querySelector('[data-detail]').textContent = entry?.detail
@@ -82,10 +99,12 @@ export async function createPickupInspector({
         reserve.querySelector('meter').value = demo.reserve.value;
     },
   });
+  preview.select(select.value);
   host.append(element);
   if (targetError) status.textContent = targetError;
   engineToggle.onchange = () => engine.setEnabled(engineToggle.checked);
   trigger.onclick = () => {
+    remember();
     void preview.trigger(select.value, {
       shielded:
         shieldToggle.checked &&
@@ -94,6 +113,7 @@ export async function createPickupInspector({
   };
   stop.onclick = () => preview.stop();
   select.onchange = () => {
+    remember();
     preview.select(select.value);
     updateShieldLabel();
     onFramingChanged();
@@ -194,6 +214,7 @@ export async function createPickupInspector({
     getSnapshot: () => preview.getSnapshot(),
     audition(kind, options) {
       select.value = kind;
+      remember();
       updateShieldLabel();
       preview.select(kind);
       onFramingChanged();

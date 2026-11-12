@@ -2,6 +2,8 @@ import { soundEffects } from './sounds.js';
 import { createSoundPreview } from './sound-preview.js';
 import './sound-panel.css';
 
+const preferenceKey = 'vector-nova.dev.sound';
+
 export function createSoundPanel(
   host,
   { clearInput = () => {}, getSettings } = {},
@@ -26,6 +28,20 @@ export function createSoundPanel(
     option.textContent = sound.label;
     group.append(option);
   }
+  try {
+    const remembered = localStorage.getItem(preferenceKey);
+    if (soundEffects.some(({ id }) => id === remembered))
+      picker.value = remembered;
+  } catch {
+    /* Auditions remain usable when browser storage is unavailable. */
+  }
+  const remember = () => {
+    try {
+      localStorage.setItem(preferenceKey, picker.value);
+    } catch {
+      /* Keep the current selection for this panel's lifetime. */
+    }
+  };
   const preview = createSoundPreview({
     getSettings,
     onStatus: (text) => {
@@ -35,8 +51,14 @@ export function createSoundPanel(
   const life = new AbortController();
   const listen = (target, type, listener) =>
     target.addEventListener(type, listener, { signal: life.signal });
-  listen(play, 'click', () => void preview.play(picker.value));
-  listen(picker, 'change', () => preview.stop());
+  listen(play, 'click', () => {
+    remember();
+    void preview.play(picker.value);
+  });
+  listen(picker, 'change', () => {
+    remember();
+    preview.stop();
+  });
   listen(root, 'keydown', (event) => {
     if (event.code === 'Escape') preview.stop();
     else event.stopPropagation();

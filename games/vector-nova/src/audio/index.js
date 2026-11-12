@@ -188,7 +188,7 @@ export function createAudio({
     finishPracticeFeedback() {
       if (!resources || disposed || !environmentActive) return 0;
       const seconds = Math.min(
-        1.5,
+        2,
         Math.max(
           0,
           resources.landing.remainingSeconds?.() ?? 0,

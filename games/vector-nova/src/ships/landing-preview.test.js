@@ -25,7 +25,7 @@ function harness() {
     unlock: async () => true,
     getStatus: () => ({ landing: { loaded: true } }),
     getPresentation: () => ({ loaded: true }),
-    duration: (event) => (event.type === 'freestyle-bank' ? 1.25 : 0.4),
+    duration: (event) => (event.type === 'freestyle-bank' ? 2 : 1),
     event: (event) => events.push(event),
     update: (...args) => updates.push(args),
     resetEnvironment() {
@@ -74,7 +74,7 @@ test('inspector lands, seats and grades the real shared VFX at the same sound an
   assert.equal(h.events[1].type, 'freestyle-bank');
   assert.equal(h.owner.getSnapshot().vfx.grade, 'perfect');
   assert.equal(h.owner.getSnapshot().bankAt, LANDING_PREVIEW_BANK);
-  assert.ok(grade.end >= LANDING_PREVIEW_BANK + 1.25);
+  assert.ok(grade.end >= LANDING_PREVIEW_BANK + 2);
   h.owner.dispose();
 });
 

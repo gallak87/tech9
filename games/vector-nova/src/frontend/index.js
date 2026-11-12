@@ -1703,6 +1703,13 @@ export async function createFrontend(
       if (attempt === launchGeneration) launching = false;
     }
   }
+  function setInspectorURL(active) {
+    if (import.meta.env?.VN_DESKTOP) return;
+    const url = new URL(location.href);
+    if (active) url.searchParams.set('inspect', '1');
+    else url.searchParams.delete('inspect');
+    history.replaceState(history.state, '', url);
+  }
   function closeInspector() {
     const destination = inspectionBack ?? launchBack;
     if (inspector) shipId = inspector.getSnapshot().ship.id;
@@ -1711,6 +1718,7 @@ export async function createFrontend(
     inspector?.dispose();
     inspector = null;
     inspectionBack = null;
+    setInspectorURL(false);
     inspectorHost.remove();
     host.prepend(gameHost);
     if (special) leaveReview();
@@ -1727,6 +1735,7 @@ export async function createFrontend(
     }
     launching = true;
     launchTarget = 'inspection';
+    setInspectorURL(true);
     const attempt = ++launchGeneration;
     const previous = inspectorPending;
     inspectorController?.abort();
@@ -1816,6 +1825,7 @@ export async function createFrontend(
     });
   }
   function cancel(destination = invalidLevel ? 'home' : launchBack) {
+    if (launchTarget === 'inspection') setInspectorURL(false);
     generation++;
     launchGeneration++;
     launching = false;

@@ -5,22 +5,18 @@
       "id": "landing-freestyle-sfx",
       "source": "assets/audio/sfx/",
       "creator": "VECTOR//NOVA project contributors with Stable Audio 3 Small-SFX",
-      "provenance": "The user-selected Great recording supplies the thin reedy two-breath whaw-whaw shape for the feedback family. Great and the approved trick click retain their exact WAVs, generator configs, provenance and playback levels. Landing, Good, Perfect and Miss are offline derivatives of the actual Great master, with pitch-preserving duration fitting, gentle spectral/lobe shaping and silent fades. The reference breath notch is preserved; no new notes, oscillators or compression are added. Four current derivation recipes, exact source-master/config/output hashes and the rebuild script are retained. Gameplay, Sounds and Ship inspector share current masters. Only final failed-bank verdicts sound Miss; recoverable provisional misses stay quiet. Replacement derivatives are integrated for user listening review.",
+      "provenance": "Project-generated magnetic touchdown, Freestyle bank rewards, confirmed Miss and trick click, created with Stable Audio 3 Small-SFX MLX. Current WAV masters and per-cue prompt settings are retained; Good and trick use processed excerpts. Gameplay and developer previews share these samples.",
       "rights": "AI-generated output. Runtime code is MIT; model weights use the Stability AI Community License and the T5Gemma encoder carries Gemma terms. See docs/audio/sfx.md.",
       "runtimeDependencies": [],
-      "provenanceRecord": "assets/audio/sfx/landing-feedback-provenance.json",
       "generationConfigs": [
-        "assets/audio/sfx/freestyle-bank-great.json",
-        "assets/audio/sfx/freestyle-trick.json"
-      ],
-      "sourceAssets": [
-        "assets/audio/sfx/landing-feedback-master.py",
-        "tools/sfx-models.json",
         "assets/audio/sfx/landing-catch.json",
         "assets/audio/sfx/freestyle-bank-good.json",
+        "assets/audio/sfx/freestyle-bank-great.json",
         "assets/audio/sfx/freestyle-bank-perfect.json",
-        "assets/audio/sfx/freestyle-bank-miss.json"
+        "assets/audio/sfx/freestyle-bank-miss.json",
+        "assets/audio/sfx/freestyle-trick.json"
       ],
+      "sourceAssets": ["tools/sfx.py", "tools/sfx-models.json"],
       "runtimeAssets": [
         "assets/audio/sfx/landing-catch.wav",
         "assets/audio/sfx/freestyle-bank-good.wav",

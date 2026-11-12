@@ -8,9 +8,9 @@ import {
 
 const durations = {
   good: 0.26,
-  great: 0.3,
-  perfect: 0.36,
-  miss: 0.32,
+  great: 2,
+  perfect: 2,
+  miss: 2,
   trick: 0.06,
 };
 const sampleIds = Object.keys(FREESTYLE_SAMPLES);

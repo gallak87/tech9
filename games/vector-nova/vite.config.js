@@ -33,6 +33,10 @@ export default defineConfig({
           return `export default ${JSON.stringify(await menuCatalog(devServer ? { loadModule: (path) => devServer.ssrLoadModule('/' + relative(resolve(import.meta.dirname), path)) } : {}))}`;
       },
       handleHotUpdate({ file, server }) {
+        if (/\/assets\/audio\/sfx\/.*\.wav$/.test(file)) {
+          server.ws.send({ type: 'full-reload' });
+          return [];
+        }
         if (
           /\/src\/(levels|renderer|ships|track|physics|core)\/|\/public\/assets\//.test(
             file,

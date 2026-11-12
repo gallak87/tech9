@@ -1,6 +1,6 @@
 # Sound effects
 
-Give pickups and ship feedback more weight, a recognizable identity and a clear attack without covering the music or other race cues. Work on a complete device sound set using the [expansion brief](../sounds/expansion.md), with individual cues from the [sound inventory](sounds.md). Codex handles prompting and generation; the user judges whether it sounds good. Keep one current prompt/settings file and WAV per effect, replacing revisions in place.
+Keep one current prompt/settings JSON and WAV per effect, replacing revisions in place. See the [sound inventory](sounds.md) for gameplay cues.
 
 ## Local setup
 
@@ -56,7 +56,7 @@ For an isolated cue, use **Sounds → Play** with `?dev=1` or `?dev=2`. For the 
 - **World contact → Fire · heat + recovery** plays four seconds of fire contact, then five seconds of recovery. The shared crackle, continuous slow lava-red hull pulse, smoke and flames fade together; High graphics also adds hull-wide heat shimmer. Stop clears both sound and effects.
 - Graphics quality uses the same pickup renderers as gameplay. Low keeps bare cues; High includes glow, trails and fractures. Normal inspection loads no pickup-test code, target or audition sounds without `dev=1` or `dev=2`.
 
-Finish the complete device set using the [brief/template](../sounds/expansion.md) and [cue inventory](sounds.md). Listen with propulsion and Tunes; technical validation cannot judge the mix. Preserve natural tails, align attacks with real events and check loop seams by ear.
+Listen with propulsion and Tunes. Preserve natural tails, align attacks with real events and check loop seams by ear.
 
 Lance fire adds an offline audio edit after local generation: `assets/audio/sfx/lance-fire-edit.py --source <generated-WAV>` masters the generated ion discharge with a gentle low cut and softened upper frequencies, retaining its natural electrical body and charged-air tail. Its exact recipe and source/master hashes live in equipment provenance; runtime still plays the shared WAV sample.
 
@@ -70,18 +70,6 @@ Interceptor boss recordings live separately in `assets/audio/sfx/bosses/`, prese
 
 Runtime code is MIT. The model weights use the [Stability AI Community License](https://huggingface.co/stabilityai/stable-audio-3-optimized/blob/main/LICENSE.md); the bundled Google T5Gemma text encoder also carries [Gemma terms](https://huggingface.co/stabilityai/stable-audio-3-optimized/blob/main/LICENSE_GEMMA.md). Setup preserves both texts in `model-licenses/`. Downloads remain local; the game does not ship the runtime or weights. Record the pinned toolchain, config and any supplied reference audio when registering an accepted effect.
 
-## Landing and Freestyle set
+## Landing and Freestyle
 
-The selected reference is the current `freestyle-bank-great.wav`: a thin, reedy two-breath “whaw-whaw,” with a strong first lobe, a quiet central notch and a softer second lobe. Great and the approved completed-trick click retain their exact WAVs, generator configs, provenance and runtime levels.
-
-Landing, Good, Perfect and Miss are now offline derivatives of that actual Great recording. Their JSON files are derivation recipes, not Small-SFX generation prompts. Landing has a shorter, drier front breath; Good is more closed and subdued; Perfect supports the second breath; Miss closes and softens on the second breath. No oscillator, new musical note, compression or runtime pitch transposition is added. Pitch-preserving duration fitting keeps the original reedy register and breath notch.
-
-Overwrite the four current masters from the selected reference:
-
-```sh
-python3 assets/audio/sfx/landing-feedback-master.py
-```
-
-The script verifies Great and the approved click before rebuilding. Each derivative records the exact source-master hash, recipe, spectral/lobe shaping, duration fitting and silent edge fades in `landing-feedback-provenance.json`. Durations remain 0.24 s for touchdown, 0.26/0.30/0.36 s for Good/Great/Perfect, 0.32 s for Miss and 0.06 s for the click.
-
-Only a confirmed failed bank sounds Miss. A provisional jump-miss can reattach and earn Good, so developer practice waits for the final bank verdict before pausing. Sounds and Ship inspector → Powerups, equipment & contact → Landing & Freestyle share the same recordings and levels as gameplay. New derivatives remain subject to user listening review.
+Gameplay, Sounds and Ship inspector → Powerups, equipment & contact → Landing & Freestyle share `landing-catch.wav`, the four `freestyle-bank-*.wav` recordings and `freestyle-trick.wav`. Touchdown plays on confirmed support; Good/Great/Perfect follows the 0.3 s grading window. Miss plays only on a confirmed failed bank. Completed tricks have a separate click. Jump Drive retains its dedicated landing sample.

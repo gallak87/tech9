@@ -343,7 +343,10 @@ test('Freestyle sounds the supported touchdown before its separate graded points
 });
 
 test('completed-transfer feedback releases existing voices over frozen practice without admitting new cues', async () => {
-  const context = sampleContext();
+  const context = sampleContext({
+    [LANDING_SAMPLE_URL]: 1,
+    [FREESTYLE_SAMPLES.perfect]: 2,
+  });
   const audio = createAudio({
     createContext: () => context,
     fetchAudio,
@@ -364,7 +367,7 @@ test('completed-transfer feedback releases existing voices over frozen practice 
     payload: { id: 'transfer-1', at: 1.3, landed: true, perfect: true },
   };
   audio.event(bank);
-  assert.equal(audio.finishPracticeFeedback(), 0.5);
+  assert.ok(Math.abs(audio.finishPracticeFeedback() - 2) < 1e-12);
   audio.update(state, 0.5, false, { practiceComplete: true });
   assert.equal(audio.getStatus().audible, true);
   assert.equal(audio.getStatus().landing.activeVoices, 1);
@@ -374,10 +377,10 @@ test('completed-transfer feedback releases existing voices over frozen practice 
   audio.event({ ...bank, payload: { ...bank.payload, id: 'transfer-2' } });
   audio.event({ type: 'countdown-go' });
   assert.equal(context.nodes.length, nodes, 'a tail cannot launch new sounds');
-  context.currentTime = 0.79;
+  context.currentTime = 2.29;
   audio.update(state, 0.5, false, { practiceComplete: true });
   assert.equal(audio.getStatus().audible, true);
-  context.currentTime = 0.81;
+  context.currentTime = 2.31;
   audio.update(state, 0.5, false, { practiceComplete: true });
   assert.equal(audio.getStatus().audible, false);
   assert.equal(audio.getStatus().landing.activeVoices, 0);
@@ -453,8 +456,8 @@ test('practice feedback is bounded and ordinary pause, mute, retry and disposal 
   });
   await audio.unlock();
   audio.update(state, 0.5, true);
-  assert.equal(audio.finishPracticeFeedback(), 1.5);
-  context.currentTime = 1.51;
+  assert.equal(audio.finishPracticeFeedback(), 2);
+  context.currentTime = 2.01;
   audio.update(state, 0.5, false, { practiceComplete: true });
   assert.equal(audio.getStatus().audible, false);
   assert.ok(stopped > 0);

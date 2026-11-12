@@ -32,13 +32,6 @@ export const FREESTYLE_AUDIO_RULES = Object.freeze({
     miss: 0.26,
     trick: 0.1,
   }),
-  durations: Object.freeze({
-    good: 0.26,
-    great: 0.3,
-    perfect: 0.36,
-    miss: 0.32,
-    trick: 0.06,
-  }),
 });
 
 function cueFor(event) {

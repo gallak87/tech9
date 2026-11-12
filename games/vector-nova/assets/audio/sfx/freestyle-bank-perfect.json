@@ -1,6 +1,6 @@
 {
-  "prompt": "A short celebratory electronic organ sting. Three quick, distinct notes, C5 then E5 then G5, stepping upward in that order. A warm, rounded electronic organ tone with a solid body, bright upper harmonics and crisp, softly percussive key attacks. The notes connect into one energetic rising gesture, with the final G5 a little fuller and more punchy, then a brief smooth release. Excited, uplifting and slightly awestruck. One compact half-second celebration. Dry and close, no church reverb, long sustained chords, rotary-speaker wobble, vocals or background ambience.",
-  "seconds": 1,
+  "prompt": "A double mid electronic tone with a rounded, slightly brighter timbre in quick succession. It holds one steady pitch briefly and fades cleanly followed by another steady brief higher-pitch and clean fade. Calm minimal dry confirmation. No melody, sequence, beat, voices or ambience.",
+  "seconds": 2,
   "seed": 74313,
   "steps": 8,
   "cfg": 1

@@ -100,12 +100,36 @@ def download(name, spec):
     partial.replace(target)
 
 
+def ensure_runtime_compatibility():
+    # Training uses ceil(seconds_total); fractional conditioning can diverge.
+    # https://github.com/Stability-AI/stable-audio-3/issues/124
+    relative = "optimized/mlx/scripts/sa3_mlx.py"
+    pristine = subprocess.check_output(
+        ["git", "-C", str(ROOT), "show", f"{LOCK['runtimeRevision']}:{relative}"],
+        text=True,
+    )
+    original = "secs_embedder(args.seconds).astype(dtype)"
+    corrected = "secs_embedder(math.ceil(args.seconds)).astype(dtype)"
+    if pristine.count(original) != 1:
+        raise ValueError("Pinned SFX duration conditioner changed; update its compatibility fix.")
+    patched = pristine.replace(original, corrected, 1)
+    entry = ROOT / relative
+    current = entry.read_text()
+    if current == patched:
+        return
+    if current != pristine:
+        raise ValueError("SFX runtime has local changes; duration fix was not applied.")
+    entry.write_text(patched)
+    print("Applied SFX duration-conditioning fix; requested WAV length is unchanged.", flush=True)
+
+
 def check(checksum=True):
     if revision() != LOCK["runtimeRevision"] or not PYTHON.is_file():
         raise SystemExit("Missing or different SFX runtime; run npm run sfx:setup.")
     for name, spec in LOCK["files"].items():
         if not verified(ROOT / spec["path"], spec, checksum):
             raise SystemExit(f"Missing or damaged {name}; run npm run sfx:setup.")
+    ensure_runtime_compatibility()
     run(PYTHON, "-c",
         "import mlx.core as mx, numpy, sentencepiece; "
         "assert mx.metal.is_available(), 'MLX Metal device unavailable'; "

@@ -115,7 +115,7 @@ test('Oriel second-transfer late rotation that physically reattaches and drives 
   );
 });
 
-test('a real late-roll landing earns recovered credit after sustained native support and replays once', async (t) => {
+test('a real aligned late-roll landing earns clean credit after sustained native support and replays once', async (t) => {
   const level = createLevel();
   const track = level.createTrack();
   const collisionWorld = await level.createCollisionWorld({ track });
@@ -149,8 +149,8 @@ test('a real late-roll landing earns recovered credit after sustained native sup
     const input = {
       ...pilot({ state, motion: before, pose: runtime.pose(1) }),
     };
-    // A deliberate 300 ms roll input late in flight recreates the original
-    // "Still rotating" arrival using ordinary controls, not fabricated hits.
+    // A late roll reaches the receiver with residual angular motion using
+    // ordinary controls, not fabricated hits.
     if (before.flight?.elapsed >= 4.05 && before.flight.elapsed < 4.35)
       input.aerialRoll = -1;
     const events = runtime.advance(state, input, DT);
@@ -170,7 +170,7 @@ test('a real late-roll landing earns recovered credit after sustained native sup
   assert.equal(touchdown.contact.payload.outcome, 'landed');
   assert.ok(
     Math.hypot(...touchdown.before.freestyle.angular) >= 0.9,
-    'this arrival crossed the former Still rotating scoring threshold',
+    'the aligned arrival still carries spin',
   );
   assert.equal(
     touchdown.events.some((event) => event.type === 'impact'),
@@ -185,7 +185,7 @@ test('a real late-roll landing earns recovered credit after sustained native sup
     runtime.snapshot().freestyle.pendingLanding.id,
     track.jumps[0].id,
   );
-  assert.equal(runtime.snapshot().freestyle.pendingLanding.clean, false);
+  assert.equal(runtime.snapshot().freestyle.pendingLanding.clean, true);
 
   const checkpoint = {
     state: copy(state),
@@ -221,16 +221,22 @@ test('a real late-roll landing earns recovered credit after sustained native sup
   }
   const banks = observed.filter((event) => event.type === 'freestyle-bank');
   assert.equal(banks.length, 1);
-  assert.equal(banks[0].payload.reason, 'Recovered landing');
+  assert.ok(
+    ['Clean banked catch', 'Perfect banked catch'].includes(
+      banks[0].payload.reason,
+    ),
+  );
   assert.equal(banks[0].payload.landed, true);
-  assert.equal(banks[0].payload.clean, false);
-  assert.equal(banks[0].payload.perfect, false);
+  assert.equal(banks[0].payload.clean, true);
   const airPoints = checkpoint.runtime.freestyle.pendingLanding.style;
   assert.ok(
     airPoints > 0,
     'the real airborne corrections earned continuous rotation points',
   );
-  assert.equal(banks[0].payload.bank, Math.round(1000 + airPoints));
+  assert.equal(
+    banks[0].payload.bank,
+    Math.round((banks[0].payload.perfect ? 2500 : 2000) + airPoints),
+  );
   assert.equal(banks[0].payload.chain, 1);
   assert.ok(banks[0].payload.at - banks[0].payload.touchdownAt >= 0.299);
   assert.equal(

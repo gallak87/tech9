@@ -24,8 +24,6 @@ export function createFreestyleController({ track }) {
       compoundProgress: 0,
       compoundAxis: [0, 0, 1],
       lastTorque: -99,
-      catchDown: false,
-      braceAt: -99,
       legs: [],
       invalid: false,
       result: null,
@@ -99,7 +97,6 @@ export function createFreestyleController({ track }) {
         score: data.score,
         chain: data.chain,
         invalid: data.invalid,
-        braceAt: data.braceAt,
         angular: [...data.angular],
         progress: [...data.progress],
         compoundProgress: data.compoundProgress,
@@ -134,14 +131,11 @@ export function createFreestyleController({ track }) {
       data.signs = [0, 0, 0];
       data.compoundProgress = 0;
       data.compoundAxis = [0, 0, 1];
-      data.braceAt = -99;
       return interrupted;
     },
     step(input, dt) {
       data.clock += dt;
       const brace = !!input.airbrake;
-      if (brace && !data.catchDown && data.flight) data.braceAt = data.clock;
-      data.catchDown = brace;
       if (
         !data.flight ||
         data.flight.failed ||
@@ -288,7 +282,6 @@ export function createFreestyleController({ track }) {
       quaternion,
       velocity,
       edgeCaught = false,
-      angularSpeed = 0,
     }) {
       if (
         !data.flight ||
@@ -307,12 +300,12 @@ export function createFreestyleController({ track }) {
       const along = distance - jump.target;
       const up = new T.Vector3(0, 1, 0).applyQuaternion(quaternion);
       const forward = new T.Vector3(0, 0, 1).applyQuaternion(quaternion);
-      const lead = data.clock - data.braceAt;
-      const rotating =
-        Math.hypot(...data.angular) >= 0.9 || angularSpeed >= 1.2;
-      const bankAligned = up.dot(frame.up) > Math.cos(0.48);
-      const headingAligned = forward.dot(frame.tangent) > Math.cos(0.58);
-      const ready = !rotating && bankAligned && headingAligned;
+      const bankAligned =
+        up.dot(frame.up) > Math.cos(FREESTYLE_RULES.landingTiltTolerance);
+      const headingAligned =
+        forward.dot(frame.tangent) >
+        Math.cos(FREESTYLE_RULES.landingHeadingTolerance);
+      const ready = bankAligned && headingAligned;
       const tube = jump.receiverType === 'tube' && frame.period > 0;
       const halfCatchWidth = (jump.catchWidth ?? 11) / 2;
       const receiverStart = jump.landingStart ?? jump.target - 130;
@@ -322,9 +315,6 @@ export function createFreestyleController({ track }) {
         distance >= receiverStart &&
         distance <= receiverEnd &&
         (tube || laneError <= halfCatchWidth);
-      const timed =
-        lead >= FREESTYLE_RULES.catchLead &&
-        lead <= FREESTYLE_RULES.catchWindow;
       const clean =
         outcome === 'landed' &&
         !data.flight.failed &&
@@ -332,14 +322,23 @@ export function createFreestyleController({ track }) {
         !edgeCaught &&
         ready &&
         line;
-      // Airbrake is a real rotation brake. A fresh well-timed squeeze earns
-      // precision; holding it early never vetoes an otherwise sound landing.
+      // Capture precision at contact; magnetic alignment cannot upgrade it.
       const perfect =
         clean &&
-        (tube || laneError < Math.max(2.5, halfCatchWidth * 0.5)) &&
+        up.dot(frame.up) >
+          Math.cos(
+            FREESTYLE_RULES.landingTiltTolerance *
+              FREESTYLE_RULES.perfectToleranceScale,
+          ) &&
+        forward.dot(frame.tangent) >
+          Math.cos(
+            FREESTYLE_RULES.landingHeadingTolerance *
+              FREESTYLE_RULES.perfectToleranceScale,
+          ) &&
+        (tube ||
+          laneError < halfCatchWidth * FREESTYLE_RULES.perfectToleranceScale) &&
         Math.abs(along) < (jump.precisionLength ?? 150) &&
-        Math.abs(velocity.dot(frame.up)) < 38 &&
-        timed;
+        Math.abs(velocity.dot(frame.up)) < 38;
       const style = freestyleAirPoints(data);
       data.pendingLanding = {
         id: jump.id,
@@ -349,6 +348,7 @@ export function createFreestyleController({ track }) {
         lastObservedAt: data.clock,
         stableTime: 0,
         qualityTime: 0,
+        perfectQualityTime: 0,
         distance,
         lateral,
         line,
@@ -369,7 +369,6 @@ export function createFreestyleController({ track }) {
       data.flight = null;
       data.orientation = [0, 0, 0, 1];
       data.angular = [0, 0, 0];
-      data.braceAt = -99;
       return data.pendingLanding.failed
         ? bankLanding(false, 'Missed receiver')
         : null;
@@ -379,7 +378,6 @@ export function createFreestyleController({ track }) {
       quaternion,
       distance,
       lateral,
-      angularSpeed = 0,
       normalSpeed = 0,
       supportError = 0,
     }) {
@@ -395,26 +393,44 @@ export function createFreestyleController({ track }) {
           distance ?? pending.distance,
           lateral ?? pending.lateral,
         ) ?? track.sample(distance ?? pending.distance);
+      const up =
+        quaternion && new T.Vector3(0, 1, 0).applyQuaternion(quaternion);
+      const forward =
+        quaternion && new T.Vector3(0, 0, 1).applyQuaternion(quaternion);
       const aligned =
-        quaternion &&
-        new T.Vector3(0, 1, 0).applyQuaternion(quaternion).dot(frame.up) >
-          Math.cos(0.48) &&
-        new T.Vector3(0, 0, 1).applyQuaternion(quaternion).dot(frame.tangent) >
-          Math.cos(0.58);
+        up &&
+        up.dot(frame.up) > Math.cos(FREESTYLE_RULES.landingTiltTolerance) &&
+        forward.dot(frame.tangent) >
+          Math.cos(FREESTYLE_RULES.landingHeadingTolerance);
       const settledQuality =
         supported &&
         aligned &&
-        angularSpeed < 1.2 &&
         Math.abs(normalSpeed) < 8 &&
         Math.abs(supportError) < 1.5;
-      // Native magnetic support decides whether a landing worked. A spinning,
-      // tilted or off-centre hull that actually sticks and drives away still
-      // earns Good; these extra measurements reserve the higher grades.
+      const settledPrecision =
+        settledQuality &&
+        up.dot(frame.up) >
+          Math.cos(
+            FREESTYLE_RULES.landingTiltTolerance *
+              FREESTYLE_RULES.perfectToleranceScale,
+          ) &&
+        forward.dot(frame.tangent) >
+          Math.cos(
+            FREESTYLE_RULES.landingHeadingTolerance *
+              FREESTYLE_RULES.perfectToleranceScale,
+          );
+      // Native support decides whether a landing worked. Alignment and
+      // settlement distinguish the higher grades without penalizing spin.
       pending.stableTime = supported ? pending.stableTime + dt : 0;
       pending.qualityTime = settledQuality ? pending.qualityTime + dt : 0;
+      pending.perfectQualityTime = settledPrecision
+        ? pending.perfectQualityTime + dt
+        : 0;
       if (pending.elapsed + 1e-9 < FREESTYLE_RULES.landingWindow) return null;
       pending.clean &&=
         pending.qualityTime + 1e-9 >= FREESTYLE_RULES.stableWindow;
+      pending.perfect &&=
+        pending.perfectQualityTime + 1e-9 >= FREESTYLE_RULES.stableWindow;
       return bankLanding(
         pending.stableTime + 1e-9 >= FREESTYLE_RULES.stableWindow,
         supported ? 'Unsettled landing' : 'Lost receiver support',

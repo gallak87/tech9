@@ -178,7 +178,12 @@ test('continuous air points survive snapshots, freeze at touchdown and bank exac
     steps(c, { aerialRoll: 1 }, 0.15);
     assert.equal(c.snapshot().pendingLanding.style, expectedAir);
     const leg = settle(c);
-    assert.equal(leg.bank, Math.round(expectedAir + 1000));
+    assert.equal(leg.bank, Math.round(expectedAir + 2500));
+    assert.equal(
+      leg.perfect,
+      true,
+      'an aligned finished trick keeps its precision grade despite residual spin',
+    );
     const banked = c.snapshot().score;
     assert.equal(contact(c), null);
     steps(c, { aerialRoll: 1 }, 0.2);
@@ -230,20 +235,17 @@ test('medals use the higher thresholds, including a silver 61k run', () => {
   }
 });
 
-test('held or early brake can settle a legitimate landing without the fresh-brake precision bonus', () => {
-  const c = createFreestyleController({ track });
-  steps(c, { airbrake: true }, 1);
-  c.launch('jump-0');
-  steps(c, { airbrake: true }, 0.3);
-  const held = contact(c);
-  assert.equal(held.clean, true);
-  assert.equal(held.perfect, false);
-  c.reset();
-  c.launch('jump-0');
-  steps(c, { airbrake: true }, 1);
-  const early = contact(c);
-  assert.equal(early.clean, true);
-  assert.equal(early.perfect, false);
+test('precision grades depend on arrival quality with no, held or early airbrake input', () => {
+  for (const braking of ['none', 'held', 'early']) {
+    const c = createFreestyleController({ track });
+    if (braking === 'held') steps(c, { airbrake: true }, 1);
+    c.launch('jump-0');
+    steps(c, braking === 'none' ? {} : { airbrake: true }, 1);
+    const leg = contact(c);
+    assert.equal(leg.clean, true, braking);
+    assert.equal(leg.perfect, true, braking);
+    assert.equal(leg.bank, 2500, braking);
+  }
 });
 
 test('an unrecovered landing breaks the link while a supported scrape can recover', () => {
@@ -324,15 +326,15 @@ test('touchdown scoring uses the actual receiving bank rather than its distant p
   });
   const leg = settle(c, { distance: 110, quaternion: frame.quaternion });
   assert.equal(leg.clean, true);
-  assert.equal(leg.perfect, false);
-  assert.equal(leg.reason, 'Clean banked catch');
-  assert.equal(leg.bank, 2000);
+  assert.equal(leg.perfect, true);
+  assert.equal(leg.reason, 'Perfect banked catch');
+  assert.equal(leg.bank, 2500);
 });
 
-test('a recovered rotation or off-bank arrival receives landing points and preserves its chain', () => {
-  for (const [quaternion, angularSpeed] of [
-    [new T.Quaternion(), 1.4],
-    [new T.Quaternion().setFromAxisAngle(new T.Vector3(0, 0, 1), 0.55), 0],
+test('an off-bank or off-heading arrival receives landing points and preserves its chain', () => {
+  for (const quaternion of [
+    new T.Quaternion().setFromAxisAngle(new T.Vector3(0, 0, 1), 0.55),
+    new T.Quaternion().setFromAxisAngle(new T.Vector3(0, 1, 0), 0.65),
   ]) {
     const c = createFreestyleController({ track });
     c.launch('jump-0');
@@ -346,7 +348,6 @@ test('a recovered rotation or off-bank arrival receives landing points and prese
         position: new T.Vector3(0, 0.72, 0),
         quaternion,
         velocity: new T.Vector3(0, 0, 145),
-        angularSpeed,
       }),
       null,
     );
@@ -390,9 +391,8 @@ test('the marked strip reserves clean bonuses rather than vetoing genuine native
   }
 });
 
-test('sustained native support earns Good despite rotation, tilt or noisy settlement measurements', () => {
+test('sustained native support earns Good despite tilt or noisy settlement measurements', () => {
   for (const observation of [
-    { angularSpeed: 2 },
     { normalSpeed: 12 },
     { supportError: 3 },
     {
@@ -514,41 +514,158 @@ test('a provisional failure during pending touchdown still earns Good when nativ
   }
 });
 
-test('settling snapshots replay exactly; held grounded axes cannot farm tricks, upgrade arrival quality or bank twice', () => {
-  const a = createFreestyleController({ track });
-  a.launch('jump-0');
-  steps(a, { aerialRoll: 1 }, 0.2);
-  a.land({
-    jump: track.jumps[0],
-    outcome: 'landed',
-    position: new T.Vector3(0, 0.72, 0),
-    quaternion: new T.Quaternion(),
-    velocity: new T.Vector3(0, 0, 145),
-    angularSpeed: 1.5,
-  });
-  const touchdownStyle = a.snapshot().pendingLanding.style;
-  settle(a, {}, 0.1);
-  const b = createFreestyleController({ track });
-  b.restore(JSON.parse(JSON.stringify(a.snapshot())));
-  assert.equal(
-    a.complete('shrike'),
-    null,
-    'results wait for the pending touchdown',
-  );
-  for (let i = 0; i < 30; i++)
-    for (const c of [a, b]) {
-      c.step({ aerialRoll: 1, airbrake: true }, 1 / 120);
-      c.settle({ supported: true, quaternion: new T.Quaternion() });
+test('settling snapshots replay exactly; grounded input cannot upgrade arrival quality or bank twice', () => {
+  for (const [tilt, base] of [
+    [0.3, 2000],
+    [0.55, 1000],
+  ]) {
+    const a = createFreestyleController({ track });
+    a.launch('jump-0');
+    steps(a, { aerialRoll: 1 }, 0.2);
+    a.land({
+      jump: track.jumps[0],
+      outcome: 'landed',
+      position: new T.Vector3(0, 0.72, 0),
+      quaternion: new T.Quaternion().setFromAxisAngle(
+        new T.Vector3(0, 0, 1),
+        tilt,
+      ),
+      velocity: new T.Vector3(0, 0, 145),
+      angularSpeed: 1.5,
+    });
+    const touchdownStyle = a.snapshot().pendingLanding.style;
+    settle(a, {}, 0.1);
+    const b = createFreestyleController({ track });
+    b.restore(JSON.parse(JSON.stringify(a.snapshot())));
+    assert.equal(
+      a.complete('shrike'),
+      null,
+      'results wait for the pending touchdown',
+    );
+    for (let i = 0; i < 30; i++)
+      for (const c of [a, b]) {
+        c.step({ aerialRoll: 1, airbrake: true }, 1 / 120);
+        c.settle({ supported: true, quaternion: new T.Quaternion() });
+      }
+    assert.deepEqual(a.snapshot(), b.snapshot());
+    assert.equal(a.snapshot().legs.length, 1);
+    assert.equal(a.snapshot().legs[0].bank, Math.round(base + touchdownStyle));
+    assert.equal(a.snapshot().legs[0].perfect, false);
+    assert.deepEqual(a.snapshot().legs[0].tricks, []);
+    assert.equal(
+      a.settle({ supported: true, quaternion: new T.Quaternion() }),
+      null,
+    );
+  }
+});
+
+test('residual spin at contact and during support does not penalize an aligned finished rotation', () => {
+  for (const [tilt, perfect] of [
+    [0, true],
+    [0.3, false],
+  ]) {
+    const c = createFreestyleController({ track });
+    c.launch('jump-0');
+    steps(c, { aerialRoll: 1 }, 0.3);
+    assert.ok(Math.hypot(...c.snapshot().angular) > 0.9);
+    const quaternion = new T.Quaternion().setFromAxisAngle(
+      new T.Vector3(0, 0, 1),
+      tilt,
+    );
+    c.land({
+      jump: track.jumps[0],
+      outcome: 'landed',
+      position: new T.Vector3(0, 0.72, 0),
+      quaternion,
+      velocity: new T.Vector3(0, 0, 145),
+      angularSpeed: 9,
+    });
+    const leg = settle(c, { quaternion, angularSpeed: 9 });
+    assert.equal(leg.clean, true);
+    assert.equal(leg.perfect, perfect);
+  }
+});
+
+test('arrival tilt and heading distinguish precise, clean and recovered landings before magnetic alignment', () => {
+  for (const [axis, precise, clean] of [
+    [new T.Vector3(0, 0, 1), 0.24, 0.48],
+    [new T.Vector3(0, 1, 0), 0.29, 0.58],
+  ]) {
+    for (const [angle, expected] of [
+      [precise - 0.001, 'perfect'],
+      [precise + 0.001, 'clean'],
+      [clean - 0.001, 'clean'],
+      [clean + 0.001, 'landed'],
+    ]) {
+      const c = createFreestyleController({ track });
+      c.launch('jump-0');
+      c.land({
+        jump: track.jumps[0],
+        outcome: 'landed',
+        position: new T.Vector3(0, 0.72, 0),
+        quaternion: new T.Quaternion().setFromAxisAngle(axis, angle),
+        velocity: new T.Vector3(0, 0, 145),
+      });
+      const leg = settle(c);
+      assert.equal(leg.quality, expected, `${axis.toArray()}: ${angle}`);
     }
-  assert.deepEqual(a.snapshot(), b.snapshot());
-  assert.equal(a.snapshot().legs.length, 1);
-  assert.equal(a.snapshot().legs[0].bank, Math.round(1000 + touchdownStyle));
-  assert.equal(a.snapshot().legs[0].perfect, false);
-  assert.deepEqual(a.snapshot().legs[0].tricks, []);
-  assert.equal(
-    a.settle({ supported: true, quaternion: new T.Quaternion() }),
-    null,
+  }
+});
+
+test('Perfect uses the inner half of the receiver strip while supported outer arrivals still bank', () => {
+  const jump = { ...track.jumps[0], catchWidth: 40 };
+  const course = { ...track, jumps: [jump] };
+  for (const [lateral, expected] of [
+    [9.99, 'perfect'],
+    [10.01, 'clean'],
+    [19.99, 'clean'],
+    [20.01, 'landed'],
+  ]) {
+    const c = createFreestyleController({ track: course });
+    c.launch(jump.id);
+    c.land({
+      jump,
+      outcome: 'landed',
+      lateral,
+      position: new T.Vector3(lateral, 0.72, 0),
+      quaternion: new T.Quaternion(),
+      velocity: new T.Vector3(0, 0, 145),
+    });
+    assert.equal(settle(c, { lateral }).quality, expected, `${lateral}m`);
+  }
+});
+
+test('Perfect requires the final 100ms of tight support; a brief earlier wobble can recover and replay', () => {
+  const loose = new T.Quaternion().setFromAxisAngle(
+    new T.Vector3(0, 0, 1),
+    0.3,
   );
+  const tight = new T.Quaternion();
+  for (const [first, last, perfect] of [
+    [loose, tight, true],
+    [tight, loose, false],
+    [loose, loose, false],
+  ]) {
+    const a = createFreestyleController({ track });
+    a.launch('jump-0');
+    a.land({
+      jump: track.jumps[0],
+      outcome: 'landed',
+      position: new T.Vector3(0, 0.72, 0),
+      quaternion: tight,
+      velocity: new T.Vector3(0, 0, 145),
+    });
+    assert.equal(settle(a, { quaternion: first }, 0.2), null);
+    const b = createFreestyleController({ track });
+    b.restore(JSON.parse(JSON.stringify(a.snapshot())));
+    for (const c of [a, b]) {
+      const leg = settle(c, { quaternion: last }, 0.1);
+      assert.equal(leg.clean, true);
+      assert.equal(leg.perfect, perfect);
+      assert.ok(Math.abs(leg.at - leg.touchdownAt - 0.3) < 1e-9);
+    }
+    assert.deepEqual(a.snapshot(), b.snapshot());
+  }
 });
 
 test('holding the rotation brake permits slow deliberate bank trim instead of fighting a full-speed spin', () => {

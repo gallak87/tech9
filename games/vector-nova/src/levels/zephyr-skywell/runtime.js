@@ -96,9 +96,6 @@ export function createSkywellRuntime(context) {
           velocity: new T.Vector3().fromArray(
             incoming.flight?.velocity ?? [0, 0, 0],
           ),
-          angularSpeed: Math.hypot(
-            ...(incoming.flight?.angularVelocity ?? [0, 0, 0]),
-          ),
           edgeCaught: !!e.payload.edgeCaught,
         });
         if (leg) events.push({ type: 'freestyle-bank', payload: leg });
@@ -120,13 +117,6 @@ export function createSkywellRuntime(context) {
           !track.isGap(state.distance) &&
           (!body || body.support != null),
         quaternion: body?.quaternion ?? pose?.quaternion,
-        // Turning along the road is normal driving, not an unfinished trick.
-        angularSpeed: body
-          ? body.angularVelocity
-              .clone()
-              .addScaledVector(frame.up, -body.angularVelocity.dot(frame.up))
-              .length()
-          : 0,
         normalSpeed: body?.velocity.dot(frame.up) ?? 0,
         supportError: body?.support
           ? body.position.clone().sub(body.support.position).dot(frame.up)

@@ -20,9 +20,12 @@ Current review direction checked on **2026-11-10**; the expanded modes still nee
 - [ ] **Mode-course presentation:** human review of Oriel Sunvault, Ravel Sailbreak, Glasswake Fracture, Saffron Ossuary and Nomad Last Convoy, including native world identity, clearances, rendering cost and current menu stills. Preserve Skywell and the three Interceptor encounters; completed critic loops remain closed.
 - [ ] Observe external players: braking/boost comprehension, finishing without coaching and voluntary replay. Separate control confusion, route readability, performance and difficulty before adding mechanics.
 - [ ] Playtest navigation across the whole game at windowed, fullscreen and ultrawide sizes. Refine grouping, D-pad/arrow movement, visible focus, scroll/focus retention and Back/Resume paths through setup, cups, records, Settings and inspection. Existing keyboard/controller coverage does not close this dedicated UX review.
+- [ ] **Mid-cup navigation and Resume:** selecting Back to cup hub during a race currently stops the race. Return to race setup with the active cup race suspended and Resume race available across all menu screens. Also cover Esc → Settings → main UI: Resume currently appears only on Settings and disappears when navigating elsewhere.
+- [ ] **Whole-game copy review:** review all in-game and menu strings/labels for clarity, consistent terminology and accuracy.
 
 ### Performance, devices and release readiness
 
+- [ ] **Course FPS drops:** investigate significant frame-rate drops in parts of Worldspire and Nightweir, and at the beginning of Umbra.
 - [ ] Scope a genuinely cheaper mobile graphics tier; consider calling today's Low Medium. Reduce whole-scene geometry, texture memory, shaders, render targets and decorative effects, beyond pickup FX alone.
 - [ ] Investigate the reported iPhone 13 graphics-context loss after Halcyon's countdown on a physical device. Test loading, countdown and sustained full-field racing before choosing the mobile default; the error alone does not identify the cause.
 - [ ] Finish hands-on phone/tablet and physical-gamepad driving checks: long flights, two-thumb ergonomics, mappings and responsive HUD/cameras. Browser emulation is not a per-device or per-level driving pass; the user's separate widening-campaign mobile review remains open.
@@ -32,6 +35,7 @@ Current review direction checked on **2026-11-10**; the expanded modes still nee
 
 ### Known course follow-ups
 
+- [ ] **Worldspire road/camera bumps:** investigate bumpy camera shifts on some road sections, resembling the previously fixed road-following issue.
 - [ ] **Zephyr:** human review of the reported extra turn-assistance feel at the early right bend beneath the stone cross-span, before the first waterfall boost strip (2026-10-17 reference: lap 1, 00:07.300, 396 km/h). Production-collider yaw and camera checks do not reproduce extra assistance; preserve the approved 0.3 setting.
 
 ## Code quality and maintenance

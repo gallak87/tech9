@@ -76,11 +76,15 @@ const base = process.env.VN_URL;
 if (!base) throw new Error('Set VN_URL to an existing dev/preview server.');
 const flags = process.argv.slice(2);
 assert.ok(
-  flags.every((flag) => ['--desktop', '--responsive'].includes(flag)) &&
-    flags.length <= 1,
-  'Use --desktop or --responsive, or neither for both.',
+  flags.every((flag) =>
+    ['--desktop', '--responsive', '--headed'].includes(flag),
+  ) &&
+    new Set(flags).size === flags.length &&
+    !(flags.includes('--desktop') && flags.includes('--responsive')),
+  'Use --desktop or --responsive, or neither for both; optionally add --headed.',
 );
-const browser = await launchVerificationBrowser();
+const headed = flags.includes('--headed');
+const browser = await launchVerificationBrowser({ headless: !headed });
 const url = (query = '') => {
   const target = new URL(`?${query}`, base);
   target.searchParams.set('intro', '0');
@@ -3941,7 +3945,19 @@ try {
           await retained();
           await page.locator('[data-action="race-tab"]').click();
         }
-        if (await page.evaluate(() => document.fullscreenEnabled)) {
+        const fullscreenEnabled = await page.evaluate(
+          () => document.fullscreenEnabled,
+        );
+        if (headed)
+          assert.ok(
+            fullscreenEnabled,
+            'headed browser must support fullscreen',
+          );
+        if (fullscreenEnabled) {
+          if (headed) {
+            await page.bringToFront();
+            await page.waitForFunction(() => document.hasFocus());
+          }
           await page.evaluate(() => {
             const button = document.createElement('button');
             button.id = 'verification-fullscreen';
@@ -3966,9 +3982,18 @@ try {
             .locator('#verification-fullscreen')
             .evaluate((el) => el.remove());
           const failure = await page.evaluate(() => window.__fullscreenFailure);
-          if (failure)
+          if (failure) {
+            if (headed)
+              assert.fail(`Browser fullscreen was denied: ${failure}`);
             console.log(`SKIP browser fullscreen: headless Chrome ${failure}`);
-          else {
+          } else {
+            assert.equal(
+              await page.evaluate(
+                () => document.fullscreenElement === document.documentElement,
+              ),
+              true,
+              'the real document enters fullscreen',
+            );
             await retained();
             await page.evaluate(() => document.exitFullscreen());
             await page.waitForFunction(() => !document.fullscreenElement);

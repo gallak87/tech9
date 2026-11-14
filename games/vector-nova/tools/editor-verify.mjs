@@ -1,5 +1,10 @@
 import assert from 'node:assert/strict';
-import { revealEditorField } from './editor-controls.mjs';
+import { generateDocument } from '../src/editor/document.js';
+import {
+  revealEditorField,
+  revealEditorAction,
+  openEditorSection,
+} from './editor-controls.mjs';
 import { readFile } from 'node:fs/promises';
 import {
   createCareerSlots,
@@ -43,25 +48,10 @@ const savedDocuments = (page) =>
       .map((key) => JSON.parse(localStorage.getItem(key)).document),
   );
 async function panel(page, name) {
-  const state = await page.evaluate(
-    () => window.__VN_FRONTEND.getState().editor,
-  );
-  if (state.panelOpen && state.tab === name) return;
-  if (name === 'route' || name === 'shape' || name === 'jumps') {
-    if (!(state.panelOpen && state.tab === 'route')) {
-      if (responsive && state.panelOpen)
-        await action(page, 'panel-close').click();
-      await action(page, 'context-more').click();
-      await action(page, 'context-details').click();
-    }
-    if (name !== 'route') await action(page, `tab-${name}`).click();
-  } else await action(page, `tab-${name}`).click();
+  await openEditorSection(page, name);
 }
 async function roadDetails(page) {
   await panel(page, 'route');
-  const details = page.locator('.workshop-precise');
-  if (!(await details.evaluate((node) => node.open)))
-    await details.locator('summary').click();
 }
 async function change(page, name, value) {
   const control = await revealEditorField(page, name);
@@ -85,7 +75,7 @@ async function pad(page, button) {
   }, button);
 }
 async function save(page) {
-  await action(page, 'save').click();
+  await (await revealEditorAction(page, 'save')).click();
   await page.waitForFunction(() =>
     document
       .querySelector('[data-editor-status]')
@@ -134,10 +124,10 @@ try {
     true,
     'blank draft cannot drive',
   );
-  await field(page, 'name').fill('Unblurred quick save');
-  await field(page, 'name').press(
-    process.platform === 'darwin' ? 'Meta+s' : 'Control+s',
-  );
+  await (await revealEditorField(page, 'name')).fill('Unblurred quick save');
+  await (
+    await revealEditorField(page, 'name')
+  ).press(process.platform === 'darwin' ? 'Meta+s' : 'Control+s');
   await page.waitForFunction(() =>
     document
       .querySelector('[data-editor-status]')
@@ -170,32 +160,71 @@ try {
   const originalId = documents[0].id;
   console.log('PASS blank slate, keyboard entry, draft save');
 
-  await action(page, 'tab-generate').click();
+  await openEditorSection(page, 'generate');
   await change(page, 'seed', 123456);
   await change(page, 'length', 5000);
-  await field(page, 'seed-jumps').uncheck();
-  await action(page, 'generate').click();
+  await change(page, 'jump-frequency', 'none');
+  await (await revealEditorAction(page, 'generate')).click();
   await page.waitForFunction(
     () => !window.__VN_FRONTEND.getState().editor.busy,
+  );
+  assert.equal(await action(page, 'test').isEnabled(), true);
+  await save(page);
+  const generated = (await savedDocuments(page)).find(
+    (doc) => doc.id === originalId,
+  );
+  assert.equal(
+    generated.generator.version,
+    3,
+    'Generate uses the current varied layout',
+  );
+  assert.equal(
+    generated.jumps.length,
+    0,
+    'the None jump option changes the actual course',
+  );
+  // The following fixed station/roll regressions retain their original saved fixture.
+  const legacy = generateDocument({
+    generatorVersion: 1,
+    seed: 123456,
+    length: 5000,
+    seedJumps: false,
+  });
+  legacy.id = originalId;
+  legacy.name = generated.name;
+  await openEditorSection(page, 'library');
+  const legacyChooser = page.waitForEvent('filechooser');
+  await (await revealEditorAction(page, 'import')).click();
+  await (
+    await legacyChooser
+  ).setFiles({
+    name: 'legacy-authoring.vntrack.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(legacy)),
+  });
+  await page.waitForFunction(() =>
+    document
+      .querySelector('[data-editor-status]')
+      ?.textContent.includes('Track imported'),
   );
   await roadDetails(page);
   assert.equal(await action(page, 'test').isEnabled(), true);
   const originalX = Number(await field(page, 'point-x').inputValue());
-  await action(page, 'east').focus();
+  await (await revealEditorAction(page, 'east')).focus();
   await pad(page, 0);
   assert.equal(
     Number(await field(page, 'point-x').inputValue()),
     originalX + 20,
   );
-  await action(page, 'undo').click();
+  await (await revealEditorAction(page, 'undo')).click();
   assert.equal(Number(await field(page, 'point-x').inputValue()), originalX);
-  await action(page, 'redo').click();
+  await (await revealEditorAction(page, 'redo')).click();
   assert.equal(
     Number(await field(page, 'point-x').inputValue()),
     originalX + 20,
   );
   const originalY = Number(await field(page, 'point-y').inputValue());
-  await field(page, 'point-y').focus();
+  await (await revealEditorField(page, 'point-y')).focus();
   await pad(page, 15);
   assert(
     Number(await field(page, 'point-y').inputValue()) > originalY,
@@ -215,7 +244,7 @@ try {
     await change(page, 'shape-end', 5);
     await change(page, 'shape-preset', preset);
     await change(page, 'shape-direction', 'right');
-    await action(page, 'apply-shape').focus();
+    await (await revealEditorAction(page, 'apply-shape')).focus();
     await pad(page, 0);
     await save(page);
     const shaped = (await savedDocuments(page)).find(
@@ -234,10 +263,10 @@ try {
       true,
       'preset creates driveable geometry',
     );
-    await action(page, 'undo').click();
+    await (await revealEditorAction(page, 'undo')).click();
   }
   await change(page, 'shape-preset', 'straight');
-  await action(page, 'apply-shape').click();
+  await (await revealEditorAction(page, 'apply-shape')).click();
   await save(page);
   const straight = (await savedDocuments(page)).find(
     (doc) => doc.id === originalId,
@@ -252,7 +281,7 @@ try {
     );
     assert.equal(point.roll, a.roll);
   }
-  await action(page, 'undo').click();
+  await (await revealEditorAction(page, 'undo')).click();
   for (const [start, end, preset] of [
     [1, 5, '90'],
     [5, 9, '180'],
@@ -261,7 +290,7 @@ try {
     await change(page, 'shape-start', start);
     await change(page, 'shape-end', end);
     await change(page, 'shape-preset', preset);
-    await action(page, 'apply-shape').click();
+    await (await revealEditorAction(page, 'apply-shape')).click();
   }
   await save(page);
   const chained = (await savedDocuments(page)).find(
@@ -273,35 +302,35 @@ try {
   );
   assert.equal(await action(page, 'test').isEnabled(), true);
   await panel(page, 'pickups');
-  await action(page, 'fill-pickups').click();
+  await (await revealEditorAction(page, 'fill-pickups')).click();
   const pickupCount = await page.evaluate(
     () => window.__VN_FRONTEND.getState().editor.pickupCount,
   );
   assert(pickupCount > 0);
   assert.equal(await page.locator('[data-map-pickup]').count(), pickupCount);
-  await action(page, 'clear-pickups').click();
+  await (await revealEditorAction(page, 'clear-pickups')).click();
   assert.equal(await page.locator('[data-map-pickup]').count(), 0);
-  await action(page, 'undo').click();
+  await (await revealEditorAction(page, 'undo')).click();
   assert.equal(await page.locator('[data-map-pickup]').count(), pickupCount);
-  await action(page, 'redo').click();
+  await (await revealEditorAction(page, 'redo')).click();
   assert.equal(await page.locator('[data-map-pickup]').count(), 0);
-  await action(page, 'undo').click();
+  await (await revealEditorAction(page, 'undo')).click();
   await save(page);
   console.log(
     'PASS 90/180/270 chunks, straight connections, cumulative full roll, Fill/Clear pickups and undo',
   );
   await panel(page, 'world');
-  await action(page, 'preset-industrial').click();
+  await (await revealEditorAction(page, 'preset-industrial')).click();
   await save(page);
   documents = await savedDocuments(page);
   assert.equal(
     documents.find((doc) => doc.id === originalId).settings.sceneryPreset,
     'industrial',
   );
-  await action(page, 'tab-library').click();
+  await openEditorSection(page, 'library');
 
   const downloadEvent = page.waitForEvent('download', { timeout: 20000 });
-  await action(page, 'export').click();
+  await (await revealEditorAction(page, 'export')).click();
   const download = await downloadEvent;
 
   const exported = JSON.parse(await readFile(await download.path(), 'utf8'));
@@ -312,7 +341,7 @@ try {
   assert.equal(exported.points[0].x, edited.points[0].x);
 
   const choose = page.waitForEvent('filechooser', { timeout: 20000 });
-  await action(page, 'import').click();
+  await (await revealEditorAction(page, 'import')).click();
   await (
     await choose
   ).setFiles({
@@ -327,7 +356,7 @@ try {
   );
 
   const badChoose = page.waitForEvent('filechooser', { timeout: 20000 });
-  await action(page, 'import').click();
+  await (await revealEditorAction(page, 'import')).click();
   await (
     await badChoose
   ).setFiles({
@@ -344,7 +373,7 @@ try {
     1,
     'bad import preserves library',
   );
-  await action(page, 'save-copy').click();
+  await (await revealEditorAction(page, 'save-copy')).click();
   await page.waitForFunction(() =>
     document
       .querySelector('[data-editor-status]')
@@ -358,7 +387,11 @@ try {
   );
 
   if (!responsive) {
-    await action(page, 'view-world').click();
+    assert.equal(
+      await page.locator('[data-editor-world]').isVisible(),
+      true,
+      'the world preview stays visible',
+    );
     await page.waitForFunction(
       () =>
         window.__VN_FRONTEND.getState().editor?.preview?.estimatedGpuBytes >
@@ -366,19 +399,11 @@ try {
       null,
       { timeout: 60000 },
     );
-    const cameraMenu = page.locator('.workshop-camera-menu');
-    if (!(await cameraMenu.evaluate((node) => node.open)))
-      await cameraMenu.locator('summary').click();
-    for (const cameraAction of [
-      'orbit-left',
-      'orbit-right',
-      'orbit-left',
-      'orbit-right',
-    ]) {
+    for (const cameraAction of ['zoom-in', 'zoom-out', 'zoom-in', 'zoom-out']) {
       const frame = await page.evaluate(
         () => window.__VN_FRONTEND.getState().editor.preview.frames,
       );
-      await action(page, cameraAction).click();
+      await (await revealEditorAction(page, cameraAction)).click();
       await page.waitForFunction(
         (frame) =>
           window.__VN_FRONTEND.getState().editor.preview.frames > frame,
@@ -390,10 +415,9 @@ try {
     );
     assert(preview.triangles > 0);
     assert(preview.calls < 150);
-    await action(page, 'orbit-left').focus();
+    await (await revealEditorAction(page, 'zoom-in')).focus();
     await pad(page, 0);
-    await cameraMenu.locator('summary').click();
-    await action(page, 'fly-camera').click();
+    await (await revealEditorAction(page, 'fly-camera')).click();
     await page.waitForFunction(
       () => window.__VN_FRONTEND.getState().editor.flyActive,
     );
@@ -465,7 +489,7 @@ try {
       1,
       'B exits camera without closing the editor',
     );
-    await action(page, 'fly-camera').click();
+    await (await revealEditorAction(page, 'fly-camera')).click();
     await page.keyboard.press('Escape');
     assert.equal(
       await page.evaluate(
@@ -473,7 +497,17 @@ try {
       ),
       false,
     );
-    await action(page, 'view-map').click();
+    await (await revealEditorAction(page, 'view-map')).click();
+    await page.locator('[data-editor-map-wrap]').waitFor({ state: 'visible' });
+    assert.equal(
+      await page.evaluate(() => window.__VN_FRONTEND.getState().editor.view),
+      'world',
+      'Map opens over the live world preview',
+    );
+    assert.equal(
+      await page.evaluate(() => window.__VN_FRONTEND.getState().editor.mapOpen),
+      true,
+    );
     console.log(
       'PASS free camera keyboard flight, drag look, analog controller, Back and focus handoff',
     );
@@ -486,7 +520,7 @@ try {
         .filter(([key]) => key.includes('career'))
         .sort(),
     );
-    await action(page, 'test').click();
+    await (await revealEditorAction(page, 'test')).click();
     await page.waitForFunction(
       () =>
         document.querySelector('#hud') &&
@@ -546,26 +580,23 @@ try {
   }
 
   if (responsive) {
-    if (
-      await page.evaluate(
-        () => window.__VN_FRONTEND.getState().editor.panelOpen,
-      )
-    )
-      await action(page, 'panel-close').tap();
-    await action(page, 'view-world').tap();
+    if (await page.locator('[data-editor-map-wrap]').isVisible())
+      await (await revealEditorAction(page, 'map-close')).tap();
     await page.waitForFunction(
       () =>
         window.__VN_FRONTEND.getState().editor?.preview?.estimatedGpuBytes > 0,
       null,
       { timeout: 60000 },
     );
-    const cameraMenu = page.locator('.workshop-camera-menu');
-    if (!(await cameraMenu.evaluate((node) => node.open)))
-      await cameraMenu.locator('summary').tap();
-    await action(page, 'zoom-in').tap();
-    await cameraMenu.locator('summary').tap();
-    await action(page, 'view-map').tap();
-    await action(page, 'test').tap();
+    await (await revealEditorAction(page, 'zoom-in')).tap();
+    await (await revealEditorAction(page, 'view-map')).tap();
+    await page.locator('[data-editor-map-wrap]').waitFor({ state: 'visible' });
+    assert.equal(
+      await page.evaluate(() => window.__VN_FRONTEND.getState().editor.view),
+      'world',
+      'the narrow Map overlays the world preview',
+    );
+    await (await revealEditorAction(page, 'test')).tap();
     await page.waitForFunction(
       () =>
         window.__VN?.ready &&
@@ -616,14 +647,14 @@ try {
   await page.reload();
   await entry.waitFor({ timeout: 90000 });
   await entry.click();
-  await action(page, 'tab-library').click();
+  await openEditorSection(page, 'library');
   await page.waitForFunction(
     () =>
       document.querySelector('[data-editor-field="saved"]')?.options.length ===
       2,
   );
-  await field(page, 'saved').selectOption(originalId);
-  await action(page, 'load').click();
+  await (await revealEditorField(page, 'saved')).selectOption(originalId);
+  await (await revealEditorAction(page, 'load')).click();
   await page.waitForFunction(() =>
     document
       .querySelector('[data-editor-status]')
@@ -649,7 +680,7 @@ try {
     ),
     pickupCount,
   );
-  await action(page, 'save').click();
+  await (await revealEditorAction(page, 'save')).click();
   const reloaded = (await savedDocuments(page)).find(
     (doc) => doc.id === originalId,
   );
@@ -658,7 +689,7 @@ try {
     reloaded.points.map((point) => point.roll),
     exported.points.map((point) => point.roll),
   );
-  await action(page, 'exit').focus();
+  await (await revealEditorAction(page, 'exit')).focus();
   await pad(page, 0);
   await entry.waitFor();
   assert.equal(
@@ -683,7 +714,8 @@ try {
     const retained = await page.evaluate(() => window.__VN.getSnapshot());
     await page.locator('#home').click();
     await entry.click();
-    await action(page, 'test').click();
+    await action(page, 'test').waitFor({ timeout: 90000 });
+    await (await revealEditorAction(page, 'test')).click();
     await page.waitForFunction(
       () =>
         window.__VN?.ready &&
@@ -695,7 +727,7 @@ try {
     await page.keyboard.press('Escape');
     await page.locator('#home').click();
     await action(page, 'test').waitFor();
-    await action(page, 'exit').click();
+    await (await revealEditorAction(page, 'exit')).click();
     await page.locator('[data-action="resume-session"]').click();
     await page.locator('#pause-panel:not(.hidden) #resume').waitFor();
     const restored = await page.evaluate(() => window.__VN.getSnapshot());

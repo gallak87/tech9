@@ -81,7 +81,11 @@ export function createEditorTrack(value) {
   });
   track.boundaryIntervals.push({ start: from, end: length });
   const distances = Array.from({ length: 12 }, (_, i) =>
-    closed ? (length * i) / 12 : (finishDistance * i) / 11,
+    closed
+      ? (length * i) / 12
+      : i === 11
+        ? finishDistance
+        : (finishDistance * i) / 11,
   ).filter(
     (s) =>
       !track.jumps.some(

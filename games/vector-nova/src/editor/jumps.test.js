@@ -271,6 +271,7 @@ test('misses use ordinary bounded recovery and designs without jumps retain the 
 
 test('authored editor jump saves survive reload and the real Rapier ship launches and lands on the rendered receiving deck', async (t) => {
   const before = generateDocument({
+    generatorVersion: 1,
     seedJumps: false,
     length: 3000,
     courseType: 'downhill',

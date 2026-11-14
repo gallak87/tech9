@@ -18,7 +18,7 @@ import { withMagneticBoundaries } from '../physics/magnetic-boundaries.js';
 import { getRacerControl } from '../race/racers.js';
 
 const plainDocument = (options = {}) =>
-  generateDocument({ seedJumps: false, ...options });
+  generateDocument({ generatorVersion: 1, seedJumps: false, ...options });
 
 const DT = 1 / 120;
 
@@ -301,6 +301,25 @@ test('Downhill compiled routes clamp forward, support the rear grid and finish b
   assert.equal(track.checkpoints.at(-1).distance, track.finishDistance);
 });
 
+test('v3 fractional-length descents retain the exact finish checkpoint and 600 m runout', () => {
+  for (const options of [
+    {},
+    { bendiness: 0, elevation: 0, jumpFrequency: 'none', width: 32 },
+  ]) {
+    const track = createEditorTrack(
+      generateDocument({
+        generatorVersion: 3,
+        seed: 0,
+        length: 15000,
+        courseType: 'downhill',
+        ...options,
+      }),
+    );
+    assert.equal(track.checkpoints.at(-1).distance, track.finishDistance);
+    assert.equal(track.length - track.finishDistance, 600);
+  }
+});
+
 test('authored jumps remove actual road and collision while keeping one landing checkpoint and supported receiving deck', () => {
   const doc = addJump(plainDocument({ courseType: 'downhill', density: 0 }), {
     startIndex: 2,
@@ -367,6 +386,7 @@ test('adding a second assisted gap preserves the first actual launch and landing
 test('native magnetic driving remains supported through the automatic seeded circuit return and lap seam', async (t) => {
   const doc = applySectionShape(
     generateDocument({
+      generatorVersion: 2,
       seed: 42017,
       length: 3000,
       courseType: 'circuit',

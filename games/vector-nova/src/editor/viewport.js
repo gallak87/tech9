@@ -1,4 +1,5 @@
 import * as T from 'three';
+
 import { createEditorWorld } from './nightweir.js';
 import { createNightweirBackdrop } from '../levels/nightweir/backdrop/index.js';
 import { textureMemory } from '../renderer/texture-memory.js';
@@ -6,6 +7,16 @@ import { routeCurve } from './route.js';
 import { readGamepad, steeringAxis } from '../input/gamepad.js';
 import { createEditorHandles } from './viewport-handles.js';
 import { bindEditorViewportInput } from './viewport-input.js';
+
+// Generation knobs describe the next route; only the seed affects current scenery.
+export function editorWorldFingerprint(value) {
+  return JSON.stringify({
+    ...value,
+    id: undefined,
+    name: undefined,
+    generator: { seed: value.generator.seed },
+  });
+}
 
 /** A static, on-demand view of the same world used by Test Drive. */
 export function createEditorViewport(
@@ -771,11 +782,7 @@ export function createEditorViewport(
         problemLabel = 'Check this point',
       } = {},
     ) {
-      const next = JSON.stringify({
-        ...document,
-        id: undefined,
-        name: undefined,
-      });
+      const next = editorWorldFingerprint(document);
       const changed = next !== fingerprint;
       latest = document;
       selection = {

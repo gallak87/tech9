@@ -80,6 +80,7 @@ test('automatic jump suggestions preserve existing gaps and their anchored lips'
 
 test('invalid or wholly protected roads report a useful failure without changing the draft', async () => {
   const source = generateDocument({
+    generatorVersion: 2,
     seed: 42017,
     length: 3000,
     courseType: 'downhill',
@@ -123,4 +124,43 @@ test('20 km starters retain editing headroom and can add an automatic jump at th
       'assistance does not pull a high road down to a legacy altitude cap',
     );
   }
+});
+
+test('search wraps from a late selection, reuses supplied analysis, and preserves unassisted route geometry', async () => {
+  const source = generateDocument({
+    seed: 42017,
+    length: 5000,
+    courseType: 'circuit',
+    seedJumps: false,
+  });
+  const before = JSON.stringify(source),
+    analysis = analyzeDocument(source),
+    fractions = pointRouteFractions(source);
+  let yields = 0;
+  const progress = [];
+  const suggestion = await findNextSuitableJump(source, {
+    fromIndex: source.points.length - 1,
+    rampAssist: false,
+    analysis,
+    fractions,
+    yieldControl: async () => {
+      yields++;
+    },
+    onProgress: (step) => progress.push(step),
+  });
+  assert.equal(JSON.stringify(source), before);
+  assert.deepEqual(
+    suggestion.document.points,
+    source.points,
+    'unassisted suggestions never reshape the road',
+  );
+  assert.equal(suggestion.document.jumps.length, 1);
+  assert.equal(analyzeDocument(suggestion.document).valid, true);
+  assert.ok(yields >= 1 && yields <= 8);
+  assert.equal(progress.length, yields);
+  assert.ok(progress.every((step) => step.total <= 8));
+  assert.deepEqual(
+    progress.map((step) => step.attempt),
+    Array.from({ length: yields }, (_, i) => i + 1),
+  );
 });

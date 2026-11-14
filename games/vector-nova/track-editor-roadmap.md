@@ -1,6 +1,25 @@
 # Track editor roadmap
 
-The editor starts with direct road editing, seeded Circuit/Downhill courses through 20 km with starter jumps, connected 90°/180°/270° rotation and straight sections, flight previews, seeded Nightweir world presets, automatic infrastructure, pickup fill, saves and test driving. World presets handle complete surroundings; individual prop placement is deferred for reconsideration. The browser workflow is the foundation for the work below. Electron release verification is deferred.
+The editor starts with direct road editing, seeded Circuit/Downhill courses through 20 km with starter jumps and optional grade-separated Circuit crossovers, connected 90°/180°/270° rotation and straight sections, flight previews, seeded Nightweir scenery presets, automatic infrastructure, pickup fill, saves and test driving. Current scenery is concentrated along the road; complete regional world generation is planned below. Individual prop placement is deferred for reconsideration. Electron release verification is deferred.
+
+## Road and Environment authoring contexts
+
+Plan two authoring contexts within the same editor, sharing one 3D preview, one saved course and one Undo/Redo history. This is a future UI and data-model change; the current editor keeps its existing controls.
+
+- **Road** owns route geometry, elevation, roll/bank, width, jumps and pickups. Supports and other required infrastructure stay automatic.
+- **Environment** owns biome/world presets, regions, terrain, water, scenery/prop assemblies and sky/backdrop choices. Keep whole seeded assemblies as the default; individual prop placement remains deferred for reconsideration.
+- Persist independent road and environment seeds, generator versions and resolved settings. Changing a seed or regenerating one context must be explicit. Environment regeneration preserves the authored road, jump anchors and protected approach, flight and receiving corridors.
+- Context changes keep the current course, camera and edit history. Saving, reopening and Undo/Redo must preserve both contexts together; do not create separate road and world files or disconnected editors.
+- Complete coherent regional worlds first. Later mixed-biome regions need deliberate terrain, water, road-finish and support transitions, with continuous road geometry and race progress. A region boundary must not become a seam in the driving surface or an abrupt unsupported scenery swap.
+
+## Complete world generation
+
+- Generate a seeded regional plan around the full course: connected land and shorelines, basins, canals, neighborhoods, industrial yards and a few substantial landmarks. Fill the circuit interior and meaningful space beyond the road while preserving deliberate water and open areas.
+- Nightweir presets should choose the region's character and district distribution. Keep scenery automatic, with rooted buildings, connected quays/terraces and working water infrastructure.
+- Share the regional plan with route generation so courses travel through distinct places. Manually authored roads reserve clear driving, camera, support and jump corridors without silently changing their geometry.
+- Separate route and scenery seeds and offer an independent Regenerate scenery action. Persist world generator versions and resolved settings so saved courses remain stable.
+- Use detailed roadside construction, simpler middle-distance districts and a distant skyline/landscape. Spatially batch and cull chunks; bound instance, geometry and reflection costs across 20 km courses, with matched Low/High measurements against the 60 FPS target.
+- Rebuild affected local chunks after road edits, preserve Undo/save/load, and verify both driving views and unrestricted editor free-camera views. Keyboard/controller controls remain native.
 
 ## Mix and match biomes
 
@@ -39,18 +58,20 @@ Hazards must remain available across biome boundaries. Placement should preserve
 - River and waterfall authoring with connected sources, receivers and terrain/water contacts; avoid making users assemble water from disconnected cosmetic pieces.
 - Route-aware hazard masks that follow banked, inverted and moving surfaces; scenery should not unexpectedly cover the driving or landing corridor.
 - Geometry identity updates for every gameplay-affecting edit, plus migrations for saved kit versions. Existing saved routes remain authoritative.
+- Define cross-runtime numeric canonicalization before custom records or Workshop sharing. Tiny differences in derived anchored fractions currently change exact hashes between Node and the browser even when resolved points match; saved geometry remains authoritative.
 - Asset sharing and lazy loading across mixed kits. Batch compatible static props, bound water/reflection/volume passes, and measure matched warm views against the 60 FPS target before expanding density limits.
 - Keyboard/controller parity, reliable undo/redo and save/load for every new placement tool.
 
 ## Suggested sequence
 
-1. Introduce the assembly/biome registry and extract one small additional kit. Prove mixed road spans, automatic supports and roundtrip saves.
-2. Add the independent sky picker and a cross-biome static prop palette.
-3. Add a stationary road hazard such as Vesper sap or a lava/fire floor. Validate exact road contact, reset, replay identity and clear visual warnings.
-4. Add connected water systems and richer Nightweir/Zephyr construction assemblies.
-5. Add Colossus moving machinery and Umbra lensing after the simulation and rendering budgets are established.
+1. Complete seeded regional Nightweir world generation, independent road/environment seeds and the shared Road/Environment authoring contexts. Prove preserved road/jump corridors, whole-course world coverage, Undo and roundtrip saves before expanding biome combinations.
+2. Introduce the assembly/biome registry and extract one small additional kit. Mature mixed-biome regions with deliberate transitions, automatic supports and continuous driving/race progress.
+3. Add the independent sky picker. Reconsider an optional cross-biome static prop palette after the complete-world workflow is established.
+4. Add a stationary road hazard such as Vesper sap or a lava/fire floor. Validate exact road contact, reset, replay identity and clear visual warnings.
+5. Add connected water systems and richer Nightweir/Zephyr construction assemblies.
+6. Add Colossus moving machinery and Umbra lensing after the simulation and rendering budgets are established.
 
-Each step is complete when a mixed course can be edited, saved/reopened, inspected with the free camera and driven through using the real physics, with matching visual/physical placement and no controller-only dead ends.
+Each step is complete when its course can be edited in the shared preview, saved/reopened, undone/redone, inspected with the free camera and driven through using the real physics, with matching visual/physical placement and no controller-only dead ends. Mixed-biome steps also require complete transitions between regions.
 
 ## Later editor capabilities
 

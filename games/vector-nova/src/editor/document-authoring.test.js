@@ -15,7 +15,12 @@ test('20 km generated courses retain room for ordinary outward authoring edits',
   assert.equal(DOCUMENT_LIMITS.length, 25000);
   assert.equal(DOCUMENT_LIMITS.generatorLength, 20000);
   for (const courseType of ['circuit', 'downhill']) {
-    const doc = generateDocument({ seed: 42017, courseType, length: 20000 });
+    const doc = generateDocument({
+      generatorVersion: 2,
+      seed: 42017,
+      courseType,
+      length: 20000,
+    });
     doc.points[1].x += 30;
     const analysis = analyzeDocument(doc);
     assert.ok(
@@ -38,6 +43,7 @@ test('20 km generated courses retain room for ordinary outward authoring edits',
 
 test('high-altitude assisted jumps stay local to the road and retain truthful cruise and boost advice', () => {
   const source = generateDocument({
+    generatorVersion: 2,
     seed: 42017,
     length: 20000,
     courseType: 'downhill',
@@ -81,6 +87,7 @@ test('high-altitude assisted jumps stay local to the road and retain truthful cr
 
 test('assisted ramps reserve guide-point headroom near the authored height ceiling', () => {
   const source = generateDocument({
+    generatorVersion: 1,
     length: 4800,
     courseType: 'downhill',
     seedJumps: false,

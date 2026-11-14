@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import * as T from 'three';
-import { revealEditorField } from './editor-controls.mjs';
-import { createDocument } from '../src/editor/document.js';
+import {
+  revealEditorField,
+  revealEditorAction,
+  openEditorSection,
+} from './editor-controls.mjs';
+import { createDocument, generateDocument } from '../src/editor/document.js';
 import {
   createCareerSlots,
   createMemoryStorage,
@@ -48,7 +52,7 @@ async function change(page, name, value) {
   }
 }
 async function save(page) {
-  await action(page, 'save').click();
+  await (await revealEditorAction(page, 'save')).click();
   await page.waitForFunction(() =>
     document
       .querySelector('[data-editor-status]')
@@ -121,12 +125,6 @@ try {
     1,
     await page.locator('body').innerText(),
   );
-  assert(
-    await action(page, 'quick-start').evaluate(
-      (el) => el === document.activeElement,
-    ),
-    'the blank editor focuses its one-click starter for keyboard/controller users',
-  );
   await change(page, 'name', 'Direct manipulation verification');
   assert.equal(
     (await state(page)).view,
@@ -142,7 +140,7 @@ try {
       ]) {
     await page.setViewportSize({ width, height });
     assert.equal(await page.locator('[data-music-player]').isVisible(), false);
-    for (const name of ['save', 'test', 'exit', 'tunes']) {
+    for (const name of ['save', 'test', 'undo', 'redo']) {
       assert(await action(page, name).isVisible(), `${name} stays visible`);
       assert(
         await action(page, name).evaluate((el) => {
@@ -154,14 +152,30 @@ try {
         `${name} is not covered by another overlay`,
       );
     }
-    await action(page, 'tunes').click();
+    await (await revealEditorAction(page, 'tunes')).click();
     await page.locator('[data-music-player]').waitFor({ state: 'visible' });
     const musicBox = await page.locator('[data-music-player]').boundingBox();
-    const header = await page.locator('[data-editor-header]').boundingBox();
+    const main = await page.locator('.workshop-main').boundingBox();
     assert(
-      musicBox.y >= header.y + header.height,
-      'Tunes opens below header controls',
+      musicBox.x >= main.x &&
+        musicBox.y >= main.y &&
+        musicBox.x + musicBox.width <= main.x + main.width + 1 &&
+        musicBox.y + musicBox.height <= main.y + main.height + 1,
+      'Tunes stays within the preview beside or above the dock',
     );
+    for (const name of ['save', 'test'])
+      assert(
+        await action(page, name).evaluate((el) => {
+          const r = el.getBoundingClientRect();
+          return (
+            el.disabled ||
+            el.contains(
+              document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2),
+            )
+          );
+        }),
+        `Tunes does not cover ${name}`,
+      );
     await page.keyboard.press('Escape');
     assert.equal(await page.locator('[data-music-player]').isVisible(), false);
     assert(
@@ -172,16 +186,38 @@ try {
   }
   if (!responsive) await page.setViewportSize({ width: 1440, height: 1000 });
   await ready(page);
+  await (await revealEditorAction(page, 'tunes')).focus();
+  await page.keyboard.press('Enter');
+  await page.locator('[data-music-player]').waitFor({ state: 'visible' });
+  await (await revealEditorAction(page, 'view-map')).focus();
+  await page.keyboard.press('Enter');
+  await page.locator('[data-editor-map-wrap]').waitFor({ state: 'visible' });
+  assert.equal(await page.locator('[data-music-player]').isVisible(), false);
+  assert.equal((await state(page)).view, 'world');
+  assert.equal((await state(page)).mapOpen, true);
+  assert(
+    await action(page, 'map-close').evaluate(
+      (el) => el === document.activeElement,
+    ),
+    'keyboard opening Map leaves focus in the Map dialog',
+  );
+  await page.keyboard.press('Escape');
+  assert.equal((await state(page)).mapOpen, false);
+  assert(
+    await action(page, 'view-map').evaluate(
+      (el) => el === document.activeElement,
+    ),
+    'closing Map returns focus to its permanent button',
+  );
   console.log(
-    'PASS clear primary toolbar and Tunes open/close/focus without overlap',
+    'PASS clear primary toolbar, Tunes placement and keyboard Map/Tunes exclusivity',
   );
 
-  await action(page, 'quick-start').focus();
+  await (await revealEditorAction(page, 'quick-start')).focus();
   await page.keyboard.press('Enter');
   await ready(page);
-  assert.equal(
-    (await state(page)).jumpCount,
-    1,
+  assert(
+    (await state(page)).jumpCount > 0,
     'one-click starter includes a real jump',
   );
   assert(
@@ -189,35 +225,34 @@ try {
     'the starter is already filled with pickups',
   );
   assert(await action(page, 'test').isEnabled());
-  await action(page, 'tab-jumps').click();
+  await openEditorSection(page, 'jumps');
   assert(
     await field(page, 'jump-selected').isVisible(),
     'existing jumps have a direct inspection path',
   );
-  await action(page, 'panel-close').click();
   if (!responsive) {
-    await action(page, 'focus-selection').click();
+    await (await revealEditorAction(page, 'focus-selection')).click();
     await ready(page);
     const before = (await state(page)).preview.camera;
-    await action(page, 'context-raise').click();
-    await action(page, 'undo').click();
+    await (await revealEditorAction(page, 'context-raise')).click();
+    await (await revealEditorAction(page, 'undo')).click();
     await ready(page);
     assert.deepEqual(
       (await state(page)).preview.camera.position,
       before.position,
       'Undo preserves the focused camera',
     );
-    await action(page, 'redo').click();
+    await (await revealEditorAction(page, 'redo')).click();
     await ready(page);
     assert.deepEqual(
       (await state(page)).preview.camera.position,
       before.position,
       'Redo preserves the focused camera',
     );
-    await action(page, 'undo').click();
+    await (await revealEditorAction(page, 'undo')).click();
   }
-  await action(page, 'tab-generate').click();
-  await action(page, 'blank').click();
+  await openEditorSection(page, 'generate');
+  await (await revealEditorAction(page, 'blank')).click();
   await ready(page);
   await change(page, 'name', 'Direct manipulation verification');
   console.log(
@@ -227,7 +262,7 @@ try {
   if (!responsive) {
     await page.setViewportSize({ width: 1440, height: 900 });
     await ready(page);
-    await action(page, 'draw-mode').click();
+    await (await revealEditorAction(page, 'draw-mode')).click();
     for (const [x, y] of [
       [490, 540],
       [700, 580],
@@ -241,7 +276,7 @@ try {
       4,
       'blank road is drawn with four clicks',
     );
-    await action(page, 'finish-drawing').click();
+    await (await revealEditorAction(page, 'finish-drawing')).click();
     assert.equal(
       (await state(page)).drawMode,
       false,
@@ -251,18 +286,18 @@ try {
       Number.isInteger((await state(page)).primaryIssue?.pointIndex),
       'a pinched corner is identified',
     );
-    await action(page, 'show-issue').click();
+    await (await revealEditorAction(page, 'show-issue')).click();
     assert.equal(
       (await state(page)).selectedPoint,
       (await state(page)).primaryIssue.pointIndex,
     );
-    await action(page, 'spread-road').click();
+    await (await revealEditorAction(page, 'spread-road')).click();
     await ready(page);
     assert(
       await action(page, 'test').isEnabled(),
       'one explicit repair gives the novice drawing enough physical room',
     );
-    await action(page, 'test').click();
+    await (await revealEditorAction(page, 'test')).click();
     await page.waitForFunction(
       () =>
         window.__VN?.ready &&
@@ -279,7 +314,11 @@ try {
       .click();
     await action(page, 'test').waitFor();
     await ready(page);
-    await action(page, 'view-map').click();
+    await (await revealEditorAction(page, 'view-map')).click();
+    await page.locator('[data-editor-map-wrap]').waitFor({ state: 'visible' });
+    assert.equal((await state(page)).view, 'world');
+    assert.equal((await state(page)).mapOpen, true);
+    assert(await page.locator('[data-editor-world]').isVisible());
     const mapPoints = await page
       .locator('[data-map-point]')
       .evaluateAll((nodes) =>
@@ -293,7 +332,18 @@ try {
       mapPoints.every(([x, y]) => x > 12 && x < 988 && y > 12 && y < 668),
       'Map opens with the full road visible',
     );
-    await action(page, 'view-world').click();
+    const cameraBeforeMapSelection = (await state(page)).preview.camera;
+    await page.locator('[data-map-point="1"] circle').click();
+    assert.equal((await state(page)).selectedPoint, 1);
+    assert.equal((await state(page)).view, 'world');
+    assert.equal((await state(page)).mapOpen, true);
+    assert.deepEqual(
+      (await state(page)).preview.camera.position,
+      cameraBeforeMapSelection.position,
+      'Map selection preserves the underlying 3D camera',
+    );
+    await (await revealEditorAction(page, 'map-close')).click();
+    assert.equal((await state(page)).mapOpen, false);
     await page.setViewportSize({ width: 1440, height: 1000 });
     await ready(page);
     console.log(
@@ -308,9 +358,9 @@ try {
       { id: 'p-c', x: 420, y: 52, z: 90, bank: 0 },
       { id: 'p-d', x: 0, y: 52, z: 260, bank: 0 },
     ];
-    await action(page, 'tab-library').click();
+    await openEditorSection(page, 'library');
     const chooser = page.waitForEvent('filechooser');
-    await action(page, 'import').click();
+    await (await revealEditorAction(page, 'import')).click();
     await (
       await chooser
     ).setFiles({
@@ -323,7 +373,6 @@ try {
         .querySelector('[data-editor-status]')
         ?.textContent.includes('Track imported'),
     );
-    await action(page, 'panel-close').click();
     await ready(page);
     for (const name of ['show-issue', 'spread-road']) {
       const box = await action(page, name).boundingBox();
@@ -338,7 +387,7 @@ try {
         `${name} is available to touch`,
       );
     }
-    await action(page, 'spread-road').tap();
+    await (await revealEditorAction(page, 'spread-road')).tap();
     await ready(page);
     assert(
       await action(page, 'test').isEnabled(),
@@ -352,30 +401,63 @@ try {
     console.log('PASS visible touch repair actions on a narrow invalid road');
   }
 
-  await action(page, 'tab-generate').click();
+  await openEditorSection(page, 'generate');
   await change(page, 'course-type', 'circuit');
   await change(page, 'seed', 42017);
   await change(page, 'length', 3000);
-  await action(page, 'generate').click();
+  await change(page, 'jump-frequency', 'normal');
+  await change(page, 'jump-size', 'mixed');
+  await (await revealEditorAction(page, 'generate')).click();
   await ready(page);
   let doc = await save(page);
-  assert.equal(doc.jumps.length, 1, 'short circuit includes a seeded jump');
-  await action(page, 'context-more').click();
-  await action(page, 'tab-jumps').click();
-  const creation = page.locator('.workshop-jump-create');
-  await creation.locator('summary').first().click();
+  assert.equal(
+    doc.generator.version,
+    3,
+    'public Generate uses the current varied layout',
+  );
+  assert(
+    doc.jumps.length > 0,
+    'the ordinary circuit includes real seeded jumps',
+  );
+  // Fixed return-bend pointer targets below intentionally exercise the v2 fixture.
+  const legacy = generateDocument({
+    generatorVersion: 2,
+    seed: 42017,
+    length: 3000,
+    courseType: 'circuit',
+  });
+  legacy.id = doc.id;
+  legacy.name = doc.name;
+  await openEditorSection(page, 'library');
+  const legacyChooser = page.waitForEvent('filechooser');
+  await (await revealEditorAction(page, 'import')).click();
+  await (
+    await legacyChooser
+  ).setFiles({
+    name: 'legacy-pointer.vntrack.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(legacy)),
+  });
+  await page.waitForFunction(() =>
+    document
+      .querySelector('[data-editor-status]')
+      ?.textContent.includes('Track imported'),
+  );
+  await ready(page);
+  doc = await save(page);
+  await openEditorSection(page, 'jumps');
   await change(page, 'jump-receiving', 600);
   assert(
-    await creation.evaluate((el) => el.open),
-    'creating another jump stays open while editing its controls',
+    await field(page, 'jump-receiving').isVisible(),
+    'new jump controls remain directly available while editing',
   );
-  await action(page, 'clear-jumps').click();
+  await (await revealEditorAction(page, 'clear-jumps')).click();
   assert.equal(
     (await state(page)).jumpCount,
     0,
     'clear all restores supported road',
   );
-  await action(page, 'undo').click();
+  await (await revealEditorAction(page, 'undo')).click();
   assert.deepEqual(
     (await save(page)).jumps,
     doc.jumps,
@@ -383,9 +465,7 @@ try {
   );
   await ready(page);
   if (!responsive) {
-    if (await action(page, 'panel-close').isVisible())
-      await action(page, 'panel-close').click();
-    await action(page, 'fit').click();
+    await (await revealEditorAction(page, 'fit')).click();
     await ready(page);
     const canvas = page.locator('[data-editor-world] canvas');
     const box = await canvas.boundingBox();
@@ -404,7 +484,7 @@ try {
       doc.points.length + 1,
       'double-click on road inserts a point in Select mode',
     );
-    await action(page, 'undo').click();
+    await (await revealEditorAction(page, 'undo')).click();
     assert.deepEqual(
       await save(page),
       doc,
@@ -438,7 +518,7 @@ try {
       ) > 5,
       'drag moves road geometry',
     );
-    await action(page, 'undo').click();
+    await (await revealEditorAction(page, 'undo')).click();
     assert.deepEqual(
       (await save(page)).points,
       doc.points,
@@ -460,13 +540,13 @@ try {
       doc.points,
       'cancelled pointer transaction restores the draft',
     );
-    await action(page, 'context-raise').click();
+    await (await revealEditorAction(page, 'context-raise')).click();
     moved = await save(page);
     assert(
       moved.points[index].y > doc.points[index].y,
       'selection has immediate elevation controls',
     );
-    await action(page, 'undo').click();
+    await (await revealEditorAction(page, 'undo')).click();
     await ready(page);
     const height = (await state(page)).preview.interaction.heightHandle;
     const heightBox = await canvas.boundingBox();
@@ -481,7 +561,7 @@ try {
       (await save(page)).points[index].y > doc.points[index].y,
       'height handle changes actual elevation',
     );
-    await action(page, 'undo').click();
+    await (await revealEditorAction(page, 'undo')).click();
     await ready(page);
     const rangeBox = await canvas.boundingBox();
     const handles = (await state(page)).preview.interaction.points;
@@ -503,8 +583,8 @@ try {
       (await state(page)).preview.interaction.span,
       'selected section is highlighted in 3D',
     );
-    await action(page, 'context-shape').click();
-    await action(page, 'quick-90').click();
+    await openEditorSection(page, 'shape');
+    await (await revealEditorAction(page, 'quick-90')).click();
     const shapeStatus = await page.locator('[data-editor-status]').innerText();
     const shaped = await save(page);
     assert(
@@ -515,7 +595,7 @@ try {
       await action(page, 'test').isEnabled(),
       'automatic circuit return keeps a shaped seeded course drivable',
     );
-    await action(page, 'undo').click();
+    await (await revealEditorAction(page, 'undo')).click();
     assert.deepEqual(
       await save(page),
       doc,
@@ -549,16 +629,16 @@ try {
     );
   }
 
-  await action(page, 'tab-world').click();
+  await openEditorSection(page, 'world');
   assert(
     await page
-      .locator('[data-editor-panel]')
+      .locator('[data-editor-global-tools]')
       .evaluate((el) => el.scrollTop < 1),
     'opening a new tool starts at the top instead of inheriting another panel scroll',
   );
   const roadBeforeWorld = doc.points;
   for (const preset of ['industrial', 'reclaimed', 'waterfront']) {
-    await action(page, `preset-${preset}`).click();
+    await (await revealEditorAction(page, `preset-${preset}`)).click();
     await ready(page);
     const themed = await save(page);
     assert.equal(themed.settings.sceneryPreset, preset);
@@ -574,7 +654,7 @@ try {
     );
   }
   const beforeWorldSeed = await save(page);
-  await action(page, 'new-world-seed').click();
+  await (await revealEditorAction(page, 'new-world-seed')).click();
   await ready(page);
   const reseededWorld = await save(page);
   assert.notEqual(reseededWorld.generator.seed, beforeWorldSeed.generator.seed);
@@ -583,7 +663,7 @@ try {
     beforeWorldSeed.points,
     'world reseeding leaves road intact',
   );
-  await action(page, 'undo').click();
+  await (await revealEditorAction(page, 'undo')).click();
   assert.equal(
     (await save(page)).generator.seed,
     beforeWorldSeed.generator.seed,
@@ -598,24 +678,26 @@ try {
   );
 
   if (!(await field(page, 'length').isVisible()))
-    await action(page, 'tab-generate').click();
+    await openEditorSection(page, 'generate');
   await change(page, 'length', 5000);
-  await action(page, 'generate').click();
+  await (await revealEditorAction(page, 'generate')).click();
   await ready(page);
+  const regenerated = await save(page);
   assert.equal(
-    (await save(page)).jumps.length,
-    2,
-    'long circuit includes two seeded jumps',
+    regenerated.generator.version,
+    3,
+    'regeneration returns to the current layout',
   );
+  assert(regenerated.jumps.length > 0, 'long circuit includes seeded jumps');
 
   for (const length of responsive
     ? [20000]
     : [3000, 5000, 10000, 15000, 20000]) {
     if (!(await field(page, 'length').isVisible()))
-      await action(page, 'tab-generate').click();
+      await openEditorSection(page, 'generate');
     await change(page, 'course-type', 'downhill');
     await change(page, 'length', length);
-    await action(page, 'generate').click();
+    await (await revealEditorAction(page, 'generate')).click();
     await ready(page);
     doc = await save(page);
     assert.equal(doc.generator.length, length);
@@ -630,7 +712,11 @@ try {
       `PASS ${length / 1000} km downhill: ${doc.jumps.length} jumps; preview ${metrics.triangles} triangles / ${metrics.calls} draw calls`,
     );
   }
-  await action(page, 'view-map').click();
+  await (await revealEditorAction(page, 'view-map')).click();
+  await page.locator('[data-editor-map-wrap]').waitFor({ state: 'visible' });
+  assert.equal((await state(page)).view, 'world');
+  assert.equal((await state(page)).mapOpen, true);
+  assert(await page.locator('[data-editor-world]').isVisible());
   const fitted = await page.locator('[data-map-point]').evaluateAll((nodes) =>
     nodes.map((node) => {
       const m = node.transform.baseVal.consolidate().matrix;
@@ -641,7 +727,7 @@ try {
     fitted.every(([x, y]) => x > 24 && x < 976 && y > 24 && y < 656),
     'a20kmMap includes screen space for every handle and endpoint label',
   );
-  await action(page, 'view-world').click();
+  await (await revealEditorAction(page, 'map-close')).click();
   await ready(page);
   if (!responsive) {
     const careerBefore = await page.evaluate(() =>
@@ -649,7 +735,7 @@ try {
         .filter(([key]) => key.includes('career'))
         .sort(),
     );
-    await action(page, 'test').click();
+    await (await revealEditorAction(page, 'test')).click();
     await page.waitForFunction(
       () =>
         window.__VN?.ready &&
@@ -727,7 +813,7 @@ try {
   }
   await page.reload();
   await action(page, 'tab-library').waitFor({ timeout: 90000 });
-  await action(page, 'tab-library').click();
+  await openEditorSection(page, 'library');
   await page.waitForFunction(
     (id) =>
       [...document.querySelectorAll('[data-editor-field="saved"] option')].some(
@@ -735,8 +821,8 @@ try {
       ),
     doc.id,
   );
-  await field(page, 'saved').selectOption(doc.id);
-  await action(page, 'load').click();
+  await (await revealEditorField(page, 'saved')).selectOption(doc.id);
+  await (await revealEditorAction(page, 'load')).click();
   await ready(page);
   const loaded = await save(page);
   assert.deepEqual(loaded.points, doc.points);

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  generateDocument,
+  generateDocument as generate,
   validateDocument,
   analyzeDocument,
   DOCUMENT_LIMITS,
@@ -17,6 +17,13 @@ import {
 } from './jumps.js';
 import { getShip, SHIPS } from '../ships/catalog.js';
 import { assertTrackContract } from '../../tools/level-checks/track-contract.mjs';
+
+// Keep the saved v2 jump districts and fixed rotation spans as compatibility fixtures.
+const generateDocument = (options = {}) =>
+  generate({
+    generatorVersion: options.seedJumps === false ? 1 : 2,
+    ...options,
+  });
 
 const cases = [
   ['circuit', 1800, 1],

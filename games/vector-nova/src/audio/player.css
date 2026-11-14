@@ -26,9 +26,14 @@
 }
 body[data-screen='editor'] .music-player.is-launcher-only {
   top: var(--music-launcher-top, 76px);
-  right: 16px;
-  max-width: calc(100vw - 32px);
-  max-height: calc(100dvh - var(--music-launcher-top, 76px) - 16px);
+  right: var(--music-launcher-right, 16px);
+  box-sizing: border-box;
+  width: 320px;
+  max-width: var(--music-launcher-max-width, calc(100vw - 32px));
+  max-height: var(
+    --music-launcher-max-height,
+    calc(100dvh - var(--music-launcher-top, 76px) - 16px)
+  );
   overflow-y: auto;
 }
 .music-player .music-compact-toggle {

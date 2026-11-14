@@ -1,9 +1,18 @@
 import * as T from 'three';
 import { routeCurve, createRouteSampler } from './route.js';
 import { createSeededCourseGeometry } from './seeded-course.js';
+import { createSeededLayoutGeometry } from './seeded-layout.js';
 import { worldPreset } from './world-presets.js';
 
 export const DOCUMENT_FORMAT = 'vector-nova-track';
+export const GENERATOR_VERSION = 3;
+export const JUMP_FREQUENCIES = Object.freeze([
+  'none',
+  'few',
+  'normal',
+  'many',
+]);
+export const JUMP_SIZES = Object.freeze(['small', 'mixed', 'large']);
 export const DOWNHILL_RUNOUT = 600;
 
 function fractionForPoint(points, courseType, index, preparedCurve = null) {
@@ -82,7 +91,7 @@ export function validateDocument(value) {
   if (typeof autoCloseRoll !== 'boolean')
     fail('Automatic circuit return must be enabled or disabled');
   const g = value.generator;
-  if (!record(g) || ![1, 2].includes(g.version))
+  if (!record(g) || ![1, 2, 3].includes(g.version))
     fail('Unsupported generator version');
   if (!Number.isInteger(g.seed)) fail('Seed must be an integer');
   const generator = {
@@ -97,6 +106,17 @@ export function validateDocument(value) {
     bendiness: number(g.bendiness, 0, 1, 'Bendiness'),
     elevation: number(g.elevation, 0, 1, 'Elevation'),
   };
+  if (g.version === GENERATOR_VERSION) {
+    const jumpFrequency = g.jumpFrequency ?? 'normal';
+    const jumpSize = g.jumpSize ?? 'mixed';
+    if (!JUMP_FREQUENCIES.includes(jumpFrequency))
+      fail('Choose None, Few, Normal or Many jumps');
+    if (!JUMP_SIZES.includes(jumpSize))
+      fail('Choose Small, Mixed or Large jumps');
+    generator.jumpFrequency = jumpFrequency;
+    generator.jumpSize = jumpSize;
+    generator.crossovers = number(g.crossovers ?? 0, 0, 1, 'Crossovers');
+  }
   if (!record(value.settings)) fail('Biome settings are missing');
   const sceneryPreset = value.settings.sceneryPreset ?? 'waterfront';
   if (!['waterfront', 'industrial', 'reclaimed'].includes(sceneryPreset))
@@ -265,7 +285,7 @@ export function documentIdentity(doc) {
 
 export const documentCurve = routeCurve;
 
-export function generateDocument({
+function generateLegacyDocument({
   seed = 7,
   length = 3000,
   bendiness = 0.45,
@@ -275,6 +295,7 @@ export function generateDocument({
   waterLevel,
   courseType = 'circuit',
   seedJumps = true,
+  generatorVersion = 2,
   sceneryPreset = 'waterfront',
 } = {}) {
   const preset = worldPreset(sceneryPreset);
@@ -282,7 +303,7 @@ export function generateDocument({
   waterLevel ??= preset.waterLevel;
   if (typeof seedJumps !== 'boolean')
     fail('Seeded jumps must be enabled or disabled');
-  if (seedJumps) {
+  if (generatorVersion === 2) {
     const draft = validateDocument({
       format: DOCUMENT_FORMAT,
       version: 1,
@@ -375,17 +396,174 @@ export function generateDocument({
   return validateDocument(doc);
 }
 
+const GENERATION_ATTEMPTS = 4;
+
+function generationDraft({
+  seed = 7,
+  length = 3000,
+  bendiness = 0.45,
+  elevation = 0.35,
+  crossovers = 0,
+  width = 40,
+  density,
+  waterLevel,
+  courseType = 'circuit',
+  seedJumps = true,
+  sceneryPreset = 'waterfront',
+  generatorVersion = GENERATOR_VERSION,
+  jumpFrequency = 'normal',
+  jumpSize = 'mixed',
+} = {}) {
+  if (typeof seedJumps !== 'boolean')
+    fail('Seeded jumps must be enabled or disabled');
+  const preset = worldPreset(sceneryPreset);
+  return validateDocument({
+    format: DOCUMENT_FORMAT,
+    version: 1,
+    id: `track-${seed}`,
+    name:
+      courseType === 'downhill'
+        ? 'Untitled Nightweir Descent'
+        : 'Untitled Nightweir',
+    biome: 'nightweir',
+    courseType,
+    generator: {
+      version: generatorVersion,
+      seed,
+      length,
+      bendiness,
+      elevation,
+      crossovers,
+      jumpFrequency: seedJumps ? jumpFrequency : 'none',
+      jumpSize,
+    },
+    width,
+    points: [],
+    jumps: [],
+    props: [],
+    settings: {
+      sceneryPreset,
+      density: density ?? preset.density,
+      waterLevel: waterLevel ?? preset.waterLevel,
+    },
+  });
+}
+
+function legacyGeneration(draft) {
+  // Selecting an old version explicitly reproduces that historical builder;
+  // loading or changing preferences never calls any generator implicitly.
+  return generateLegacyDocument({
+    ...draft.generator,
+    ...draft.settings,
+    generatorVersion: draft.generator.version,
+    courseType: draft.courseType,
+    width: draft.width,
+  });
+}
+
+function generationCandidate(draft, attempt) {
+  try {
+    const geometry = createSeededLayoutGeometry({
+      ...draft.generator,
+      courseType: draft.courseType,
+      width: draft.width,
+      waterLevel: draft.settings.waterLevel,
+      attempt,
+    });
+    const document = validateDocument({ ...draft, ...geometry });
+    const analysis = analyzeDocument(document);
+    return {
+      document: analysis.valid ? document : null,
+      reason: analysis.errors.join(' '),
+    };
+  } catch (error) {
+    return { document: null, reason: error.message };
+  }
+}
+
+function generationFailure(reason) {
+  fail(
+    `This variation could not produce a drivable course. Try another seed or different jump settings. ${reason}`,
+  );
+}
+
+/** Generate resolved geometry; saved points never depend on rerunning a seed. */
+export function generateDocument(options = {}) {
+  const draft = generationDraft(options);
+  if (draft.generator.version !== GENERATOR_VERSION)
+    return legacyGeneration(draft);
+  let reason;
+  for (let attempt = 0; attempt < GENERATION_ATTEMPTS; attempt++) {
+    const candidate = generationCandidate(draft, attempt);
+    if (candidate.document) return candidate.document;
+    reason = candidate.reason;
+  }
+  return generationFailure(reason);
+}
+
+/** The UI can paint progress between deterministic candidate attempts. */
+export async function generateDocumentAsync(
+  options = {},
+  {
+    yieldControl = () => new Promise((done) => setTimeout(done, 0)),
+    onProgress,
+  } = {},
+) {
+  const draft = generationDraft(options);
+  const total =
+    draft.generator.version === GENERATOR_VERSION ? GENERATION_ATTEMPTS : 1;
+  let reason;
+  for (let attempt = 0; attempt < total; attempt++) {
+    onProgress?.({ attempt: attempt + 1, total });
+    await yieldControl();
+    if (draft.generator.version !== GENERATOR_VERSION)
+      return legacyGeneration(draft);
+    const candidate = generationCandidate(draft, attempt);
+    if (candidate.document) return candidate.document;
+    reason = candidate.reason;
+  }
+  return generationFailure(reason);
+}
+
 export function createDocument({
   seed = 7,
   blank = false,
   courseType = 'circuit',
 } = {}) {
-  const doc = generateDocument({ seed, courseType, seedJumps: !blank });
+  const preset = worldPreset('waterfront');
+  const doc = blank
+    ? validateDocument({
+        format: DOCUMENT_FORMAT,
+        version: 1,
+        id: `track-${seed}`,
+        name:
+          courseType === 'downhill'
+            ? 'Untitled Nightweir Descent'
+            : 'Untitled Nightweir',
+        biome: 'nightweir',
+        courseType,
+        generator: {
+          version: GENERATOR_VERSION,
+          seed,
+          length: 3000,
+          bendiness: 0.45,
+          elevation: 0.35,
+          crossovers: 0,
+          jumpFrequency: 'normal',
+          jumpSize: 'mixed',
+        },
+        width: 40,
+        points: [],
+        jumps: [],
+        props: [],
+        settings: {
+          sceneryPreset: preset.id,
+          density: preset.density,
+          waterLevel: preset.waterLevel,
+        },
+      })
+    : generateDocument({ seed, courseType });
   doc.id = `track-${globalThis.crypto.randomUUID()}`;
-  if (blank) {
-    doc.points = [];
-    doc.jumps = [];
-  }
   return doc;
 }
 

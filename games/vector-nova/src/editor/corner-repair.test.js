@@ -2,12 +2,19 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   createDocument,
-  generateDocument,
+  generateDocument as generate,
   analyzeDocument,
   validateDocument,
   pointRouteFractions,
 } from './document.js';
 import { canSmoothCorner, smoothCorner } from './corner-repair.js';
+
+// These regressions intentionally retain the original warning indices/corridors.
+const generateDocument = (options = {}) =>
+  generate({
+    generatorVersion: options.seedJumps === false ? 1 : 2,
+    ...options,
+  });
 
 function point14() {
   const doc = generateDocument({

@@ -1,5 +1,9 @@
 import assert from 'node:assert/strict';
-import { revealEditorField } from './editor-controls.mjs';
+import {
+  revealEditorField,
+  revealEditorAction,
+  openEditorSection,
+} from './editor-controls.mjs';
 import { generateDocument } from '../src/editor/document.js';
 import {
   createCareerSlots,
@@ -38,20 +42,7 @@ const draft = (page) =>
       .find((doc) => doc.name === 'Huge downhill verification'),
   );
 async function panel(page, name) {
-  if (responsive) {
-    const state = await page.evaluate(
-      () => window.__VN_FRONTEND.getState().editor,
-    );
-    if (state.panelOpen && state.tab === name) return;
-    if (state.panelOpen && ['jumps', 'shape'].includes(name))
-      await action(page, 'panel-close').click();
-  }
-  if (
-    ['jumps', 'shape'].includes(name) &&
-    !(await action(page, `tab-${name}`).count())
-  )
-    await action(page, 'context-more').click();
-  await action(page, `tab-${name}`).click();
+  await openEditorSection(page, name);
 }
 async function change(page, name, value) {
   const control = await revealEditorField(page, name);
@@ -63,7 +54,7 @@ async function change(page, name, value) {
   }
 }
 async function save(page) {
-  await action(page, 'save').click();
+  await (await revealEditorAction(page, 'save')).click();
   await page.waitForFunction(() =>
     document
       .querySelector('[data-editor-status]')
@@ -91,15 +82,16 @@ try {
   await page.goto(new URL('?intro=0&music=0&editor=1', base).href);
   await field(page, 'name').waitFor({ timeout: 90000 });
   const fixture = generateDocument({
+    generatorVersion: 1,
     seed: 42017,
     length: 4800,
     courseType: 'downhill',
     seedJumps: false,
   });
   fixture.name = 'Huge downhill verification';
-  await action(page, 'tab-library').click();
+  await openEditorSection(page, 'library');
   const chooser = page.waitForEvent('filechooser');
-  await action(page, 'import').click();
+  await (await revealEditorAction(page, 'import')).click();
   await (
     await chooser
   ).setFiles({
@@ -113,7 +105,7 @@ try {
       ?.textContent.includes('Track imported'),
   );
   await panel(page, 'jumps');
-  await action(page, 'find-jump-section').click();
+  await (await revealEditorAction(page, 'find-jump-section')).click();
   await page.waitForFunction(
     () =>
       !window.__VN_FRONTEND.getState().editor.busy &&
@@ -124,18 +116,18 @@ try {
     0,
     'a suggested section remains uncommitted',
   );
-  await action(page, 'add-jump').click();
+  await (await revealEditorAction(page, 'add-jump')).click();
   assert.equal(
     await page.evaluate(() => window.__VN_FRONTEND.getState().editor.jumpCount),
     1,
     'explicit Add commits a prepared safe section',
   );
-  await action(page, 'undo').click();
+  await (await revealEditorAction(page, 'undo')).click();
   assert.equal(
     await page.evaluate(() => window.__VN_FRONTEND.getState().editor.jumpCount),
     0,
   );
-  await action(page, 'find-jump-section').click();
+  await (await revealEditorAction(page, 'find-jump-section')).click();
   await page.waitForFunction(
     () =>
       !window.__VN_FRONTEND.getState().editor.busy &&
@@ -144,8 +136,8 @@ try {
   await change(page, 'jump-start', 3);
   await change(page, 'jump-end', 5);
   await change(page, 'jump-receiving', 300);
-  await field(page, 'jump-ramp').check();
-  await action(page, 'add-jump').click();
+  await (await revealEditorField(page, 'jump-ramp')).check();
+  await (await revealEditorAction(page, 'add-jump')).click();
   await page.waitForFunction(
     () => window.__VN_FRONTEND.getState().editor?.jumpCount === 1,
   );
@@ -176,26 +168,32 @@ try {
     'PASS explicit downhill starter, assisted large gap, ship-specific cruise/boost advisory',
   );
 
-  await action(page, 'undo').click();
+  await (await revealEditorAction(page, 'undo')).click();
   assert.equal(
     await page.evaluate(() => window.__VN_FRONTEND.getState().editor.jumpCount),
     0,
   );
-  await action(page, 'redo').click();
+  await (await revealEditorAction(page, 'redo')).click();
   await page.waitForFunction(
     () =>
       window.__VN_FRONTEND.getState().editor.jumpCount === 1 &&
       window.__VN_FRONTEND.getState().editor.jumpPreview?.boost === 'landed',
   );
-  await action(page, 'inspect-jump').click();
+  await (await revealEditorAction(page, 'inspect-jump')).click();
   await page.waitForFunction(
     () => window.__VN_FRONTEND.getState().editor.preview?.estimatedGpuBytes > 0,
     null,
     { timeout: 60000 },
   );
-  await action(page, 'view-map').click();
+  await (await revealEditorAction(page, 'view-map')).click();
+  await page.locator('[data-editor-map-wrap]').waitFor({ state: 'visible' });
+  assert.equal(
+    await page.evaluate(() => window.__VN_FRONTEND.getState().editor.view),
+    'world',
+    'jump inspection keeps the world visible behind Map',
+  );
   await panel(page, 'pickups');
-  await action(page, 'fill-pickups').click();
+  await (await revealEditorAction(page, 'fill-pickups')).click();
   await save(page);
   const withDevices = await draft(page);
   assert(withDevices.pickups.devices.length > 0);
@@ -209,7 +207,7 @@ try {
         .filter(([key]) => key.includes('career'))
         .sort(),
     );
-    await action(page, 'test').click();
+    await (await revealEditorAction(page, 'test')).click();
     await page.waitForFunction(
       () =>
         window.__VN?.ready &&
@@ -319,37 +317,39 @@ try {
 
   await page.reload();
   await action(page, 'tab-library').waitFor({ timeout: 90000 });
-  await action(page, 'tab-library').click();
+  await openEditorSection(page, 'library');
   await page.waitForFunction(
     () =>
       document.querySelector('[data-editor-field="saved"]')?.options.length > 0,
   );
-  await field(page, 'saved').selectOption(authored.id);
-  await action(page, 'load').click();
+  await (await revealEditorField(page, 'saved')).selectOption(authored.id);
+  await (await revealEditorAction(page, 'load')).click();
   await page.waitForFunction(() =>
     document
       .querySelector('[data-editor-status]')
       ?.textContent.includes('Track loaded'),
   );
-  await action(page, 'tab-generate').click();
+  await openEditorSection(page, 'generate');
   assert.equal(await field(page, 'course-type').inputValue(), 'downhill');
   await panel(page, 'jumps');
   await page.waitForFunction(
     () =>
       window.__VN_FRONTEND.getState().editor.jumpPreview?.boost === 'landed',
   );
-  await action(page, 'remove-jump').click();
+  await (await revealEditorAction(page, 'remove-jump')).click();
   assert.equal(
     await page.evaluate(() => window.__VN_FRONTEND.getState().editor.jumpCount),
     0,
   );
-  await action(page, 'undo').click();
+  await (await revealEditorAction(page, 'undo')).click();
   assert.equal(
     await page.evaluate(() => window.__VN_FRONTEND.getState().editor.jumpCount),
     1,
   );
-  await action(page, 'tab-generate').click();
-  await action(page, 'generate').click();
+  await openEditorSection(page, 'generate');
+  await change(page, 'jump-frequency', 'normal');
+  await change(page, 'jump-size', 'mixed');
+  await (await revealEditorAction(page, 'generate')).click();
   await page.waitForFunction(() => {
     const editor = window.__VN_FRONTEND.getState().editor;
     return !editor.busy && editor.jumpCount === 3;
@@ -359,7 +359,7 @@ try {
     3,
     'new downhill seed replaces old gaps with three authored starter jumps',
   );
-  await action(page, 'undo').click();
+  await (await revealEditorAction(page, 'undo')).click();
   assert.equal(
     await page.evaluate(() => window.__VN_FRONTEND.getState().editor.jumpCount),
     1,

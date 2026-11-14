@@ -10,10 +10,14 @@ import {
   addCorkscrew,
   addJump,
   setCourseType,
+  GENERATOR_VERSION,
+  JUMP_FREQUENCIES,
+  JUMP_SIZES,
+  generateDocumentAsync,
 } from './document.js';
 
 const plainDocument = (options = {}) =>
-  generateDocument({ seedJumps: false, ...options });
+  generateDocument({ generatorVersion: 1, seedJumps: false, ...options });
 
 test('seed generation is deterministic while new documents have independent library identities', () => {
   assert.deepEqual(plainDocument({ seed: 42 }), plainDocument({ seed: 42 }));
@@ -368,4 +372,126 @@ test('Downhill scenery at the open endpoint is distinct from scenery at the star
     true,
     analyzeDocument(doc).errors.join(' '),
   );
+});
+
+test('version3 generator preferences have strict canonical enums and blank drafts keep useful generation defaults', () => {
+  const blank = createDocument({
+    seed: 19,
+    courseType: 'downhill',
+    blank: true,
+  });
+  assert.equal(blank.generator.version, GENERATOR_VERSION);
+  assert.equal(blank.generator.version, 3);
+  assert.equal(blank.generator.jumpFrequency, 'normal');
+  assert.equal(blank.generator.jumpSize, 'mixed');
+  assert.equal(blank.generator.crossovers, 0);
+  assert.deepEqual(blank.points, []);
+  assert.deepEqual(blank.jumps, []);
+  assert.deepEqual(JUMP_FREQUENCIES, ['none', 'few', 'normal', 'many']);
+  assert.deepEqual(JUMP_SIZES, ['small', 'mixed', 'large']);
+  const missing = structuredClone(blank);
+  delete missing.generator.jumpFrequency;
+  delete missing.generator.jumpSize;
+  delete missing.generator.crossovers;
+  assert.deepEqual(validateDocument(missing).generator, blank.generator);
+  for (const [field, value] of [
+    ['jumpFrequency', 'constant'],
+    ['jumpSize', 'huge'],
+    ['crossovers', -0.1],
+    ['crossovers', 1.1],
+    ['crossovers', '0.5'],
+    ['crossovers', NaN],
+    ['crossovers', Infinity],
+    ['version', 4],
+  ]) {
+    const invalid = structuredClone(blank);
+    invalid.generator[field] = value;
+    assert.throws(() => validateDocument(invalid));
+  }
+});
+
+test('loading legacy generator records and upgrading preferences preserve the complete resolved geometry', () => {
+  for (const version of [1, 2]) {
+    const legacy = plainDocument({ seed: 91 });
+    legacy.generator.version = version;
+    const oldGenerator = structuredClone(legacy.generator);
+    const original = validateDocument(legacy);
+    assert.deepEqual(
+      original.generator,
+      oldGenerator,
+      'legacy canonical keys and values remain stable',
+    );
+    const upgraded = structuredClone(original);
+    upgraded.generator = {
+      ...upgraded.generator,
+      version: 3,
+      seed: 450,
+      jumpFrequency: 'many',
+      jumpSize: 'large',
+    };
+    const saved = validateDocument(upgraded);
+    assert.deepEqual(saved.points, original.points);
+    assert.deepEqual(saved.jumps, original.jumps);
+    assert.equal(saved.generator.jumpFrequency, 'many');
+    assert.equal(saved.generator.jumpSize, 'large');
+    assert.deepEqual(
+      validateDocument(JSON.parse(JSON.stringify(saved))),
+      saved,
+    );
+  }
+});
+
+test('explicit legacy generator versions reproduce their original point models', () => {
+  const plain = generateDocument({ seed: 42, generatorVersion: 1 });
+  const seeded = generateDocument({ seed: 42, generatorVersion: 2 });
+  assert.equal(plain.generator.version, 1);
+  assert.equal(plain.points.length, 16);
+  assert.deepEqual(plain.jumps, []);
+  assert.equal(seeded.generator.version, 2);
+  assert.equal(seeded.jumps.length, 1);
+  assert.deepEqual(Object.keys(seeded.generator), [
+    'version',
+    'seed',
+    'length',
+    'bendiness',
+    'elevation',
+  ]);
+  assert.deepEqual(generateDocument({ seed: 42, generatorVersion: 1 }), plain);
+  assert.deepEqual(generateDocument({ seed: 42, generatorVersion: 2 }), seeded);
+});
+
+test('version3 sync and yielding async generation produce identical validated resolved routes', async () => {
+  const options = {
+    seed: 7,
+    courseType: 'downhill',
+    length: 5000,
+    jumpFrequency: 'few',
+    jumpSize: 'small',
+  };
+  const expected = generateDocument(options);
+  assert.equal(expected.generator.version, 3);
+  assert.equal(expected.generator.jumpFrequency, 'few');
+  assert.equal(expected.generator.jumpSize, 'small');
+  assert.equal(analyzeDocument(expected).valid, true);
+  let yields = 0;
+  const progress = [];
+  const actual = await generateDocumentAsync(options, {
+    yieldControl: async () => {
+      yields++;
+    },
+    onProgress: (status) => progress.push(status),
+  });
+  assert.deepEqual(actual, expected);
+  assert.ok(yields >= 1 && yields <= 4);
+  assert.equal(progress.length, yields);
+  assert.deepEqual(
+    progress.map((p) => p.attempt),
+    Array.from({ length: yields }, (_, i) => i + 1),
+  );
+  assert.ok(progress.every((p) => p.total === 4));
+  const noJumps = generateDocument({ seed: 7, seedJumps: false });
+  assert.equal(noJumps.generator.version, 3);
+  assert.equal(noJumps.generator.jumpFrequency, 'none');
+  assert.deepEqual(noJumps.jumps, []);
+  assert.equal(analyzeDocument(noJumps).valid, true);
 });

@@ -193,6 +193,7 @@ for (const degrees of [90, 180, 270])
   test(`fill uses held ${degrees}-degree road and hardware follows its exact rendered triangles`, () => {
     const doc = applySectionShape(
       generateDocument({
+        generatorVersion: 1,
         seedJumps: false,
         length: 4800,
         elevation: 0,

@@ -1,4 +1,4 @@
-// Complete Nightweir surroundings. The seed resolves their assembly placement;
+// Seeded Nightweir roadside assemblies. The seed resolves their placement;
 // choosing a world never requires arranging individual buildings or plants.
 export const WORLD_PRESETS = Object.freeze([
   Object.freeze({

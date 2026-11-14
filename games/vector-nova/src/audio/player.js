@@ -309,13 +309,55 @@ export function createMusicPlayer(
   }
   function positionLauncherPanel() {
     if (!launcherOnly) return;
-    const header = returnFocus?.closest?.('[data-editor-header]');
-    root.style.setProperty(
-      '--music-launcher-top',
-      `${Math.max(16, (header?.getBoundingClientRect().bottom ?? 68) + 8)}px`,
-    );
+    const workshop =
+      returnFocus?.closest?.('.track-workshop') ??
+      document.querySelector('#track-editor-host .track-workshop');
+    const header = workshop
+      ?.querySelector('[data-editor-header]')
+      ?.getBoundingClientRect();
+    const main = workshop?.querySelector('.workshop-main');
+    const preview = (
+      main?.querySelector('.workshop-canvas') ?? main
+    )?.getBoundingClientRect();
+    const strip = workshop?.querySelector('[data-editor-authoring]');
+    const authoring = strip?.getClientRects().length
+      ? strip.getBoundingClientRect()
+      : null;
+    const width = window.innerWidth,
+      height = window.innerHeight,
+      gap = 12;
+    const left = Math.max(gap, (preview?.left ?? 0) + gap);
+    let edge = Math.min(width - gap, (preview?.right ?? width) - gap);
+    const topEdge = Math.max(0, preview?.top ?? 0);
+    const bottom = Math.min(height - gap, (preview?.bottom ?? height) - gap);
+    // The authoring strip expands in place. Its live left edge reserves both
+    // its compact modes and any inline options, while global drawers shrink
+    // the preview rectangle itself.
+    if (
+      authoring &&
+      authoring.width &&
+      authoring.left > left &&
+      authoring.top < bottom &&
+      authoring.bottom > topEdge
+    )
+      edge = Math.min(edge, authoring.left - gap);
+    let top = Math.max(gap, topEdge + gap);
+    if (header && header.top < bottom && header.bottom > top)
+      top = Math.max(top, header.bottom + 8);
+    top = Math.min(height - gap, top);
+    for (const [name, value] of Object.entries({
+      top,
+      right: Math.max(gap, width - edge),
+      'max-width': Math.max(0, edge - left),
+      'max-height': Math.max(0, bottom - top),
+    }))
+      root.style.setProperty(`--music-launcher-${name}`, `${value}px`);
   }
   listen(window, 'resize', positionLauncherPanel);
+  listen(window, 'editor-layout-change', positionLauncherPanel);
+  listen(window, 'editor-map-open', () => {
+    if (launcherOnly) close();
+  });
   function close() {
     collapse(true);
     if (returnFocus?.getAttribute('aria-controls') === 'music-panel')

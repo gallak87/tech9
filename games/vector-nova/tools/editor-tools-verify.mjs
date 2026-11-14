@@ -1,3 +1,4 @@
+import { revealEditorAction, openEditorSection } from './editor-controls.mjs';
 import assert from 'node:assert/strict';
 import * as T from 'three';
 import { routeCurve } from '../src/editor/route.js';
@@ -15,13 +16,13 @@ import {
 const base = process.env.VN_URL;
 if (!base) throw new Error('Set VN_URL to the isolated editor server.');
 const responsive = process.argv.includes('--responsive');
+const cameraOnly = process.argv.includes('--map-camera');
+const escapeOnly = process.argv.includes('--escape');
 const name = 'Editor tool verification';
 const tools = [
   ['draw', 'draw-mode', 'd'],
   ['move', 'select-mode', 'v'],
   ['height', 'height-mode', 'h'],
-  ['orbit', 'orbit-mode', 'o'],
-  ['pan', 'pan-mode', 'p'],
 ];
 const storage = createMemoryStorage();
 createCareerSlots({ storage: () => storage, now: () => 1 }).create(1);
@@ -65,7 +66,7 @@ async function ready(page) {
 }
 
 async function save(page, trackName = name) {
-  await action(page, 'save').click();
+  await (await revealEditorAction(page, 'save')).click();
   await page.waitForFunction(() =>
     document
       .querySelector('[data-editor-status]')
@@ -84,9 +85,9 @@ async function save(page, trackName = name) {
 }
 
 async function importTrack(page, document) {
-  await action(page, 'tab-library').click();
+  await openEditorSection(page, 'library');
   const choose = page.waitForEvent('filechooser', { timeout: 20000 });
-  await action(page, 'import').click();
+  await (await revealEditorAction(page, 'import')).click();
   await (
     await choose
   ).setFiles({
@@ -99,7 +100,6 @@ async function importTrack(page, document) {
       .querySelector('[data-editor-status]')
       ?.textContent.includes('Track imported'),
   );
-  await action(page, 'panel-close').click();
   await ready(page);
 }
 
@@ -107,7 +107,7 @@ async function expectTool(page, id) {
   assert.equal((await state(page)).tool, id, `${id} stays the active tool`);
   assert.equal((await state(page)).drawMode, id === 'draw');
   const active = page.locator(
-    '[data-editor-tool-palette] button[aria-pressed="true"]',
+    '[data-editor-authoring] [data-editor-tool][aria-pressed="true"]',
   );
   assert.equal(await active.count(), 1, 'exactly one palette tool is pressed');
   assert.equal(await active.getAttribute('data-editor-tool'), id);
@@ -165,7 +165,8 @@ async function mapClick(page, x, y) {
     },
     { x, y },
   );
-  await page.mouse.click(point.x, point.y);
+  if (responsive) await page.touchscreen.tap(point.x, point.y);
+  else await page.mouse.click(point.x, point.y);
 }
 
 function expectHeightOnly(before, after, index) {
@@ -183,8 +184,10 @@ function expectHeightOnly(before, after, index) {
 }
 
 async function paletteLayout(page) {
+  await (await revealEditorAction(page, 'draw-mode')).scrollIntoViewIfNeeded();
   for (const [id, value] of tools) {
     const button = action(page, value);
+    await button.scrollIntoViewIfNeeded();
     assert(await button.isVisible(), `${id} is visible in the preview palette`);
     assert(
       await button.evaluate((el) => {
@@ -218,6 +221,387 @@ async function paletteLayout(page) {
     pressed,
     normal,
     'the active tool has a visible pressed style',
+  );
+}
+
+async function escapeChecks(page) {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await ready(page);
+  if ((await state(page)).points)
+    await (await revealEditorAction(page, 'reset-track')).click();
+  await (await revealEditorAction(page, 'draw-mode')).click();
+  await ready(page);
+  for (const [x, y] of [
+    [490, 540],
+    [700, 580],
+    [860, 650],
+    [650, 740],
+  ])
+    await page.mouse.click(x, y);
+  const original = await save(page);
+  assert.equal(
+    original.points.length,
+    4,
+    'real 3D ground clicks create the Escape fixture',
+  );
+  assert.equal((await state(page)).selectedPoint, 3);
+  await expectTool(page, 'draw');
+
+  const editing = async () => {
+    assert.equal(
+      await page.evaluate(() => window.__VN_FRONTEND.getState().screen),
+      'editor',
+      'Escape keeps the Workshop open while editing',
+    );
+    assert(await page.locator('.track-workshop').isVisible());
+  };
+  const deselected = async (tool = 'move') => {
+    await editing();
+    const editor = await state(page);
+    assert.equal(editor.selectedPoint, -1);
+    assert.equal(editor.selectedProp, -1);
+    assert.equal(editor.selectionRange, null);
+    assert(
+      !editor.preview.interaction.span,
+      'deselection clears the road-span highlight',
+    );
+    await expectTool(page, tool);
+  };
+  const repeatEscape = async (control) => {
+    await control.focus();
+    for (let i = 0; i < 4; i++)
+      await control.dispatchEvent('keydown', {
+        key: 'Escape',
+        code: 'Escape',
+        bubbles: true,
+        repeat: true,
+      });
+    await editing();
+  };
+  const pointAt = async (index) => {
+    await ready(page);
+    const point = (await state(page)).preview.interaction.points[index];
+    assert(point?.visible, `point ${index + 1} is visible for real selection`);
+    const box = await canvas(page).boundingBox();
+    return { x: box.x + point.x, y: box.y + point.y };
+  };
+  const selectPoint = async (index) => {
+    const point = await pointAt(index);
+    await page.mouse.click(point.x, point.y);
+    assert.equal((await state(page)).selectedPoint, index);
+  };
+
+  await canvas(page).focus();
+  await page.keyboard.press('Escape');
+  await deselected();
+  assert(
+    await action(page, 'select-mode').evaluate(
+      (el) => el === document.activeElement,
+    ),
+    'leaving Draw focuses the active native tool',
+  );
+  await repeatEscape(action(page, 'select-mode'));
+  await deselected();
+  assert.deepEqual(
+    await save(page),
+    original,
+    'Escape and held-key repeats preserve every authored point',
+  );
+  console.log(
+    'PASS drawing Escape switches to Select and clears selection; held repeats keep editor and geometry',
+  );
+
+  await selectPoint(0);
+  await pad(page, 1);
+  await deselected();
+  assert.deepEqual(
+    await save(page),
+    original,
+    'controller B deselects without changing the track',
+  );
+  await selectPoint(0);
+  const second = await pointAt(1);
+  await page.keyboard.down('Shift');
+  await page.mouse.click(second.x, second.y);
+  await page.keyboard.up('Shift');
+  assert.deepEqual((await state(page)).selectionRange, { start: 0, end: 1 });
+  await openEditorSection(page, 'shape');
+  await action(page, 'tab-shape').click();
+  assert(
+    (await state(page)).preview.interaction.span,
+    'a Bank span is visible before deselection',
+  );
+  await pad(page, 1);
+  await deselected();
+  console.log(
+    'PASS controller B deselects points/ranges and clears the visible Bank span',
+  );
+
+  await selectPoint(0);
+  await (await revealEditorAction(page, 'height-mode')).click();
+  await page.keyboard.press('Escape');
+  await deselected('height');
+  assert(
+    await action(page, 'height-mode').evaluate(
+      (el) => el === document.activeElement,
+    ),
+    'Height deselection returns focus to the retained native tool',
+  );
+  assert.deepEqual(await save(page), original);
+  await (await revealEditorAction(page, 'select-mode')).click();
+
+  await selectPoint(0);
+  await (await revealEditorAction(page, 'draw-mode')).click();
+  const selection = () =>
+    state(page).then(({ selectedPoint, tool }) => ({ selectedPoint, tool }));
+  const selected = await selection();
+  await openEditorSection(page, 'route');
+  await page.keyboard.press('Escape');
+  assert.equal((await state(page)).authorGroup, '');
+  assert.deepEqual(
+    await selection(),
+    selected,
+    'inline group closes before deselecting or leaving Draw',
+  );
+  await repeatEscape(action(page, 'tab-route'));
+  assert.deepEqual(
+    await selection(),
+    selected,
+    'held Escape cannot fall through a closed group',
+  );
+  await openEditorSection(page, 'generate');
+  await page.keyboard.press('Escape');
+  assert.equal((await state(page)).globalGroup, '');
+  assert.deepEqual(
+    await selection(),
+    selected,
+    'global drawer closes before deselection',
+  );
+  await (await revealEditorAction(page, 'view-map')).click();
+  await page.keyboard.press('Escape');
+  assert.equal((await state(page)).mapOpen, false);
+  assert.deepEqual(
+    await selection(),
+    selected,
+    'Map closes before deselection',
+  );
+  await (await revealEditorAction(page, 'fly-camera')).click();
+  assert((await state(page)).flyActive);
+  await page.keyboard.press('Escape');
+  assert.equal((await state(page)).flyActive, false);
+  assert.deepEqual(await selection(), selected, 'Fly exits before deselection');
+  await editing();
+  assert.deepEqual(await save(page), original);
+  console.log(
+    'PASS inline/global groups, Map and Fly keep their Escape priority without changing selection',
+  );
+
+  await (await revealEditorAction(page, 'select-mode')).click();
+  await selectPoint(0);
+  const point = await pointAt(0);
+  await page.mouse.move(point.x, point.y);
+  await page.mouse.down();
+  await page.mouse.move(point.x + 55, point.y + 18, { steps: 8 });
+  assert(
+    (await state(page)).dirty,
+    'a real point drag starts a geometry transaction',
+  );
+  await page.keyboard.press('Escape');
+  await page.mouse.up();
+  await editing();
+  assert.equal(
+    (await state(page)).selectedPoint,
+    0,
+    'active drag cancels before deselection',
+  );
+  await expectTool(page, 'move');
+  assert.deepEqual(
+    await save(page),
+    original,
+    'Escape cancels the whole active drag transaction',
+  );
+  await canvas(page).focus();
+  await page.keyboard.press('Escape');
+  await deselected();
+  await repeatEscape(action(page, 'select-mode'));
+  assert.deepEqual(await save(page), original);
+  await canvas(page).focus();
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(
+    () => window.__VN_FRONTEND.getState().screen !== 'editor',
+  );
+  assert.equal(
+    await page.locator('.track-workshop').isVisible(),
+    false,
+    'a distinct idle Escape retains the normal Back behavior',
+  );
+  assert.deepEqual(faults, []);
+  console.log(
+    'PASS active drag cancels atomically; deselection stays open and a later fresh idle Escape exits',
+  );
+}
+
+async function mapCameraChecks(page) {
+  const choose = async (name) => {
+    const control = await revealEditorAction(page, name);
+    if (responsive) await control.tap();
+    else await control.click();
+  };
+  const openMap = async () => {
+    if (!(await state(page)).mapOpen) await choose('view-map');
+    await page.locator('[data-editor-map-wrap]').waitFor({ state: 'visible' });
+    assert.equal((await state(page)).view, 'world');
+    assert(await canvas(page).isVisible(), 'Map authoring keeps 3D visible');
+  };
+  if ((await state(page)).points) await choose('reset-track');
+  await ready(page);
+  await choose('draw-mode');
+  await openMap();
+  for (const [x, y] of [
+    [350, 250],
+    [650, 300],
+    [600, 460],
+  ])
+    await mapClick(page, x, y);
+  let before = await save(page);
+  assert.equal(
+    before.points.length,
+    3,
+    'Map Draw creates three real road points',
+  );
+  await choose('height-mode');
+  await openMap();
+  const beforeHeight = await mapPoint(page, 2);
+  await drag(page, beforeHeight, 18, -32);
+  assert.deepEqual(
+    await mapPoint(page, 2),
+    beforeHeight,
+    'Map Height leaves projected X/Z fixed',
+  );
+  await expectTool(page, 'height');
+  expectHeightOnly(before, await save(page), 2);
+  await choose('draw-mode');
+  await openMap();
+  await mapClick(page, 420, 490);
+  const beforeMove = await save(page);
+  assert.equal(
+    beforeMove.points.length,
+    4,
+    'Map drawing resumes after a Height edit',
+  );
+  await choose('select-mode');
+  await openMap();
+  await drag(page, await mapPoint(page, 1), 38, 24);
+  const afterMove = await save(page);
+  assert(
+    Math.hypot(
+      afterMove.points[1].x - beforeMove.points[1].x,
+      afterMove.points[1].z - beforeMove.points[1].z,
+    ) > 5,
+    'Map Select/move edits real X/Z geometry',
+  );
+  const restored = structuredClone(afterMove);
+  restored.points[1].x = beforeMove.points[1].x;
+  restored.points[1].z = beforeMove.points[1].z;
+  assert.deepEqual(
+    restored,
+    beforeMove,
+    'Map movement changes only the selected X/Z',
+  );
+  await choose('height-mode');
+  await openMap();
+  const cancelPoint = await mapPoint(page, 2);
+  await page.mouse.move(cancelPoint.x, cancelPoint.y);
+  await page.mouse.down();
+  await page.mouse.move(cancelPoint.x, cancelPoint.y - 38, { steps: 8 });
+  assert((await state(page)).dirty);
+  await page
+    .locator('#workshop-route-map')
+    .dispatchEvent('pointercancel', { pointerId: 1 });
+  await page.mouse.up();
+  assert.deepEqual(
+    await save(page),
+    afterMove,
+    'canceled Map Height restores the whole transaction',
+  );
+  await choose('undo');
+  assert.deepEqual(
+    await save(page),
+    beforeMove,
+    'one Undo restores the completed Map movement; cancellation adds no history',
+  );
+  console.log(
+    'PASS Map popover Draw/Select/Height, continued drawing and atomic cancel/Undo with 3D retained',
+  );
+
+  await choose('select-mode');
+  before = await save(page);
+  if (!responsive) {
+    for (const button of ['right', 'middle']) {
+      const cameraBefore = (await state(page)).preview.camera;
+      const box = await canvas(page).boundingBox();
+      await page.mouse.move(
+        box.x + box.width * 0.42,
+        box.y + box.height * 0.55,
+      );
+      await page.mouse.down({ button });
+      await page.mouse.move(
+        box.x + box.width * 0.42 + 65,
+        box.y + box.height * 0.55 + 25,
+        { steps: 8 },
+      );
+      await page.mouse.up({ button });
+      assert.notDeepEqual(
+        (await state(page)).preview.camera,
+        cameraBefore,
+        `${button} camera gesture still works without a separate mode/button`,
+      );
+      assert.deepEqual(
+        await save(page),
+        before,
+        'camera gesture never changes authored geometry',
+      );
+    }
+  }
+  const cameraBeforeZoom = (await state(page)).preview.camera;
+  await choose('zoom-in');
+  await page.waitForFunction(
+    (position) =>
+      JSON.stringify(
+        window.__VN_FRONTEND.getState().editor.preview.camera.position,
+      ) !== JSON.stringify(position),
+    cameraBeforeZoom.position,
+  );
+  assert.notDeepEqual(
+    (await state(page)).preview.camera.position,
+    cameraBeforeZoom.position,
+  );
+  await choose('zoom-out');
+  await choose('focus-selection');
+  await choose('fit');
+  if (!responsive) {
+    await action(page, 'fly-camera').focus();
+    await pad(page, 0);
+    assert(
+      (await state(page)).flyActive,
+      'controller can activate the permanent Fly control',
+    );
+    await pad(page, 1);
+    assert.equal((await state(page)).flyActive, false);
+    assert(
+      await action(page, 'fly-camera').evaluate(
+        (el) => el === document.activeElement,
+      ),
+    );
+  }
+  assert.deepEqual(
+    await save(page),
+    before,
+    'the reduced camera controls change no authored data',
+  );
+  assert.deepEqual(faults, []);
+  console.log(
+    'PASS retained camera gestures and permanent Zoom/Focus/Overview/Fly controls',
   );
 }
 
@@ -316,7 +700,7 @@ async function warningRepair(page, fixture) {
     before,
     'Auto fix preserves identity, world, jumps and pickups',
   );
-  await action(page, 'undo').click();
+  await (await revealEditorAction(page, 'undo')).click();
   assert.deepEqual(
     await save(page, fixture.name),
     before,
@@ -364,389 +748,236 @@ try {
         [1280, 800],
       ]) {
     await page.setViewportSize({ width, height });
+    await ready(page);
     await paletteLayout(page);
   }
   await expectTool(page, 'draw');
 
-  if (responsive) {
-    for (const [id, value] of tools) {
-      await action(page, value).tap();
-      await expectTool(page, id);
-    }
-    await action(page, 'draw-mode').tap();
-    await action(page, 'quick-start').tap();
-    await ready(page);
-    const before = await save(page);
-    await action(page, 'reset-track').tap();
-    assert.equal((await save(page)).points.length, 0);
-    await action(page, 'undo').tap();
-    assert.deepEqual(await save(page), before);
-    console.log('PASS final touch palette layout, tool taps, Reset and Undo');
+  if (escapeOnly) {
+    await escapeChecks(page);
+  } else if (cameraOnly) {
+    await mapCameraChecks(page);
   } else {
-    await page.setViewportSize({ width: 1440, height: 900 });
-    await ready(page);
-    for (const [x, y] of [
-      [490, 540],
-      [700, 580],
-    ])
-      await page.mouse.click(x, y);
-    let before = await save(page);
-    assert.equal(before.points.length, 2, 'two ground clicks start the draft');
-    await drag(page, await handle(page, 'height'), 0, -28);
-    await expectTool(page, 'draw');
-    expectHeightOnly(before, await save(page), 1);
-    await page.mouse.click(860, 650);
-    assert.equal(
-      (await save(page)).points.length,
-      3,
-      'Draw continues after height-arrow dragging',
-    );
-    before = await save(page);
-    await page.keyboard.down('Shift');
-    await drag(page, await handle(page), 0, -26);
-    await page.keyboard.up('Shift');
-    await expectTool(page, 'draw');
-    expectHeightOnly(before, await save(page), 2);
-    await page.mouse.click(650, 740);
-    assert.equal(
-      (await save(page)).points.length,
-      4,
-      'Draw continues after Shift-dragging height',
-    );
-    console.log(
-      'PASS reported blank-drawing workflow through height-arrow and Shift-drag edits',
-    );
-
-    // The actual displayed centreline supplies a deck target away from handles.
-    before = await save(page);
-    const preview = (await state(page)).preview;
-    const box = await canvas(page).boundingBox();
-    const camera = new T.PerspectiveCamera(
-      48,
-      box.width / box.height,
-      0.5,
-      200000,
-    );
-    camera.position.fromArray(preview.camera.position);
-    camera.quaternion.fromArray(preview.camera.quaternion);
-    camera.updateMatrixWorld();
-    const curve = routeCurve(before);
-    let deck;
-    for (const fraction of [0.12, 0.22, 0.38, 0.62, 0.78]) {
-      const p = curve.getPointAt(fraction).project(camera);
-      const candidate = {
-        x: box.x + ((p.x + 1) / 2) * box.width,
-        y: box.y + ((1 - p.y) / 2) * box.height,
-      };
-      if (p.z < -1 || p.z > 1) continue;
-      if (
-        preview.interaction.points.some(
-          (h) =>
-            Math.hypot(box.x + h.x - candidate.x, box.y + h.y - candidate.y) <
-            34,
-        )
-      )
-        continue;
-      if (
-        await canvas(page).evaluate(
-          (el, point) => document.elementFromPoint(point.x, point.y) === el,
-          candidate,
-        )
-      ) {
-        deck = candidate;
-        break;
+    if (responsive) {
+      for (const [id, value] of tools) {
+        await (await revealEditorAction(page, value)).tap();
+        await expectTool(page, id);
       }
-    }
-    assert(deck, 'an uncovered road deck is visible away from point handles');
-    await page.mouse.click(deck.x, deck.y);
-    assert.equal(
-      (await save(page)).points.length,
-      before.points.length + 1,
-      'Draw clicks on the road deck add a point',
-    );
-    await expectTool(page, 'draw');
-    await action(page, 'undo').click();
-
-    await action(page, 'height-mode').click();
-    await expectTool(page, 'height');
-    before = await save(page);
-    const selected = (await state(page)).selectedPoint;
-    await drag(page, await handle(page), 22, -28);
-    expectHeightOnly(before, await save(page), selected);
-    await expectTool(page, 'height');
-    await action(page, 'draw-mode').click();
-    await page.mouse.click(980, 600);
-    assert.equal(
-      (await save(page)).points.length,
-      before.points.length + 1,
-      'explicit Draw resumes after the Height tool',
-    );
-    console.log(
-      'PASS Draw on deck and explicit Height tool with Y-only movement',
-    );
-
-    // Real Tab navigation must reach every native palette button.
-    await nameField.focus();
-    const reached = new Set();
-    for (let i = 0; i < 65 && reached.size < tools.length; i++) {
-      await page.keyboard.press('Tab');
-      const id = await page.evaluate(
-        () => document.activeElement.dataset.editorTool,
-      );
-      if (id) reached.add(id);
-    }
-    assert.equal(reached.size, tools.length, 'Tab reaches all preview tools');
-    for (const [id, , key] of tools) {
-      await canvas(page).focus();
-      await page.keyboard.press(key);
-      await expectTool(page, id);
-    }
-    await nameField.focus();
-    await page.keyboard.press('End');
-    await page.keyboard.type('dvhpo');
-    await expectTool(page, 'pan');
-    assert(
-      (await nameField.inputValue()).endsWith('dvhpo'),
-      'typing tool letters edits the name',
-    );
-    await nameField.fill(name);
-    await nameField.press('Tab');
-    await action(page, 'draw-mode').focus();
-    for (let i = 0; i < tools.length; i++) {
-      if (i) await pad(page, 13);
+      await (await revealEditorAction(page, 'draw-mode')).tap();
+      await (await revealEditorAction(page, 'quick-start')).tap();
+      await ready(page);
+      const before = await save(page);
+      await (await revealEditorAction(page, 'reset-track')).tap();
+      assert.equal((await save(page)).points.length, 0);
+      await (await revealEditorAction(page, 'undo')).tap();
+      assert.deepEqual(await save(page), before);
+      console.log('PASS final touch palette layout, tool taps, Reset and Undo');
+    } else {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await ready(page);
+      for (const [x, y] of [
+        [490, 540],
+        [700, 580],
+      ])
+        await page.mouse.click(x, y);
+      let before = await save(page);
       assert.equal(
-        await page.evaluate(() => document.activeElement.dataset.editorTool),
-        tools[i][0],
-        'controller reaches the next native palette button',
+        before.points.length,
+        2,
+        'two ground clicks start the draft',
       );
-      await pad(page, 0);
-      await expectTool(page, tools[i][0]);
-    }
-    console.log(
-      'PASS native Tab/controller palette and keyboard shortcuts excluding name typing',
-    );
+      await drag(page, await handle(page, 'height'), 0, -28);
+      await expectTool(page, 'draw');
+      expectHeightOnly(before, await save(page), 1);
+      await page.mouse.click(860, 650);
+      assert.equal(
+        (await save(page)).points.length,
+        3,
+        'Draw continues after height-arrow dragging',
+      );
+      before = await save(page);
+      await page.keyboard.down('Shift');
+      await drag(page, await handle(page), 0, -26);
+      await page.keyboard.up('Shift');
+      await expectTool(page, 'draw');
+      expectHeightOnly(before, await save(page), 2);
+      await page.mouse.click(650, 740);
+      assert.equal(
+        (await save(page)).points.length,
+        4,
+        'Draw continues after Shift-dragging height',
+      );
+      console.log(
+        'PASS reported blank-drawing workflow through height-arrow and Shift-drag edits',
+      );
 
-    before = await save(page);
-    for (const [id, value] of tools.filter(([id]) =>
-      ['orbit', 'pan'].includes(id),
-    )) {
-      await action(page, value).click();
-      const cameraBefore = (await state(page)).preview.camera;
-      const start = await handle(page);
-      await drag(page, start, 75, 30);
-      await expectTool(page, id);
-      assert.notDeepEqual(
-        (await state(page)).preview.camera,
-        cameraBefore,
-        `${id} primary drag moves the camera even over a road handle`,
+      // The actual displayed centreline supplies a deck target away from handles.
+      before = await save(page);
+      const preview = (await state(page)).preview;
+      const box = await canvas(page).boundingBox();
+      const camera = new T.PerspectiveCamera(
+        48,
+        box.width / box.height,
+        0.5,
+        200000,
       );
+      camera.position.fromArray(preview.camera.position);
+      camera.quaternion.fromArray(preview.camera.quaternion);
+      camera.updateMatrixWorld();
+      const curve = routeCurve(before);
+      let deck;
+      for (const fraction of [0.12, 0.22, 0.38, 0.62, 0.78]) {
+        const p = curve.getPointAt(fraction).project(camera);
+        const candidate = {
+          x: box.x + ((p.x + 1) / 2) * box.width,
+          y: box.y + ((1 - p.y) / 2) * box.height,
+        };
+        if (p.z < -1 || p.z > 1) continue;
+        if (
+          preview.interaction.points.some(
+            (h) =>
+              Math.hypot(box.x + h.x - candidate.x, box.y + h.y - candidate.y) <
+              34,
+          )
+        )
+          continue;
+        if (
+          await canvas(page).evaluate(
+            (el, point) => document.elementFromPoint(point.x, point.y) === el,
+            candidate,
+          )
+        ) {
+          deck = candidate;
+          break;
+        }
+      }
+      assert(deck, 'an uncovered road deck is visible away from point handles');
+      await page.mouse.click(deck.x, deck.y);
+      assert.equal(
+        (await save(page)).points.length,
+        before.points.length + 1,
+        'Draw clicks on the road deck add a point',
+      );
+      await expectTool(page, 'draw');
+      await (await revealEditorAction(page, 'undo')).click();
+
+      await (await revealEditorAction(page, 'height-mode')).click();
+      await expectTool(page, 'height');
+      before = await save(page);
+      const selected = (await state(page)).selectedPoint;
+      await drag(page, await handle(page), 22, -28);
+      expectHeightOnly(before, await save(page), selected);
+      await expectTool(page, 'height');
+      await (await revealEditorAction(page, 'draw-mode')).click();
+      await page.mouse.click(980, 600);
+      assert.equal(
+        (await save(page)).points.length,
+        before.points.length + 1,
+        'explicit Draw resumes after the Height tool',
+      );
+      console.log(
+        'PASS Draw on deck and explicit Height tool with Y-only movement',
+      );
+
+      // Real Tab navigation must reach every native palette button.
+      await (await revealEditorAction(page, 'draw-mode')).focus();
+      const reached = new Set();
+      for (let i = 0; i < 65 && reached.size < tools.length; i++) {
+        const id = await page.evaluate(
+          () => document.activeElement.dataset.editorTool,
+        );
+        if (id) reached.add(id);
+        if (reached.size < tools.length) await page.keyboard.press('Tab');
+      }
+      assert.equal(reached.size, tools.length, 'Tab reaches all preview tools');
+      for (const [id, , key] of tools) {
+        await canvas(page).focus();
+        await page.keyboard.press(key);
+        await expectTool(page, id);
+      }
+      await nameField.focus();
+      await page.keyboard.press(
+        process.platform === 'darwin' ? 'Meta+ArrowRight' : 'End',
+      );
+      await page.keyboard.type('dvhpo');
+      await expectTool(page, 'height');
+      const typedName = await nameField.inputValue();
+      assert(
+        typedName.endsWith('dvhpo'),
+        `typing tool letters edits the name: ${JSON.stringify(typedName)}`,
+      );
+      await nameField.fill(name);
+      await nameField.press('Tab');
+      await (await revealEditorAction(page, 'draw-mode')).focus();
+      for (let i = 0; i < tools.length; i++) {
+        if (i) await pad(page, 13);
+        assert.equal(
+          await page.evaluate(() => document.activeElement.dataset.editorTool),
+          tools[i][0],
+          'controller reaches the next native palette button',
+        );
+        await pad(page, 0);
+        await expectTool(page, tools[i][0]);
+      }
+      console.log(
+        'PASS native Tab/controller palette and keyboard shortcuts excluding name typing',
+      );
+
+      await mapCameraChecks(page);
+
+      await (await revealEditorAction(page, 'reset-track')).click();
+      await (await revealEditorAction(page, 'quick-start')).click();
+      await ready(page);
+      await openEditorSection(page, 'world');
+      await (await revealEditorAction(page, 'preset-industrial')).click();
+      await ready(page);
+      before = await save(page);
+      assert(
+        before.points.length > 4 &&
+          before.jumps.length > 0 &&
+          before.pickups.devices.length > 0,
+        'reset fixture has authored points, jumps, and pickups',
+      );
+      await (await revealEditorAction(page, 'reset-track')).click();
+      const cleared = await save(page);
+      assert.equal(cleared.points.length, 0);
+      assert.equal(cleared.jumps.length, 0);
+      assert.equal(cleared.pickups.devices.length, 0);
+      for (const key of [
+        'id',
+        'name',
+        'settings',
+        'generator',
+        'width',
+        'courseType',
+      ])
+        assert.deepEqual(cleared[key], before[key], `Reset preserves ${key}`);
+      await expectTool(page, 'draw');
+      await (await revealEditorAction(page, 'undo')).click();
       assert.deepEqual(
         await save(page),
         before,
-        `${id} never edits the authored document`,
+        'one Undo restores the entire track after Reset',
+      );
+      console.log(
+        'PASS Reset clears road/jumps/pickups, preserves identity/world, and one Undo restores all',
       );
     }
-    console.log('PASS primary Orbit/Pan drags move only the camera');
-
-    const cameraMenu = page.locator('.workshop-camera-menu');
-    const cameraSummary = cameraMenu.locator('summary');
-    await cameraSummary.focus();
-    await page.keyboard.press('Enter');
-    assert(
-      await cameraMenu.evaluate((el) => el.open),
-      'keyboard opens native Camera controls',
-    );
-    const cameraBeforePan = (await state(page)).preview.camera;
-    await action(page, 'pan-left').focus();
-    await pad(page, 0);
-    assert.notDeepEqual(
-      (await state(page)).preview.camera.position,
-      cameraBeforePan.position,
-      'controller activates the native Pan left camera action',
-    );
-    assert.deepEqual(
-      await save(page),
-      before,
-      'native camera panning leaves the document unchanged',
-    );
-    await page.keyboard.press('Escape');
-    assert.equal(
-      await cameraMenu.evaluate((el) => el.open),
-      false,
-      'Escape closes Camera before leaving the editor',
-    );
-    assert(
-      await cameraSummary.evaluate((el) => el === document.activeElement),
-      'closing Camera returns focus to its summary',
-    );
-    console.log('PASS keyboard/controller Camera Pan and Escape focus return');
-
-    await action(page, 'reset-track').click();
-    await ready(page);
-    await action(page, 'view-map').click();
-    await action(page, 'draw-mode').click();
-    for (const [x, y] of [
-      [350, 250],
-      [650, 300],
-      [600, 460],
-    ])
-      await mapClick(page, x, y);
-    before = await save(page);
-    assert.equal(
-      before.points.length,
-      3,
-      'Map Draw creates a readable three-point draft',
-    );
-    await action(page, 'height-mode').click();
-    const mapBeforeHeight = await mapPoint(page, 2);
-    await drag(page, mapBeforeHeight, 20, -35);
-    await expectTool(page, 'height');
-    expectHeightOnly(before, await save(page), 2);
-    assert.deepEqual(
-      await mapPoint(page, 2),
-      mapBeforeHeight,
-      'Map Height keeps the node in the same X/Z screen position',
-    );
-    await action(page, 'draw-mode').click();
-    await mapClick(page, 420, 490);
-    await expectTool(page, 'draw');
-    const beforeMove = await save(page);
-    assert.equal(
-      beforeMove.points.length,
-      4,
-      'Map Draw resumes and adds exactly one point after Height',
-    );
-    await action(page, 'select-mode').click();
-    await drag(page, await mapPoint(page, 1), 45, 25);
-    await expectTool(page, 'move');
-    const afterMove = await save(page);
-    assert(
-      Math.hypot(
-        afterMove.points[1].x - beforeMove.points[1].x,
-        afterMove.points[1].z - beforeMove.points[1].z,
-      ) > 5,
-      'Map Move drags actual X/Z geometry',
-    );
-    const restoredMove = structuredClone(afterMove);
-    restoredMove.points[1].x = beforeMove.points[1].x;
-    restoredMove.points[1].z = beforeMove.points[1].z;
-    assert.deepEqual(
-      restoredMove,
-      beforeMove,
-      'Map Move changes only the selected X/Z coordinates',
-    );
-    await action(page, 'pan-mode').click();
-    const mapBeforePan = await mapPoint(page, 1);
-    await drag(page, mapBeforePan, 55, 25);
-    await expectTool(page, 'pan');
-    assert.notDeepEqual(
-      await mapPoint(page, 1),
-      mapBeforePan,
-      'Map Pan moves the displayed node coordinates',
-    );
-    assert.deepEqual(
-      await save(page),
-      afterMove,
-      'Map Pan leaves the saved document unchanged',
-    );
-    await cameraSummary.focus();
-    await page.keyboard.press('Enter');
-    const mapBeforeNativePan = await mapPoint(page, 1);
-    await action(page, 'pan-up').focus();
-    await page.keyboard.press('Enter');
-    assert.notDeepEqual(
-      await mapPoint(page, 1),
-      mapBeforeNativePan,
-      'native Camera Pan moves the Map view too',
-    );
-    assert.deepEqual(
-      await save(page),
-      afterMove,
-      'native Map Pan leaves the document unchanged',
-    );
-    await page.keyboard.press('Escape');
-    assert.equal(await cameraMenu.evaluate((el) => el.open), false);
-    assert(await cameraSummary.evaluate((el) => el === document.activeElement));
-    await action(page, 'height-mode').click();
-    const cancelPoint = await mapPoint(page, 2);
-    await page.mouse.move(cancelPoint.x, cancelPoint.y);
-    await page.mouse.down();
-    await page.mouse.move(cancelPoint.x, cancelPoint.y - 45, { steps: 8 });
-    assert(
-      (await state(page)).dirty,
-      'the canceled Map height gesture actually begins an edit',
-    );
-    await page
-      .locator('#workshop-route-map')
-      .dispatchEvent('pointercancel', { pointerId: 1 });
-    await page.mouse.up();
-    assert.deepEqual(
-      await save(page),
-      afterMove,
-      'pointercancel restores the complete Map height transaction',
-    );
-    await action(page, 'undo').click();
-    assert.deepEqual(
-      await save(page),
-      beforeMove,
-      'one Undo restores the prior completed Map drag; cancellation adds no history',
-    );
-    console.log(
-      'PASS Map Draw/Height/Move/Pan, continued drawing, Y-only height and canceled transaction',
-    );
-
-    await action(page, 'reset-track').click();
-    await action(page, 'quick-start').click();
-    await ready(page);
-    await action(page, 'tab-world').click();
-    await action(page, 'preset-industrial').click();
-    await action(page, 'panel-close').click();
-    await ready(page);
-    before = await save(page);
-    assert(
-      before.points.length > 4 &&
-        before.jumps.length > 0 &&
-        before.pickups.devices.length > 0,
-      'reset fixture has authored points, jumps, and pickups',
-    );
-    await action(page, 'reset-track').click();
-    const cleared = await save(page);
-    assert.equal(cleared.points.length, 0);
-    assert.equal(cleared.jumps.length, 0);
-    assert.equal(cleared.pickups.devices.length, 0);
-    for (const key of [
-      'id',
-      'name',
-      'settings',
-      'generator',
-      'width',
-      'courseType',
-    ])
-      assert.deepEqual(cleared[key], before[key], `Reset preserves ${key}`);
-    await expectTool(page, 'draw');
-    await action(page, 'undo').click();
-    assert.deepEqual(
-      await save(page),
-      before,
-      'one Undo restores the entire track after Reset',
-    );
-    console.log(
-      'PASS Reset clears road/jumps/pickups, preserves identity/world, and one Undo restores all',
-    );
+    const broken = generateDocument({
+      generatorVersion: 1,
+      seed: 42017,
+      length: 5000,
+      courseType: 'circuit',
+      seedJumps: false,
+    });
+    for (const key of ['x', 'z'])
+      broken.points[12][key] = T.MathUtils.lerp(
+        broken.points[11][key],
+        broken.points[13][key],
+        0.9,
+      );
+    await warningRepair(page, broken);
   }
-  const broken = generateDocument({
-    seed: 42017,
-    length: 5000,
-    courseType: 'circuit',
-    seedJumps: false,
-  });
-  for (const key of ['x', 'z'])
-    broken.points[12][key] = T.MathUtils.lerp(
-      broken.points[11][key],
-      broken.points[13][key],
-      0.9,
-    );
-  await warningRepair(page, broken);
   assert.deepEqual(faults, []);
 } finally {
   clearTimeout(watchdog);

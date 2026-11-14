@@ -3,7 +3,7 @@ import * as T from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { groundFrame } from '../../../environment/placement.js';
 import { createNacreOceanNormals } from '../../nacre/environment/ocean-normals.js';
-import { createNacreOceanClock } from '../../nacre/environment/ocean-clock.js';
+import { createAmbientClock } from '../../../presentation/ambient-clock.js';
 import { createFallingWaterMaterial } from '../../nightweir/environment/falling-water.js';
 import { createTurbineWater } from '../../nightweir/environment/turbine-water.js';
 import { finishZephyrMaterial } from './materials.js';
@@ -15,7 +15,7 @@ export function createZephyrWater(track, stoneTexture) {
   group.name = 'Zephyr / silver cascades and contained receiving cisterns';
   const clock = { value: 0 },
     opening = { value: 1 };
-  const advanceClock = createNacreOceanClock();
+  const advanceClock = createAmbientClock();
   const ripple = createNacreOceanNormals();
   const materials = new Set();
   const records = [],

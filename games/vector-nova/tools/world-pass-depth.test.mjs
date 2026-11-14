@@ -186,7 +186,7 @@ test('cloud preparation consumes beauty before buffer reuse without moving its c
     composer.setSize(1200, 800);
     assert.deepEqual(
       [clouds.pass.target.width, clouds.pass.target.height],
-      [600, 400],
+      [480, 320],
     );
     detachClouds();
     detachClouds();

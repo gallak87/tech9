@@ -1,4 +1,7 @@
-import { replaceShader } from '../../renderer/shader-patch.js';
+import {
+  appendShaderPatch,
+  replaceShader,
+} from '../../renderer/shader-patch.js';
 import {
   finishCrystalPane,
   finishIceMaterial,
@@ -9,10 +12,7 @@ import {
  * This is a private finish on the new course, not a change to the source kit. */
 export function finishFractureStrata(material, ice) {
   finishIceMaterial(material, ice, { composite: true });
-  const compile = material.onBeforeCompile,
-    key = material.customProgramCacheKey();
-  material.onBeforeCompile = (shader, renderer) => {
-    compile(shader, renderer);
+  appendShaderPatch(material, ':fracture-formed-strata-v1', (shader) => {
     shader.fragmentShader = replaceShader(
       shader.fragmentShader,
       '#include <emissivemap_fragment>',
@@ -29,8 +29,7 @@ export function finishFractureStrata(material, ice) {
       diffuseColor.rgb*=mix(vec3(1.),cobaltTint,darkIce);
     `,
     );
-  };
-  material.customProgramCacheKey = () => `${key}:fracture-formed-strata-v1`;
+  });
 }
 
 /** Bonded frost travel bands share the actual clear pane, with no overlay,
@@ -38,24 +37,24 @@ export function finishFractureStrata(material, ice) {
  * retain the real canyon and compression structure beneath the raceway. */
 export function finishFracturePane(material, ice, width) {
   finishCrystalPane(material, ice);
-  const compile = material.onBeforeCompile,
-    key = material.customProgramCacheKey();
-  material.onBeforeCompile = (shader, renderer) => {
-    compile(shader, renderer);
-    shader.vertexShader =
-      'attribute vec2 roadCoord; varying vec2 frostCoord;\n' +
-      shader.vertexShader;
-    shader.vertexShader = replaceShader(
-      shader.vertexShader,
-      '#include <begin_vertex>',
-      '#include <begin_vertex>\nfrostCoord=roadCoord;',
-    );
-    shader.fragmentShader =
-      'varying vec2 frostCoord;\n' + shader.fragmentShader;
-    shader.fragmentShader = replaceShader(
-      shader.fragmentShader,
-      '#include <alphamap_fragment>',
-      `
+  appendShaderPatch(
+    material,
+    `:fracture-bonded-frost-v2:${width}`,
+    (shader) => {
+      shader.vertexShader =
+        'attribute vec2 roadCoord; varying vec2 frostCoord;\n' +
+        shader.vertexShader;
+      shader.vertexShader = replaceShader(
+        shader.vertexShader,
+        '#include <begin_vertex>',
+        '#include <begin_vertex>\nfrostCoord=roadCoord;',
+      );
+      shader.fragmentShader =
+        'varying vec2 frostCoord;\n' + shader.fragmentShader;
+      shader.fragmentShader = replaceShader(
+        shader.fragmentShader,
+        '#include <alphamap_fragment>',
+        `
       #include <alphamap_fragment>
       float frostDistance=abs(abs(frostCoord.y)-${(width / 6).toFixed(5)});
       float travelFrost=1.-smoothstep(4.4,5.1,frostDistance);
@@ -64,27 +63,26 @@ export function finishFracturePane(material, ice, width) {
       // Frost is translucent rather than an opaque road painted onto glass.
       diffuseColor.a=mix(diffuseColor.a,.58,travelFrost);
     `,
-    );
-    shader.fragmentShader = replaceShader(
-      shader.fragmentShader,
-      '#include <metalnessmap_fragment>',
-      `
+      );
+      shader.fragmentShader = replaceShader(
+        shader.fragmentShader,
+        '#include <metalnessmap_fragment>',
+        `
       #include <metalnessmap_fragment>
       roughnessFactor=mix(roughnessFactor,.70,travelFrost);
     `,
-    );
-    shader.fragmentShader = replaceShader(
-      shader.fragmentShader,
-      '#include <lights_fragment_end>',
-      `
+      );
+      shader.fragmentShader = replaceShader(
+        shader.fragmentShader,
+        '#include <lights_fragment_end>',
+        `
       #include <lights_fragment_end>
       // A frosted dielectric coat keeps a clear frozen reflection without
       // letting the low sun erase the approach or the acceptance markings.
       reflectedLight.directSpecular*=mix(.56,.34,travelFrost);
       reflectedLight.indirectSpecular*=.72;
     `,
-    );
-  };
-  material.customProgramCacheKey = () =>
-    `${key}:fracture-bonded-frost-v2:${width}`;
+      );
+    },
+  );
 }

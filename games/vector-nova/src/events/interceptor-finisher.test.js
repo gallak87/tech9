@@ -224,8 +224,8 @@ for (const id of ['goliath', 'wraith', 'bulwark']) {
       update();
       assert.equal(
         boss.visible,
-        false,
-        'ordinary race results do not retain rivals',
+        true,
+        'ordinary race results retain the live rival field behind the panel',
       );
       frame.mode = 'racing';
       mission.result = null;

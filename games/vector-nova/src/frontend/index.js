@@ -4,6 +4,10 @@ import {
   navigateGarage,
   showGarageEquipment,
 } from './garage.js';
+import {
+  createSessionNavigation,
+  createMenuHistory,
+} from './session-navigation.js';
 import { TRICKS } from '../freestyle/rules.js';
 import { eliminatorResultsView } from '../events/eliminator-view.js';
 import { interceptorResultsView } from '../events/interceptor-view.js';
@@ -190,12 +194,15 @@ export async function createFrontend(
     !import.meta.env?.VN_DESKTOP &&
     !artPass &&
     parameters.get('inspect') === '1';
-  let special =
-    artPass ||
-    inspectShip ||
-    parameters.has('review') ||
-    parameters.has('test') ||
-    parameters.has('capture');
+  let special = artPass || inspectShip;
+  const tool =
+    !import.meta.env?.VN_DESKTOP &&
+    ['shape', 'jump'].includes(parameters.get('tool'))
+      ? parameters.get('tool')
+      : null;
+  // Retired launcher links return to setup; maintained tools use the current menu.
+  for (const flag of ['capture', 'review', 'test']) parameters.delete(flag);
+  const menuHistory = createMenuHistory();
   const previousLevel = parameters.get('level');
   const alias = canonicalLevelId(previousLevel);
   const requested = catalog.some((entry) => entry.id === alias)
@@ -208,8 +215,7 @@ export async function createFrontend(
     history.replaceState(history.state, '', url);
   }
   let invalidLevel = requested && !circuitSelectable(requested);
-  let selected =
-    requested || (parameters.get('test') === 'jump' ? 'saffron' : null);
+  let selected = requested || (tool === 'jump' ? 'saffron' : null);
   if (!selected) {
     try {
       selected = canonicalLevelId(
@@ -284,6 +290,18 @@ export async function createFrontend(
     pending = null,
     controller = null,
     generation = 0;
+  const sessionNavigation = createSessionNavigation({
+    getGame: () => game,
+    getSession: () => ({
+      cup: sessionCup,
+      cupState: cupStore.snapshot().state,
+      intent: sessionIntent,
+    }),
+    setScreen,
+    onResume() {
+      intent = sessionIntent;
+    },
+  });
   let progress = '',
     error = '',
     launching = false,
@@ -472,7 +490,7 @@ export async function createFrontend(
   const difficultyControls = () =>
     `<fieldset class="race-difficulty"${intent === 'interceptor' ? '' : ' aria-describedby="race-difficulty-description"'}><legend>${intent === 'interceptor' ? 'Encounter difficulty' : 'Opponent difficulty'}</legend>${['easy', 'medium', 'hard'].map((d) => `<button data-difficulty="${d}" aria-pressed="${settings.difficulty === d}" tabindex="${settings.difficulty === d ? 0 : -1}">${d}</button>`).join('')}</fieldset>${intent === 'interceptor' ? '' : difficultyDescriptionView(settings.difficulty, 'race-difficulty-description')}`;
   const facts = () =>
-    `<span>${route() ? (route().length / 1000).toFixed(2) + ' KM' : 'CIRCUIT'}</span> <span>${intent === 'freestyle' ? `${transferCount()} TRANSFERS` : intent === 'eliminator' ? 'SURVIVE THE CUT' : intent === 'interceptor' ? '2 CIRCUIT PURSUIT' : route()?.closed === false ? 'POINT TO POINT' : intent === 'practice' ? 'OPEN PRACTICE' : intent === 'time-trial' ? 'UNLIMITED LAPS' : '2 LAPS'}</span> <span>${intent === 'interceptor' ? '4 HUNTERS · 1 TARGET' : ['race', 'cup', 'eliminator'].includes(intent) ? `${RACE_FIELD_SIZE} PILOTS` : 'SOLO'}</span>`;
+    `<span>${route() ? (route().length / 1000).toFixed(2) + ' KM' : 'CIRCUIT'}</span> <span>${intent === 'freestyle' ? `${transferCount()} TRANSFERS` : intent === 'eliminator' ? 'SURVIVE THE CUT' : intent === 'interceptor' ? '2-LAP PURSUIT' : route()?.closed === false ? 'POINT TO POINT' : intent === 'practice' ? 'OPEN PRACTICE' : intent === 'time-trial' ? 'UNLIMITED LAPS' : '2 LAPS'}</span> <span>${intent === 'interceptor' ? '4 HUNTERS · 1 TARGET' : ['race', 'cup', 'eliminator'].includes(intent) ? `${RACE_FIELD_SIZE} PILOTS` : 'SOLO'}</span>`;
   function remember() {
     try {
       careerStorage().setItem('vector-nova.circuit', selected);
@@ -487,11 +505,27 @@ export async function createFrontend(
         'artPass',
         ...artViewParameters,
       ])
-        url.searchParams.delete(flag);
+        if (!(tool && ['tool', 'case'].includes(flag)))
+          url.searchParams.delete(flag);
     history.replaceState(null, '', url);
   }
   function focusSelector(element = document.activeElement) {
     if (!shell.contains(element)) return null;
+    for (const attribute of [
+      'data-export',
+      'data-import',
+      'data-backup',
+      'data-career-name',
+    ])
+      if (element.hasAttribute(attribute)) return `[${attribute}]`;
+    if (element.matches('summary')) {
+      const details = element.closest('details');
+      if (details?.id) return `#${CSS.escape(details.id)} > summary`;
+      if (details?.classList.length)
+        return `details.${[...details.classList].map((name) => CSS.escape(name)).join('.')} > summary`;
+    }
+    if (element.dataset.setting)
+      return `[data-setting="${element.dataset.setting}"]`;
     if (element.dataset.recordFilter)
       return `[data-record-filter="${element.dataset.recordFilter}"]`;
     if (element.dataset.recordKey)
@@ -549,6 +583,29 @@ export async function createFrontend(
             : `[data-level="${selected}"]`,
     );
   }
+  function focusPageStart() {
+    if (showingShip() || ['records', 'circuits'].includes(screen)) {
+      focusPicker();
+      return;
+    }
+    if (!utilityPage()) {
+      focusMenu(
+        '.mode-picker button[aria-pressed="true"], .picker-header button, .picker-tabs button',
+      );
+      return;
+    }
+    focusMenu(
+      [...shell.querySelectorAll('main button, main input, main select')].find(
+        (control) =>
+          control.dataset.action !== 'resume-session' &&
+          !control.disabled &&
+          control.tabIndex >= 0 &&
+          !control.hasAttribute('data-controller-skip') &&
+          control.getClientRects().length &&
+          !control.closest('[hidden], .hidden, [inert]'),
+      ),
+    );
+  }
   function resultsFocusSelector() {
     return cupCelebration
       ? '[data-action="cup-standings"]'
@@ -565,6 +622,14 @@ export async function createFrontend(
     if (['home', 'cup', 'circuits', 'setup', 'loading'].includes(next))
       clearCompletedCup();
     const navigating = screen !== next;
+    if (!shell.hidden)
+      menuHistory.remember(screen, {
+        scroll: shell.scrollTop,
+        focus: document.activeElement.closest?.('.menu-top-tabs')
+          ? null
+          : focusSelector(),
+      });
+    const savedPage = menuHistory.recall(next);
     if (navigating) music?.close();
     if (screen === 'career' && next !== 'career')
       progressionMenu.unmountCareer();
@@ -581,17 +646,14 @@ export async function createFrontend(
     shell.hidden = ['race', 'inspection', 'review'].includes(next);
     document.body.classList.toggle('developer-entry', special);
     gameHost.inert = !shell.hidden || !!inspector;
-    game?.setSuspended(
-      !!inspector ||
-        !['race', 'inspection', 'review', 'results'].includes(next),
-    );
+    sessionNavigation.sync(next, { inspector: !!inspector });
     document.body.dataset.screen = next;
     music?.setDriving(next === 'race');
     render();
     desktopControls?.mount(
       next === 'inspection' ? inspectorHost : shell.hidden ? null : shell,
     );
-    if (navigating) shell.scrollTop = 0;
+    if (navigating) shell.scrollTop = savedPage?.scroll ?? 0;
     const focus =
       next === 'records'
         ? '[data-record-filter="track"]'
@@ -613,12 +675,14 @@ export async function createFrontend(
                         ? resultsFocusSelector()
                         : 'h1';
     const focusedControl =
+      (savedPage?.focus ? shell.querySelector(savedPage.focus) : null) ??
       shell.querySelector(focus) ??
       (next === 'results' ? shell.querySelector('h1') : null);
     const focusTarget = focusedControl?.disabled
       ? shell.querySelector('.mode-picker button[aria-pressed="true"]')
       : focusedControl;
-    focusTarget?.focus({ preventScroll: true });
+    if (savedPage?.focus && focusTarget) focusMenu(focusTarget);
+    else focusTarget?.focus({ preventScroll: true });
     if (next === 'results')
       focusTarget?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     if (next === 'circuits')
@@ -876,20 +940,9 @@ export async function createFrontend(
       : '';
     return `<div class="race-actions"><button class="primary" data-action="launch"${locked ? ' disabled aria-describedby="course-start-requirement"' : ''}><strong>${launchLabel()}</strong><small>${intent === 'freestyle' ? `${transferCount()} transfers · solo` : intent === 'interceptor' ? '3 allies · one target' : intent === 'eliminator' ? (isSprint() ? '10 racers · moving convoy' : '10 racers · last survivor') : intent === 'race' ? `${isSprint() ? '1 descent' : '2 laps'} · ${RACE_OPPONENTS.length} rivals` : isSprint() ? '1 descent' : intent === 'practice' ? 'Open laps' : 'Unlimited laps'}</small></button>${requirement ? `<p id="course-start-requirement" class="course-requirement" role="status">${escape(requirement)}</p>` : ''}${['race', 'eliminator', 'interceptor'].includes(intent) ? difficultyControls() : ''}</div>`;
   };
-  const hasResumableSession = () => {
-    if (!game?.hasSession()) return false;
-    if (sessionCup) return !cupComplete(cupStore.snapshot().state);
-    const session = game.getSnapshot();
-    return (
-      !session.competition?.playerFinished &&
-      !session.timeTrial?.result &&
-      !session.eliminator?.result &&
-      !session.interceptor?.result &&
-      !(sessionIntent === 'freestyle' && session.mode === 'results')
-    );
-  };
-  const sessionReturn = (includeCup = false) => {
-    if (!hasResumableSession() || (sessionCup && !includeCup)) return '';
+  const hasResumableSession = sessionNavigation.canResume;
+  const sessionReturn = () => {
+    if (!hasResumableSession()) return '';
     const name = sessionCup
       ? 'Cup Race'
       : sessionIntent === 'freestyle'
@@ -905,13 +958,17 @@ export async function createFrontend(
                 : 'Quick Race';
     return `<aside class="session-return"><button data-action="resume-session"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 4-5 5 5 5M4 9h10a6 6 0 0 1 0 12h-2"/></svg><span><strong>Resume ${name}</strong><small>${escape(loadedLevel().name)}</small></span></button></aside>`;
   };
+  const toolMenu = () =>
+    !tool
+      ? ''
+      : `<section class="developer-tools" aria-label="Level tools"><strong>${tool === 'jump' ? 'Contact test' : 'Route study'}</strong><p>${tool === 'jump' ? 'Start Practice to run the selected contact case. Pause to choose another case; R repeats it.' : 'View the complete route without scenery. Start a race or practice using the controls below.'}</p>${tool === 'shape' ? button('tool-view', 'View route') : ''}</section>`;
   const homeMenu = () => {
     const savedCup = cupStore.snapshot().state;
     const cup = intent === 'cup' ? currentCup() : null;
     const selectedCraft = lockedCup()
       ? SHIPS.find((entry) => entry.id === savedCup.shipId)
       : selectedShip();
-    return `<section class="race-menu" aria-label="Session setup">${import.meta.env?.VN_EDITION === 'demo' ? '<p class="demo-edition">DEMO · Kestrel · 2 courses · Unlimited play</p>' : ''}${sessionReturn()}${modePicker()}<button class="menu-selection" data-action="circuits"><span>${cup ? 'Cup' : 'Track'}</span><div><strong>${escape(cup ? cup.name : level().name)}</strong><small>${cup ? `${cup.tracks.length} races · ${savedCup ? `${savedCup.results.length} scored` : 'Championship'}` : `${trackChallenge(selected)} · ${modeUnlockRequirement(intent)?.label ?? (isSprint() ? 'Downhill sprint' : 'Circuit')}`}</small></div><b aria-hidden="true">›</b></button><button class="menu-selection" data-action="ship-step"><span>Ship</span><div><strong>${selectedCraft.name}</strong><small>${lockedCup() ? 'Locked for this cup' : selectedCraft.role}</small></div><b aria-hidden="true">${lockedCup() ? '—' : '›'}</b></button>${raceActions()}<div class="menu-extras"><button data-action="records" aria-pressed="${screen === 'records'}">Time Trial records</button>${developer ? button('inspect', 'Ship inspector') : ''}</div>${careerProgressView(profile())}${cupCabinet(cupCollection.snapshot(), cups())}${import.meta.env?.VN_DESKTOP === true ? `<nav class="menu-links" aria-label="Application">${button('desktop-quit', 'Quit game')}</nav>` : ''}<div class="transfer-slot menu-transfer"></div>${savedCup && !cup ? `<aside class="saved-cup">${button('saved-cup', `${cupDefinition(savedCup.cupId).name} · ${savedCup.results.length}/${cupDefinition(savedCup.cupId).tracks.length} scored →`)}</aside>` : ''}</section>`;
+    return `<section class="race-menu" aria-label="Session setup">${import.meta.env?.VN_EDITION === 'demo' ? '<p class="demo-edition">DEMO · Kestrel · 2 courses · Unlimited play</p>' : ''}${toolMenu()}${modePicker()}<button class="menu-selection" data-action="circuits"><span>${cup ? 'Cup' : 'Track'}</span><div><strong>${escape(cup ? cup.name : level().name)}</strong><small>${cup ? `${cup.tracks.length} races · ${savedCup ? `${savedCup.results.length} scored` : 'Championship'}` : `${trackChallenge(selected)} · ${modeUnlockRequirement(intent)?.label ?? (isSprint() ? 'Downhill sprint' : 'Circuit')}`}</small></div><b aria-hidden="true">›</b></button><button class="menu-selection" data-action="ship-step"><span>Ship</span><div><strong>${selectedCraft.name}</strong><small>${lockedCup() ? 'Locked for this cup' : selectedCraft.role}</small></div><b aria-hidden="true">${lockedCup() ? '—' : '›'}</b></button>${raceActions()}<div class="menu-extras"><button data-action="records" aria-pressed="${screen === 'records'}">Time Trial records</button>${developer ? button('inspect', 'Ship inspector') : ''}</div>${careerProgressView(profile())}${cupCabinet(cupCollection.snapshot(), cups())}${import.meta.env?.VN_DESKTOP === true ? `<nav class="menu-links" aria-label="Application">${button('desktop-quit', 'Quit game')}</nav>` : ''}<div class="transfer-slot menu-transfer"></div>${savedCup && !cup ? `<aside class="saved-cup">${button('saved-cup', `${cupDefinition(savedCup.cupId).name} · ${savedCup.results.length}/${cupDefinition(savedCup.cupId).tracks.length} scored →`)}</aside>` : ''}</section>`;
   };
   function cupPanel(withActions) {
     const cup = currentCup();
@@ -969,6 +1026,9 @@ export async function createFrontend(
     headerObserver.disconnect();
     const header = shell.querySelector('.menu-topbar');
     if (header) {
+      const main = shell.querySelector('.front-content');
+      if (main && !main.querySelector('.session-return'))
+        main.insertAdjacentHTML('afterbegin', sessionReturn());
       updateHeaderClearance();
       headerObserver.observe(header);
     }
@@ -1092,7 +1152,7 @@ export async function createFrontend(
       const inspecting = launchTarget === 'inspection';
       content.innerHTML = `<section class="loading-copy">${inspecting ? '' : `<div class="loading-card">${picture(route())}${routeArt(route())}</div>`}<div class="transfer-slot loading-transfer"></div>${heading(inspecting ? 'PREPARING STUDIO' : 'LOADING CIRCUIT', inspecting ? 'Ship inspector' : escape(level().name))}${inspecting ? '' : `<div class="session-facts">${facts()}</div><div class="loading-rewards">${goalBadges()}</div>`}<div class="front-actions">${button('cancel', 'Cancel')}${button('retry', 'Try again', true)}</div></section>`;
     } else if (screen === 'settings') {
-      content.innerHTML = `${sessionReturn(true)}${settingsView(settings, {
+      content.innerHTML = `${settingsView(settings, {
         developer: parameters.get('dev') === '1',
         artPass,
         freestyle: intent === 'freestyle',
@@ -1459,7 +1519,7 @@ export async function createFrontend(
       const { createGame } = await import('../core/game.js');
       signal.throwIfAborted();
       const params =
-        special || developer
+        special || developer || tool
           ? new URLSearchParams(parameters)
           : new URLSearchParams();
       params.set('level', id);
@@ -1467,6 +1527,8 @@ export async function createFrontend(
       // jump-test scene accidentally retained in a copied URL.
       if (artPass || inspectShip)
         for (const flag of runtimeEntryParameters) params.delete(flag);
+      if (tool === 'jump') params.set('test', 'jump');
+      if (tool === 'shape') params.set('review', 'shape');
       const gameOptions = {
         host: gameHost,
         contentAccess: contentAccess(),
@@ -1505,9 +1567,13 @@ export async function createFrontend(
             error = info.error.message;
             setScreen('loading');
           } else {
+            if (['race', 'review'].includes(screen) && game?.hasSession()) {
+              intent = sessionIntent;
+              selected = loadedId;
+              shipId = game.getSnapshot().ship.id;
+            }
             const destination =
-              inspectionBack ??
-              (screen === 'inspection' ? 'setup' : sessionCup ? 'cup' : 'home');
+              inspectionBack ?? (screen === 'inspection' ? 'setup' : 'home');
             const fromInspector = inspectionBack !== null;
             inspectionBack = null;
             if (fromInspector && game && !game.hasSession())
@@ -1555,15 +1621,11 @@ export async function createFrontend(
             setScreen('review');
             return;
           }
-          if (
-            ['racing', 'countdown', 'paused', 'fly', 'inspection'].includes(
-              mode,
-            )
-          ) {
+          if (['racing', 'countdown', 'paused', 'fly'].includes(mode)) {
             game?.setSuspended(false);
             music?.setDriving(['racing', 'countdown'].includes(mode));
             if (screen !== 'results') {
-              screen = mode === 'inspection' ? 'inspection' : 'race';
+              screen = 'race';
               shell.hidden = true;
               menuBackdrop.configure({
                 active: false,
@@ -1644,9 +1706,7 @@ export async function createFrontend(
       }
       game = created;
       loadedId = id;
-      game.setSuspended(
-        !['race', 'inspection', 'review', 'results'].includes(screen),
-      );
+      sessionNavigation.sync(screen, { inspector: !!inspector });
       updateStatus();
       return game;
     })()
@@ -1808,7 +1868,14 @@ export async function createFrontend(
             : null,
         },
       );
+      if (tool === 'jump' && parameters.has('case'))
+        current.selectPlaytestCase(parameters.get('case'));
       setScreen('race');
+      if (tool === 'jump') {
+        sessionIntent = 'practice';
+        current.start();
+        return;
+      }
       if (intent === 'cup') {
         const state = cupStore.snapshot().state;
         const cup = cupDefinition(state.cupId);
@@ -2066,8 +2133,7 @@ export async function createFrontend(
     },
     'cup-resume'() {
       if (sessionCup && game?.hasSession()) {
-        setScreen('race');
-        game.resumeSession();
+        sessionNavigation.resume();
       } else launchCup();
     },
     'cup-next'() {
@@ -2117,10 +2183,7 @@ export async function createFrontend(
       }
     },
     'resume-session'() {
-      if (!hasResumableSession()) return;
-      intent = sessionIntent;
-      setScreen('race');
-      game.resumeSession();
+      if (!sessionNavigation.resume()) return;
       gameHost.querySelector('#pause-panel:not(.hidden) #resume')?.focus();
     },
     'time-trial'() {
@@ -2164,6 +2227,12 @@ export async function createFrontend(
     },
     inspect() {
       void openInspector();
+    },
+    'tool-view'() {
+      void loadView('tool', (current) => {
+        setScreen('review');
+        current.overview('perspective');
+      });
     },
     'retry-preview'() {
       mountShipPreview();
@@ -2268,6 +2337,10 @@ export async function createFrontend(
   shell.addEventListener(
     'focusin',
     (e) => {
+      if (e.target.closest('.front-content')) {
+        const focus = focusSelector(e.target);
+        if (focus) menuHistory.remember(screen, { focus });
+      }
       showGarageEquipment(shell, e.target.closest('[data-equip]'));
       const cup = e.target.closest('button[data-cup]');
       if (cup) {
@@ -2339,24 +2412,9 @@ export async function createFrontend(
       ) {
         e.preventDefault();
         if (e.code === 'ArrowDown') {
-          if (showingShip()) focusPicker();
-          else if (utilityPage()) {
-            const controls = [
-              ...shell.querySelectorAll('main button, main input, main select'),
-            ];
-            focusMenu(
-              controls.find(
-                (control) =>
-                  !control.disabled &&
-                  !control.hasAttribute('data-controller-skip') &&
-                  control.getClientRects().length &&
-                  !control.closest('[hidden], [inert]'),
-              ),
-            );
-          } else
-            focusMenu(
-              '.mode-picker button[aria-pressed="true"], .picker-header button, .picker-tabs button',
-            );
+          if (shell.querySelector('[data-action="resume-session"]'))
+            focusMenu('[data-action="resume-session"]');
+          else focusPageStart();
         } else {
           const tabs = [...shell.querySelectorAll('.menu-top-tabs button')];
           const index = tabs.indexOf(e.target.closest('button'));
@@ -2375,6 +2433,16 @@ export async function createFrontend(
                   tabs.length;
           focusMenu(tabs[next]);
         }
+        return;
+      }
+      if (
+        e.target.closest('[data-action="resume-session"]') &&
+        ['ArrowUp', 'ArrowDown'].includes(e.code)
+      ) {
+        e.preventDefault();
+        if (e.code === 'ArrowUp')
+          focusMenu('.menu-top-tabs [aria-pressed="true"]');
+        else focusPageStart();
         return;
       }
       if (showingShip() && navigateGarage(e, shell)) return;
@@ -2440,7 +2508,8 @@ export async function createFrontend(
             next ??
               (direction > 0
                 ? '.menu-selection[data-action="circuits"]'
-                : '[data-action="race-tab"]'),
+                : (shell.querySelector('[data-action="resume-session"]') ??
+                  '[data-action="race-tab"]')),
           );
           return;
         }

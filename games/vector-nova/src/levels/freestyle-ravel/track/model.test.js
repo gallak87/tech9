@@ -54,7 +54,8 @@ test('folded collector sheets clear the whole winding course and its generous ai
   const track = createRavelFreestyleTrack(),
     plan = createSailbreakPlan(track);
   assert.equal(plan.stations.length, 5);
-  assert.equal(plan.sails.length, 14);
+  // The current five-transfer course has one collector at each receiver.
+  assert.equal(plan.sails.length, 5);
   let nearest = Infinity,
     count = 0;
   for (const sail of plan.sails) {
@@ -76,5 +77,5 @@ test('folded collector sheets clear the whole winding course and its generous ai
   // Construction uses 205m sampled clearance, leaving a real margin for the
   // finer rendered fold cage, receiver tube walls, craft and chase camera.
   assert.ok(nearest > 160, `collector clearance ${nearest.toFixed(1)}m`);
-  assert.ok(count > 40000 && count < 70000);
+  assert.ok(count > 15000 && count < 20000);
 });

@@ -79,7 +79,7 @@
 }
 #front-shell.entry-shell .entry-tab {
   min-height: 44px;
-  padding: 10px var(--selection-inline-padding);
+  padding: 10px var(--menu-selection-padding);
   border: 0;
   border-bottom: 2px solid transparent;
   font:
@@ -163,7 +163,7 @@
   min-width: 0;
   min-height: 68px;
   box-sizing: border-box;
-  padding: 10px var(--selection-inline-padding);
+  padding: 10px var(--menu-selection-padding);
 }
 .entry-profile-row
   > :is(.entry-slot-number, .entry-profile-copy, .entry-profile-action) {
@@ -408,7 +408,7 @@
   .entry-profile-row {
     grid-template-columns: 18px minmax(0, 1fr) auto;
     gap: 10px;
-    padding: 10px var(--selection-inline-padding);
+    padding: 10px var(--menu-selection-padding);
   }
   .entry-profile-action {
     font-size: 11px;

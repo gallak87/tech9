@@ -12,6 +12,7 @@ import { createDistrictPaths } from './paths.js';
 import { createGardenQuarter } from './garden-quarter.js';
 import { createShoreQuarter } from './shore-quarter.js';
 import { createGardenSector } from './garden-sector.js';
+import { createHabitatLandUse } from './land-use.js';
 
 export async function createOrielEnvironment({
   track,
@@ -54,6 +55,12 @@ export async function createOrielEnvironment({
         ],
         civicPlacements: sector.civicPlacements,
       };
+      const landUse = createHabitatLandUse({
+        track,
+        own,
+        reservations: authoredDistrict.reservations,
+        terrainMaterial: terrain.materials[0],
+      });
       const promenades = createPromenadeTerraces(
         track,
         own,
@@ -98,6 +105,7 @@ export async function createOrielEnvironment({
       });
       group.add(
         terrain.group,
+        landUse.group,
         structure.group,
         quays.group,
         promenades.group,
@@ -126,6 +134,7 @@ export async function createOrielEnvironment({
         setReflection(texture) {
           for (const m of [
             ...terrain.materials,
+            ...landUse.materials,
             ...structure.materials,
             ...quays.materials,
             ...promenades.materials,

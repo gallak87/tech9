@@ -473,6 +473,17 @@
   }
 }
 
+@media (orientation: landscape) and (max-height: 570px) {
+  .dedicated-garage .ship-preview-slot {
+    /* Leave room for the measured menu header, fleet rail and ship heading. */
+    height: clamp(
+      100px,
+      calc(100dvh - var(--menu-header-clearance, 88px) - 150px),
+      240px
+    );
+  }
+}
+
 .garage-header .front-brand {
   font-style: italic;
   font-weight: 900;

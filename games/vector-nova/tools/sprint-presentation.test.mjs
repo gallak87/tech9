@@ -213,7 +213,7 @@ test('Worldspire detaches clouds once and releases owned presentation resources 
       assert.equal(pass.needsSwap, true);
       assert.equal(pass.enabled, true);
       assert.equal(material.envMap, reflection);
-      assert.equal(pass.uniforms.steps.value, 16);
+      assert.equal(pass.uniforms.steps.value, 12);
       const frame = {
         camera,
         state: { distance: 0 },

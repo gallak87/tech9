@@ -38,6 +38,8 @@ export default function createLevel({ shape = false } = {}) {
       sunShadowNormalBias: 0.1,
       sunShadowBias: -0.0004,
       catapultBlurScale: 0.12,
+      // Mineral vertex colors already carry the retained contact-light bake.
+      ambientOcclusion: { enabled: false },
     },
     camera: {
       preserveFlightView: true,
@@ -48,6 +50,7 @@ export default function createLevel({ shape = false } = {}) {
       flightChaseBlend: 0.65,
       portraitAspect: 0.64,
       maxPortraitScale: 1.35,
+      safeFrameInset: 0.08,
       safeFrame: (aspect) => ({
         left: -0.86,
         right: 0.86,

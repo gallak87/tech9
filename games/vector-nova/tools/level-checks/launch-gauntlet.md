@@ -12,7 +12,7 @@ Improve the assigned level's jump collisions using production physics and the la
 
 ## Loop
 
-1. Open `?level=<slug>&test=jump`. Wait for `window.__VN.ready`; inspect `test.cases`, `test.jumps`, and `test.targets`. Add minimal adapter wiring if the assigned level lacks the helper.
+1. Open `?level=<slug>&tool=jump` and start Practice from Race setup. Wait for `window.__VN.ready`; inspect `test.cases`, `test.jumps`, and `test.targets`. Add minimal adapter wiring if the assigned level lacks the helper.
 2. Scan major nearby production objects by name, size, and world bounds, including placed GLB instances. Prioritize ramp faces, walls, supports, and shallow geometry beneath the track. `test.targets` contains only registered solids; check independently for omissions. Register missing collision only where plausible trajectories warrant it.
 3. Derive launches from `test.frame(distance)`. Call `reset(caseId)`, then `launch({ jump, position, velocity, quaternion?, angularVelocity? })`. Advance with `step(1–600, controls)` at 120 Hz; inspect events and motion between batches.
 4. Cover clean takeoff/landing, short and long arrivals, oblique ramp contacts, left/right wall rebounds with steering, rolled deck returns, and likely underside/major-obstruction impacts. Use realistic speeds; avoid exhaustive angle/fixture combinations.

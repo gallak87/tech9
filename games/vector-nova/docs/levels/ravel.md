@@ -16,7 +16,7 @@ Run Vite from this checkout, then select Ravel in Practice or Quick Race.
 
 - Open `?level=ravel` through the current frontend and start Practice. Pause, choose **Test section**, then **Drive selected section** to repeat a feature directly.
 - Cases include the steady seam, ascent/fork swells, favourable/adverse crest phases, supported bypass, all three ribbons, the outer transfer and giant-jump approach/launch/short/landing.
-- W/arrows drive, Shift boosts, Space airbrakes, R recovers, F opens free camera. Section practice uses ordinary timed recovery. The retained automation-only `test=jump` lab disables automatic recovery and R repeats its case.
+- W/arrows drive, Shift boosts, Space airbrakes, R recovers, F opens free camera. Section practice uses ordinary timed recovery. The retained automation-only `tool=jump` lab disables automatic recovery and R repeats its case.
 - Keyboard/controller use the existing shared controls and native pause-menu section selector.
 
 Validation: `npm run check:level -- ravel`, the `tools/ravel-*.test.mjs` suites, and `VN_URL=<server> npm run verify:level -- ravel`. The driving suites include actual Rapier flight/landing, wave phase, replay, wall support and branch traversal checks.

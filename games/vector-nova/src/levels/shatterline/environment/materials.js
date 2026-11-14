@@ -1,5 +1,6 @@
 import { replaceShader } from '../../../renderer/shader-patch.js';
-const noise = `float slHash(vec3 p){p=fract(p*.1031);p+=dot(p,p.yzx+33.33);return fract((p.x+p.y)*p.z);}float slNoise(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(mix(slHash(i),slHash(i+vec3(1,0,0)),f.x),mix(slHash(i+vec3(0,1,0)),slHash(i+vec3(1,1,0)),f.x),f.y),mix(mix(slHash(i+vec3(0,0,1)),slHash(i+vec3(1,0,1)),f.x),mix(slHash(i+vec3(0,1,1)),slHash(i+vec3(1,1,1)),f.x),f.y),f.z);}\n`;
+import { valueNoise3DGLSL } from '../../../renderer/material-noise.js';
+const noise = valueNoise3DGLSL('slHash', 'slNoise');
 /** True world-space triplanar mineral finish; geometry carries the large landforms. */
 export function finishShatterlineMaterial(
   material,

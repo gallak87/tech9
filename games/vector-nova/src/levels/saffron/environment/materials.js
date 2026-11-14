@@ -1,5 +1,9 @@
 import { replaceShader } from '../../../renderer/shader-patch.js';
 import * as T from 'three';
+import {
+  configureSurfaceTexture,
+  createSurfaceTextureLoader,
+} from '../../../assets/surface-texture.js';
 import { assetURL } from '../../../assets/url.js';
 
 export const SAFFRON_WEATHERING_SIZE = 64;
@@ -14,12 +18,9 @@ function createMineralSurface(resources, shape, loadSurface) {
   const surface = { texture: null, ready: Promise.resolve(false) };
   if (shape || (!loadSurface && typeof document === 'undefined'))
     return surface;
+  const loadTexture = createSurfaceTextureLoader({ loadTexture: loadSurface });
   surface.ready = Promise.resolve()
-    .then(() =>
-      (loadSurface ?? ((url) => new T.TextureLoader().loadAsync(url)))(
-        SAFFRON_MINERAL_URL,
-      ),
-    )
+    .then(() => loadTexture(SAFFRON_MINERAL_URL))
     .then((texture) => {
       let released = false;
       texture.addEventListener('dispose', () => {
@@ -30,10 +31,7 @@ function createMineralSurface(resources, shape, loadSurface) {
       resources.texture(texture);
       if (released) return false;
       texture.name = 'Saffron / shared mineral surface from Shatterline';
-      texture.colorSpace = T.SRGBColorSpace;
-      texture.wrapS = texture.wrapT = T.RepeatWrapping;
-      texture.anisotropy = 4;
-      texture.needsUpdate = true;
+      configureSurfaceTexture(texture);
       surface.texture = texture;
       return true;
     })

@@ -1,17 +1,17 @@
-import { replaceShader } from '../../renderer/shader-patch.js';
+import {
+  appendShaderPatch,
+  replaceShader,
+} from '../../renderer/shader-patch.js';
 /** Keep the animated running skin in GTAO's normal/depth override pass.
  * Reusing its real vertex shader makes hardware depth and geometric normals
  * agree with the beauty surface, including traveling wave derivatives. */
 export function installRavelAONormalPass(material) {
   if (material.userData.ravelAONormalPass) return material;
   const normalPass = { value: 0 };
-  const compile = material.onBeforeCompile;
   const render = material.onBeforeRender;
-  const cacheKey = material.customProgramCacheKey();
   material.allowOverride = false;
   material.userData.ravelAONormalPass = true;
-  material.onBeforeCompile = function (shader, renderer) {
-    compile?.call(this, shader, renderer);
+  appendShaderPatch(material, '-ravel-ao-normal-v1', (shader) => {
     shader.uniforms.ravelAONormalPass = normalPass;
     shader.fragmentShader = replaceShader(
       replaceShader(
@@ -26,7 +26,7 @@ export function installRavelAONormalPass(material) {
           return;
         }`,
     );
-  };
+  });
   material.onBeforeRender = function (
     renderer,
     scene,
@@ -38,6 +38,5 @@ export function installRavelAONormalPass(material) {
     render?.call(this, renderer, scene, camera, geometry, object, group);
     normalPass.value = scene.overrideMaterial?.isMeshNormalMaterial ? 1 : 0;
   };
-  material.customProgramCacheKey = () => cacheKey + '-ravel-ao-normal-v1';
   return material;
 }

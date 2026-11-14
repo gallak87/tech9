@@ -24,7 +24,7 @@ import './entry.css';
 
 const wordmark =
   '<span class="entry-wordmark">VECTOR<span>//</span>NOVA</span>';
-const specialKeys = ['dev', 'inspect', 'review', 'test', 'capture', 'artPass'];
+const specialKeys = ['dev', 'inspect', 'tool', 'artPass'];
 const {
   pencil: pencilIcon,
   check: checkIcon,

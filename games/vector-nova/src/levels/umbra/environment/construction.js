@@ -163,7 +163,7 @@ export function createUmbraConstruction(track, assets, layout) {
     );
     group.add(batch);
     batch.traverse((n) => {
-      if (n.isInstancedMesh) meshes.push(n);
+      if (n.isInstancedMesh || n.isBatchedMesh) meshes.push(n);
     });
   }
   // Plumb tethers remain aligned to world vertical through the magnetic roll,

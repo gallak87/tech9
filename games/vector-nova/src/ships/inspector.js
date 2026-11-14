@@ -140,7 +140,6 @@ export async function createInspector({
       const craft = fleet?.selected ?? getShip(shipId);
       ui.setShip(craft);
     }
-    ui.setInspectionMenu(true);
     ui.setInspectionPreview(preview);
 
     function fit(group, resetRotation = true) {

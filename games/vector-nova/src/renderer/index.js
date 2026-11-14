@@ -16,6 +16,8 @@ import { drawUnculledScene } from './warm-scene.js';
 import { mobileGraphics } from './device.js';
 import { createGraphicsContext } from './graphics-context.js';
 import { racingLens, racingBlurStrength } from './racing-lens.js';
+import { graphicsBudget } from './quality-budget.js';
+import { createTextureBudget } from './texture-budget.js';
 
 export async function createRenderer(
   host,
@@ -25,9 +27,18 @@ export async function createRenderer(
   const lifetime = createLifetime();
   let graphics;
   try {
+    const textureBudget = lifetime.own(createTextureBudget());
+    let budget = graphicsBudget(settings, {
+      mobile: mobileGraphics() || innerWidth < 760,
+      dpr: devicePixelRatio,
+      shadowSize: options.sunShadowSize ?? 3072,
+    });
     const renderer = lifetime.own(
       new T.WebGLRenderer({
-        antialias: true,
+        // High uses SMAA after the single-sample HDR pipeline. Keep the
+        // context itself unmultisampled so live Low has the same budget as
+        // a world that starts on Low; context MSAA cannot be changed later.
+        antialias: false,
         powerPreference: 'high-performance',
       }),
     );
@@ -82,6 +93,7 @@ export async function createRenderer(
       if (object.userData.reflectionExclude) object.visible = false;
     });
     environmentScene.add(environmentSky);
+    textureBudget.apply(environmentScene, budget);
     const pmrem = new T.PMREMGenerator(renderer);
     let env;
     try {
@@ -201,29 +213,51 @@ export async function createRenderer(
     let maxima = { calls: 0, triangles: 0 };
     let elapsed = 0;
     let cityReflection = null;
+    let composed = false;
     lifetime.defer(() => cityReflection?.dispose());
     lifetime.defer(() => sun.shadow.map?.dispose());
     function apply() {
       const mobile = mobileGraphics() || innerWidth < 760;
-      const ratio = Math.min(
-        devicePixelRatio,
-        settings.quality === 'low' || mobile ? 1 : 1.25,
-      );
+      budget = graphicsBudget(settings, {
+        mobile,
+        dpr: devicePixelRatio,
+        shadowSize: options.sunShadowSize ?? 3072,
+      });
+      const ratio = budget.pixelRatio;
       renderer.setPixelRatio(ratio);
       renderer.setSize(innerWidth, innerHeight);
       camera.aspect = innerWidth / innerHeight;
       camera.updateProjectionMatrix();
       composer.setPixelRatio(ratio);
-      composer.setSize(innerWidth, innerHeight);
+      composed =
+        budget.postEffects || [...worldPasses].some((pass) => pass.enabled);
+      composer.setSize(composed ? innerWidth : 1, composed ? innerHeight : 1);
       ao.setSize(
-        Math.ceil(innerWidth * ratio * 0.6),
-        Math.ceil(innerHeight * ratio * 0.6),
+        budget.postEffects && !mobile ? Math.ceil(innerWidth * ratio * 0.6) : 1,
+        budget.postEffects && !mobile
+          ? Math.ceil(innerHeight * ratio * 0.6)
+          : 1,
       );
-      ao.enabled = settings.quality === 'high' && !mobile;
+      ao.enabled =
+        settings.quality === 'high' &&
+        !mobile &&
+        options.ambientOcclusion?.enabled !== false;
       bloom.enabled = settings.quality === 'high' && !shape;
       exhaustHeat.enabled =
         settings.quality === 'high' && !shape && !settings.reducedMotion;
+      if (!budget.postEffects) {
+        bloom.setSize(1, 1);
+        exhaustHeat.setSize(1, 1);
+        antialias.setSize(1, 1);
+      }
+      antialias.enabled = budget.postEffects;
       renderer.shadowMap.enabled = true;
+      if (sun.shadow.mapSize.x !== budget.shadowSize) {
+        sun.shadow.map?.dispose();
+        sun.shadow.map = null;
+        sun.shadow.mapSize.setScalar(budget.shadowSize);
+      }
+      textureBudget.apply(scene, budget);
     }
     apply();
     window.addEventListener('resize', apply);
@@ -237,9 +271,11 @@ export async function createRenderer(
       attachWorldPass(pass) {
         const detach = attachWorldPass(composer, pass, { beauty, output });
         worldPasses.add(pass);
+        apply();
         return () => {
           detach();
           worldPasses.delete(pass);
+          apply();
         };
       },
       updatePresentation(update) {
@@ -306,6 +342,9 @@ export async function createRenderer(
       apply,
       bakeCityReflection(position, excluded) {
         graphics.check();
+        // The six reflection faces are the first upload of many world maps.
+        // Bound them before that submission, rather than after peak loading.
+        textureBudget.apply(scene, budget);
         const generator = new T.PMREMGenerator(renderer);
         const shadows = renderer.shadowMap.enabled;
         const hidden = [...excluded];
@@ -355,6 +394,11 @@ export async function createRenderer(
         sun.target.updateMatrixWorld();
       },
       render(now) {
+        // Some local passes activate only underwater or during authored events.
+        // Allocate their HDR buffers on entry, and release them again on exit.
+        const needsComposition =
+          budget.postEffects || [...worldPasses].some((pass) => pass.enabled);
+        if (needsComposition !== composed) apply();
         const dt = last ? Math.min((now - last) / 1000, 0.1) : 1 / 60;
         if (last && now - last < 1000) times.push(now - last);
         last = now;
@@ -372,11 +416,7 @@ export async function createRenderer(
         racingBlur.enabled =
           settings.quality === 'high' &&
           racingBlur.uniforms.strength.value > 0.0001;
-        if (
-          settings.quality === 'high' ||
-          racingBlur.enabled ||
-          [...worldPasses].some((pass) => pass.enabled)
-        ) {
+        if (needsComposition || racingBlur.enabled) {
           composer.render(dt);
         } else renderer.render(scene, camera);
         maxima.calls = Math.max(maxima.calls, renderer.info.render.calls);
@@ -391,7 +431,8 @@ export async function createRenderer(
       },
       async warm() {
         graphics.check();
-        if (mobileGraphics()) {
+        textureBudget.apply(scene, budget);
+        if (mobileGraphics() || budget.low) {
           // Full-scene warmup forces every hidden/off-camera mesh onto the GPU
           // in one burst. On phones, warm only the actual starting view and its
           // active pipeline; let other resources upload as they enter view.
@@ -498,7 +539,7 @@ export async function createRenderer(
           innerHeight *
           ratio *
           ratio *
-          (settings.quality === 'high' ? 92 : 16);
+          (settings.quality === 'high' ? 92 : composed ? 24 : 0);
         return {
           frames: times.length,
           resources: performance.getEntriesByType('resource').reduce(
@@ -534,7 +575,7 @@ export async function createRenderer(
           estimatedGpuMiB:
             (geometryBytes +
               textureBytes +
-              3072 * 3072 * 4 +
+              budget.shadowSize * budget.shadowSize * 4 +
               postBytes +
               heatBytes +
               (cityReflection ? 12 : 8) * 1024 * 1024) /
@@ -548,6 +589,11 @@ export async function createRenderer(
           viewport: { width: innerWidth, height: innerHeight, dpr: ratio },
           presentation: backdrop?.getPresentation?.() ?? null,
           pipeline: {
+            shadowSize: budget.shadowSize,
+            textureLimit: Number.isFinite(budget.textureSize)
+              ? budget.textureSize
+              : null,
+            composed,
             ambientOcclusion: ao.enabled,
             bloom: bloom.enabled,
             exhaustHeat: exhaustHeat.enabled,

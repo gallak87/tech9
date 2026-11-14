@@ -123,6 +123,7 @@ async function check(name, fn, options = {}) {
     ...(options.reducedMotion ? { reducedMotion: 'reduce' } : {}),
   });
   try {
+    await context.routeWebSocket('**/*', () => {});
     await context.addInitScript(
       ({ entries, reducedMotion, blocked }) => {
         if (!localStorage.getItem('entry-check-seeded')) {
@@ -1818,7 +1819,8 @@ try {
           await page
             .locator('[data-career-id="1"] [role="progressbar"]')
             .getAttribute('aria-valuenow'),
-          String(saved.profile.claims.length),
+          // The Founders trophy also opens the first Freestyle course.
+          String(saved.profile.claims.length + 1),
         );
         assert.match(
           await page.locator('[data-career-id="1"]').textContent(),

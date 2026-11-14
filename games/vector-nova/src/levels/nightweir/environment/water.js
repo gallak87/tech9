@@ -3,7 +3,7 @@ import * as T from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { finishNightweirMetal } from './materials.js';
 import { createNacreOceanNormals } from '../../nacre/environment/ocean-normals.js';
-import { createNacreOceanClock } from '../../nacre/environment/ocean-clock.js';
+import { createAmbientClock } from '../../../presentation/ambient-clock.js';
 import { createFallingWaterMaterial } from './falling-water.js';
 import { createTurbineWater } from './turbine-water.js';
 import { NACRE_WAVE_GLSL } from '../../nacre/environment/ocean-waves.js';
@@ -18,7 +18,7 @@ export function createNightweirWater(track) {
   const geometries = new Set(),
     materials = new Set();
   const rippleTexture = createNacreOceanNormals();
-  const flowClock = createNacreOceanClock();
+  const flowClock = createAmbientClock();
   const clock = { value: 0 },
     opening = { value: 0 };
   const turbineWater = createTurbineWater(

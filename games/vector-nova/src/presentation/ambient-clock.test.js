@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createNacreOceanClock } from './ocean-clock.js';
+import { createAmbientClock } from './ambient-clock.js';
 
 test('ocean advances before green without advancing simulation or losing phase at the start', () => {
-  const clock = createNacreOceanClock();
+  const clock = createAmbientClock();
   const frame = Object.freeze({ mode: 'title', time: 0 });
   assert.equal(clock(frame, 0), 0);
   for (let i = 1; i <= 60; i++) clock(frame, i / 60);
@@ -18,7 +18,7 @@ test('ocean advances before green without advancing simulation or losing phase a
 });
 
 test('ocean phase freezes on pause/inspection and fresh scenarios reset its independent offset', () => {
-  const clock = createNacreOceanClock();
+  const clock = createAmbientClock();
   clock({ mode: 'countdown', time: 0 }, 0);
   clock({ mode: 'countdown', time: 0 }, 0.1);
   const paused = clock({ mode: 'paused', time: 0 }, 0.2);
@@ -32,7 +32,7 @@ test('ocean phase freezes on pause/inspection and fresh scenarios reset its inde
 });
 
 test('manual recovery keeps the ocean phase while a fresh session clears it', () => {
-  const clock = createNacreOceanClock();
+  const clock = createAmbientClock();
   clock({ mode: 'countdown', time: 0 }, 0);
   clock({ mode: 'countdown', time: 0 }, 0.1);
   assert.equal(clock({ mode: 'racing', time: 4 }, 4.1), 4.1);

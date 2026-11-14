@@ -1,24 +1,27 @@
-import { replaceShader } from '../../renderer/shader-patch.js';
+import {
+  appendShaderPatch,
+  replaceShader,
+} from '../../renderer/shader-patch.js';
 
 /** The same leached/sheltered hierarchy belongs to original and new cortex.
  * Chalk fades into the matching cortical tone at real joining sockets; it
  * stays pale on exposed lips away from those attachments. */
 export function finishOssuaryCortex(material, joints = []) {
-  const compile = material.onBeforeCompile,
-    key = material.customProgramCacheKey();
   const marrow = /marrow/.test(material.name),
     chalk = /chalk_edges/.test(material.name);
-  material.onBeforeCompile = (shader, renderer) => {
-    compile(shader, renderer);
-    if (joints.length) {
-      shader.uniforms.ossuaryCortexJoints = { value: joints };
-      shader.fragmentShader =
-        'uniform vec3 ossuaryCortexJoints[3];\n' + shader.fragmentShader;
-    }
-    shader.fragmentShader = replaceShader(
-      shader.fragmentShader,
-      '#include <emissivemap_fragment>',
-      `
+  appendShaderPatch(
+    material,
+    `:ossuary-leached-cortex-v1:${marrow}:${chalk}:${Boolean(joints.length)}`,
+    (shader) => {
+      if (joints.length) {
+        shader.uniforms.ossuaryCortexJoints = { value: joints };
+        shader.fragmentShader =
+          'uniform vec3 ossuaryCortexJoints[3];\n' + shader.fragmentShader;
+      }
+      shader.fragmentShader = replaceShader(
+        shader.fragmentShader,
+        '#include <emissivemap_fragment>',
+        `
       #include <emissivemap_fragment>
       vec3 cortexNormal=inverseTransformDirection(normal,viewMatrix);
       float cortexExposure=smoothstep(-.45,.65,cortexNormal.y);
@@ -33,10 +36,9 @@ export function finishOssuaryCortex(material, joints = []) {
           : ''
       }
     `,
-    );
-  };
-  material.customProgramCacheKey = () =>
-    `${key}:ossuary-leached-cortex-v1:${marrow}:${chalk}:${Boolean(joints.length)}`;
+      );
+    },
+  );
 }
 
 /** Cast amber uses the already-owned Saffron mineral volume. Internal laminae,

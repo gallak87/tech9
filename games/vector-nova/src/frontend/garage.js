@@ -167,7 +167,8 @@ export function navigateGarage(event, root) {
   if (group?.classList.contains('garage-fleet') && vertical)
     next =
       event.code === 'ArrowUp'
-        ? root.querySelector('[data-action="garage-tab"]')
+        ? (root.querySelector('[data-action="resume-session"]') ??
+          root.querySelector('[data-action="garage-tab"]'))
         : (root.querySelector('.garage-upgrade') ??
           root.querySelector('.garage-equipment-card:not(:disabled)') ??
           root.querySelector('.ship-preview canvas'));

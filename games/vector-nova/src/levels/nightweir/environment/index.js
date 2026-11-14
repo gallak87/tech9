@@ -2,6 +2,7 @@ import * as T from 'three';
 import { Pass } from 'three/addons/postprocessing/Pass.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { assetURL } from '../../../assets/url.js';
+import { batchStaticWorld } from '../../../renderer/static-batches.js';
 import { createHelionCeramicMaps } from '../../helion/track/ceramic-maps.js';
 import { finishNightweirMetal, finishNightweirDeposits } from './materials.js';
 import { createNightweirWater } from './water.js';
@@ -176,6 +177,7 @@ export async function createNightweirEnvironment({
       finishNightweirSkyVisibility(material);
     }
   });
+  batchStaticWorld(root, { cellSize: 480 });
   // Transparent falling water must blend in linear HDR before tone mapping on
   // both presets. This borrowed pipeline marker keeps Low's AO/bloom disabled;
   // it adds no draw, target or shader of its own.
@@ -364,7 +366,8 @@ export async function createNightweirEnvironment({
       const gs = new Set(),
         ms = new Set();
       root.traverse((o) => {
-        if (o.geometry) gs.add(o.geometry);
+        if (o.isBatchedMesh) o.dispose();
+        else if (o.geometry) gs.add(o.geometry);
         for (const m of [o.material].flat().filter(Boolean)) ms.add(m);
       });
       gs.forEach((g) => g.dispose());

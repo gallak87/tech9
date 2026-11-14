@@ -26,7 +26,7 @@ const shipStats = [
   maximum: Math.max(...SHIPS.map((craft) => stat.value(craft.handling))),
 }));
 
-export const inspectionPanel = `<section id="inspection-panel" class="panel hidden"><div class="eyebrow">AERODYNAMICS DIVISION / 07</div><h1 class="inspect-title" aria-live="polite">KESTREL<span class="dot">.</span></h1><p class="intro">Twin-core magnetic interceptor.<br>Ceramic armour. Exposed titanium propulsion.<br>Built to stay close to the limit.</p><dl><div><dt>DESIGN</dt><dd>Split prow / swept ceramic chassis</dd></div><div><dt>PROPULSION</dt><dd>Dual induction turbines</dd></div></dl><div class="actions"><button id="inspect-start" class="primary">DRIVE PROTOTYPE <span>↗</span></button><button id="inspect-back">BACK TO PROVING GROUND</button></div></section>`;
+export const inspectionPanel = `<section id="inspection-panel" class="panel hidden"><div class="eyebrow">AERODYNAMICS DIVISION / 07</div><h1 class="inspect-title" aria-live="polite">KESTREL<span class="dot">.</span></h1><p class="intro">Twin-core magnetic interceptor.<br>Ceramic armour. Exposed titanium propulsion.<br>Built to stay close to the limit.</p><dl><div><dt>DESIGN</dt><dd>Split prow / swept ceramic chassis</dd></div><div><dt>PROPULSION</dt><dd>Dual induction turbines</dd></div></dl><div class="actions"><button id="inspect-back">← Back to race setup</button></div></section>`;
 
 // Shared fleet/inspector controls; no level or race runtime dependencies.
 export function createShipControls(
@@ -40,10 +40,7 @@ export function createShipControls(
   const availableShips = SHIPS.filter(
     (craft) => !getProfile || shipUnlocked(getProfile(), craft.id),
   );
-  for (const [panelId, prefix] of [
-    ['title-panel', 'paddock'],
-    ['inspection-panel', 'inspection'],
-  ]) {
+  for (const [panelId, prefix] of [['inspection-panel', 'inspection']]) {
     if (!$(panelId)) continue;
     const section = document.createElement('section');
     section.className = 'ship-selection';
@@ -83,18 +80,10 @@ export function createShipControls(
       choices.append(button);
     }
     const destination = $(panelId);
-    destination.insertBefore(
-      section,
-      destination.querySelector(
-        panelId === 'title-panel' ? '.inspection-actions' : 'dl',
-      ),
-    );
+    destination.insertBefore(section, destination.querySelector('dl'));
     shipPickers.push(section);
   }
-  let inspectionTab = 'fleet',
-    inspectionSession = false,
-    inspectionMenu = false,
-    fleetLoading = false;
+  let inspectionTab = 'fleet';
   let selectedRival = RIVAL_SHIPS[0];
   const inspection = $('inspection-panel');
   const inspectionTools = document.createElement('div');
@@ -262,14 +251,7 @@ export function createShipControls(
       : craft.exhausts.length === 1
         ? 'Single oversized ion core'
         : 'Twin ion cores';
-    $('inspect-start').firstChild.textContent = inspectionSession
-      ? 'RETURN TO SESSION '
-      : `DRIVE ${craft.name.toUpperCase()} `;
-    $('inspect-back').textContent = inspectionMenu
-      ? '← Back to race setup'
-      : inspectionSession
-        ? 'RETURN TO SESSION'
-        : 'CIRCUITS';
+    $('inspect-back').textContent = '← Back to race setup';
   }
   function setInspectedRival(craft) {
     selectedRival = craft;
@@ -292,10 +274,6 @@ export function createShipControls(
     }
     fleetPicker.classList.toggle('hidden', tab !== 'fleet');
     rivalPicker.classList.toggle('hidden', tab !== 'rivals');
-    $('inspect-start').classList.toggle(
-      'hidden',
-      inspectionMenu || tab === 'rivals',
-    );
     root.classList.toggle('inspecting-rivals', tab === 'rivals');
     for (const button of inspectionTools.querySelectorAll('[data-preview]'))
       button.disabled =
@@ -307,27 +285,6 @@ export function createShipControls(
   setInspectionTab('fleet');
   let pickerFocus = null;
   return {
-    setInspectionSession(active) {
-      inspectionSession = !!active;
-      for (const section of shipPickers)
-        for (const button of section.querySelectorAll('[data-ship]'))
-          button.disabled = fleetLoading || inspectionSession;
-      setInspectionDetails(
-        inspectionTab === 'rivals' ? selectedRival : selectedShip,
-        inspectionTab === 'rivals',
-      );
-    },
-    setInspectionMenu(active) {
-      inspectionMenu = active;
-      $('inspect-start').classList.toggle(
-        'hidden',
-        active || inspectionTab === 'rivals',
-      );
-      setInspectionDetails(
-        inspectionTab === 'rivals' ? selectedRival : selectedShip,
-        inspectionTab === 'rivals',
-      );
-    },
     setShip,
     setInspectionTab,
     setInspectedRival,
@@ -338,17 +295,13 @@ export function createShipControls(
         loadingMessage.textContent = '';
     },
     setShipLoading(loading) {
-      fleetLoading = loading;
       if (loading)
         pickerFocus = document.activeElement?.closest('.ship-picker');
       for (const section of shipPickers) {
         section.setAttribute('aria-busy', String(loading));
         for (const button of section.querySelectorAll('button'))
-          button.disabled = loading || inspectionSession;
+          button.disabled = loading;
       }
-      if ($('start')) $('start').disabled = loading;
-      if ($('practice')) $('practice').disabled = loading;
-      $('inspect-start').disabled = loading;
       for (const button of tabs.children) button.disabled = loading;
       if (loading) loadingMessage.textContent = 'Preparing ship…';
       else if (loadingMessage.textContent === 'Preparing ship…')
@@ -386,11 +339,6 @@ export function createShipControls(
         height: Math.max(24, specs.top - heading.bottom - 28),
       };
     },
-    inspectionFocus: () =>
-      inspectionMenu
-        ? 'inspect-back'
-        : inspectionTab === 'rivals'
-          ? 'inspection-rivals-tab'
-          : 'inspect-start',
+    inspectionFocus: () => 'inspect-back',
   };
 }

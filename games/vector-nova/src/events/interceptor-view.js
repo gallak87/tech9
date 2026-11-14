@@ -183,7 +183,7 @@ export function createInterceptorPresentation({ host }) {
         : 'none';
       hit.textContent = recent
         ? `${name(data.lastHit.source)} · ${data.lastHit.weakPoint ? (breakwater ? 'EMITTER RUPTURE' : resonance ? 'CAPACITOR HIT' : 'CORE BREACH') : data.lastHit.armored ? 'ARMOR HIT' : weaponName(data.lastHit.equipment) + ' hit'} · ${data.lastHit.damage} damage`
-        : 'Hold fire. Cross weapon gates for extra attacks.';
+        : 'Hold Lance to fire. Cross weapon gates for extra attacks.';
       boost.textContent = `SHIFT / ${controllerLayout(frame.settings ?? {}).boost}`;
     },
     trigger() {},

@@ -147,8 +147,18 @@ export function createAssetInstances(parts, matrices, name) {
   const group = new T.Group();
   group.name = name;
   for (const { geometry, material } of parts) {
-    const mesh = new T.InstancedMesh(geometry, material, matrices.length);
-    matrices.forEach((matrix, index) => mesh.setMatrixAt(index, matrix));
+    // One huge instanced bound submitted every ruin, including those behind
+    // the camera. Per-instance bounds cull beauty and shadow draws separately.
+    const mesh = new T.BatchedMesh(
+      matrices.length,
+      geometry.attributes.position.count,
+      geometry.index?.count ?? 0,
+      material,
+    );
+    const id = mesh.addGeometry(geometry);
+    matrices.forEach((matrix) =>
+      mesh.setMatrixAt(mesh.addInstance(id), matrix),
+    );
     mesh.receiveShadow = true;
     mesh.castShadow = true;
     mesh.computeBoundingSphere();

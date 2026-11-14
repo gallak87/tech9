@@ -28,7 +28,7 @@ const unit = (requirement) =>
         ? 'finish'
         : 'finishes'
       : requirement.trials
-        ? 'maps'
+        ? 'tracks'
         : requirement.cups
           ? 'cups'
           : 'cup';
@@ -162,9 +162,9 @@ export function rewardBadgesView(
 export function raceProgressView(before, after, context, result) {
   if (!before || context.mode === 'practice') return '';
   const points = after.points - before.points;
-  const maps = after.trialTracks.length - before.trialTracks.length;
+  const tracks = after.trialTracks.length - before.trialTracks.length;
   const goals = rewardGoals(before, context);
-  if (!goals.length && !points && !maps) return '';
+  if (!goals.length && !points && !tracks) return '';
   const player = result?.standings?.find((row) => row.id === 'player');
   const valid =
     context.mode === 'freestyle'
@@ -178,7 +178,7 @@ export function raceProgressView(before, after, context, result) {
       ? '+1 race finish'
       : points
         ? `+${points} race progress`
-        : maps
+        : tracks
           ? 'New Time Trial map recorded'
           : valid
             ? 'Progress saved'

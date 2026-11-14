@@ -492,7 +492,7 @@ test('cloud pass owns its targets, borrows depth, and preserves timing and quali
   clouds.pass.setSize(1440, 900);
   assert.deepEqual(
     [clouds.pass.target.width, clouds.pass.target.height],
-    [720, 450],
+    [576, 360],
   );
   clouds.update({ mode: 'racing', time: 0, reset: true });
   clouds.update({ mode: 'racing', time: 1 });
@@ -507,8 +507,8 @@ test('cloud pass owns its targets, borrows depth, and preserves timing and quali
     settings: { reducedMotion: false, quality: 'low' },
   });
   assert.equal(clouds.group.userData.cloudTime, 2);
-  assert.equal(clouds.uniforms.steps.value, 16);
-  assert.equal(clouds.group.userData.cloudStepBudget, 48);
+  assert.equal(clouds.uniforms.steps.value, 12);
+  assert.equal(clouds.group.userData.cloudStepBudget, 36);
   assert.equal(
     clouds.uniforms.rootBodyScale.value,
     rootBodyScale,
@@ -516,7 +516,7 @@ test('cloud pass owns its targets, borrows depth, and preserves timing and quali
   );
   assert.deepEqual(
     [clouds.pass.target.width, clouds.pass.target.height],
-    [504, 315],
+    [360, 225],
   );
   clouds.update({ mode: 'racing', time: 0, reset: true });
   assert.equal(clouds.group.userData.cloudTime, 0);

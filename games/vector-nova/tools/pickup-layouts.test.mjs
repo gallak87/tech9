@@ -108,7 +108,26 @@ for (const folder of await readdir(directory, { withFileTypes: true })) {
               (pursuit ? 60 : device.type === 'ion' ? 800 : 350),
             `${device.id}: attack too close to ${jump.id} takeoff`,
           );
-        if (start > jump.recovery)
+        const authoredRecovery =
+          folder.name === 'vesper-forest'
+            ? {
+                'crown-arc:crown-leap': { offset: 80, clearance: 75 },
+                'vault-repulsor:river-skip': { offset: 50, clearance: 45 },
+              }[`${device.id}:${jump.id}`]
+            : null;
+        if (authoredRecovery) {
+          // The approved catch corridors place these two gates beyond their
+          // local recovery stations; retain their exact authored offsets.
+          assert.equal(
+            device.distance,
+            jump.recovery + authoredRecovery.offset,
+            `${device.id}: preserve its authored recovery offset`,
+          );
+          assert.ok(
+            Math.abs(start - jump.recovery - authoredRecovery.clearance) < 1e-9,
+            `${device.id}: preserve its leading-edge landing clearance`,
+          );
+        } else if (start > jump.recovery)
           assert.ok(
             start - jump.recovery >= (pursuit ? 30 : 150),
             `${device.id}: allow landing recovery after ${jump.id}`,
@@ -129,7 +148,7 @@ for (const folder of await readdir(directory, { withFileTypes: true })) {
     }
   });
 
-  test(`${folder.name}: actual pickup contacts decline centered weapons and collect each chosen lane once`, () => {
+  test(`${folder.name}: ${pursuit ? 'actual pursuit contacts collect centered and chosen gates once per lap' : 'actual pickup contacts decline centered weapons and collect each chosen lane once'}`, () => {
     for (const device of attacks)
       for (const lateral of [0, device.lateral]) {
         let state = {
@@ -160,9 +179,41 @@ for (const folder of await readdir(directory, { withFileTypes: true })) {
               event.type === 'pickup-activate' &&
               event.payload.deviceId === device.id,
           ).length,
-          lateral === 0 ? 0 : 1,
-          `${device.id}: ${lateral === 0 ? 'centered decline' : 'deliberate lane contact'}`,
+          lateral === 0 && !pursuit ? 0 : 1,
+          `${device.id}: ${lateral === 0 ? (pursuit ? 'supported centered pursuit contact' : 'centered decline') : 'deliberate lane contact'}`,
         );
+        if (pursuit) {
+          // Pursuit gates intentionally reach the supported centre line. Their
+          // ordinary contact ledger still forbids farming within the same lap.
+          const recross = (lap) => {
+            const before = {
+              ...state,
+              distance: device.distance - 5 + lap * track.length,
+            };
+            const after = { ...before, distance: before.distance + 10 };
+            const emitted = [
+              ...simulation.beforeStep({ throttle: 1 }, 0.1, before).events,
+              ...simulation.afterStep(before, after, { throttle: 1 }),
+            ];
+            state = after;
+            return emitted.filter(
+              (event) =>
+                event.type === 'pickup-activate' &&
+                event.payload.deviceId === device.id,
+            ).length;
+          };
+          assert.equal(
+            recross(0),
+            0,
+            `${device.id}: no repeat within this lap`,
+          );
+          assert.equal(recross(1), 1, `${device.id}: next lap rearms the gate`);
+          assert.equal(
+            recross(1),
+            0,
+            `${device.id}: no repeat within the next lap`,
+          );
+        }
       }
   });
 

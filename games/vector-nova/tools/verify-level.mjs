@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import { seedVerificationCareer } from './verification-career.mjs';
+import { SHIPS } from '../src/ships/catalog.js';
 import { BONUS_LEVEL_IDS } from '../src/levels/access.js';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
@@ -38,10 +40,10 @@ function urlFor({ shape = false, id = slug } = {}) {
   url.search = '';
   url.hash = '';
   url.searchParams.set('level', id);
-  url.searchParams.set('capture', '1');
+  url.searchParams.set('intro', '0');
   url.searchParams.set('music', '0');
   if (BONUS_LEVEL_IDS.includes(id)) url.searchParams.set('dev', '1');
-  if (shape) url.searchParams.set('review', 'shape');
+  if (shape) url.searchParams.set('tool', 'shape');
   return url.href;
 }
 const snapshot = (page) => page.evaluate(() => window.__VN.getSnapshot());
@@ -74,6 +76,8 @@ try {
         deviceScaleFactor: 1,
       });
       try {
+        await seedVerificationCareer(context);
+        await context.routeWebSocket('**/*', (socket) => socket.close());
         await context.addInitScript(
           (settings) =>
             localStorage.setItem(
@@ -96,7 +100,14 @@ try {
         report.cases.push(result);
         collectPageErrors(page, faults);
         page.on('console', (message) => {
-          if (message.type() === 'error') faults.push(message.text());
+          // This harness deliberately closes the dev HMR socket to freeze the served case.
+          if (
+            message.type() === 'error' &&
+            !/^(?:\[vite\] failed to connect to websocket|Failed to send error to Vite server:)/.test(
+              message.text(),
+            )
+          )
+            faults.push(message.text());
         });
         page.on('response', (response) => {
           if (response.status() >= 400)
@@ -107,9 +118,11 @@ try {
         );
         page.on('request', (request) => requests.push(request.url()));
         await page.goto(urlFor({ shape }), { waitUntil: 'domcontentloaded' });
+        await page.locator('[data-action="launch"]').click();
         await page.waitForFunction(
           () =>
-            window.__VN?.ready ||
+            (window.__VN?.ready &&
+              window.__VN_FRONTEND?.getState().screen === 'race') ||
             document.querySelector('.transfer-status.failed'),
           null,
           { timeout: 120000 },
@@ -132,7 +145,9 @@ try {
         );
         assert.equal(initial.settings.quality, quality);
         assert.equal(initial.settings.reducedMotion, quality === 'low');
-        await page.locator('#start').click();
+        await page.waitForFunction(
+          () => window.__VN.getSnapshot().mode === 'racing',
+        );
         await page.keyboard.down('w');
         await page.waitForFunction(() => window.__VN.getSnapshot().tick >= 20);
         await page.keyboard.up('w');
@@ -198,9 +213,7 @@ try {
         assert.equal((await snapshot(page)).tick, beforeDispose);
         assert.deepEqual(faults, []);
         assetForFailure ||= requests.find((url) =>
-          new URL(url).pathname.endsWith(
-            `/assets/ships/${initial.ship.id}/${initial.ship.id}.glb`,
-          ),
+          new URL(url).pathname.endsWith(`/${SHIPS[0].asset}`),
         );
         Object.assign(result, {
           shape,
@@ -230,6 +243,8 @@ try {
       viewport: { width: 1280, height: 720 },
     });
     try {
+      await seedVerificationCareer(context);
+      await context.routeWebSocket('**/*', (socket) => socket.close());
       const page = await context.newPage();
       if (failure === 'asset-load')
         await page.route(assetForFailure, (route) => route.abort('failed'));
@@ -239,9 +254,16 @@ try {
         }),
         { waitUntil: 'domcontentloaded' },
       );
+      if (failure === 'asset-load')
+        await page.locator('[data-action="launch"]').click();
       await page
         .locator('.transfer-status.failed')
         .waitFor({ state: 'visible', timeout: 120000 });
+      await page.waitForFunction(
+        () => !!window.__VN_FRONTEND?.getState().error,
+        null,
+        { timeout: 120000 },
+      );
       assert.ok(await page.locator('.transfer-status.failed').textContent());
       assert.equal(
         await page.locator('.loading-copy .front-actions button').count(),

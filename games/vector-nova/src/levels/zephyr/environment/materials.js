@@ -1,10 +1,8 @@
+import { valueNoise3DGLSL } from '../../../renderer/material-noise.js';
 import { replaceShader } from '../../../renderer/shader-patch.js';
 // Local metric surface detail: geometry owns silhouettes and carved relief;
 // these layers give the stone pores, sediment, repaired joints and bronze patina.
-export const zephyrNoiseGLSL = `
-float zephyrHash(vec3 p){p=fract(p*.1031);p+=dot(p,p.yzx+33.33);return fract((p.x+p.y)*p.z);}
-float zephyrNoise(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(mix(zephyrHash(i),zephyrHash(i+vec3(1,0,0)),f.x),mix(zephyrHash(i+vec3(0,1,0)),zephyrHash(i+vec3(1,1,0)),f.x),f.y),mix(mix(zephyrHash(i+vec3(0,0,1)),zephyrHash(i+vec3(1,0,1)),f.x),mix(zephyrHash(i+vec3(0,1,1)),zephyrHash(i+vec3(1,1,1)),f.x),f.y),f.z);}
-`;
+export const zephyrNoiseGLSL = valueNoise3DGLSL('zephyrHash', 'zephyrNoise');
 export function finishZephyrMaterial(material, { stoneTexture } = {}) {
   if (
     material.userData.zephyrFinished ||

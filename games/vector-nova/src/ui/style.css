@@ -1,176 +1,29 @@
-:root {
+#app {
   font-family: Arial, Helvetica, sans-serif;
   color: #edf0e9;
   font-synthesis: none;
   font-weight: 400;
   background: #191919;
-  --accent: #c41c1c;
+  --hud-action-accent: #a81010;
 }
 
 /* The shared paddock follows the same reading order on every circuit. */
-#title-panel.panel {
-  top: 96px;
-  bottom: auto;
-  max-height: calc(100dvh - 120px);
-  left: 4vw;
-  width: min(420px, 92vw);
-  max-width: none;
-  margin: 0;
-  padding: 24px;
-  background: rgb(12 23 31 / 60%);
-  border: 1px solid #ffffff24;
-  pointer-events: auto;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-width: thin;
-}
-#title-panel h1 {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 4px 14px;
-  font-size: clamp(36px, 4.4vw, 64px);
-  line-height: 1;
-  margin: 0 0 14px;
-}
-#title-panel h1 em {
-  font-size: 0.44em;
-  font-style: italic;
-  letter-spacing: -0.025em;
-  line-height: 1.15;
-}
-#title-panel .intro {
-  display: block;
-  font-size: 13px;
-  line-height: 1.5;
-  margin: 0 0 18px;
-}
-#title-panel .track-facts {
-  display: flex;
-  gap: 30px;
-  margin: 0 0 18px;
-}
-#title-panel .track-facts b {
-  font-size: 26px;
-}
-#title-panel .circuit-picker {
-  width: 100%;
-  max-width: none;
-  margin: 0;
-}
-#title-panel .actions {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  max-width: none;
-  gap: 7px;
-}
-#title-panel .actions button {
-  min-height: 44px;
-  padding: 12px 16px;
-}
-#title-panel .launch-actions {
-  margin: 16px 0;
-  padding: 14px 0;
-  border-top: 1px solid #ffffff30;
-  border-bottom: 1px solid #ffffff30;
-}
-#title-panel .inspection-actions {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-#title-panel .inspection-actions button {
-  padding-inline: 10px;
-}
-#title-panel .ship-selection {
-  display: grid;
-  grid-template-columns: minmax(110px, 1fr) minmax(0, 1.35fr);
-  gap: 8px 14px;
-  margin: 0 0 16px;
-}
-#title-panel .ship-picker button {
-  height: var(--ship-row-height);
-  min-height: 0;
-  padding: 7px 9px;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  text-align: left;
-}
-#interface:not(.driving):not(.inspecting) #legend,
-#interface:not(.driving):not(.inspecting) .review-tag {
+:where(#app) #interface:not(.driving):not(.inspecting) #legend,
+:where(#app) #interface:not(.driving):not(.inspecting) .review-tag {
   display: none;
-}
-@media (max-height: 850px) {
-  #title-panel.panel {
-    top: 84px;
-    max-height: calc(100dvh - 102px);
-    padding: 16px;
-  }
-  #title-panel h1 {
-    font-size: 40px;
-    margin-bottom: 10px;
-  }
-  #title-panel .intro {
-    font-size: 12px;
-    margin-bottom: 12px;
-  }
-  #title-panel .track-facts {
-    margin-bottom: 12px;
-  }
-  #title-panel .track-facts b {
-    font-size: 22px;
-  }
-  #title-panel .launch-actions {
-    margin: 12px 0;
-    padding: 10px 0;
-  }
-  #title-panel .actions button {
-    min-height: 40px;
-    padding: 10px 14px;
-  }
-  #interface #title-panel .ship-selection {
-    --ship-row-height: 30px;
-    margin-bottom: 12px;
-  }
-}
-@media (max-width: 760px) {
-  #title-panel.panel {
-    top: 84px;
-    max-height: calc(100dvh - 84px - max(18px, env(safe-area-inset-bottom)));
-    left: 4vw;
-    padding: 18px;
-  }
-  #title-panel h1 {
-    font-size: clamp(32px, 9.5vw, 44px);
-  }
-  #title-panel .ship-selection {
-    gap: 8px 10px;
-  }
-}
-@media (max-height: 570px) and (orientation: landscape) {
-  #title-panel.panel {
-    top: 68px;
-    max-height: calc(100dvh - 68px - max(14px, env(safe-area-inset-bottom)));
-    width: min(420px, 92vw);
-    padding: 16px;
-  }
-  #title-panel h1 {
-    font-size: 32px;
-  }
 }
 
 /* A single fleet choice follows the player between paddock and inspection. */
-.ship-selection {
+:where(#app) .ship-selection {
   max-width: 430px;
   margin: 18px 0;
 }
-.inspection-tabs {
+:where(#app) .inspection-tabs {
   display: flex;
   gap: 6px;
   margin-bottom: 14px;
 }
-.inspection-tabs button {
+:where(#app) .inspection-tabs button {
   min-height: 36px;
   padding: 9px 15px;
   font-size: 10px;
@@ -178,56 +31,56 @@
   text-transform: uppercase;
   background: #1e1e1ee0;
 }
-.inspection-tabs button[aria-selected='true'] {
-  border-color: var(--accent);
-  box-shadow: inset 0 -2px var(--accent);
+:where(#app) .inspection-tabs button[aria-selected='true'] {
+  border-color: var(--hud-action-accent);
+  box-shadow: inset 0 -2px var(--hud-action-accent);
   color: #fff;
 }
-.rival-selection .ship-picker {
+:where(#app) .rival-selection .ship-picker {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 @media (max-width: 760px) and (orientation: portrait) {
-  #inspection-panel .inspection-tabs {
+  :where(#app) #inspection-panel .inspection-tabs {
     margin-bottom: 10px;
   }
-  #inspection-panel .eyebrow {
+  :where(#app) #inspection-panel .eyebrow {
     display: none;
   }
-  #inspection-panel .rival-selection .ship-picker button {
+  :where(#app) #inspection-panel .rival-selection .ship-picker button {
     padding: 8px 10px;
   }
-  #inspection-panel .rival-selection .ship-picker button i {
+  :where(#app) #inspection-panel .rival-selection .ship-picker button i {
     display: none;
   }
 }
 @media (max-height: 570px) and (orientation: landscape) {
-  #inspection-panel .inspection-tabs {
+  :where(#app) #inspection-panel .inspection-tabs {
     margin-bottom: 8px;
   }
-  #inspection-panel .eyebrow {
+  :where(#app) #inspection-panel .eyebrow {
     display: none;
   }
-  #inspection-panel .inspection-tabs button {
+  :where(#app) #inspection-panel .inspection-tabs button {
     min-height: 30px;
     padding: 7px 12px;
   }
 }
-.ship-picker-label {
+:where(#app) .ship-picker-label {
   display: flex;
   justify-content: space-between;
   margin-bottom: 9px;
   font-size: 9px;
   letter-spacing: 0.16em;
 }
-.ship-picker-label span {
+:where(#app) .ship-picker-label span {
   color: #b4b4b4;
 }
-.ship-picker {
+:where(#app) .ship-picker {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px;
 }
-.ship-picker button {
+:where(#app) .ship-picker button {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -237,47 +90,47 @@
   background: #1e1e1ee0;
   text-transform: uppercase;
 }
-.ship-picker button b {
+:where(#app) .ship-picker button b {
   font-size: 11px;
   letter-spacing: 0.1em;
 }
-.ship-picker button span {
+:where(#app) .ship-picker button span {
   color: #c5c5c5;
   font-size: 9px;
   letter-spacing: 0.08em;
 }
-.ship-picker button i {
+:where(#app) .ship-picker button i {
   display: none;
   position: absolute;
   right: 12px;
   top: 16px;
   font-style: normal;
 }
-.ship-picker button[aria-checked='true'] {
+:where(#app) .ship-picker button[aria-checked='true'] {
   background: #373737f0;
-  border-color: var(--accent);
-  box-shadow: inset 3px 0 var(--accent);
+  border-color: var(--hud-action-accent);
+  box-shadow: inset 3px 0 var(--hud-action-accent);
 }
-.ship-picker button[aria-checked='true'] i {
+:where(#app) .ship-picker button[aria-checked='true'] i {
   display: block;
-  color: var(--accent);
+  color: var(--hud-action-accent);
 }
-.ship-summary {
+:where(#app) .ship-summary {
   margin: 9px 0 0;
   color: #dadada;
   font-size: 10px;
   line-height: 1.5;
 }
-.ship-stats {
+:where(#app) .ship-stats {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 9px 14px;
   margin-top: 12px;
 }
-.ship-stat {
+:where(#app) .ship-stat {
   min-width: 0;
 }
-.ship-stat-label {
+:where(#app) .ship-stat-label {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -287,38 +140,38 @@
   letter-spacing: 0.06em;
   white-space: nowrap;
 }
-.ship-stat-label b {
+:where(#app) .ship-stat-label b {
   color: #edf0e9;
   font-size: 9px;
   font-weight: 400;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0;
 }
-.ship-stat-track {
+:where(#app) .ship-stat-track {
   height: 4px;
   margin-top: 5px;
   background: #d3d3d326;
   transform: skewX(-20deg);
 }
-.ship-stat-track i {
+:where(#app) .ship-stat-track i {
   display: block;
   width: var(--stat-fill, 0%);
   height: 100%;
-  background: linear-gradient(90deg, #c41c1c, var(--accent));
+  background: linear-gradient(90deg, #c41c1c, var(--hud-action-accent));
 }
-.ship-load-status {
+:where(#app) .ship-load-status {
   position: absolute;
   bottom: 24px;
   left: 6vw;
   font-size: 12px;
   color: #fff;
 }
-.ship-load-status:not(:empty) {
+:where(#app) .ship-load-status:not(:empty) {
   background: #202020;
   padding: 12px 18px;
 }
-.ship-picker button:disabled,
-.actions button:disabled {
+:where(#app) .ship-picker button:disabled,
+:where(#app) .actions button:disabled {
   cursor: wait;
   opacity: 0.65;
 }
@@ -329,13 +182,13 @@ body {
   margin: 0;
   overflow: hidden;
 }
-button,
-a,
-input,
-select {
+:where(#app) button,
+:where(#app) a,
+:where(#app) input,
+:where(#app) select {
   -webkit-tap-highlight-color: transparent;
 }
-button {
+:where(#app) button {
   font: inherit;
   color: inherit;
   cursor: pointer;
@@ -350,36 +203,36 @@ button {
     background 0.15s,
     border 0.15s;
 }
-button:hover {
+:where(#app) button:hover {
   background: #424242eb;
   border-color: #ebebeb;
 }
-button:focus-visible,
-a:focus-visible,
-input:focus-visible,
-select:focus-visible {
+:where(#app) button:focus-visible,
+:where(#app) a:focus-visible,
+:where(#app) input:focus-visible,
+:where(#app) select:focus-visible {
   outline: 2px solid #fff;
   outline-offset: 5px;
 }
-button.primary {
-  background: var(--accent);
+:where(#app) button.primary {
+  background: var(--hud-action-accent);
   color: #202020;
-  border-color: var(--accent);
+  border-color: var(--hud-action-accent);
 }
-button.primary:hover {
+:where(#app) button.primary:hover {
   background: #c41c1c;
 }
-.hidden {
+:where(#app) .hidden {
   display: none !important;
 }
-#world {
+:where(#app) #world {
   display: block;
   position: fixed;
   inset: 0;
   width: 100%;
   height: 100%;
 }
-#interface {
+:where(#app) #interface {
   position: fixed;
   inset: 0;
   pointer-events: none;
@@ -390,23 +243,23 @@ button.primary:hover {
     transparent 70%
   );
 }
-#interface.driving {
+:where(#app) #interface.driving {
   background: none;
 }
-#interface button,
-#interface a,
-#interface input,
-#interface select {
+:where(#app) #interface button,
+:where(#app) #interface a,
+:where(#app) #interface input,
+:where(#app) #interface select {
   pointer-events: auto;
 }
-.masthead {
+:where(#app) .masthead {
   height: 116px;
   padding: 40px 4vw;
   display: flex;
   align-items: center;
   gap: 48px;
 }
-#jump-repeat {
+:where(#app) #jump-repeat {
   position: absolute;
   top: 24px;
   right: 86px;
@@ -415,54 +268,54 @@ button.primary:hover {
   pointer-events: auto;
 }
 @media (max-width: 760px) and (min-height: 700px) {
-  #interface.jump-playtest .masthead .edition {
+  :where(#app) #interface.jump-playtest .masthead .edition {
     display: none;
   }
 }
-.wordmark {
+:where(#app) .wordmark {
   font-size: 25px;
   font-weight: 900;
   letter-spacing: -1.2px;
   color: #edf0e9;
   text-decoration: none;
 }
-.wordmark span {
-  color: var(--accent);
+:where(#app) .wordmark span {
+  color: var(--hud-action-accent);
   margin: 0 3px;
 }
-.edition {
+:where(#app) .edition {
   font-size: 10px;
   letter-spacing: 0.17em;
   display: flex;
   align-items: center;
   gap: 9px;
 }
-.edition i {
+:where(#app) .edition i {
   width: 5px;
   height: 5px;
-  background: var(--accent);
+  background: var(--hud-action-accent);
   border-radius: 50%;
 }
-.edition span {
+:where(#app) .edition span {
   border-left: 1px solid #cccccc52;
   padding-left: 16px;
   margin-left: 8px;
   color: #c8c8c8;
   font-size: 9px;
 }
-.quiet {
+:where(#app) .quiet {
   margin-left: auto;
   font-size: 19px;
   background: #19191999;
   padding: 8px 16px;
 }
-.panel {
+:where(#app) .panel {
   position: absolute;
   top: 25%;
   left: 6vw;
   max-width: 510px;
 }
-.circuit-picker {
+:where(#app) .circuit-picker {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 8px;
@@ -470,13 +323,13 @@ button.primary:hover {
   max-width: 340px;
   margin: 0 0 22px;
 }
-.circuit-picker label {
+:where(#app) .circuit-picker label {
   grid-column: 1 / -1;
   font-size: 9px;
   letter-spacing: 0.17em;
   color: #d2d2d2;
 }
-.circuit-picker select {
+:where(#app) .circuit-picker select {
   width: 100%;
   min-width: 0;
   min-height: 44px;
@@ -488,78 +341,58 @@ button.primary:hover {
   font-size: 12px;
   color-scheme: dark;
 }
-.circuit-picker button {
+:where(#app) .circuit-picker button {
   min-height: 44px;
   padding: 10px 12px;
   font-size: 10px;
 }
-.circuit-picker button:disabled {
+:where(#app) .circuit-picker button:disabled {
   opacity: 0.4;
   cursor: default;
   background: #1e1e1eba;
   border-color: #ffffff35;
 }
-.eyebrow {
+:where(#app) .eyebrow {
   font-size: 9px;
   letter-spacing: 0.2em;
   color: #d2d2d2;
   margin-bottom: 24px;
 }
-h1 {
+:where(#app) h1 {
   font-size: clamp(48px, 6.1vw, 91px);
   letter-spacing: -0.065em;
   line-height: 0.97;
   font-weight: 800;
   margin: 0 0 25px;
 }
-h1 em {
+:where(#app) h1 em {
   font-style: normal;
-  color: var(--accent);
+  color: var(--hud-action-accent);
 }
-.intro {
+:where(#app) .intro {
   font-size: 14px;
   line-height: 1.7;
   color: #d5d5d5;
   margin-bottom: 27px;
 }
-.track-facts {
-  display: flex;
-  gap: 38px;
-  margin: 0 0 25px;
-}
-.track-facts div {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.track-facts b {
-  font-size: 26px;
-  font-weight: 400;
-  letter-spacing: -0.06em;
-}
-.track-facts span {
-  font-size: 8px;
-  letter-spacing: 0.15em;
-  color: #bababa;
-}
-.actions {
+:where(#app) .actions {
   display: flex;
   flex-direction: column;
   gap: 9px;
   max-width: 340px;
 }
-.actions button span {
+:where(#app) .actions button span {
   float: right;
   font-size: 17px;
   line-height: 12px;
 }
-.small {
+:where(#app) .small {
   font-size: 10px;
   line-height: 1.7;
   color: #b6b6b6;
   margin-top: 16px;
 }
-.review-tag {
+:where(#app) .review-tag {
   position: absolute;
   bottom: 90px;
   right: 4vw;
@@ -568,11 +401,11 @@ h1 em {
   font-size: 8px;
   color: #cecece;
 }
-.review-tag span {
+:where(#app) .review-tag span {
   color: #a0a0a0;
   margin-top: 14px;
 }
-#legend {
+:where(#app) #legend {
   position: absolute;
   bottom: 0;
   left: 0;
@@ -583,21 +416,21 @@ h1 em {
   padding: 22px 10px max(22px, env(safe-area-inset-bottom));
   background: linear-gradient(transparent, #131313da);
 }
-#legend div {
+:where(#app) #legend div {
   display: flex;
   align-items: center;
   gap: 4px;
 }
-#legend .legend-movement {
+:where(#app) #legend .legend-movement {
   display: none;
 }
-#legend span {
+:where(#app) #legend span {
   font-size: 8px;
   letter-spacing: 0.12em;
   color: #d0d6d2;
   margin-left: 6px;
 }
-kbd {
+:where(#app) kbd {
   border: 1px solid #d4d4d466;
   border-radius: 3px;
   min-width: 19px;
@@ -606,31 +439,31 @@ kbd {
   font-size: 9px;
   background: #19191999;
 }
-dl {
+:where(#app) dl {
   margin: 28px 0;
   font-size: 10px;
 }
-dl div {
+:where(#app) dl div {
   display: flex;
   padding: 12px 0;
   border-bottom: 1px solid #ffffff20;
 }
-dt {
+:where(#app) dt {
   color: #a5a5a5;
   min-width: 100px;
   font-size: 9px;
   letter-spacing: 0.1em;
 }
-dd {
+:where(#app) dd {
   margin: 0;
 }
-.inspect-title {
+:where(#app) .inspect-title {
   font-size: 65px;
 }
-.dot {
-  color: var(--accent);
+:where(#app) .dot {
+  color: var(--hud-action-accent);
 }
-.modal {
+:where(#app) .modal {
   z-index: 20;
   pointer-events: auto;
   position: absolute;
@@ -649,19 +482,19 @@ dd {
   overflow-y: auto;
   overscroll-behavior: contain;
 }
-.paused #legend,
-.paused .review-tag {
+:where(#app) .paused #legend,
+:where(#app) .paused .review-tag {
   display: none;
 }
-.modal .eyebrow {
+:where(#app) .modal .eyebrow {
   margin-bottom: 0;
 }
-.modal h2 {
+:where(#app) .modal h2 {
   font-size: 30px;
   letter-spacing: -0.04em;
   margin: 10px 0 15px;
 }
-.modal label {
+:where(#app) .modal label {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -669,12 +502,12 @@ dd {
   letter-spacing: 0.1em;
   margin-top: 12px;
 }
-.modal input[type='range'] {
+:where(#app) .modal input[type='range'] {
   width: 140px;
-  accent-color: var(--accent);
+  accent-color: var(--hud-action-accent);
 }
 /* Keep quick adjustments beside the live session, with Resume easy to reach. */
-#pause-panel {
+:where(#app) #pause-panel {
   top: calc(50% + 28px);
   width: min(460px, calc(100vw - 32px));
   max-height: calc(100dvh - 96px);
@@ -683,12 +516,12 @@ dd {
   background: #171717f2;
   color: #e8e8e8;
 }
-#pause-panel h2 {
+:where(#app) #pause-panel h2 {
   margin: 0 0 2px;
   font-size: 26px;
   line-height: 1.1;
 }
-#pause-panel button {
+:where(#app) #pause-panel button {
   min-height: 40px;
   padding: 10px 14px;
   font-size: 12px;
@@ -696,7 +529,7 @@ dd {
   letter-spacing: 0;
   text-transform: none;
 }
-#pause-panel #resume {
+:where(#app) #pause-panel #resume {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -704,18 +537,18 @@ dd {
   font-size: 17px;
   font-weight: 700;
 }
-#pause-panel .pause-quick-settings {
+:where(#app) #pause-panel .pause-quick-settings {
   border-block: 1px solid #ffffff25;
   padding-block: 4px;
 }
-#pause-panel label {
+:where(#app) #pause-panel label {
   min-height: 40px;
   margin: 0;
   gap: 12px;
   font-size: 12px;
   letter-spacing: 0;
 }
-#pause-panel select {
+:where(#app) #pause-panel select {
   min-height: 34px;
   width: 132px;
   padding: 6px 10px;
@@ -723,23 +556,23 @@ dd {
   background: #262626;
   border-color: #ffffff45;
 }
-#pause-panel input[type='range'] {
+:where(#app) #pause-panel input[type='range'] {
   width: 132px;
   flex-shrink: 0;
 }
-#pause-panel input[type='checkbox'] {
-  accent-color: var(--accent);
+:where(#app) #pause-panel input[type='checkbox'] {
+  accent-color: var(--hud-action-accent);
 }
-#pause-panel .pause-restart {
+:where(#app) #pause-panel .pause-restart {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: end;
   gap: 8px 12px;
 }
-#pause-panel #pause-race-settings {
+:where(#app) #pause-panel #pause-race-settings {
   display: contents;
 }
-#pause-panel .difficulty-picker {
+:where(#app) #pause-panel .difficulty-picker {
   grid-column: 1;
   grid-row: 1;
   flex-direction: column;
@@ -747,20 +580,21 @@ dd {
   gap: 5px;
   font-size: 11px;
 }
-#pause-panel .difficulty-picker select {
+:where(#app) #pause-panel .difficulty-picker select {
   width: 100%;
   min-height: 40px;
 }
-#pause-panel #restart {
+:where(#app) #pause-panel #restart {
   grid-column: 2;
   grid-row: 1;
 }
-#pause-panel
+:where(#app)
+  #pause-panel
   .pause-restart:not(:has(#pause-race-settings:not(.hidden)))
   #restart {
   grid-column: 1 / -1;
 }
-#pause-panel #pause-difficulty-hint {
+:where(#app) #pause-panel #pause-difficulty-hint {
   display: block;
   grid-column: 1 / -1;
   grid-row: 2;
@@ -769,28 +603,28 @@ dd {
   font-size: 10px;
   line-height: 1.4;
 }
-#pause-panel .pause-secondary {
+:where(#app) #pause-panel .pause-secondary {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
   gap: 10px;
 }
-#pause-panel .pause-secondary button {
+:where(#app) #pause-panel .pause-secondary button {
   background: transparent;
   border-color: #ffffff30;
   color: #ccc;
 }
-#pause-panel .pause-secondary button:hover {
+:where(#app) #pause-panel .pause-secondary button:hover {
   background: #ffffff09;
   border-color: #aaa;
 }
-#pause-panel .pause-secondary kbd {
+:where(#app) #pause-panel .pause-secondary kbd {
   margin-left: 4px;
   font: inherit;
   font-size: 10px;
   color: #999;
 }
 @media (min-width: 600px) and (max-height: 570px) {
-  #interface:not(.jump-playtest) #pause-panel {
+  :where(#app) #interface:not(.jump-playtest) #pause-panel {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     width: min(680px, calc(100vw - 32px));
@@ -798,34 +632,34 @@ dd {
     gap: 10px 22px;
     align-items: center;
   }
-  #pause-panel .pause-quick-settings {
+  :where(#app) #pause-panel .pause-quick-settings {
     grid-column: 1;
     grid-row: 2 / 4;
   }
-  #pause-panel .pause-restart,
-  #pause-panel .pause-secondary {
+  :where(#app) #pause-panel .pause-restart,
+  :where(#app) #pause-panel .pause-secondary {
     grid-column: 2;
   }
-  #pause-panel #pause-results:not(.hidden) {
+  :where(#app) #pause-panel #pause-results:not(.hidden) {
     grid-column: 1 / -1;
   }
 }
 @media (max-width: 499px) {
-  #pause-panel {
+  :where(#app) #pause-panel {
     padding: 18px;
   }
-  #pause-panel input[type='range'],
-  #pause-panel select {
+  :where(#app) #pause-panel input[type='range'],
+  :where(#app) #pause-panel select {
     width: 112px;
   }
 }
-select {
+:where(#app) select {
   background: #333333;
   color: #fff;
   border: 1px solid #777777;
   padding: 7px;
 }
-.top-telemetry {
+:where(#app) .top-telemetry {
   position: absolute;
   top: 120px;
   left: 4vw;
@@ -833,19 +667,19 @@ select {
   display: flex;
   gap: 42px;
 }
-.top-telemetry span {
+:where(#app) .top-telemetry span {
   font-size: 9px;
   letter-spacing: 0.14em;
   color: #d6d6d6;
   display: block;
 }
-.lap b,
-.position b {
+:where(#app) .lap b,
+:where(#app) .position b {
   font-size: 42px;
   line-height: 1.2;
   font-weight: 400;
 }
-.timing b {
+:where(#app) .timing b {
   display: block;
   font-size: 27px;
   font-weight: 400;
@@ -853,14 +687,14 @@ select {
   letter-spacing: -0.04em;
   margin-top: 5px;
 }
-.timing small {
+:where(#app) .timing small {
   display: block;
   margin-top: 4px;
   font-size: 8px;
   letter-spacing: 0.12em;
   color: #d5d5d5;
 }
-.telemetry {
+:where(#app) .telemetry {
   position: absolute;
   bottom: 105px;
   left: 4vw;
@@ -869,37 +703,37 @@ select {
   justify-content: space-between;
   align-items: flex-end;
 }
-.energy {
+:where(#app) .energy {
   width: 250px;
 }
-.energy span {
+:where(#app) .energy span {
   font-size: 9px;
   letter-spacing: 0.17em;
   display: flex;
   justify-content: space-between;
 }
-.energy-track {
+:where(#app) .energy-track {
   background: #2525259e;
   height: 5px;
   margin: 12px 0;
 }
-.energy-track i {
+:where(#app) .energy-track i {
   height: 100%;
   display: block;
   background: #c7c7c7;
   transition: width 0.1s;
 }
-.energy small {
+:where(#app) .energy small {
   font-size: 7px;
   letter-spacing: 0.1em;
 }
-.speed {
+:where(#app) .speed {
   display: flex;
   align-items: baseline;
   position: relative;
   gap: 10px;
 }
-.speed strong {
+:where(#app) .speed strong {
   font-size: 83px;
   letter-spacing: -0.065em;
   line-height: 1;
@@ -907,12 +741,12 @@ select {
   font-variant-numeric: tabular-nums;
   text-shadow: 0 2px 18px #1e1e1e;
 }
-.speed span {
+:where(#app) .speed span {
   font-size: 10px;
   color: #d5d5d5;
   letter-spacing: 0.1em;
 }
-.speed i {
+:where(#app) .speed i {
   position: absolute;
   bottom: -17px;
   left: 4px;
@@ -921,10 +755,10 @@ select {
   font-style: normal;
   color: #c8c8c8;
 }
-.speed i.active {
+:where(#app) .speed i.active {
   color: #c41c1c;
 }
-#minimap {
+:where(#app) #minimap {
   position: absolute;
   right: 4vw;
   top: 210px;
@@ -935,7 +769,7 @@ select {
   border: 1px solid #e3e3e32e;
   border-radius: 8px;
 }
-#loading {
+:where(#app) #loading {
   position: absolute;
   inset: 0;
   display: grid;
@@ -945,17 +779,17 @@ select {
   z-index: 10;
   background: #212121;
 }
-.failure {
+:where(#app) .failure {
   padding: 8vw;
   position: fixed;
   inset: 0;
   background: #252525;
   z-index: 100;
 }
-.failure h1 {
+:where(#app) .failure h1 {
   font-size: 38px;
 }
-#touch {
+:where(#app) #touch {
   display: none;
   position: absolute;
   bottom: max(16px, env(safe-area-inset-bottom));
@@ -967,7 +801,7 @@ select {
   user-select: none;
   -webkit-user-select: none;
 }
-[data-touch-control] {
+:where(#app) [data-touch-control] {
   position: relative;
   flex-shrink: 0;
   border: 1px solid #aeaeae66;
@@ -980,32 +814,32 @@ select {
   pointer-events: auto;
   -webkit-touch-callout: none;
 }
-[data-touch-control] > * {
+:where(#app) [data-touch-control] > * {
   pointer-events: none;
 }
-[data-touch-control][data-active='true'] {
+:where(#app) [data-touch-control][data-active='true'] {
   border-color: #e8e8e8;
 }
-.touch-steer {
+:where(#app) .touch-steer {
   width: clamp(132px, 38vw, 168px);
   height: 132px;
 }
-.touch-label,
-.touch-airbrake {
+:where(#app) .touch-label,
+:where(#app) .touch-airbrake {
   position: absolute;
   left: 0;
   right: 0;
   text-align: center;
 }
-.touch-label {
+:where(#app) .touch-label {
   top: 10px;
 }
-.touch-airbrake {
+:where(#app) .touch-airbrake {
   bottom: 10px;
   font-size: 9px;
   color: #bcbcbc;
 }
-.touch-directions {
+:where(#app) .touch-directions {
   position: absolute;
   left: 8%;
   right: 8%;
@@ -1017,7 +851,7 @@ select {
   font-size: 19px;
   font-weight: 400;
 }
-.touch-steer::before {
+:where(#app) .touch-steer::before {
   content: '';
   position: absolute;
   left: 22%;
@@ -1025,7 +859,7 @@ select {
   top: 42%;
   border-top: 1px solid #aeaeae66;
 }
-.touch-thumb {
+:where(#app) .touch-thumb {
   position: absolute;
   left: var(--touch-x, 50%);
   top: var(--touch-y, 42%);
@@ -1036,427 +870,307 @@ select {
   border-radius: 50%;
   background: #444;
 }
-.touch-steer[data-airbrake='true'] .touch-airbrake {
+:where(#app) .touch-steer[data-airbrake='true'] .touch-airbrake {
   color: #fff;
 }
-.touch-steer[data-airbrake='true'] .touch-thumb {
-  background: var(--accent);
+:where(#app) .touch-steer[data-airbrake='true'] .touch-thumb {
+  background: var(--hud-action-accent);
 }
-.touch-power {
+:where(#app) .touch-power {
   width: 108px;
   height: 176px;
   display: grid;
   grid-template-rows: repeat(4, 1fr);
 }
-.touch-power > span {
+:where(#app) .touch-power > span {
   display: flex;
   align-items: center;
   padding-left: 31px;
   gap: 4px;
   border-bottom: 1px solid #aeaeae33;
 }
-.touch-power > span:last-of-type {
+:where(#app) .touch-power > span:last-of-type {
   border-bottom: 0;
 }
-.touch-power small {
+:where(#app) .touch-power small {
   font-size: 7px;
   letter-spacing: 0;
 }
-.touch-power > [data-power-zone='boost'] {
+:where(#app) .touch-power > [data-power-zone='boost'] {
   color: #fff;
   background: #a810102e;
 }
-.touch-power[data-power='boost'] > [data-power-zone='boost'],
-.touch-power[data-power='go'] > [data-power-zone='go'],
-.touch-power[data-power='brake'] > [data-power-zone='brake'] {
-  background: var(--accent);
+:where(#app) .touch-power[data-power='boost'] > [data-power-zone='boost'],
+:where(#app) .touch-power[data-power='go'] > [data-power-zone='go'],
+:where(#app) .touch-power[data-power='brake'] > [data-power-zone='brake'] {
+  background: var(--hud-action-accent);
   color: #fff;
 }
-.touch-power .touch-thumb {
+:where(#app) .touch-power .touch-thumb {
   left: 15px;
   top: var(--touch-y, 62.5%);
   width: 18px;
   height: 18px;
   border-radius: 3px;
 }
-.touch-power[data-active='true'] .touch-thumb {
+:where(#app) .touch-power[data-active='true'] .touch-thumb {
   background: #e8e8e8;
 }
 @media (max-width: 760px) {
-  .masthead {
+  :where(#app) .masthead {
     height: 75px;
     padding: 24px 5vw;
     gap: 20px;
   }
-  .wordmark {
+  :where(#app) .wordmark {
     font-size: 21px;
   }
-  .edition {
+  :where(#app) .edition {
     font-size: 7px;
   }
-  .edition span {
+  :where(#app) .edition span {
     display: none;
   }
-  .panel {
+  :where(#app) .panel {
     top: 21%;
     left: 7vw;
     max-width: 85vw;
   }
-  h1 {
+  :where(#app) h1 {
     font-size: 60px;
   }
-  .eyebrow {
+  :where(#app) .eyebrow {
     font-size: 7px;
     max-width: 240px;
     line-height: 1.6;
     margin-bottom: 15px;
   }
-  .intro {
+  :where(#app) .intro {
     font-size: 12px;
     line-height: 1.5;
     margin-bottom: 19px;
   }
-  .track-facts {
-    gap: 25px;
-    margin-bottom: 18px;
-  }
-  .track-facts b {
-    font-size: 22px;
-  }
-  .actions {
+  :where(#app) .actions {
     max-width: 300px;
   }
-  .small {
+  :where(#app) .small {
     font-size: 8px;
   }
-  #legend {
+  :where(#app) #legend {
     gap: 9px;
     flex-wrap: wrap;
     padding: 14px 10px;
   }
-  #legend div {
+  :where(#app) #legend div {
     gap: 2px;
   }
-  #legend span {
+  :where(#app) #legend span {
     font-size: 6px;
     margin-left: 1px;
   }
-  kbd {
+  :where(#app) kbd {
     font-size: 7px;
     padding: 3px;
     min-width: 14px;
   }
-  .review-tag {
+  :where(#app) .review-tag {
     display: none;
   }
-  .top-telemetry {
+  :where(#app) .top-telemetry {
     top: 90px;
     gap: 22px;
   }
-  .telemetry {
+  :where(#app) .telemetry {
     bottom: 155px;
   }
-  .speed strong {
+  :where(#app) .speed strong {
     font-size: 55px;
   }
-  .energy {
+  :where(#app) .energy {
     width: 160px;
   }
-  .energy small {
+  :where(#app) .energy small {
     font-size: 6px;
   }
-  #minimap {
+  :where(#app) #minimap {
     top: 90px;
     width: 110px;
     height: 85px;
   }
-  .driving #legend {
+  :where(#app) .driving #legend {
     display: none;
   }
-  .inspect-title {
+  :where(#app) .inspect-title {
     font-size: 50px;
   }
-  dl {
+  :where(#app) dl {
     max-width: 290px;
     margin: 15px 0;
   }
-  dl div {
+  :where(#app) dl div {
     font-size: 9px;
   }
-  dt {
+  :where(#app) dt {
     min-width: 88px;
   }
-  .modal {
+  :where(#app) .modal {
     padding: 23px;
   }
-  .modal h2 {
+  :where(#app) .modal h2 {
     font-size: 26px;
   }
-  .modal button {
+  :where(#app) .modal button {
     padding: 12px;
   }
 }
 @media (max-height: 570px) {
-  .masthead {
+  :where(#app) .masthead {
     height: 65px;
     padding-top: 20px;
     padding-bottom: 10px;
   }
-  .panel {
+  :where(#app) .panel {
     top: 20%;
   }
-  .panel h1 {
+  :where(#app) .panel h1 {
     font-size: 48px;
     margin-bottom: 14px;
   }
-  .intro {
+  :where(#app) .intro {
     margin-bottom: 14px;
     font-size: 12px;
   }
-  .track-facts {
-    display: none;
-  }
-  .small {
+  :where(#app) .small {
     font-size: 8px;
   }
-  .actions {
+  :where(#app) .actions {
     flex-direction: row;
     max-width: 500px;
   }
-  .actions button {
+  :where(#app) .actions button {
     font-size: 8px;
     padding: 14px;
   }
-  .eyebrow {
+  :where(#app) .eyebrow {
     margin-bottom: 12px;
   }
-  .top-telemetry {
+  :where(#app) .top-telemetry {
     top: 75px;
   }
-  .telemetry {
+  :where(#app) .telemetry {
     bottom: 95px;
   }
-  .inspection-panel dl {
+  :where(#app) .inspection-panel dl {
     margin: 10px 0;
   }
-  #inspection-panel .intro {
+  :where(#app) #inspection-panel .intro {
     display: none;
   }
-  .modal {
+  :where(#app) .modal {
     padding: 14px;
     gap: 5px;
   }
-  .modal .small {
+  :where(#app) .modal .small {
     display: none;
   }
-  .modal h2 {
+  :where(#app) .modal h2 {
     font-size: 23px;
     margin: 4px 0;
   }
-  .modal label {
+  :where(#app) .modal label {
     margin-top: 5px;
   }
 }
 
 /* Existing telemetry remains readable over either bright sky or shaded city. */
-.top-telemetry,
-.edition,
-.telemetry {
+:where(#app) .top-telemetry,
+:where(#app) .edition,
+:where(#app) .telemetry {
   text-shadow: 0 1px 4px #101010f2;
 }
-.top-telemetry span,
-.timing small,
-.speed i {
+:where(#app) .top-telemetry span,
+:where(#app) .timing small,
+:where(#app) .speed i {
   color: #eaeaea;
 }
-.timing small {
+:where(#app) .timing small {
   font-size: 10px;
 }
-.energy small {
+:where(#app) .energy small {
   font-size: 9px;
 }
 
 @media (min-width: 761px) {
-  #legend {
+  :where(#app) #legend {
     gap: clamp(12px, 1.5vw, 22px);
   }
-  kbd,
-  .timing small,
-  .energy small {
+  :where(#app) kbd,
+  :where(#app) .timing small,
+  :where(#app) .energy small {
     font-size: 13px;
   }
-  #legend span,
-  #legend kbd {
+  :where(#app) #legend span,
+  :where(#app) #legend kbd {
     font-size: 11px;
   }
-  #legend .legend-movement {
+  :where(#app) #legend .legend-movement {
     display: flex;
   }
-  #legend .legend-direction {
+  :where(#app) #legend .legend-direction {
     display: none;
   }
-  #legend .legend-or {
+  :where(#app) #legend .legend-or {
     margin: 0 2px;
     color: #999;
   }
-  #legend .legend-boost {
+  :where(#app) #legend .legend-boost {
     order: -1;
   }
-  #legend .legend-boost kbd {
+  :where(#app) #legend .legend-boost kbd {
     border-color: #d01818;
     color: #fff;
   }
-  #legend .legend-boost span {
+  :where(#app) #legend .legend-boost span {
     color: #fff;
     font-weight: 700;
   }
-  kbd {
+  :where(#app) kbd {
     min-width: 24px;
   }
-  .energy {
+  :where(#app) .energy {
     width: 310px;
   }
-  .top-telemetry span,
-  .energy span,
-  .speed i {
+  :where(#app) .top-telemetry span,
+  :where(#app) .energy span,
+  :where(#app) .speed i {
     font-size: 11px;
   }
 }
 
 /* Deliberately small review shell; the actual road remains the subject. */
-#interface.has-review {
-  background: none;
-}
-.has-review .track-facts {
-  margin: 18px 0;
-  gap: 20px;
-}
-#shape-controls {
-  position: absolute;
-  right: 4vw;
-  bottom: 110px;
-  width: 290px;
-  padding: 14px;
-  background: #202020e8;
-  border: 1px solid #ffffff30;
-  pointer-events: auto;
-}
-.shape-views {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 14px;
-}
-.shape-views button {
-  flex: 1;
-  padding: 12px 8px;
-  text-align: center;
-  letter-spacing: 0.04em;
-}
-#shape-controls a {
-  display: inline-block;
-  font-size: 10px;
-  margin-top: 14px;
-  color: #e3e3e3;
-  letter-spacing: 0.05em;
-}
-.has-review.driving #shape-controls {
-  top: 160px;
-  bottom: auto;
-}
-.has-review.driving #shape-controls a {
-  display: none;
-}
-.has-review #minimap {
-  top: 390px;
-}
-@media (max-width: 760px), (max-height: 700px) {
-  .has-review .track-facts {
-    display: none;
-  }
-  #shape-controls {
-    width: 255px;
-    bottom: 75px;
-  }
-}
-@media (max-width: 760px) {
-  .has-review #minimap {
-    top: 175px;
-  }
-  .has-review.driving #shape-controls {
-    top: 175px;
-    left: 4vw;
-    right: auto;
-    width: min(190px, calc(92vw - 120px));
-    padding: 8px;
-    max-height: calc(100dvh - 195px);
-    overflow-y: auto;
-  }
-  .has-review.driving #shape-controls a {
-    display: none;
-  }
-  .has-review.driving .shape-views {
-    margin: 0;
-  }
-}
-
-#review-toggle {
-  width: 100%;
-  padding: 8px 2px 14px;
-  border: 0;
-  background: transparent;
-  display: flex;
-  justify-content: space-between;
-}
-#review-toggle[aria-expanded='false'] {
-  padding-bottom: 8px;
-}
 @media (max-height: 570px) and (min-width: 761px) {
-  .driving #legend {
+  :where(#app) .driving #legend {
     display: none;
   }
-  .has-review.driving #shape-controls {
-    top: 170px;
-    width: 220px;
-    padding: 8px;
-    max-height: calc(100dvh - 190px);
-    overflow-y: auto;
-  }
-  .has-review #minimap {
-    top: 170px;
-    left: 4vw;
-    right: auto;
-    bottom: auto;
-    width: 110px;
-    height: 80px;
-  }
-  .driving .telemetry {
+  :where(#app) .driving .telemetry {
     bottom: 30px;
   }
-  .driving .review-tag {
+  :where(#app) .driving .review-tag {
     display: none;
   }
-  .modal button {
+  :where(#app) .modal button {
     padding: 10px;
   }
 }
-#interface.compact-paddock:not(.driving) {
-  background: linear-gradient(90deg, #101010e6, #10101060 38%, transparent 65%);
-}
-.compact-paddock .actions {
-  gap: 8px;
-}
-.compact-paddock #shape-controls {
-  border-color: #c9c9c945;
-}
 
-.inspecting #legend,
-.inspecting .review-tag {
+:where(#app) .inspecting #legend,
+:where(#app) .inspecting .review-tag {
   display: none;
 }
 
 /* Portrait inspection reserves a separate stage between heading and controls. */
 @media (max-width: 760px) and (max-aspect-ratio: 1/1) {
-  #inspection-panel {
+  :where(#app) #inspection-panel {
     top: 90px;
     bottom: max(18px, env(safe-area-inset-bottom));
     left: 6vw;
@@ -1466,34 +1180,34 @@ select {
     display: flex;
     flex-direction: column;
   }
-  #inspection-panel .eyebrow {
+  :where(#app) #inspection-panel .eyebrow {
     margin-bottom: 8px;
     font-size: 8px;
   }
-  #inspection-panel .inspect-title {
+  :where(#app) #inspection-panel .inspect-title {
     font-size: 40px;
     margin-bottom: 0;
   }
-  #inspection-panel .intro {
+  :where(#app) #inspection-panel .intro {
     display: none;
   }
-  #inspection-panel dl {
+  :where(#app) #inspection-panel dl {
     margin: auto 0 12px;
     max-width: none;
   }
-  #inspection-panel dl div {
+  :where(#app) #inspection-panel dl div {
     padding: 9px 0;
   }
-  #inspection-panel .actions {
+  :where(#app) #inspection-panel .actions {
     max-width: none;
     width: 100%;
     flex-direction: column;
     gap: 8px;
   }
-  #inspection-panel .actions button {
+  :where(#app) #inspection-panel .actions button {
     padding: 15px;
   }
-  #inspection-panel .small {
+  :where(#app) #inspection-panel .small {
     margin: 12px 0 0;
     font-size: 8px;
   }
@@ -1501,7 +1215,7 @@ select {
 
 /* Compact landscape keeps the map clear of speed and reserve telemetry. */
 @media (max-height: 570px) and (min-width: 761px) {
-  #interface.driving:not(.has-review) #minimap {
+  :where(#app) #interface.driving:not(.has-review) #minimap {
     top: 145px;
     left: auto;
     right: 4vw;
@@ -1512,15 +1226,9 @@ select {
 }
 
 /* Optional stacked review layout keeps controls beside the fitted circuit. */
-.stacked-review.whole-route-view #shape-controls {
-  position: static;
-  width: 100%;
-  max-height: none;
-  margin-top: 18px;
-}
 
 @media (max-width: 760px) {
-  .timing small {
+  :where(#app) .timing small {
     display: block;
     max-width: clamp(70px, calc(100vw - 260px), 135px);
     white-space: normal;
@@ -1529,7 +1237,7 @@ select {
 }
 
 /* Nacre water absorption includes the world, craft and interface. */
-.nacre-immersion {
+:where(#app) .nacre-immersion {
   position: fixed;
   inset: 0;
   z-index: 30;
@@ -1539,7 +1247,7 @@ select {
   mix-blend-mode: multiply;
 }
 
-.nacre-storm-flash {
+:where(#app) .nacre-storm-flash {
   position: fixed;
   inset: 0;
   z-index: 31;
@@ -1550,20 +1258,28 @@ select {
 
 /* Shared racing and expansion review use disjoint short-landscape HUD regions. */
 @media (max-height: 570px) and (orientation: landscape) {
-  #interface:is(.compact-landscape, .has-racing).driving .top-telemetry {
+  :where(#app)
+    #interface:is(.compact-landscape, .has-racing).driving
+    .top-telemetry {
     top: 74px;
     gap: 22px;
   }
-  #interface:is(.compact-landscape, .has-racing).driving .lap b {
+  :where(#app) #interface:is(.compact-landscape, .has-racing).driving .lap b {
     font-size: 32px;
   }
-  #interface:is(.compact-landscape, .has-racing).driving .timing b {
+  :where(#app)
+    #interface:is(.compact-landscape, .has-racing).driving
+    .timing
+    b {
     font-size: 23px;
   }
-  #interface:is(.compact-landscape, .has-racing).driving .timing small {
+  :where(#app)
+    #interface:is(.compact-landscape, .has-racing).driving
+    .timing
+    small {
     font-size: 8px;
   }
-  #interface:is(.compact-landscape, .has-racing).driving #minimap {
+  :where(#app) #interface:is(.compact-landscape, .has-racing).driving #minimap {
     top: 76px;
     left: auto;
     right: 4vw;
@@ -1571,101 +1287,85 @@ select {
     width: 94px;
     height: 70px;
   }
-  #interface:is(.compact-landscape, .has-racing).driving .telemetry {
+  :where(#app)
+    #interface:is(.compact-landscape, .has-racing).driving
+    .telemetry {
     bottom: 92px;
   }
-  #interface:is(.compact-landscape, .has-racing).driving .energy {
+  :where(#app) #interface:is(.compact-landscape, .has-racing).driving .energy {
     width: 160px;
   }
-  #interface:is(.compact-landscape, .has-racing).driving .energy span {
+  :where(#app)
+    #interface:is(.compact-landscape, .has-racing).driving
+    .energy
+    span {
     font-size: 8px;
     letter-spacing: 0.08em;
   }
-  #interface:is(.compact-landscape, .has-racing).driving .energy small {
+  :where(#app)
+    #interface:is(.compact-landscape, .has-racing).driving
+    .energy
+    small {
     font-size: 8px;
     line-height: 1.2;
   }
-  #interface:is(.compact-landscape, .has-racing).driving .speed strong {
+  :where(#app)
+    #interface:is(.compact-landscape, .has-racing).driving
+    .speed
+    strong {
     font-size: 48px;
   }
-  #interface:is(.compact-landscape, .has-racing).driving .speed {
+  :where(#app) #interface:is(.compact-landscape, .has-racing).driving .speed {
     gap: 6px;
   }
-  #interface:is(.compact-landscape, .has-racing).driving .speed i {
+  :where(#app) #interface:is(.compact-landscape, .has-racing).driving .speed i {
     font-size: 8px;
     bottom: -14px;
   }
-  #interface:is(.compact-landscape, .has-racing).driving #shape-controls {
-    top: 148px;
-    bottom: auto;
-    left: 4vw;
-    right: auto;
-    width: 170px;
-    padding: 6px;
-    max-height: calc(100dvh - 230px);
-    overflow: auto;
-  }
-  #interface:is(.compact-landscape, .has-racing).driving
-    #shape-controls:has(#review-toggle[aria-expanded='true']) {
-    left: calc(50% - 130px);
-    width: 260px;
-  }
-  #interface:is(.compact-landscape, .has-racing).driving #review-toggle {
-    font-size: 10px;
-    padding: 5px 2px;
-  }
-  #interface:is(.compact-landscape, .has-racing).driving .shape-views {
-    margin-bottom: 8px;
-  }
-  #interface:is(.compact-landscape, .has-racing).driving #legend,
-  #interface:is(.compact-landscape, .has-racing).driving .review-tag {
+  :where(#app) #interface:is(.compact-landscape, .has-racing).driving #legend,
+  :where(#app)
+    #interface:is(.compact-landscape, .has-racing).driving
+    .review-tag {
     display: none;
   }
 }
 
 /* Opt-in upper portrait HUD leaves the lower chase craft and touch row clear. */
 @media (max-width: 760px) and (min-height: 700px) and (orientation: portrait) {
-  #interface.portrait-compact-hud.driving .telemetry {
+  :where(#app) #interface.portrait-compact-hud.driving .telemetry {
     top: 272px;
     bottom: auto;
     align-items: flex-start;
   }
-  #interface.portrait-compact-hud.driving .energy {
+  :where(#app) #interface.portrait-compact-hud.driving .energy {
     font-size: 8px;
     line-height: 1.2;
   }
-  #interface.portrait-compact-hud.driving .energy span {
+  :where(#app) #interface.portrait-compact-hud.driving .energy span {
     font-size: 8px;
   }
-  #interface.portrait-compact-hud.driving .energy-track {
+  :where(#app) #interface.portrait-compact-hud.driving .energy-track {
     margin: 6px 0;
   }
-  #interface.portrait-compact-hud.driving .energy small {
+  :where(#app) #interface.portrait-compact-hud.driving .energy small {
     display: block;
     font-size: 8px;
     line-height: 1.2;
   }
-  #interface.portrait-compact-hud.driving .speed strong {
+  :where(#app) #interface.portrait-compact-hud.driving .speed strong {
     font-size: 34px;
   }
-  #interface.portrait-compact-hud.driving .speed i {
+  :where(#app) #interface.portrait-compact-hud.driving .speed i {
     font-size: 8px;
     bottom: -14px;
-  }
-  #interface.portrait-compact-hud.driving:has(
-      #review-toggle[aria-expanded='true']
-    )
-    .telemetry {
-    top: 468px;
   }
 }
 
 /* Expansion review controls occupy their own desktop band above the map. */
 @media (min-width: 761px) and (min-height: 701px) {
-  #interface.compact-landscape.driving #shape-controls {
-    top: 182px;
-  }
-  #interface.compact-landscape.driving:not(.has-live-race) #minimap {
+  :where(#app)
+    #interface.compact-landscape.driving:not(.has-live-race)
+    #minimap {
     top: 428px;
     height: clamp(80px, calc(100dvh - 625px), 120px);
     width: calc(clamp(80px, calc(100dvh - 625px), 120px) * 4 / 3);
@@ -1673,18 +1373,18 @@ select {
 }
 
 /* Free-camera inspection retains the full world with a compact control strip. */
-.fly-camera-active {
+:where(#app) .fly-camera-active {
   touch-action: none;
   cursor: grab;
 }
-.fly-camera-active:active {
+:where(#app) .fly-camera-active:active {
   cursor: grabbing;
 }
-.flying #legend,
-.flying .review-tag {
+:where(#app) .flying #legend,
+:where(#app) .flying .review-tag {
   display: none;
 }
-#fly-controls {
+:where(#app) #fly-controls {
   position: absolute;
   bottom: 24px;
   left: 50%;
@@ -1696,32 +1396,32 @@ select {
   pointer-events: auto;
   font-size: 11px;
 }
-.fly-heading {
+:where(#app) .fly-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
 }
-.fly-heading small {
+:where(#app) .fly-heading small {
   display: block;
   margin-top: 5px;
   color: #c0c0c0;
   font-size: 9px;
 }
-.fly-heading button {
+:where(#app) .fly-heading button {
   padding: 10px;
   font-size: 10px;
 }
-#fly-controls p {
+:where(#app) #fly-controls p {
   color: #cfcfcf;
   line-height: 1.6;
   margin: 12px 0;
 }
-.fly-touch {
+:where(#app) .fly-touch {
   display: none;
 }
 
-#fly-settings {
+:where(#app) #fly-settings {
   position: absolute;
   z-index: 15;
   top: 100px;
@@ -1735,8 +1435,8 @@ select {
   border: 1px solid #444;
   pointer-events: auto;
 }
-#fly-settings label,
-.graphics-options label {
+:where(#app) #fly-settings label,
+:where(#app) .graphics-options label {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1746,60 +1446,60 @@ select {
   font-size: 12px;
   letter-spacing: 0;
 }
-.graphics-options {
+:where(#app) .graphics-options {
   border: 0;
   border-top: 1px solid #444;
   margin: 20px 0 0;
   padding: 12px 0 0;
   min-width: 0;
 }
-.graphics-options legend {
+:where(#app) .graphics-options legend {
   font-size: 12px;
   font-weight: 700;
   padding-right: 12px;
 }
-.graphics-options small,
-.graphics-options p,
-#fly-settings p {
+:where(#app) .graphics-options small,
+:where(#app) .graphics-options p,
+:where(#app) #fly-settings p {
   display: block;
   color: #aaa;
   font-size: 11px;
   line-height: 1.5;
   margin: 4px 0;
 }
-.graphics-options input,
-#fly-settings input {
+:where(#app) .graphics-options input,
+:where(#app) #fly-settings input {
   flex: 0 0 auto;
   accent-color: #b01818;
 }
-.graphics-options button {
+:where(#app) .graphics-options button {
   font-size: 11px;
   padding: 10px;
   margin-top: 12px;
 }
-#fly-settings .graphics-slider,
-.graphics-options .graphics-slider {
+:where(#app) #fly-settings .graphics-slider,
+:where(#app) .graphics-options .graphics-slider {
   flex-direction: column;
   align-items: stretch;
   gap: 8px;
 }
-.graphics-slider output {
+:where(#app) .graphics-slider output {
   float: right;
   font-variant-numeric: tabular-nums;
 }
-.dev-metrics {
+:where(#app) .dev-metrics {
   margin: 14px 0;
   font-variant-numeric: tabular-nums;
 }
-.dev-view-link {
+:where(#app) .dev-view-link {
   padding-bottom: 12px;
   border-bottom: 1px solid #444;
 }
-.dev-view-link button {
+:where(#app) .dev-view-link button {
   padding: 10px;
   font-size: 11px;
 }
-#art-view-url {
+:where(#app) #art-view-url {
   width: 100%;
   min-width: 0;
   padding: 8px;
@@ -1808,108 +1508,108 @@ select {
   background: #181818;
   border: 1px solid #444;
 }
-.dev-metrics div {
+:where(#app) .dev-metrics div {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
   padding: 5px 0;
 }
-.dev-metrics dt {
+:where(#app) .dev-metrics dt {
   color: #aaa;
   font-size: 11px;
 }
-.dev-metrics dd {
+:where(#app) .dev-metrics dd {
   margin: 0;
   font-size: 16px;
 }
 @media (pointer: coarse) {
-  .fly-touch {
+  :where(#app) .fly-touch {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 6px;
     margin-top: 10px;
   }
-  .fly-touch button {
+  :where(#app) .fly-touch button {
     min-width: 44px;
     min-height: 44px;
     padding: 12px 6px;
     touch-action: none;
     font-size: 10px;
   }
-  #fly-return {
+  :where(#app) #fly-return {
     min-width: 44px;
     min-height: 44px;
   }
-  #fly-controls {
+  :where(#app) #fly-controls {
     bottom: 12px;
     padding: 12px;
   }
 }
 
 @media (pointer: coarse) {
-  #fly-controls p {
+  :where(#app) #fly-controls p {
     display: none;
   }
-  #fly-controls label {
+  :where(#app) #fly-controls label {
     margin-top: 10px;
   }
 }
 @media (pointer: coarse) and (min-width: 600px) {
-  .fly-touch {
+  :where(#app) .fly-touch {
     grid-template-columns: repeat(6, 1fr);
   }
 }
-#inspection-panel .eyebrow {
+:where(#app) #inspection-panel .eyebrow {
   margin-bottom: 10px;
 }
-#inspection-panel .intro {
+:where(#app) #inspection-panel .intro {
   font-size: 13px;
   line-height: 1.5;
   margin: 0 0 14px;
 }
-#inspection-panel .ship-selection {
+:where(#app) #inspection-panel .ship-selection {
   margin: 12px 0;
 }
-#inspection-panel .actions {
+:where(#app) #inspection-panel .actions {
   gap: 6px;
 }
-#inspection-panel .actions button {
+:where(#app) #inspection-panel .actions button {
   min-height: 44px;
   padding: 12px 16px;
 }
-#inspection-panel .small {
+:where(#app) #inspection-panel .small {
   margin: 10px 0 0;
 }
-#inspection-panel {
+:where(#app) #inspection-panel {
   top: clamp(96px, 12vh, 140px);
   bottom: max(18px, env(safe-area-inset-bottom));
   max-width: 430px;
 }
-#inspection-panel .inspect-title {
+:where(#app) #inspection-panel .inspect-title {
   font-size: clamp(40px, 6vh, 60px);
   margin-bottom: 12px;
 }
-#inspection-panel dl {
+:where(#app) #inspection-panel dl {
   margin: 16px 0;
 }
-#inspection-panel dl div {
+:where(#app) #inspection-panel dl div {
   padding: 9px 0;
 }
 @media (min-width: 761px) {
-  .ship-picker {
+  :where(#app) .ship-picker {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
-  .ship-picker button {
+  :where(#app) .ship-picker button {
     min-height: 46px;
     padding: 8px 9px;
   }
-  .ship-picker button b {
+  :where(#app) .ship-picker button b {
     font-size: 10px;
   }
-  .ship-picker button span {
+  :where(#app) .ship-picker button span {
     font-size: 8px;
   }
-  .ship-picker button i {
+  :where(#app) .ship-picker button i {
     top: auto;
     bottom: 7px;
     right: 6px;
@@ -1917,68 +1617,61 @@ select {
   }
 }
 @media (max-width: 760px) and (max-aspect-ratio: 1/1) {
-  #inspection-panel {
+  :where(#app) #inspection-panel {
     top: 84px;
     max-width: none;
   }
-  #inspection-panel .inspect-title {
+  :where(#app) #inspection-panel .inspect-title {
     font-size: 36px;
     margin-bottom: 0;
   }
-  #inspection-panel .ship-selection {
+  :where(#app) #inspection-panel .ship-selection {
     max-width: none;
     margin: 12px 0 0;
   }
-  #inspection-panel .ship-picker button {
+  :where(#app) #inspection-panel .ship-picker button {
     min-height: 44px;
     padding: 8px 30px 8px 11px;
   }
-  #inspection-panel .ship-summary {
+  :where(#app) #inspection-panel .ship-summary {
     font-size: 9px;
   }
-  #inspection-panel dl {
+  :where(#app) #inspection-panel dl {
     margin-top: auto;
   }
-  .ship-stats {
+  :where(#app) .ship-stats {
     gap: 8px 10px;
     margin-top: 9px;
   }
 }
 @media (max-width: 760px) and (max-height: 740px) and (orientation: portrait) {
-  #inspection-panel dl div {
+  :where(#app) #inspection-panel dl div {
     padding: 6px 0;
   }
-  #inspection-panel .small {
+  :where(#app) #inspection-panel .small {
     margin-top: 6px;
   }
 }
 @media (max-height: 570px) and (orientation: landscape) {
-  #interface:not(.driving):not(.paused) #legend {
+  :where(#app) #interface:not(.driving):not(.paused) #legend {
     display: none;
   }
-  .ship-stats {
+  :where(#app) .ship-stats {
     gap: 6px 10px;
     margin-top: 8px;
   }
-  .ship-stat-label {
+  :where(#app) .ship-stat-label {
     font-size: 7px;
     letter-spacing: 0;
   }
-  .ship-stat-label b {
+  :where(#app) .ship-stat-label b {
     font-size: 8px;
   }
-  .ship-stat-track {
+  :where(#app) .ship-stat-track {
     margin-top: 3px;
     height: 3px;
   }
-  #interface.has-review:not(.driving):not(.whole-route-view) #shape-controls {
-    top: 68px;
-    bottom: auto;
-    right: 4vw;
-    width: min(300px, 44vw);
-    padding: 10px;
-  }
-  #inspection-panel {
+  :where(#app) #inspection-panel {
     top: 68px;
     bottom: max(14px, env(safe-area-inset-bottom));
     width: min(430px, 46vw);
@@ -1987,58 +1680,58 @@ select {
     padding: 6px;
     margin: -6px;
   }
-  #inspection-panel .inspect-title {
+  :where(#app) #inspection-panel .inspect-title {
     font-size: 30px;
     margin-bottom: 6px;
   }
-  #inspection-panel .intro,
-  #inspection-panel dl,
-  #inspection-panel .small {
+  :where(#app) #inspection-panel .intro,
+  :where(#app) #inspection-panel dl,
+  :where(#app) #inspection-panel .small {
     display: none;
   }
-  #inspection-panel .eyebrow {
+  :where(#app) #inspection-panel .eyebrow {
     margin-bottom: 6px;
   }
-  #inspection-panel .ship-selection {
+  :where(#app) #inspection-panel .ship-selection {
     margin: 8px 0;
   }
-  .ship-picker {
+  :where(#app) .ship-picker {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .ship-picker button {
+  :where(#app) .ship-picker button {
     min-height: 42px;
     padding: 8px 24px 8px 10px;
   }
-  #inspection-panel .actions button {
+  :where(#app) #inspection-panel .actions button {
     min-height: 40px;
     padding: 10px;
   }
 }
 
 /* Both menus keep a vertical chassis list beside a vertical performance stack. */
-#inspection-panel .ship-selection {
+:where(#app) #inspection-panel .ship-selection {
   display: grid;
   grid-template-columns: minmax(110px, 1fr) minmax(0, 1.35fr);
   gap: 8px 14px;
 }
-.ship-selection .ship-picker-label,
-.ship-selection .ship-summary {
+:where(#app) .ship-selection .ship-picker-label,
+:where(#app) .ship-selection .ship-summary {
   grid-column: 1 / -1;
   margin: 0;
 }
-.ship-selection .ship-picker {
+:where(#app) .ship-selection .ship-picker {
   grid-template-columns: minmax(0, 1fr);
   gap: 4px;
 }
-.ship-selection .ship-stats {
+:where(#app) .ship-selection .ship-stats {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   gap: 6px;
   margin: 0;
 }
-#inspection-panel .ship-picker button,
-#inspection-panel .rival-selection .ship-picker button {
+:where(#app) #inspection-panel .ship-picker button,
+:where(#app) #inspection-panel .rival-selection .ship-picker button {
   min-height: 34px;
   padding: 7px 9px;
   flex-direction: row;
@@ -2047,20 +1740,20 @@ select {
   gap: 5px;
   text-align: left;
 }
-.ship-selection .ship-picker button b {
+:where(#app) .ship-selection .ship-picker button b {
   font-size: 10px;
 }
-.ship-selection .ship-picker button span {
+:where(#app) .ship-selection .ship-picker button span {
   font-size: 8px;
   letter-spacing: 0.03em;
 }
-.ship-selection .ship-picker button i {
+:where(#app) .ship-selection .ship-picker button i {
   display: none;
 }
-.ship-selection .ship-picker button[aria-checked='true'] i {
+:where(#app) .ship-selection .ship-picker button[aria-checked='true'] i {
   display: none;
 }
-.rival-selection .ship-summary {
+:where(#app) .rival-selection .ship-summary {
   grid-column: 2;
   grid-row: 2;
   align-self: start;
@@ -2069,76 +1762,76 @@ select {
   background: #1e1e1e66;
   line-height: 1.8;
 }
-#inspection-panel .rival-selection {
+:where(#app) #inspection-panel .rival-selection {
   grid-template-columns: minmax(0, 1fr);
 }
-#inspection-panel .rival-selection .ship-picker {
+:where(#app) #inspection-panel .rival-selection .ship-picker {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
-#inspection-panel .rival-selection .ship-picker button {
+:where(#app) #inspection-panel .rival-selection .ship-picker button {
   flex-direction: column;
   align-items: flex-start;
   min-height: 46px;
 }
-#inspection-panel .rival-selection .ship-summary {
+:where(#app) #inspection-panel .rival-selection .ship-summary {
   grid-column: 1;
   grid-row: auto;
   padding: 6px 10px;
 }
 @media (max-height: 570px) and (orientation: landscape) {
-  #inspection-panel .ship-picker button {
+  :where(#app) #inspection-panel .ship-picker button {
     min-height: 30px;
     padding: 5px 8px;
   }
-  #inspection-panel .ship-selection {
+  :where(#app) #inspection-panel .ship-selection {
     gap: 6px 10px;
   }
 }
 @media (max-width: 760px) and (max-height: 740px) and (orientation: portrait) {
-  #inspection-panel dl {
+  :where(#app) #inspection-panel dl {
     display: none;
   }
-  #inspection-panel .actions {
+  :where(#app) #inspection-panel .actions {
     margin-top: auto;
   }
 }
 
 /* Reserve the same space for every chassis, including the AI preview tab. */
-#interface .ship-selection {
+:where(#app) #interface .ship-selection {
   --ship-row-height: 34px;
   width: 100%;
   max-width: none;
   min-width: 0;
   grid-template-rows: 12px calc(4 * var(--ship-row-height) + 12px);
 }
-#interface .ship-selection .ship-picker {
+:where(#app) #interface .ship-selection .ship-picker {
   grid-auto-rows: var(--ship-row-height);
   align-content: start;
 }
-#interface #inspection-panel .ship-picker button {
+:where(#app) #interface #inspection-panel .ship-picker button {
   min-height: 0;
   height: var(--ship-row-height);
 }
-.ship-stat-label b {
+:where(#app) .ship-stat-label b {
   font-variant-numeric: tabular-nums;
 }
-#inspection-panel .inspect-title {
+:where(#app) #inspection-panel .inspect-title {
   white-space: nowrap;
 }
-#inspection-panel .intro {
+:where(#app) #inspection-panel .intro {
   height: 3em;
   flex-shrink: 0;
 }
-#inspection-panel dl {
+:where(#app) #inspection-panel dl {
   width: 100%;
   max-width: none;
   flex-shrink: 0;
 }
-#inspection-panel dl div {
+:where(#app) #inspection-panel dl div {
   height: 32px;
   align-items: center;
 }
-#inspection-panel .actions {
+:where(#app) #inspection-panel .actions {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: 44px 44px;
@@ -2146,66 +1839,66 @@ select {
   max-width: none;
   flex-shrink: 0;
 }
-#inspect-start {
+:where(#app) #inspect-start {
   grid-row: 1;
 }
-#inspect-back {
+:where(#app) #inspect-back {
   grid-row: 2;
 }
 @media (min-width: 761px) and (min-height: 571px) {
-  #inspection-panel {
+  :where(#app) #inspection-panel {
     width: min(320px, 29vw);
     max-width: none;
   }
-  #inspection-panel .inspect-title {
+  :where(#app) #inspection-panel .inspect-title {
     font-size: clamp(30px, 3.2vw, 44px);
   }
-  #inspection-panel .intro {
+  :where(#app) #inspection-panel .intro {
     height: auto;
     min-height: 4.5em;
   }
-  #inspection-panel .ship-selection {
+  :where(#app) #inspection-panel .ship-selection {
     gap: 8px;
   }
-  #inspection-panel .ship-picker button span {
+  :where(#app) #inspection-panel .ship-picker button span {
     display: none;
   }
-  #inspection-panel dl div {
+  :where(#app) #inspection-panel dl div {
     height: auto;
     min-height: 32px;
     gap: 12px;
   }
-  #inspection-panel dl dt {
+  :where(#app) #inspection-panel dl dt {
     flex: 0 0 72px;
   }
-  #inspection-panel dl dd {
+  :where(#app) #inspection-panel dl dd {
     margin: 0;
   }
 }
 @media (min-width: 761px) and (max-width: 1100px) and (min-height: 571px) {
-  #inspection-panel .intro {
+  :where(#app) #inspection-panel .intro {
     height: 4.5em;
   }
 }
 @media (max-height: 570px) and (orientation: landscape) {
-  #interface #inspection-panel .ship-selection {
+  :where(#app) #interface #inspection-panel .ship-selection {
     --ship-row-height: 30px;
   }
-  #inspection-panel .actions {
+  :where(#app) #inspection-panel .actions {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     grid-template-rows: 40px;
   }
-  #inspect-start {
+  :where(#app) #inspect-start {
     grid-column: 1;
     grid-row: 1;
   }
-  #inspect-back {
+  :where(#app) #inspect-back {
     grid-column: 2;
     grid-row: 1;
   }
 }
 /* Compact race timing beside the road, then beside the paddock menu. */
-#race-roster {
+:where(#app) #race-roster {
   position: absolute;
   top: 350px;
   right: 4vw;
@@ -2213,51 +1906,51 @@ select {
   padding: 16px;
   background: rgba(21, 21, 21, 0.72);
   border: 1px solid rgba(211, 211, 211, 0.28);
-  border-top: 2px solid var(--accent);
+  border-top: 2px solid var(--hud-action-accent);
   pointer-events: none;
   font-variant-numeric: tabular-nums;
 }
-#race-roster.in-paddock {
+:where(#app) #race-roster.in-paddock {
   width: 248px;
   top: 96px;
   left: calc(4vw + 440px);
   right: auto;
 }
-#race-roster:not(.in-paddock) {
+:where(#app) #race-roster:not(.in-paddock) {
   padding: 12px;
 }
-.roster-heading span {
+:where(#app) .roster-heading span {
   display: block;
   font-size: 9px;
   letter-spacing: 0.15em;
   color: #bfbfbf;
   margin-bottom: 6px;
 }
-.roster-heading b {
+:where(#app) .roster-heading b {
   font-size: 12px;
   letter-spacing: 0.07em;
 }
-#race-roster:not(.in-paddock) .roster-heading {
+:where(#app) #race-roster:not(.in-paddock) .roster-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
 }
-#race-roster:not(.in-paddock) .roster-heading span {
+:where(#app) #race-roster:not(.in-paddock) .roster-heading span {
   margin-bottom: 0;
 }
-#race-roster:not(.in-paddock) .roster-heading b {
+:where(#app) #race-roster:not(.in-paddock) .roster-heading b {
   font-size: 8px;
   font-weight: 400;
   color: #bfbfbf;
 }
-#race-roster ol {
+:where(#app) #race-roster ol {
   list-style: none;
   padding: 10px 0 0;
   margin: 10px 0 0;
   border-top: 1px solid #c9c9c933;
 }
-#race-roster li {
+:where(#app) #race-roster li {
   display: grid;
   grid-template-columns: 22px 1fr auto;
   align-items: center;
@@ -2267,59 +1960,59 @@ select {
   margin-bottom: 5px;
   font-size: 11px;
 }
-#race-roster:not(.in-paddock) li {
+:where(#app) #race-roster:not(.in-paddock) li {
   padding-top: 6px;
   padding-bottom: 6px;
 }
-#race-roster li > b {
+:where(#app) #race-roster li > b {
   color: #a9a9a9;
   font-weight: 600;
   font-size: 10px;
 }
-#race-roster li.is-player {
+:where(#app) #race-roster li.is-player {
   background: #c41c1c14;
 }
-.position small {
+:where(#app) .position small {
   display: block;
   margin-top: 4px;
   font-size: 8px;
   letter-spacing: 0.08em;
   color: #d6d6d6;
 }
-#race-roster li > small {
+:where(#app) #race-roster li > small {
   font-size: 10px;
   color: #c7c7c7;
 }
-#race-roster li.is-player > span {
+:where(#app) #race-roster li.is-player > span {
   color: #c41c1c;
   font-weight: 700;
 }
-.roster-laps {
+:where(#app) .roster-laps {
   margin-top: 8px;
   border-top: 1px solid #c9c9c933;
 }
-.roster-laps:empty {
+:where(#app) .roster-laps:empty {
   display: none;
 }
-.roster-laps > div {
+:where(#app) .roster-laps > div {
   display: flex;
   justify-content: space-between;
   padding-top: 10px;
   font-size: 10px;
 }
-.roster-laps span {
+:where(#app) .roster-laps span {
   color: #bfbfbf;
 }
-.roster-laps b {
+:where(#app) .roster-laps b {
   font-weight: 400;
 }
-.roster-hint {
+:where(#app) .roster-hint {
   margin: 12px 0 0;
   font-size: 9px;
   line-height: 1.6;
   color: #d1d1d1;
 }
-.difficulty-picker {
+:where(#app) .difficulty-picker {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2327,11 +2020,11 @@ select {
   letter-spacing: 0.12em;
   margin-top: 12px;
 }
-.difficulty-picker select {
+:where(#app) .difficulty-picker select {
   width: 132px;
   font-size: 10px;
 }
-#start-lights {
+:where(#app) #start-lights {
   position: absolute;
   top: 185px;
   left: 50%;
@@ -2343,43 +2036,43 @@ select {
   border: 1px solid #c9c9c94d;
   pointer-events: none;
 }
-#start-lights > span {
+:where(#app) #start-lights > span {
   font-size: 9px;
   letter-spacing: 0.18em;
   color: #cbcbcb;
 }
-#start-lights > div {
+:where(#app) #start-lights > div {
   display: flex;
   justify-content: center;
   gap: 16px;
   margin: 14px 0 10px;
 }
-#start-lights i {
+:where(#app) #start-lights i {
   width: 30px;
   height: 30px;
   border-radius: 50%;
   background: #292929;
   border: 2px solid #4d4d4d;
 }
-#start-lights i.lit {
+:where(#app) #start-lights i.lit {
   background: #c41c1c;
   border-color: #c41c1c;
   box-shadow: 0 0 16px #c41c1c99;
 }
-#start-lights b {
+:where(#app) #start-lights b {
   display: block;
   font-size: 30px;
   line-height: 1.1;
 }
-#start-lights.go b {
+:where(#app) #start-lights.go b {
   color: #83e8a4;
 }
-#start-lights.go i.lit {
+:where(#app) #start-lights.go i.lit {
   background: #3bbf69;
   border-color: #83e8a4;
   box-shadow: 0 0 16px #3bbf6980;
 }
-#start-lights small {
+:where(#app) #start-lights small {
   display: block;
   margin-top: 8px;
   font-size: 8px;
@@ -2387,7 +2080,7 @@ select {
   color: #cbcbcb;
 }
 
-#race-finish {
+:where(#app) #race-finish {
   position: absolute;
   top: 32%;
   left: 50%;
@@ -2406,14 +2099,14 @@ select {
   pointer-events: none;
   animation: finish-reveal 220ms ease-out;
 }
-#race-finish > span,
-#race-finish > small {
+:where(#app) #race-finish > span,
+:where(#app) #race-finish > small {
   display: block;
   color: #dedede;
   font-size: 11px;
   letter-spacing: 0.15em;
 }
-#race-finish strong {
+:where(#app) #race-finish strong {
   display: block;
   margin: 9px 0;
   font-size: clamp(30px, 5vw, 66px);
@@ -2431,79 +2124,66 @@ select {
     translate: 0 0;
   }
 }
-.reduced-motion #race-finish {
+.reduced-motion :where(#app) #race-finish {
   animation: none;
 }
 @media (prefers-reduced-motion: reduce) {
-  #race-finish {
+  :where(#app) #race-finish {
     animation: none;
   }
 }
 
 /* Shared field placement respects the existing compact world HUD options. */
-@media (min-width: 761px) and (min-height: 701px) {
-  #interface.compact-paddock #race-roster:not(.in-paddock) {
-    top: 210px;
-  }
-}
 /* The full ten-pilot field shares one narrow column with its map. */
 @media (min-width: 761px) and (min-height: 571px) {
-  #interface.has-live-race #minimap {
+  :where(#app) #interface.has-live-race #minimap {
     top: 88px;
     width: 130px;
     height: 98px;
   }
-  #interface.has-live-race #race-roster:not(.in-paddock) {
+  :where(#app) #interface.has-live-race #race-roster:not(.in-paddock) {
     top: 200px;
   }
-  #race-roster:not(.in-paddock) li {
+  :where(#app) #race-roster:not(.in-paddock) li {
     padding-top: 3px;
     padding-bottom: 3px;
     margin-bottom: 2px;
   }
 }
 @media (max-width: 760px), (max-height: 700px) {
-  #race-roster:not(.in-paddock) {
+  :where(#app) #race-roster:not(.in-paddock) {
     width: 150px;
     padding: 6px;
   }
-  #race-roster:not(.in-paddock) .roster-heading span,
-  #race-roster:not(.in-paddock) .roster-heading b {
+  :where(#app) #race-roster:not(.in-paddock) .roster-heading span,
+  :where(#app) #race-roster:not(.in-paddock) .roster-heading b {
     font-size: 6px;
   }
-  #race-roster:not(.in-paddock) ol {
+  :where(#app) #race-roster:not(.in-paddock) ol {
     margin-top: 4px;
     padding-top: 4px;
   }
-  #race-roster:not(.in-paddock) li {
+  :where(#app) #race-roster:not(.in-paddock) li {
     grid-template-columns: 14px 1fr auto;
     gap: 4px;
     margin-bottom: 2px;
     padding: 2px 0 2px 4px;
     line-height: 1.1;
   }
-  #race-roster:not(.in-paddock) li,
-  #race-roster:not(.in-paddock) li > b,
-  #race-roster:not(.in-paddock) li > small {
+  :where(#app) #race-roster:not(.in-paddock) li,
+  :where(#app) #race-roster:not(.in-paddock) li > b,
+  :where(#app) #race-roster:not(.in-paddock) li > small {
     font-size: 8px;
   }
 }
-@media (max-width: 760px), (max-height: 570px) {
-  #title-panel #race-roster.in-paddock {
-    position: static;
-    width: 100%;
-    margin-top: 16px;
-    padding: 12px;
-  }
-}
 @media (max-height: 570px) {
-  #race-roster:not(.in-paddock) {
+  :where(#app) #race-roster:not(.in-paddock) {
     top: 152px;
   }
 }
 
 /* Keep the preview controls near the model without crowding the fleet picker. */
-#inspection-tools {
+:where(#app) #inspection-tools {
   position: fixed;
   right: 4vw;
   bottom: 4vh;
@@ -2514,57 +2194,57 @@ select {
   width: min(520px, 44vw);
   pointer-events: auto;
 }
-#inspection-tools button {
+:where(#app) #inspection-tools button {
   min-height: 36px;
   padding: 9px 12px;
   font-size: 10px;
   letter-spacing: 0.04em;
   background: #202020e8;
 }
-#inspection-tools button[aria-pressed='true'] {
-  border-color: var(--accent);
+:where(#app) #inspection-tools button[aria-pressed='true'] {
+  border-color: var(--hud-action-accent);
   background: #c41c1c26;
-  box-shadow: inset 0 -2px var(--accent);
+  box-shadow: inset 0 -2px var(--hud-action-accent);
 }
-#inspection-tools p {
+:where(#app) #inspection-tools p {
   width: 100%;
   margin: 2px 0 0;
   text-align: center;
   font-size: 10px;
   color: #c4c4c4;
 }
-#interface.inspecting {
+:where(#app) #interface.inspecting {
   touch-action: none;
 }
 @media (min-width: 761px) and (min-height: 571px) {
-  #inspection-tools {
+  :where(#app) #inspection-tools {
     left: calc(6vw + min(320px, 29vw) + 24px);
     right: 2.5vw;
     width: auto;
   }
 }
 @media (max-width: 760px) and (max-aspect-ratio: 1/1) {
-  #inspection-tools {
+  :where(#app) #inspection-tools {
     position: static;
     width: 100%;
     margin-top: auto;
     flex-shrink: 0;
     gap: 5px;
   }
-  #inspection-tools button {
+  :where(#app) #inspection-tools button {
     padding: 8px;
     font-size: 9px;
   }
-  #inspection-panel dl {
+  :where(#app) #inspection-panel dl {
     margin-top: 10px;
   }
-  #inspection-panel .actions {
+  :where(#app) #inspection-panel .actions {
     margin-top: 10px;
   }
 }
 
 /* Sprint results stay in-world while the remaining field completes its run. */
-#sprint-finish-actions {
+:where(#app) #sprint-finish-actions {
   position: absolute;
   bottom: 72px;
   left: 50%;
@@ -2572,7 +2252,7 @@ select {
   z-index: 5;
   white-space: nowrap;
 }
-#sprint-finish-actions button:not(.primary) {
+:where(#app) #sprint-finish-actions button:not(.primary) {
   background: rgba(15, 24, 31, 0.92);
 }
 
@@ -2580,41 +2260,41 @@ select {
 @media (max-width: 760px),
   (pointer: coarse),
   (max-height: 570px) and (orientation: landscape) {
-  #interface.driving #touch {
+  :where(#app) #interface.driving #touch {
     display: flex;
   }
-  #interface.driving #legend {
+  :where(#app) #interface.driving #legend {
     display: none;
   }
-  #interface.driving:not(.portrait-compact-hud) .telemetry {
+  :where(#app) #interface.driving:not(.portrait-compact-hud) .telemetry {
     bottom: calc(max(16px, env(safe-area-inset-bottom)) + 200px);
   }
 }
 @media (max-height: 570px) and (orientation: landscape) {
-  .touch-steer {
+  :where(#app) .touch-steer {
     width: 144px;
     height: 116px;
   }
-  .touch-power {
+  :where(#app) .touch-power {
     width: 100px;
     height: 144px;
     font-size: 9px;
   }
-  #interface.driving:not(.portrait-compact-hud) .telemetry {
+  :where(#app) #interface.driving:not(.portrait-compact-hud) .telemetry {
     left: calc(max(3vw, env(safe-area-inset-left)) + 160px);
     right: calc(max(3vw, env(safe-area-inset-right)) + 116px);
     bottom: calc(max(16px, env(safe-area-inset-bottom)) + 20px);
   }
-  #interface.driving:not(.portrait-compact-hud) .energy {
+  :where(#app) #interface.driving:not(.portrait-compact-hud) .energy {
     width: clamp(90px, 16vw, 150px);
   }
-  #interface.driving:not(.portrait-compact-hud) .energy small {
+  :where(#app) #interface.driving:not(.portrait-compact-hud) .energy small {
     display: none;
   }
-  #interface.driving:not(.portrait-compact-hud) .speed strong {
+  :where(#app) #interface.driving:not(.portrait-compact-hud) .speed strong {
     font-size: 40px;
   }
-  #interface.driving #race-roster:not(.in-paddock) {
+  :where(#app) #interface.driving #race-roster:not(.in-paddock) {
     right: calc(max(3vw, env(safe-area-inset-right)) + 124px);
   }
 }
@@ -2622,7 +2302,8 @@ select {
 /* These levels retain their upper portrait HUD, but landscape telemetry must
    sit between the two touch pads instead of inheriting the portrait opt-out. */
 @media (max-height: 570px) and (orientation: landscape) {
-  #interface:is(
+  :where(#app)
+    #interface:is(
       [data-level='nightweir'],
       [data-level='halcyon'],
       [data-level='nomad']
@@ -2632,7 +2313,8 @@ select {
     right: calc(max(3vw, env(safe-area-inset-right)) + 116px);
     bottom: calc(max(16px, env(safe-area-inset-bottom)) + 20px);
   }
-  #interface:is(
+  :where(#app)
+    #interface:is(
       [data-level='nightweir'],
       [data-level='halcyon'],
       [data-level='nomad']
@@ -2640,7 +2322,8 @@ select {
     .energy {
     width: clamp(90px, 16vw, 150px);
   }
-  #interface:is(
+  :where(#app)
+    #interface:is(
       [data-level='nightweir'],
       [data-level='halcyon'],
       [data-level='nomad']
@@ -2649,7 +2332,8 @@ select {
     small {
     display: none;
   }
-  #interface:is(
+  :where(#app)
+    #interface:is(
       [data-level='nightweir'],
       [data-level='halcyon'],
       [data-level='nomad']

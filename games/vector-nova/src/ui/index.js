@@ -3,9 +3,6 @@ import { controllerLayout } from '../input/gamepad.js';
 import { createDevTools } from './dev-tools.js';
 import './style.css';
 import { formatTime, formatDelta } from '../race/timing.js';
-import { SHIPS } from '../ships/catalog.js';
-import { createShipControls, inspectionPanel } from './ship-controls.js';
-import { circuitURL } from '../levels/contract.js';
 import { presentationDistance } from '../race/course.js';
 import {
   RACER_COLORS as racerColors,
@@ -18,15 +15,7 @@ export function createUI(
   actions,
   settings,
   track,
-  {
-    metadata,
-    circuits,
-    shape: blockout = false,
-    selectedShip = SHIPS[0],
-    racing = false,
-    playtest = null,
-    playtestCase = null,
-  },
+  { metadata, racing = false, playtest = null, playtestCase = null },
 ) {
   const sprint = track.closed === false;
   const root = document.createElement('main');
@@ -37,11 +26,9 @@ export function createUI(
   root.classList.toggle('jump-playtest', Boolean(playtest));
   host.append(root);
   root.innerHTML = `<header class="masthead"><a class="wordmark" href="#" aria-label="Vector Nova home">VECTOR<span>//</span>NOVA</a><div class="edition"><i></i> <span></span></div><button class="quiet" id="pause-button" aria-label="Pause">Ⅱ</button></header>
- <section id="title-panel" class="panel"><h1><span class="circuit-name"></span><em></em></h1><p class="intro"></p><div class="track-facts"><div><b>${(track.length / 1000).toFixed(2)}</b><span>KM CIRCUIT</span></div><div><b>${SHIPS.length.toString().padStart(2, '0')}</b><span>SHIPS</span></div><div><b>∞</b><span>PRACTICE LAPS</span></div></div><div class="actions launch-actions"><button id="start" class="primary">ENTER PROVING LOOP <span>↗</span></button><button id="practice">PRACTICE LAP <span>↗</span></button></div><div class="actions inspection-actions"><button id="inspect">INSPECT SHIPS <span>↗</span></button>${!import.meta.env?.VN_DESKTOP ? '<button id="explore">FREE CAMERA <span>F</span></button>' : ''}</div></section>
- ${inspectionPanel}
  <section id="pause-panel" class="modal hidden"><h2>Paused</h2><button id="resume" class="primary">Resume <span aria-hidden="true">→</span></button><button id="pause-results" class="hidden">Results</button><section class="pause-quick-settings" aria-label="Quick settings">${import.meta.env?.VN_DESKTOP ? fullscreenSetting() : ''}<label>Graphics <select id="quality"><option value="high">High</option><option value="low">Low</option></select></label><label>Game effects <input id="volume" type="range" min="0" max="1" step=".05" value="${settings.volume}"></label><label>Reduced motion <input id="motion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label></section><div class="pause-restart"><button id="restart">Restart race</button></div><nav class="pause-secondary" aria-label="Session options"><button id="home">Race setup</button><button id="pause-settings">Settings</button>${actions.openTunes ? '<button id="pause-tunes" aria-controls="music-panel">Tunes</button>' : ''}</nav></section>
- <section id="hud" class="hidden"><div class="top-telemetry"><div class="position hidden"><span>POSITION</span><b id="position">1 / ${RACE_FIELD_SIZE}</b><small id="position-state"></small></div><div class="lap"><span>PRACTICE LAP</span><b id="lap">01</b></div><div class="timing"><span>LAP TIME</span><b id="time">00:00.000</b><small id="last">LAST —</small><small id="best">SET YOUR FIRST CLEAN LAP</small></div></div><div class="telemetry"><div class="energy"><span>CORE RESERVE <b id="energy-label">100%</b></span><div class="energy-track"><i id="energy-fill"></i></div><small id="energy-state">BOOST DRAWS FROM IMPACT RESERVE</small></div><div class="speed"><strong id="speed">000</strong><span>KM/H</span><i id="boost-status">MAGNETIC DRIVE</i></div></div><canvas id="minimap" width="200" height="150" aria-label="Track map"></canvas></section>
- ${!import.meta.env?.VN_DESKTOP ? '<footer id="legend"><div class="legend-movement"><kbd>WASD</kbd><span class="legend-or" aria-hidden="true">/</span><kbd aria-label="Arrow keys">↑←↓→</kbd><span>MOVEMENT</span></div><div class="legend-direction"><kbd>W</kbd><kbd>↑</kbd><span>THROTTLE</span></div><div class="legend-direction"><kbd>A</kbd><kbd>D</kbd><span>STEER</span></div><div class="legend-direction"><kbd>S</kbd><span>BRAKE</span></div><div><kbd>SPACE</kbd><span>AIRBRAKE</span></div><div class="legend-boost"><kbd>SHIFT</kbd><span>BOOST</span></div><div><kbd>R</kbd><span>RESET</span></div><div><kbd>ESC</kbd><span>PAUSE</span></div></footer>' : ''}
+ <section id="hud" class="hidden"><div class="top-telemetry"><div class="position hidden"><span>POSITION</span><b id="position">1 / ${RACE_FIELD_SIZE}</b><small id="position-state"></small></div><div class="lap"><span>PRACTICE LAP</span><b id="lap">01</b></div><div class="timing"><span>LAP TIME</span><b id="time">00:00.000</b><small id="last">LAST —</small><small id="best">SET YOUR FIRST CLEAN LAP</small></div></div><div class="telemetry"><div class="energy"><span>CORE RESERVE <b id="energy-label">100%</b></span><div class="energy-track"><i id="energy-fill"></i></div><small id="energy-state">BOOST USES CORE RESERVE</small></div><div class="speed"><strong id="speed">000</strong><span>KM/H</span><i id="boost-status">MAGNETIC DRIVE</i></div></div><canvas id="minimap" width="200" height="150" aria-label="Track map"></canvas></section>
+ ${!import.meta.env?.VN_DESKTOP ? '<footer id="legend"><div class="legend-movement"><kbd>WASD</kbd><span class="legend-or" aria-hidden="true">/</span><kbd aria-label="Arrow keys">↑←↓→</kbd><span>MOVEMENT</span></div><div class="legend-direction"><kbd>W</kbd><kbd>↑</kbd><span>THROTTLE</span></div><div class="legend-direction"><kbd>A</kbd><kbd>D</kbd><span>STEER</span></div><div class="legend-direction"><kbd>S</kbd><span>BRAKE</span></div><div><kbd>SPACE</kbd><span>AIRBRAKE</span></div><div class="legend-boost"><kbd>SHIFT</kbd><span>BOOST</span></div><div><kbd>R</kbd><span>RECOVER / RETRY</span></div><div><kbd>ESC</kbd><span>PAUSE</span></div></footer>' : ''}
  <div id="touch" class="hidden" role="group" aria-label="Touch driving controls">
   <div class="touch-steer" data-touch-control="steer" role="group" aria-label="Steering: drag left or right; pull down for airbrake. Release to center.">
    <span class="touch-label">STEER</span><span class="touch-directions" aria-hidden="true">←<span>→</span></span><i class="touch-thumb" aria-hidden="true"></i><span class="touch-airbrake">↓ AIRBRAKE</span>
@@ -49,19 +36,10 @@ export function createUI(
   <div class="touch-power" data-touch-control="power" data-power="neutral" role="group" aria-label="Power: slide up to Go, farther up to Boost and accelerate, center for neutral, down to brake. Release to coast.">
    <span data-power-zone="boost">BOOST <small>+ GO</small></span><span data-power-zone="go">GO</span><span data-power-zone="neutral">NEUTRAL</span><span data-power-zone="brake">BRAKE</span><i class="touch-thumb" aria-hidden="true"></i>
   </div>
- </div><div class="review-tag"><span></span></div>`;
+ </div>`;
   const $ = (id) => root.querySelector('#' + id);
   if (sprint) {
     root.classList.add('sprint-course');
-    const facts = root.querySelectorAll('.track-facts > div');
-    facts[0].querySelector('b').textContent = (
-      track.finishDistance / 1000
-    ).toFixed(2);
-    facts[0].querySelector('span').textContent = 'KM DOWNHILL';
-    facts[2].querySelector('b').textContent = '01';
-    facts[2].querySelector('span').textContent =
-      metadata.ui.courseLabel ?? 'SUMMIT TO BASIN';
-    $('practice').firstChild.textContent = 'SOLO DESCENT ';
     $('restart').textContent = 'Restart sprint';
     root.querySelector('.timing > span').textContent = 'ELAPSED';
     const finishActions = document.createElement('div');
@@ -74,15 +52,12 @@ export function createUI(
   }
   if (metadata.freestyle) {
     $('restart').textContent = 'Retry Freestyle';
-    $('start').firstChild.textContent = 'START FREESTYLE ';
   }
   if (metadata.eventType === 'eliminator') {
     $('restart').textContent = 'Retry Eliminator';
-    $('start').firstChild.textContent = 'START ELIMINATOR ';
   }
   if (metadata.eventType === 'interceptor') {
     $('restart').textContent = 'Retry Interceptor';
-    $('start').firstChild.textContent = 'START INTERCEPTOR ';
   }
   let casePicker = null;
   if (playtest?.cases?.length > 1) {
@@ -104,7 +79,7 @@ export function createUI(
       actions.selectPlaytestCase(select.value),
     );
     casePicker.append(label, select);
-    $('title-panel').insertBefore(casePicker, $('start').closest('.actions'));
+    $('pause-panel').insertBefore(casePicker, $('resume'));
   }
   if (playtest) {
     const repeat = document.createElement('button');
@@ -161,30 +136,21 @@ export function createUI(
   finish.innerHTML = '<span>FINISH</span><strong></strong><small></small>';
   root.append(finish);
   let rosterKey = '',
-    currentCompetition = null,
-    retainedResults = null;
+    currentCompetition = null;
   function updateRoster() {
     const driving = oldMode === 'racing' || oldMode === 'countdown';
-    const paddock = oldMode === 'title';
     const finished = sprint && driving && currentCompetition?.playerFinished;
-    const showingResults = paddock || finished;
-    const data = paddock
-      ? retainedResults
-      : finished
-        ? currentCompetition.results
-        : driving &&
-            currentCompetition?.enabled &&
-            !currentCompetition.playerFinished
-          ? currentCompetition
-          : null;
+    const showingResults = finished;
+    const data = finished
+      ? currentCompetition.results
+      : driving &&
+          currentCompetition?.enabled &&
+          !currentCompetition.playerFinished
+        ? currentCompetition
+        : null;
     roster.classList.toggle('hidden', !data);
-    roster.classList.toggle('in-paddock', paddock);
-    root.classList.toggle('has-live-race', Boolean(data) && !paddock);
-    const rosterParent =
-      paddock && (innerWidth <= 760 || innerHeight <= 570)
-        ? $('title-panel')
-        : root;
-    if (roster.parentElement !== rosterParent) rosterParent.append(roster);
+    root.classList.toggle('has-live-race', Boolean(data));
+    if (roster.parentElement !== root) root.append(roster);
     if (!data) return;
     const rows = showingResults ? data.standings : (data.relative?.field ?? []);
     const gapText = (entry) => {
@@ -199,7 +165,6 @@ export function createUI(
       return entry.finished ? 'FINISHED' : '—';
     };
     const key = JSON.stringify({
-      paddock,
       finished,
       rows: rows.map((entry) => ({
         ...entry,
@@ -214,9 +179,7 @@ export function createUI(
     rosterKey = key;
     roster.querySelector('.roster-heading span').textContent = finished
       ? 'SPRINT COMPLETE'
-      : paddock
-        ? 'LAST SESSION'
-        : 'RACE ORDER';
+      : 'RACE ORDER';
     const heading = roster.querySelector('.roster-heading b');
     heading.textContent = showingResults
       ? `${metadata.name.toUpperCase()} · ${sprint ? 'SPRINT' : '2 LAPS'}`
@@ -267,11 +230,9 @@ export function createUI(
     hint.textContent = showingResults
       ? rows.some((entry) => entry.finished && !entry.valid)
         ? `* Untimed: ${sprint ? 'run' : 'lap'} invalidated`
-        : finished
-          ? currentCompetition.enabled
-            ? 'Field remains live until each rival finishes'
-            : 'Solo descent recorded'
-          : 'Recorded at return to paddock'
+        : currentCompetition.enabled
+          ? 'Field remains live until each rival finishes'
+          : 'Solo descent recorded'
       : '';
     hint.classList.toggle('hidden', !showingResults);
   }
@@ -328,106 +289,28 @@ export function createUI(
     },
     { capture: true, signal: listeners.signal },
   );
-  const review = blockout && metadata.review;
-  const copy = { ...metadata.ui, ...(blockout ? metadata.ui.shape : {}) };
-  const panel = $('title-panel');
-  // Preserve the selectors used by level tools until those harnesses migrate.
-  const developerNote = document.createElement('div');
-  developerNote.className = 'developer-note';
-  developerNote.innerHTML =
-    '<strong>DEVELOPER LAUNCHER</strong><span>Capture, route review and level-test controls.</span><button type="button">Open race setup →</button>';
-  developerNote.querySelector('button').onclick = actions.home;
-  panel.prepend(developerNote);
-  if (racing && !blockout) {
-    const difficultyPicker = (id) => {
-      const label = document.createElement('label');
-      label.className = 'difficulty-picker';
-      label.textContent = 'Opponent difficulty';
-      const select = document.createElement('select');
-      select.id = id;
-      for (const value of ['easy', 'medium', 'hard']) {
-        const option = document.createElement('option');
-        option.value = value;
-        option.textContent = value[0].toUpperCase() + value.slice(1);
-        select.append(option);
-      }
-      select.value = settings.difficulty;
-      select.onchange = () => actions.difficulty(select.value);
-      label.append(select);
-      return label;
-    };
-    panel.insertBefore(
-      difficultyPicker('difficulty'),
-      panel.querySelector('.launch-actions'),
+  if (racing && !playtest) {
+    const pausedDifficulty = document.createElement('div');
+    pausedDifficulty.id = 'pause-race-settings';
+    pausedDifficulty.className = 'hidden';
+    pausedDifficulty.innerHTML = `<label class="difficulty-picker">Opponent difficulty <select id="pause-difficulty">${['easy', 'medium', 'hard'].map((value) => `<option value="${value}">${value[0].toUpperCase() + value.slice(1)}</option>`).join('')}</select></label><p id="pause-difficulty-hint" class="small">Applies on restart.</p>`;
+    $('restart').before(pausedDifficulty);
+    $('pause-difficulty').value = settings.difficulty;
+    $('pause-difficulty').setAttribute(
+      'aria-describedby',
+      'pause-difficulty-hint',
     );
-    if (!playtest) {
-      const pausedDifficulty = document.createElement('div');
-      pausedDifficulty.id = 'pause-race-settings';
-      pausedDifficulty.className = 'hidden';
-      const hint = document.createElement('p');
-      hint.id = 'pause-difficulty-hint';
-      hint.className = 'small';
-      hint.textContent = 'Applies on restart.';
-      pausedDifficulty.append(difficultyPicker('pause-difficulty'), hint);
-      $('restart').before(pausedDifficulty);
-      $('pause-difficulty').setAttribute('aria-describedby', hint.id);
-    }
+    $('pause-difficulty').onchange = () =>
+      actions.difficulty($('pause-difficulty').value);
   }
-  root.classList.toggle('has-review', metadata.review);
+  const copy = metadata.ui;
   root.classList.toggle('has-racing', racing);
-  root.classList.toggle('compact-paddock', Boolean(copy.compact) && !blockout);
-  root.classList.toggle('stacked-review', Boolean(copy.stackedReview));
   root.classList.toggle('compact-landscape', Boolean(copy.compactLandscape));
   root.classList.toggle(
     'portrait-compact-hud',
     Boolean(copy.portraitCompactHud),
   );
-  const editionDetail = document.createElement('span');
-  editionDetail.textContent = blockout ? 'BARE TRACK' : copy.subtitle;
-  root
-    .querySelector('.edition')
-    .replaceChildren(
-      document.createElement('i'),
-      document.createTextNode(
-        blockout ? ' SHAPE REVIEW ' : ` ${copy.edition} `,
-      ),
-      editionDetail,
-    );
-  const [name, ...suffix] = metadata.name.trim().split(/\s+/);
-  panel.querySelector('.circuit-name').textContent = name.toUpperCase();
-  panel.querySelector('h1 em').textContent = (
-    suffix.join(' ') || copy.subtitle.split('/')[0].trim()
-  ).toUpperCase();
-  panel.querySelector('.intro').textContent = copy.intro
-    .replace(/the Kestrel/g, 'your ship')
-    .replace(/Kestrel/g, 'Your ship');
-  $('start').firstChild.textContent =
-    `${playtest ? 'START JUMP TEST' : sprint ? 'START DOWNHILL SPRINT' : blockout ? 'DRIVE FULL CIRCUIT' : 'ENTER PROVING LOOP'} `;
-  if (playtest) {
-    panel.querySelector('.intro').textContent = playtest.description;
-    $('practice').firstChild.textContent = 'START JUMP TEST ';
-  }
-  $('inspect').classList.toggle('hidden', blockout);
-  const tagDetail = document.createElement('span');
-  tagDetail.textContent = blockout ? 'ROUTE STUDY' : copy.tagDetail;
-  root
-    .querySelector('.review-tag')
-    .replaceChildren(document.createTextNode(copy.tag), tagDetail);
-  if (review) {
-    const controls = document.createElement('section');
-    controls.id = 'shape-controls';
-    controls.setAttribute('aria-label', 'Circuit views');
-    controls.innerHTML = `<button id="review-toggle" aria-expanded="true">CIRCUIT VIEWS <span>−</span></button><div id="review-options"><div class="shape-views" aria-label="Whole-track views"><button data-overview="perspective">3D VIEW</button><button data-overview="top">TOP</button><button data-overview="profile">PROFILE</button></div></div>`;
-    root.append(controls);
-    controls.querySelectorAll('[data-overview]').forEach((button) => {
-      button.onclick = () => actions.overview(button.dataset.overview);
-    });
-    $('review-toggle').onclick = () => {
-      const open = !$('review-options').classList.toggle('hidden');
-      $('review-toggle').setAttribute('aria-expanded', String(open));
-      $('review-toggle').querySelector('span').textContent = open ? '−' : '+';
-    };
-  }
+  root.querySelector('.edition span').textContent = metadata.name;
   const {
     openFlySettings,
     toggleFlySettings,
@@ -472,49 +355,9 @@ export function createUI(
     },
     { signal: listeners.signal },
   );
-  const currentCircuit = metadata.id;
-  const picker = document.createElement('form');
-  picker.className = 'circuit-picker';
-  picker.setAttribute('aria-label', 'Choose a circuit');
-  picker.innerHTML = `<label for="circuit-select">CIRCUIT</label><select id="circuit-select" name="level"></select><button id="circuit-load" type="submit" disabled>LOAD ↗</button>`;
-  panel.insertBefore(
-    picker,
-    panel.querySelector('.difficulty-picker') ??
-      panel.querySelector('.launch-actions'),
-  );
-  for (const circuit of circuits) {
-    const option = document.createElement('option');
-    option.value = circuit.id;
-    option.textContent = circuit.name;
-    $('circuit-select').append(option);
-  }
-  $('circuit-select').value = currentCircuit;
-  $('circuit-select').onchange = () => {
-    $('circuit-load').disabled = $('circuit-select').value === currentCircuit;
-  };
-  picker.onsubmit = (event) => {
-    event.preventDefault();
-    const selected = $('circuit-select').value;
-    if (
-      selected === currentCircuit ||
-      !circuits.some((circuit) => circuit.id === selected)
-    )
-      return;
-    // Enter the selected paddock without another circuit's review flags.
-    if (actions.circuit) actions.circuit(selected);
-    else location.assign(circuitURL(location.href, selected));
-  };
-  const shipControls = createShipControls(root, actions, selectedShip);
   const bind = (id, fn) => ($(id).onclick = fn);
-  bind('start', actions.start);
-  bind('practice', actions.practice);
-  bind('inspect-start', actions.start);
-  bind('inspect', () => actions.camera('inspection'));
-  if (!import.meta.env?.VN_DESKTOP)
-    bind('explore', () => actions.camera('fly'));
   bind('pause-settings', actions.openSettings);
   if (actions.openTunes) bind('pause-tunes', actions.openTunes);
-  bind('inspect-back', () => (actions.exitInspection ?? actions.home)());
   bind('resume', actions.resume);
   bind('pause-results', actions.results);
   bind('restart', actions.restart);
@@ -601,7 +444,6 @@ export function createUI(
         : 'LAP INVALIDATED · SESSION RECORDED';
       $('pause-results').classList.remove('hidden');
     },
-    ...shipControls,
     setPlaytestCase(id) {
       if (casePicker) $('playtest-case').value = id;
     },
@@ -609,17 +451,8 @@ export function createUI(
       if (mode === oldMode) return;
       oldMode = mode;
       syncPauseOwnership();
-      if (casePicker) {
-        const parent = mode === 'paused' ? $('pause-panel') : $('title-panel');
-        parent.insertBefore(
-          casePicker,
-          mode === 'paused' ? $('resume') : $('start').closest('.actions'),
-        );
-      }
       updateRoster();
       for (const [id, show] of [
-        ['title-panel', mode === 'title' || mode === 'overview'],
-        ['inspection-panel', mode === 'inspection'],
         ['pause-panel', mode === 'paused'],
         ['hud', mode === 'racing' || mode === 'countdown'],
         ['touch', mode === 'racing'],
@@ -643,48 +476,14 @@ export function createUI(
       root.classList.toggle('flying', mode === 'fly');
       if (mode !== 'fly') closeFlySettings(false);
       $('fly-controls')?.classList.toggle('hidden', mode !== 'fly');
-      root.classList.toggle('inspecting', mode === 'inspection');
       root.querySelector('.masthead').inert = mode === 'paused';
-      root.classList.toggle(
-        'shape-overview',
-        mode === 'title' || mode === 'overview',
-      );
-      root.classList.toggle(
-        'whole-route-view',
-        mode === 'overview' || (blockout && mode === 'title'),
-      );
-      const reviewControls = $('shape-controls');
-      if (reviewControls) {
-        const stacked =
-          copy.stackedReview && root.classList.contains('whole-route-view');
-        (stacked ? $('title-panel') : root).append(reviewControls);
-      }
-      $('shape-controls')?.classList.toggle(
-        'hidden',
-        mode === 'paused' || mode === 'inspection' || mode === 'fly',
-      );
-      if (review) {
-        const expanded = mode !== 'racing' && innerWidth > 760;
-        $('review-options').classList.toggle('hidden', !expanded);
-        $('review-toggle').setAttribute('aria-expanded', String(expanded));
-        $('review-toggle').querySelector('span').textContent = expanded
-          ? '−'
-          : '+';
-      }
       $('pause-button').classList.toggle(
         'hidden',
         mode !== 'racing' && mode !== 'countdown',
       );
-      const f =
-        mode === 'title' || mode === 'overview'
-          ? 'start'
-          : mode === 'inspection'
-            ? shipControls.inspectionFocus()
-            : mode === 'paused'
-              ? 'resume'
-              : null;
-      if (f) $(f).focus({ preventScroll: true });
-      else document.activeElement?.blur();
+      if (mode === 'paused') $('resume').focus({ preventScroll: true });
+      else if (root.contains(document.activeElement))
+        document.activeElement.blur();
     },
     update(
       s,
@@ -695,16 +494,11 @@ export function createUI(
         freestylePractice = null,
         gamepad = false,
         competition = null,
-        lastResults = null,
         trial = null,
         cup = null,
       } = {},
     ) {
       currentCompetition = competition;
-      // Solo and mission outcomes have no race roster to show in the paddock.
-      retainedResults = Array.isArray(lastResults?.standings)
-        ? lastResults
-        : null;
       $('pause-race-settings')?.classList.toggle(
         'hidden',
         !competition?.enabled || !!cup,
@@ -786,7 +580,7 @@ export function createUI(
         ? 'VECTOR DRIVE · FREE PROPULSION'
         : s.energy < 25
           ? 'LOW RESERVE · RELEASE BOOST TO RECOVER'
-          : 'BOOST DRAWS FROM IMPACT RESERVE';
+          : 'BOOST USES CORE RESERVE';
       $('last').textContent = sprint
         ? r.complete
           ? 'DESCENT COMPLETE'
@@ -809,9 +603,8 @@ export function createUI(
           : r.best
             ? `BEST ${fmt(r.best)}`
             : 'SET YOUR FIRST CLEAN LAP';
-      $('home').textContent = cup ? 'Cup hub · progress kept' : 'Race setup';
-      if ($('sprint-home'))
-        $('sprint-home').textContent = cup ? 'Cup hub →' : 'Race setup →';
+      $('home').textContent = 'Race setup';
+      if ($('sprint-home')) $('sprint-home').textContent = 'Race setup →';
       if (cup) {
         $('restart').textContent = 'Retry cup race · earlier scores kept';
         root.querySelector('.lap > span').textContent =

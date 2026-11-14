@@ -85,7 +85,8 @@ export function createLowDeviceGeometry(
       Number.isFinite(device.lowChevronSpacing) && device.lowChevronSpacing >= 8
         ? device.lowChevronSpacing
         : null;
-    const reach = Math.min(w * 0.65, spacing ? 8 : 2);
+    const reach = Math.min(w * 0.65, spacing ? 8 : 12);
+    const rise = Math.max(0.6, reach * 0.22);
     const offsets = spacing
       ? Array.from(
           {
@@ -95,11 +96,14 @@ export function createLowDeviceGeometry(
         )
       : [-h * 0.55, 0, h * 0.55];
     for (const offset of offsets)
-      path([
-        [-reach, offset - 0.6],
-        [0, offset + 0.6],
-        [reach, offset - 0.6],
-      ]);
+      path(
+        [
+          [-reach, offset - rise],
+          [0, offset + rise],
+          [reach, offset - rise],
+        ],
+        w > 8 ? 0.65 : 0.45,
+      );
   } else if (device.type === 'arc') {
     path(
       [
@@ -146,6 +150,13 @@ export function createLowDeviceGeometry(
     DEVICE_COLORS[device.type],
     'Low pickup / symbol',
   );
+  // At the far end of a strip, a 25 mm geometric lift falls inside the depth
+  // buffer's precision. Keep the painted glyphs ahead of their own deck.
+  markings.material.polygonOffset = true;
+  markings.material.polygonOffsetFactor = -1;
+  markings.material.polygonOffsetUnits = -4;
+  markings.material.depthWrite = false;
+  markings.renderOrder = 1;
   group.add(base, markings);
   let available = true;
   let collectedAt = -Infinity;

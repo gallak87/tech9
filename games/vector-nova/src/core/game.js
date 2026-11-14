@@ -36,12 +36,8 @@ import { raceRivalBuild, replayRivalBuild } from './rival-setup.js';
 import { interpolateSurfaceLateral } from '../track/surface.js';
 import * as T from 'three';
 import { createFleetShip } from '../ships/fleet.js';
-import { createInspectionStage } from '../ships/inspection-stage.js';
-import { createInspectionPipeline } from '../ships/inspection-pipeline.js';
-import { RIVAL_SHIPS, createRivalPreview } from '../ships/rivals.js';
 import { loadShipSelection, saveShipSelection } from '../ships/catalog.js';
 import { createRenderer } from '../renderer/index.js';
-import { mobileGraphics } from '../renderer/device.js';
 import {
   createVehicleState,
   STEERING_ASSIST,
@@ -70,11 +66,7 @@ import { artPassURL } from './art-pass.js';
 
 import { createStartCountdown } from './start-countdown.js';
 import { discoverLevels } from '../levels/catalog.js';
-import {
-  levelAvailable,
-  filterAvailableLevels,
-  lockedLevelMessage,
-} from '../levels/access.js';
+import { levelAvailable, lockedLevelMessage } from '../levels/access.js';
 import { circuitURL } from '../levels/contract.js';
 import { createLevelPresentation } from '../levels/presentation.js';
 import { createLifetime } from './lifecycle.js';
@@ -316,23 +308,7 @@ export async function createGame({
     );
     let shipLoading = false;
     lifetime.defer(() => ship.group.removeFromParent());
-    const inspectionBounds = new T.Box3().setFromObject(ship.group);
-    const inspectionExtent = {
-      radial: Math.hypot(
-        Math.max(
-          Math.abs(inspectionBounds.min.x),
-          Math.abs(inspectionBounds.max.x),
-        ),
-        Math.max(
-          Math.abs(inspectionBounds.min.z),
-          Math.abs(inspectionBounds.max.z),
-        ),
-      ),
-      vertical: Math.max(
-        Math.abs(inspectionBounds.min.y + 0.15 - 0.7),
-        Math.abs(inspectionBounds.max.y + 0.15 - 0.7),
-      ),
-    };
+    const shipBounds = new T.Box3().setFromObject(ship.group);
     scene.add(ship.group);
     // One district-scale radiance probe gives the craft real nearby architecture
     // in its reflections. It is a static approximation, generated from this scene.
@@ -350,18 +326,6 @@ export async function createGame({
         if (material?.isMeshStandardMaterial) material.envMap = cityReflection;
     });
     world.setReflection(cityReflection);
-    const inspectionStage = lifetime.own(createInspectionStage(renderer));
-    const inspectionScene = inspectionStage.scene;
-    const inspectionPipeline = lifetime.own(
-      createInspectionPipeline(renderer, inspectionScene, camera),
-    );
-    const inspectionPreview = {
-      autoRotate: true,
-      boost: false,
-      driving: false,
-      elevation: 0.365,
-    };
-    let inspectionDrag = null;
     let playerBuild = { version: 1, enhancements: {}, equipment: [] };
     let rivalSetup = null;
     const playerState = (stock = false) => ({
@@ -388,14 +352,12 @@ export async function createGame({
       time = 0,
       raf = 0,
       active = true,
-      freestylePractice = null,
-      inspectionTime = 0,
-      inspectionLayout = null;
+      freestylePractice = null;
     const inputLog = [],
       events = [],
       audio = lifetime.own(createAudio(definition.audio)),
       effects = lifetime.own(createEffects(scene, definition.effects));
-    let rig = createCameraRig(camera, definition.camera, inspectionBounds);
+    let rig = createCameraRig(camera, definition.camera, shipBounds);
     const raceFeedback = createRaceFeedback();
     const landingFeedback = createLandingFeedback();
     const landingVfx = freestyle
@@ -406,15 +368,6 @@ export async function createGame({
       landingFeedback?.reset(state.time);
       landingVfx?.reset();
     }
-    let inspectionTab = 'fleet',
-      inspectedRival = RIVAL_SHIPS[0],
-      rivalPreview = null,
-      rivalLoading = false,
-      rivalRequest = 0;
-    lifetime.defer(() => {
-      rivalRequest++;
-      rivalPreview?.dispose();
-    });
     lifetime.defer(() => {
       active = false;
       cancelAnimationFrame(raf);
@@ -631,8 +584,6 @@ export async function createGame({
         )
       : null;
     let sessionActive = false,
-      inspectionReturnMode = null,
-      inspectionFromMenu = false,
       finishAt = null,
       resultsDismissed = false;
     const ghost = lifetime.own(createPersonalGhost(scene));
@@ -1112,40 +1063,7 @@ export async function createGame({
     let initial = !import.meta.env?.VN_DESKTOP
       ? captureInitial(state, runtime, dynamics)
       : null;
-    function fitInspection(group) {
-      inspectionBounds.min.fromArray(group.userData.bounds.min);
-      inspectionBounds.max.fromArray(group.userData.bounds.max);
-      inspectionExtent.radial = Math.hypot(
-        Math.max(
-          Math.abs(inspectionBounds.min.x),
-          Math.abs(inspectionBounds.max.x),
-        ),
-        Math.max(
-          Math.abs(inspectionBounds.min.z),
-          Math.abs(inspectionBounds.max.z),
-        ),
-      );
-      inspectionExtent.vertical = Math.max(
-        Math.abs(inspectionBounds.min.y - 0.55),
-        Math.abs(inspectionBounds.max.y - 0.55),
-      );
-      inspectionTime = 0;
-      inspectionLayout = null;
-    }
-    function restoreFleetInspection() {
-      rivalRequest++;
-      rivalPreview?.dispose();
-      rivalPreview = null;
-      rivalLoading = false;
-      inspectionTab = 'fleet';
-      ship.group.visible = true;
-      fitInspection(ship.group);
-      ui.setInspectionTab('fleet');
-      ui.setRivalLoading(false);
-      ui.shipError('');
-    }
     function sceneShip() {
-      if (inspectionTab !== 'fleet') restoreFleetInspection();
       if (ship.group.parent !== scene) scene.add(ship.group);
     }
     function armCountdown(resuming = false) {
@@ -1171,14 +1089,7 @@ export async function createGame({
       ui.setCountdown(null);
     }
     function start() {
-      if (mode === 'inspection' && inspectionFromMenu) return;
-      if (mode === 'inspection' && inspectionReturnMode) {
-        exitInspection();
-        return;
-      }
-      if (shipLoading || (mode === 'inspection' && inspectionTab === 'rivals'))
-        return;
-      if (mode === 'countdown') return;
+      if (shipLoading || mode === 'countdown') return;
       if (mode === 'paused') {
         resume();
         return;
@@ -1188,8 +1099,7 @@ export async function createGame({
         return;
       }
       sceneShip();
-      const newRun =
-        mode === 'title' || mode === 'inspection' || mode === 'overview';
+      const newRun = mode === 'title' || mode === 'overview';
       if (newRun && playtest) {
         audio.unlock().catch(() => {});
         repeatPlaytest();
@@ -1295,12 +1205,8 @@ export async function createGame({
         if (results) lastResults = structuredClone(results);
       }
       flyCamera?.leave();
-      inspectionReturnMode = null;
       sessionActive = true;
       onAttempt?.();
-      inspectionFromMenu = false;
-      ui.setInspectionMenu(false);
-      ui.setInspectionSession(false);
       ui.setFinish(null);
       ui.setResultsAvailable(false);
       cancelCountdown();
@@ -1423,7 +1329,6 @@ export async function createGame({
       emit({ type: 'recover', payload: { penalty: 'current lap invalid' } });
     }
     function home() {
-      if (mode === 'inspection' && inspectionReturnMode) exitInspection(false);
       if (mode === 'fly') leaveFly();
       if (sessionActive) {
         pause();
@@ -1445,11 +1350,7 @@ export async function createGame({
       if (results) lastResults = structuredClone(results);
       cancelCountdown();
       flyCamera?.leave();
-      inspectionReturnMode = null;
-      inspectionFromMenu = false;
       sessionActive = false;
-      ui.setInspectionMenu(false);
-      ui.setInspectionSession(false);
       ui.setFinish(null);
       ui.setResultsAvailable(false);
       sceneShip();
@@ -1475,27 +1376,8 @@ export async function createGame({
       rig.reset();
       ui.setMode(mode);
     }
-    function exitInspection(returnToMenu = inspectionFromMenu) {
-      inspectionFromMenu = false;
-      ui.setInspectionMenu(false);
-      if (mode !== 'inspection' || !inspectionReturnMode) {
-        home();
-        return;
-      }
-      sceneShip();
-      mode = inspectionReturnMode;
-      inspectionReturnMode = null;
-      ui.setInspectionSession(false);
-      accumulator = 0;
-      input.clear();
-      rig.reset();
-      ui.setMode(mode);
-      if (mode === 'countdown') armCountdown(true);
-      if (returnToMenu) home();
-    }
     function showResults() {
       if (!lastResults) return;
-      if (mode === 'inspection' && inspectionReturnMode) exitInspection();
       if (mode === 'fly') leaveFly();
       mode = 'results';
       resultsDismissed = false;
@@ -1504,37 +1386,17 @@ export async function createGame({
       ui.setMode(mode);
       onResults?.(lastResults);
     }
-    function setCamera(preset, { fromMenu = false } = {}) {
+    function setCamera(preset) {
       if (preset === 'fly') {
         toggleFly();
         return;
       }
       flyCamera?.leave();
-      if (preset === 'inspection') {
-        if (mode === 'inspection') return;
-        if (mode === 'results' && !fromMenu) return;
-        inspectionFromMenu = fromMenu;
-        ui.setInspectionMenu(fromMenu);
-        inspectionReturnMode = sessionActive ? mode : null;
-        if (mode === 'countdown') {
-          countdown.pause();
-        }
-        ui.setInspectionSession(sessionActive);
-        mode = 'inspection';
-        inspectionScene.add(ship.group);
-        ship.group.position.set(0, 0.1, 0);
-        ship.group.quaternion.identity();
-        inspectionTime = 0;
-        inspectionLayout = null;
-        world.reset();
-        input.clear();
-      } else {
-        cancelCountdown();
-        sceneShip();
-        cameraMode = preset;
-        mode = 'racing';
-        rig.reset();
-      }
+      cancelCountdown();
+      sceneShip();
+      cameraMode = preset;
+      mode = 'racing';
+      rig.reset();
       ui.setMode(mode);
     }
     function overview(preset = 'perspective') {
@@ -1553,7 +1415,7 @@ export async function createGame({
       if (
         suspended ||
         !flyCamera ||
-        ['inspection', 'results'].includes(mode) ||
+        mode === 'results' ||
         (finishAt !== null && !resultsDismissed)
       )
         return;
@@ -1583,17 +1445,14 @@ export async function createGame({
       if (mode === 'countdown') armCountdown(true);
     }
     async function selectShip(id) {
-      if (sessionActive && mode === 'inspection') return false;
-      if (shipLoading || !['title', 'overview', 'inspection'].includes(mode))
-        return false;
-      if (inspectionTab !== 'fleet') return false;
+      if (shipLoading || !['title', 'overview'].includes(mode)) return false;
       shipLoading = true;
       input.clear();
-      ui.setShipLoading(true);
       try {
         if (!(await ship.select(id)) || !active) return false;
-        fitInspection(ship.group);
-        rig = createCameraRig(camera, definition.camera, inspectionBounds);
+        shipBounds.min.fromArray(ship.group.userData.bounds.min);
+        shipBounds.max.fromArray(ship.group.userData.bounds.max);
+        rig = createCameraRig(camera, definition.camera, shipBounds);
         ship.group.traverse((object) => {
           for (const material of Array.isArray(object.material)
             ? object.material
@@ -1615,81 +1474,15 @@ export async function createGame({
         accumulator = 0;
         inputLog.length = 0;
         events.length = 0;
-        inspectionTime = 0;
-        inspectionLayout = null;
-        ui.setShip(ship.selected);
         saveShipSelection(ship.selected.id);
+        view.apply();
         await graphics.compile(ship.group.parent ?? scene, camera);
         return true;
-      } catch (error) {
-        ui.shipError(`Could not load ship. ${error.message}`);
+      } catch {
         return false;
       } finally {
         shipLoading = false;
-        if (active) ui.setShipLoading(false);
       }
-    }
-    async function inspectRival(id) {
-      const craft = RIVAL_SHIPS.find((entry) => entry.id === id);
-      if (!craft || mode !== 'inspection' || inspectionTab !== 'rivals')
-        return false;
-      const request = ++rivalRequest;
-      rivalLoading = true;
-      input.clear();
-      ui.shipError('');
-      ui.setRivalLoading(true);
-      let loaded;
-      try {
-        loaded = await createRivalPreview(id, { settings });
-        if (!active || request !== rivalRequest || mode !== 'inspection') {
-          loaded.dispose();
-          return false;
-        }
-        // Warm the candidate while hidden; keep the previous preview on failure.
-        await graphics.compile(loaded.group, camera, inspectionScene);
-        if (!active || request !== rivalRequest || mode !== 'inspection') {
-          loaded.dispose();
-          return false;
-        }
-        rivalPreview?.dispose();
-        rivalPreview = loaded;
-        inspectedRival = craft;
-        inspectionScene.add(loaded.group);
-        fitInspection(loaded.group);
-        ui.setInspectedRival(craft);
-        return true;
-      } catch {
-        loaded?.dispose();
-        if (active && request === rivalRequest)
-          ui.shipError(
-            `Could not load ${craft.name}. Choose a racer to retry.`,
-          );
-        return false;
-      } finally {
-        if (active && request === rivalRequest) {
-          rivalLoading = false;
-          ui.setRivalLoading(false);
-        }
-      }
-    }
-    function selectInspectionTab(tab) {
-      if (
-        mode !== 'inspection' ||
-        shipLoading ||
-        !['fleet', 'rivals'].includes(tab)
-      )
-        return;
-      if (tab === inspectionTab) return;
-      if (tab === 'fleet') {
-        restoreFleetInspection();
-        return;
-      }
-      inspectionTab = 'rivals';
-      ship.group.visible = false;
-      ui.setInspectionTab(tab);
-      ui.setInspectedRival(inspectedRival);
-      inspectionLayout = null;
-      return inspectRival(inspectedRival.id);
     }
     const ui = lifetime.own(
       createUI(
@@ -1727,18 +1520,10 @@ export async function createGame({
             input.clear();
             onSettings?.();
           },
-          exitInspection,
           results: showResults,
           circuit: onCircuit,
           camera: setCamera,
           selectShip,
-          selectInspectionTab,
-          inspectRival,
-          toggleInspectionPreview(key) {
-            if (!['autoRotate', 'boost', 'driving'].includes(key)) return;
-            inspectionPreview[key] = !inspectionPreview[key];
-            ui.setInspectionPreview(inspectionPreview);
-          },
           ...(!import.meta.env?.VN_DESKTOP
             ? {
                 overview,
@@ -1749,7 +1534,6 @@ export async function createGame({
             : {}),
           settings: () => {
             saveSettings(settings);
-            ui.setInspectionPreview(inspectionPreview);
           },
           difficulty(value) {
             if (
@@ -1765,9 +1549,6 @@ export async function createGame({
         track,
         {
           metadata,
-          circuits: filterAvailableLevels(levelCatalog.list, access),
-          shape: blockout,
-          selectedShip: ship.selected,
           racing: racingEnabled,
           playtest,
           playtestCase: selectedPlaytestCase?.id,
@@ -1807,68 +1588,6 @@ export async function createGame({
       setUIMode(value);
       onMode(value);
     };
-    ui.setInspectionPreview(inspectionPreview);
-    host.addEventListener(
-      'pointerdown',
-      (event) => {
-        if (
-          mode !== 'inspection' ||
-          event.button !== 0 ||
-          event.target.closest('button,input,select,a,label')
-        )
-          return;
-        const viewport = ui.inspectionViewport();
-        const panel = host
-          .querySelector('#inspection-panel')
-          .getBoundingClientRect();
-        if (
-          viewport
-            ? event.clientY < viewport.top ||
-              event.clientY > viewport.top + viewport.height
-            : event.clientX < panel.right
-        )
-          return;
-        inspectionDrag = {
-          id: event.pointerId,
-          x: event.clientX,
-          y: event.clientY,
-        };
-        inspectionPreview.autoRotate = false;
-        ui.setInspectionPreview(inspectionPreview);
-        host.setPointerCapture(event.pointerId);
-        event.preventDefault();
-      },
-      { signal: listeners.signal },
-    );
-    host.addEventListener(
-      'pointermove',
-      (event) => {
-        if (
-          !inspectionDrag ||
-          inspectionDrag.id !== event.pointerId ||
-          mode !== 'inspection'
-        )
-          return;
-        inspectionTime += (event.clientX - inspectionDrag.x) * 0.065;
-        inspectionPreview.elevation = T.MathUtils.clamp(
-          inspectionPreview.elevation +
-            (event.clientY - inspectionDrag.y) * 0.005,
-          0.12,
-          1.2,
-        );
-        inspectionDrag.x = event.clientX;
-        inspectionDrag.y = event.clientY;
-      },
-      { signal: listeners.signal },
-    );
-    for (const type of ['pointerup', 'pointercancel', 'lostpointercapture'])
-      host.addEventListener(
-        type,
-        () => {
-          inspectionDrag = null;
-        },
-        { signal: listeners.signal },
-      );
     const input = lifetime.own(
       createInput(
         (command) => {
@@ -1887,8 +1606,7 @@ export async function createGame({
           if (finishAt !== null && !resultsDismissed && command !== 'pause')
             return;
           if (command === 'pause') {
-            if (mode === 'inspection') exitInspection();
-            else if (mode === 'paused') resume();
+            if (mode === 'paused') resume();
             else if (mode === 'racing' || mode === 'countdown') pause();
             else home();
           }
@@ -1970,7 +1688,7 @@ export async function createGame({
         pause();
         fail(
           new Error(
-            'The graphics context was lost. Reload to restart the proving session.',
+            'The graphics context was lost. Return to race setup and try again.',
           ),
         );
       },
@@ -2102,8 +1820,7 @@ export async function createGame({
               heading: T.MathUtils.lerp(prev.heading, state.heading, alpha),
             }
           : state;
-      ship.group.visible =
-        mode !== 'fly' && (mode !== 'inspection' || inspectionTab === 'fleet');
+      ship.group.visible = mode !== 'fly';
       const motionFeedback = readRuntimeFrame(runtime) ?? {};
       const thermal = motionFeedback.motion ?? motionFeedback;
       let feedback = raceFeedback.update({
@@ -2129,81 +1846,7 @@ export async function createGame({
           reducedMotion: settings.reducedMotion,
           mode,
         });
-      if (mode === 'inspection') {
-        if (inspectionPreview.autoRotate && !settings.reducedMotion)
-          inspectionTime += dt;
-        const subject =
-          inspectionTab === 'rivals' ? rivalPreview?.group : ship.group;
-        subject?.position.set(0, 0.15, 0);
-        subject?.rotation.set(0, inspectionTime * 0.12, 0);
-        if (inspectionTab === 'fleet')
-          ship.update({
-            speed: inspectionPreview.driving ? 400 / 3.6 : 0,
-            boost: inspectionPreview.boost,
-            steer: 0,
-            time,
-            energy: 1,
-            reducedMotion: settings.reducedMotion,
-          });
-        else
-          rivalPreview?.update({
-            speed: inspectionPreview.driving ? 400 / 3.6 : 0,
-            boost: inspectionPreview.boost,
-            time,
-            energy: 1,
-            quality: settings.quality,
-            reducedMotion: settings.reducedMotion,
-          });
-        camera.position.setFromSphericalCoords(
-          17.4,
-          Math.PI / 2 - inspectionPreview.elevation,
-          Math.atan2(10.4, 12.5),
-        );
-        camera.up.set(0, 1, 0);
-        camera.fov = 39;
-        camera.aspect = innerWidth / innerHeight;
-        const size = `${innerWidth}x${innerHeight}`;
-        if (inspectionLayout?.size !== size)
-          inspectionLayout = { size, viewport: ui.inspectionViewport() };
-        const viewport = inspectionLayout.viewport;
-        const target = new T.Vector3(0, viewport ? 0.7 : 0.3, 0);
-        if (viewport) {
-          // Fit the craft's swept turntable envelope into the reserved stage.
-          // Independent horizontal/vertical extents keep short phones useful.
-          camera.position.normalize();
-          const sinPitch = camera.position.y;
-          const cosPitch = Math.hypot(camera.position.x, camera.position.z);
-          const depth =
-            inspectionExtent.radial * cosPitch +
-            inspectionExtent.vertical * sinPitch;
-          const height =
-            inspectionExtent.radial * sinPitch +
-            inspectionExtent.vertical * cosPitch;
-          const projection =
-            innerHeight / Math.tan(T.MathUtils.degToRad(camera.fov / 2));
-          const distance =
-            depth +
-            1.08 *
-              projection *
-              Math.max(
-                inspectionExtent.radial / viewport.width,
-                height / viewport.height,
-              );
-          camera.position.multiplyScalar(distance).add(target);
-        }
-        camera.setViewOffset(
-          innerWidth,
-          innerHeight,
-          viewport
-            ? innerWidth / 2 - (viewport.left + viewport.width / 2)
-            : -innerWidth * 0.15,
-          viewport ? innerHeight / 2 - (viewport.top + viewport.height / 2) : 0,
-          innerWidth,
-          innerHeight,
-        );
-        camera.lookAt(target);
-        camera.updateProjectionMatrix();
-      } else {
+      {
         camera.clearViewOffset();
         const worldPose = pose(s, alpha, feedback);
         const reviewing = mode === 'overview' || (blockout && mode === 'title');
@@ -2360,14 +2003,7 @@ export async function createGame({
       );
       world.update(frame);
       finishMarker?.update();
-      if (mode === 'inspection')
-        inspectionStage.render(() =>
-          inspectionPipeline.render({
-            heat: !settings.reducedMotion,
-            quality: settings.quality,
-          }),
-        );
-      else view.render(now);
+      view.render(now);
       ui.updateDevTools(now, renderer.info.render);
       world.afterRender(frame);
       for (const event of view.drainStormEvents()) audio.event(event);
@@ -2639,7 +2275,6 @@ export async function createGame({
                 track.scenarios?.[name] ||
                 {};
               Object.assign(state, source);
-              if (name === 'inspection') setCamera('inspection');
               if (name === 'impact') {
                 state.lateral = -track.width / 2 + 2.3;
                 state.speed = 85;
@@ -2705,7 +2340,6 @@ export async function createGame({
         input.setEnabled(true);
         if (mode === 'results') showResults();
         else {
-          if (mode === 'inspection') exitInspection(false);
           if (mode === 'fly') leaveFly();
           pause();
           input.clear();
@@ -2738,8 +2372,14 @@ export async function createGame({
         saveSettings(next);
       },
       clearInput: () => input.clear(),
-      inspect: (options) => setCamera('inspection', options),
       selectShip,
+      ...(!import.meta.env?.VN_DESKTOP
+        ? {
+            getPlaytestCases: () =>
+              playtestCases.map(({ id, label }) => ({ id, label })),
+            selectPlaytestCase,
+          }
+        : {}),
       restartRace: retrySession,
       ...(!import.meta.env?.VN_DESKTOP
         ? {
@@ -2747,8 +2387,6 @@ export async function createGame({
             getScene: () => ({ scene, camera, renderer }),
             restart: () => (playtest ? repeatPlaytest() : restart()),
             resume,
-            selectInspectionTab,
-            inspectRival,
             home,
             getReplay() {
               if (timeTrial)
@@ -2839,7 +2477,6 @@ export async function createGame({
                 race,
                 mode,
                 sessionActive,
-                inspectionReturnMode,
                 finishAt,
                 cupClassifier,
                 cupFinish,
@@ -2912,7 +2549,6 @@ export async function createGame({
                   race,
                   mode,
                   sessionActive,
-                  inspectionReturnMode,
                   finishAt,
                   cupClassifier,
                   cupFinish,
@@ -2957,11 +2593,9 @@ export async function createGame({
                 audio.resetEnvironment();
                 inputLog.splice(0, inputLog.length, ...retained.inputs);
                 events.splice(0, events.length, ...retained.events);
-                if (mode === 'inspection') inspectionScene.add(ship.group);
-                else sceneShip();
+                sceneShip();
                 rig.reset();
                 ui.setMode(mode);
-                ui.setInspectionSession(mode === 'inspection' && sessionActive);
                 ui.setResultsAvailable(Boolean(lastResults));
                 ui.setFinish(
                   mode === 'racing' && finishAt !== null && !resultsDismissed
@@ -3037,13 +2671,6 @@ export async function createGame({
               ? countdown.snapshot()
               : null,
           lastResults,
-          inspection: {
-            preview: { ...inspectionPreview },
-            tab: inspectionTab,
-            rivalId: rivalPreview?.specification.id ?? null,
-            loading: rivalLoading,
-            bounds: rivalPreview?.group.userData.bounds ?? null,
-          },
           ship: {
             id: ship.selected.id,
             loading: shipLoading,
@@ -3151,7 +2778,6 @@ export async function createGame({
     });
     await checkpoint('Warming graphics');
     await view.warm();
-    if (!mobileGraphics()) await graphics.compile(inspectionScene, camera);
     await checkpoint('Ready');
     host.querySelector('#loading')?.remove();
     api.ready = true;

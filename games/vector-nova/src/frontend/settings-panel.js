@@ -39,7 +39,7 @@ export function settingsView(
         ...(!freestyle ? [['Q / E / Z / X', 'Equipment 1 / 2 / 3 / 4']] : []),
         ['Space', freestyle ? 'Airbrake / rotation brake' : 'Airbrake'],
         ['Esc', 'Pause / resume'],
-        ['R', 'Reset / retry'],
+        ['R', 'Recover / retry'],
         ['C', 'Change camera'],
       ],
     ],

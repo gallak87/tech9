@@ -305,7 +305,7 @@ export async function createUmbraEnvironment({ track, settings = {} }) {
     group.add(accretion.group);
     // Motivate cooler navigation shelves and warm ring-facing areas without
     // washing every ruin with the same ambient light.
-    for (const [s, color, intensity, height] of [
+    const routeFixtures = [
       [100, '#c5d5df', 14500, 65],
       [1050, '#b5cfdf', 11500, 65],
       [1750, '#ffd2a0', 11000, 95],
@@ -314,16 +314,26 @@ export async function createUmbraEnvironment({ track, settings = {} }) {
       [4500, '#b8cbd9', 14500, 55],
       [5100, '#becfd9', 10000, 45],
       [500, '#deb78b', 13000, 45],
-    ]) {
+    ].map(([s, color, intensity, height]) => {
       const frame = track.sample(s);
-      const light = new T.PointLight(color, intensity, 310, 2);
-      light.position
-        .copy(frame.position)
-        .addScaledVector(frame.up, height)
-        .addScaledVector(frame.right, 38);
+      return {
+        color,
+        intensity,
+        position: frame.position
+          .clone()
+          .addScaledVector(frame.up, height)
+          .addScaledVector(frame.right, 38),
+      };
+    });
+    // Keep only nearby authored lights in the shader. Their full fixed pool is
+    // warmed once; hidden districts do not add twelve point-light evaluations
+    // to every visible mineral/metal fragment.
+    const routeLights = Array.from({ length: 4 }, () => {
+      const light = new T.PointLight('#c5d5df', 0, 310, 2);
       group.add(light);
-    }
-    // Four bounded local lights sit at real inset service lamps. Broad route
+      return light;
+    });
+    // Two bounded local lights sit at real inset service lamps. Broad route
     // lights supply navigation; these warm only nearby stone/repair cavities.
     const warmPositions = layout
       .filter((entry) => entry.role !== 'distant')
@@ -332,7 +342,7 @@ export async function createUmbraEnvironment({ track, settings = {} }) {
           point.clone().applyMatrix4(entry.matrix),
         ),
       );
-    const serviceLights = Array.from({ length: 4 }, () => {
+    const serviceLights = Array.from({ length: 2 }, () => {
       const light = new T.PointLight('#ffbf81', 0, 45, 2);
       group.add(light);
       return light;
@@ -369,6 +379,20 @@ export async function createUmbraEnvironment({ track, settings = {} }) {
           reset: frame.reset,
         });
         if (frame.camera) {
+          const fixtures = routeFixtures
+            .map((fixture) => ({
+              ...fixture,
+              distance: fixture.position.distanceToSquared(
+                frame.camera.position,
+              ),
+            }))
+            .sort((a, b) => a.distance - b.distance);
+          routeLights.forEach((light, index) => {
+            const fixture = fixtures[index];
+            light.position.copy(fixture.position);
+            light.color.set(fixture.color);
+            light.intensity = fixture.intensity;
+          });
           const nearby = warmPositions
             .map((point) => ({
               point,
@@ -396,7 +420,8 @@ export async function createUmbraEnvironment({ track, settings = {} }) {
         construction.dispose();
         accretion.dispose();
         group.traverse((node) => {
-          if (node.isInstancedMesh || node.isLight) node.dispose();
+          if (node.isInstancedMesh || node.isBatchedMesh || node.isLight)
+            node.dispose();
         });
         assets.dispose();
         group.clear();

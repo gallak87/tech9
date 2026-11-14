@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { seedVerificationCareer } from './verification-career.mjs';
 import { mkdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import {
@@ -16,6 +17,8 @@ const context = await browser.newContext({
   viewport: { width: 1440, height: 900 },
   deviceScaleFactor: 1,
 });
+await seedVerificationCareer(context);
+await context.routeWebSocket('**/*', (socket) => socket.close());
 const page = await context.newPage();
 const errors = collectPageErrors(page);
 await context.addInitScript(() =>
@@ -115,12 +118,17 @@ const triggerCount = (state) =>
   state.environment.audio.landing?.triggerCount ?? 0;
 
 try {
-  const url = new URL('/?level=saffron&capture=1&intro=0&music=0', base);
+  const url = new URL('/?level=saffron&intro=0&music=0', base);
   await page.goto(url.href);
-  await page.waitForFunction(() => window.__VN?.ready, null, {
-    timeout: 120000,
-  });
-  await page.locator('#start').click();
+  await page.locator('[data-action="launch"]').click();
+  await page.waitForFunction(
+    () =>
+      window.__VN?.ready && window.__VN_FRONTEND?.getState().screen === 'race',
+    null,
+    {
+      timeout: 120000,
+    },
+  );
   await step(0);
   await page.waitForFunction(
     () => window.__VN.getSnapshot().environment.audio.landing !== null,

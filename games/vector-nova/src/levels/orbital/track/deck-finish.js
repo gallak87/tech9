@@ -1,4 +1,7 @@
-import { replaceShader } from '../../../renderer/shader-patch.js';
+import {
+  appendShaderPatch,
+  replaceShader,
+} from '../../../renderer/shader-patch.js';
 import * as THREE from 'three';
 import { SharedKTX2Loader } from '../../../assets/ktx2-loader.js';
 import { assetURL } from '../../../assets/url.js';
@@ -79,10 +82,7 @@ export function createDeckFinish(renderer) {
       // Stable small finish differences between installed cassettes. Use native
       // UVs rather than repeated texture coordinates, so variation does not tile.
       // Keep the neon shader on its clone; only wrap its existing compile hook.
-      const compile = material.onBeforeCompile;
-      const cacheKey = material.customProgramCacheKey();
-      material.onBeforeCompile = (shader, view) => {
-        compile.call(material, shader, view);
+      appendShaderPatch(material, '-asterion-cassette-batches-v2', (shader) => {
         shader.vertexShader = replaceShader(
           `varying vec2 cassetteUv;\n${shader.vertexShader}`,
           '#include <uv_vertex>',
@@ -106,9 +106,7 @@ export function createDeckFinish(renderer) {
           `#include <roughnessmap_fragment>
             roughnessFactor = clamp(roughnessFactor + .12 * (cassetteBatch - .5), .15, 1.0);`,
         );
-      };
-      material.customProgramCacheKey = () =>
-        `${cacheKey}-asterion-cassette-batches-v2`;
+      });
       materials.add(material);
       apply(material);
     },

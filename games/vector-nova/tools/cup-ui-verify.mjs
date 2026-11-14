@@ -254,6 +254,37 @@ await (async () => {
       await page.goto(base + '?intro=0&music=0');
       await resumeFinal();
       await page.locator('#home').click();
+      assert.equal(
+        (await state()).screen,
+        'home',
+        'cup Back returns to race setup',
+      );
+      const retained = await page.evaluate(() => window.__VN.getSnapshot());
+      for (const action of [
+        'career',
+        'garage-tab',
+        'settings',
+        'race-tab',
+        'records',
+      ]) {
+        await page
+          .locator(
+            `.menu-top-tabs [data-action="${action}"], .menu-extras [data-action="${action}"]`,
+          )
+          .first()
+          .click();
+        assert.equal(
+          await page.locator('[data-action="resume-session"]').count(),
+          1,
+          `${action} retains a Resume action`,
+        );
+        assert.equal(
+          await page.evaluate(() => window.__VN.getSnapshot().tick),
+          retained.tick,
+          `${action} preserves simulation ticks`,
+        );
+      }
+      await page.locator('.menu-top-tabs [data-action="race-tab"]').click();
       await settingsRoundTrip('Cup Race');
       await settingsRoundTrip('Cup Race', true);
       await page.locator('[data-action="cup-resume"]').click();

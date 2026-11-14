@@ -1,6 +1,7 @@
 import * as T from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { assetURL } from '../../../assets/url.js';
+import { batchStaticWorld } from '../../../renderer/static-batches.js';
 import { createAwakening } from './awakening.js';
 import { finishWorldspireMineral } from './mineral-materials.js';
 import { createWorldspireClouds } from './clouds.js';
@@ -11,8 +12,11 @@ function release(group, borrowed = new Set()) {
     ms = new Set(),
     ts = new Set();
   group.traverse((o) => {
-    if (o.isInstancedMesh) o.dispose();
-    if (o.geometry) gs.add(o.geometry);
+    if (o.isBatchedMesh) o.dispose();
+    else {
+      if (o.isInstancedMesh) o.dispose();
+      if (o.geometry) gs.add(o.geometry);
+    }
     for (const m of [o.material].flat().filter(Boolean)) {
       ms.add(m);
       for (const v of Object.values(m))
@@ -95,6 +99,7 @@ export async function createWorldspireEnvironment({
         finishWorldspireMineral(m, substrate, texture);
     }
   });
+  batchStaticWorld(root, { cellSize: 640 });
   group.add(root);
   const awakening = createAwakening(track, texture);
   group.add(awakening.group);

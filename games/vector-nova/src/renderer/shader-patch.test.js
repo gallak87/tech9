@@ -3,12 +3,63 @@ import assert from 'node:assert/strict';
 import * as T from 'three';
 import {
   assertShaderAnchor,
+  appendShaderPatch,
   replaceShader,
   replaceShaderAll,
 } from './shader-patch.js';
 import createZephyr from '../levels/zephyr/index.js';
 import { createZephyrWater } from '../levels/zephyr/environment/water.js';
 import { createNacreMaterials } from '../levels/nacre/environment/materials.js';
+
+test('layered patches preserve order, receiver, renderer and the original program identity', () => {
+  const material = new T.MeshStandardMaterial();
+  const renderer = {};
+  const calls = [];
+  material.onBeforeCompile = function (shader, view) {
+    assert.equal(this, material);
+    assert.equal(view, renderer);
+    calls.push('base');
+    shader.fragmentShader = 'base';
+  };
+  const baseKey = material.customProgramCacheKey();
+  appendShaderPatch(material, ':first-v1', function (shader, view) {
+    assert.equal(this, material);
+    assert.equal(view, renderer);
+    calls.push('first');
+    shader.fragmentShader = replaceShader(
+      shader.fragmentShader,
+      'base',
+      'first',
+    );
+  });
+  appendShaderPatch(material, ':second-v2', (shader) => {
+    calls.push('second');
+    shader.fragmentShader = replaceShader(
+      shader.fragmentShader,
+      'first',
+      'second',
+    );
+  });
+  const key = `${baseKey}:first-v1:second-v2`;
+  assert.equal(material.customProgramCacheKey(), key);
+  const shader = {};
+  material.onBeforeCompile(shader, renderer);
+  assert.deepEqual(calls, ['base', 'first', 'second']);
+  assert.equal(shader.fragmentShader, 'second');
+  assert.equal(material.customProgramCacheKey(), key);
+  assert.equal(
+    material.version,
+    2,
+    'adding layers invalidates an already compiled program',
+  );
+  const variant = new T.MeshStandardMaterial();
+  variant.onBeforeCompile = material.onBeforeCompile;
+  variant.customProgramCacheKey = () => baseKey;
+  appendShaderPatch(variant, ':first-v2', () => {});
+  assert.notEqual(variant.customProgramCacheKey(), key);
+  material.dispose();
+  variant.dispose();
+});
 
 function program(material) {
   const kind = {

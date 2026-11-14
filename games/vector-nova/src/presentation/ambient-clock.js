@@ -1,6 +1,6 @@
-// Only the ocean runs before the start. Racing effects, including the leviathan,
-// keep their original simulation clock. Carry pre-race phase into green smoothly.
-export function createNacreOceanClock() {
+// Ambient layers can run before the start while racing effects keep their
+// simulation clock. Carry the pre-race phase into green smoothly.
+export function createAmbientClock() {
   let previous = null;
   let offset = 0;
   let value = 0;

@@ -111,7 +111,7 @@
   font-weight: 400;
 }
 .menu-layout button.menu-selection {
-  padding-inline: var(--selection-inline-padding);
+  padding-inline: var(--menu-selection-padding);
   border-left: 2px solid transparent;
 }
 .menu-layout button.menu-selection:is(:hover, :focus-visible) {
@@ -254,7 +254,7 @@
   width: min(100%, 370px);
   margin-bottom: 16px;
 }
-:is(.menu-layout, .settings-page) .session-return button {
+:where(#app) .session-return button {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -266,11 +266,11 @@
   color: #f3d783;
   text-align: left;
 }
-:is(.menu-layout, .settings-page) .session-return button:hover {
+:where(#app) .session-return button:hover {
   border-color: #d6b65c;
   background: #d6b65c20;
 }
-:is(.menu-layout, .settings-page) .session-return button:focus-visible {
+:where(#app) .session-return button:focus-visible {
   outline: 2px solid #f3d783;
   outline-offset: 3px;
 }

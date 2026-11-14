@@ -1,4 +1,5 @@
 import { replaceShader } from '../../../renderer/shader-patch.js';
+import { leaseUmbraSurfaceNoise } from './surface-noise.js';
 // Member-space surfaces and CPU-baked contact shading stay attached during
 // stretching. Mineral structure, exposed breaks and machined metal have distinct
 // response; fine detail fades with screen footprint instead of sparkling.
@@ -8,10 +9,12 @@ export function finishUmbraMaterial(
   surfaceTexture = null,
   bakedLight = false,
 ) {
+  const noiseTexture = leaseUmbraSurfaceNoise(material);
   if (surfaceTexture) material.map = surfaceTexture;
   const stone = ['stone', 'fresh', 'aged'].includes(kind);
   const metal = ['metal', 'plate'].includes(kind);
   material.onBeforeCompile = (shader) => {
+    shader.uniforms.umbraNoiseVolume = { value: noiseTexture };
     if (surfaceTexture) shader.uniforms.umbraAtlas = { value: surfaceTexture };
     shader.vertexShader = replaceShader(
       replaceShader(
@@ -24,11 +27,16 @@ export function finishUmbraMaterial(
         ${bakedLight ? 'umbraLight=_umbralight;' : ''}
         umbraRaw=position; umbraMember=position; umbraSurface=position; umbraNormal=normal; umbraDeck=position.xz; umbraSeed=0.;
         ${kind === 'deck' ? 'umbraDeck=uv; umbraPanel=umbraCassette;' : ''}
-        #ifdef USE_INSTANCING
-          umbraSeed=dot(instanceMatrix[3].xyz,vec3(.013,.021,.037));
-          umbraMember=position*vec3(length(instanceMatrix[0].xyz),length(instanceMatrix[1].xyz),length(instanceMatrix[2].xyz));
-          umbraSurface=mat3(instanceMatrix)*position;
-          mat3 umBasis=mat3(instanceMatrix);
+        #if defined(USE_INSTANCING) || defined(USE_BATCHING)
+          #ifdef USE_BATCHING
+            mat4 umTransform=batchingMatrix;
+          #else
+            mat4 umTransform=instanceMatrix;
+          #endif
+          umbraSeed=dot(umTransform[3].xyz,vec3(.013,.021,.037));
+          umbraMember=position*vec3(length(umTransform[0].xyz),length(umTransform[1].xyz),length(umTransform[2].xyz));
+          umbraSurface=mat3(umTransform)*position;
+          mat3 umBasis=mat3(umTransform);
           umbraNormal=normalize(umBasis*(normal/vec3(dot(umBasis[0],umBasis[0]),dot(umBasis[1],umBasis[1]),dot(umBasis[2],umBasis[2]))));
           ${kind === 'plate' ? 'umbraNormal=normalize(normal/vec3(length(umBasis[0]),length(umBasis[1]),length(umBasis[2])));' : ''}
         #endif`,
@@ -61,8 +69,9 @@ export function finishUmbraMaterial(
       }`
           : ''
       }
+      uniform sampler3D umbraNoiseVolume;
       float umHash(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
-      float umNoise(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(mix(umHash(i),umHash(i+vec3(1,0,0)),f.x),mix(umHash(i+vec3(0,1,0)),umHash(i+vec3(1,1,0)),f.x),f.y),mix(mix(umHash(i+vec3(0,0,1)),umHash(i+vec3(1,0,1)),f.x),mix(umHash(i+vec3(0,1,1)),umHash(i+vec3(1,1,1)),f.x),f.y),f.z);}
+      float umNoise(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return texture(umbraNoiseVolume,(i+f+.5)/64.).r;}
       float umFbm(vec3 p){return umNoise(p)*.64+umNoise(p*2.17)*.25+umNoise(p*4.31)*.11;}
       vec3 umBump(vec3 n,float h){vec3 dx=dFdx(-vViewPosition),dy=dFdy(-vViewPosition),cx=cross(dy,n),cy=cross(n,dx);float det=dot(dx,cx);return normalize(n-sign(det)*(dFdx(h)*cx+dFdy(h)*cy)/max(abs(det),.00001));}`,
               ),
@@ -179,7 +188,7 @@ export function finishUmbraMaterial(
     );
   };
   material.customProgramCacheKey = () =>
-    `${kind === 'deck' ? 'umbra-deck-sheen-v2' : 'umbra-surface-v7'}-${kind}-${!!surfaceTexture}-${bakedLight}`;
+    `${kind === 'deck' ? 'umbra-deck-sheen-v3' : 'umbra-surface-v8'}-${kind}-${!!surfaceTexture}-${bakedLight}`;
   return material;
 }
 

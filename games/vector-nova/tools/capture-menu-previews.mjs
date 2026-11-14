@@ -69,7 +69,7 @@ try {
       const page = await context.newPage();
       await page.goto(
         new URL(
-          `?level=${route.id}&capture=1&music=0${levelAvailable(route.id) ? '' : '&dev=1'}`,
+          `?level=${route.id}&artPass=1&music=0${levelAvailable(route.id) ? '' : '&dev=1'}`,
           base,
         ).href,
       );
@@ -83,7 +83,7 @@ try {
       );
       if (failure) throw new Error(`${route.id}: ${failure}`);
       await page.waitForFunction(
-        () => window.__VN_FRONTEND.getState().screen === 'review',
+        () => window.__VN?.ready && window.__VN.getSnapshot().mode === 'fly',
       );
       const data = await page.evaluate(async (id) => {
         const game = window.__VN;
@@ -92,7 +92,7 @@ try {
         // Free camera already hides the player, rivals and driving effects.
         // Pull back from the grid and turn into the circuit, rather than taking
         // the title camera's close-up of the starting ship.
-        game.fly();
+        if (game.getSnapshot().mode !== 'fly') game.fly();
         const start = track.sample(0);
         const center = start.position.clone().set(0, 0, 0);
         const samples = 180;

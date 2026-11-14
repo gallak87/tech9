@@ -19,3 +19,18 @@ export function replaceShaderAll(source, anchor, replacement) {
   assertShaderAnchor(source, anchor);
   return source.replaceAll(anchor, replacement);
 }
+
+/** Append ordered finish layers while retaining the material's base program
+ * identity. Read its key before replacing the hook: Three's default key is the
+ * hook's source, so looking it up later would identify the wrapper instead. */
+export function appendShaderPatch(material, suffix, ...patches) {
+  const compile = material.onBeforeCompile;
+  const baseKey = material.customProgramCacheKey();
+  material.onBeforeCompile = function (shader, renderer) {
+    compile.call(this, shader, renderer);
+    for (const patch of patches) patch.call(this, shader, renderer);
+  };
+  material.customProgramCacheKey = () => baseKey + suffix;
+  material.needsUpdate = true;
+  return material;
+}

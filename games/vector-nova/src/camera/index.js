@@ -11,6 +11,7 @@ export function createCameraRig(
     chaseDistance = 12.5,
     lookAhead = 35,
     safeFrame,
+    safeFrameInset = 0,
     jumpPreview,
     flightViewScale = 1,
     flightChaseBlend = 0,
@@ -19,6 +20,21 @@ export function createCameraRig(
 ) {
   const fitSubject =
     safeFrame === undefined ? null : createSafeFrame(safeFrame, subjectBounds);
+  // An opted-in soft aim boundary starts the damped correction before the
+  // unchanged hard visibility boundary needs an immediate final adjustment.
+  const fitGoal =
+    !fitSubject || !safeFrameInset
+      ? fitSubject
+      : createSafeFrame((aspect) => {
+          const frame =
+            typeof safeFrame === 'function' ? safeFrame(aspect) : safeFrame;
+          return {
+            left: frame.left + safeFrameInset,
+            right: frame.right - safeFrameInset,
+            bottom: frame.bottom + safeFrameInset,
+            top: frame.top - safeFrameInset,
+          };
+        }, subjectBounds);
   let initialized = false;
   const previousAnchor = new T.Vector3();
   const previousFrame = new T.Quaternion();
@@ -369,7 +385,7 @@ export function createCameraRig(
         // then oscillate with frame time, even when the ship is stationary.
         currentRotation.copy(camera.quaternion);
         camera.quaternion.copy(desiredRotation);
-        fitSubject(camera, subject);
+        fitGoal(camera, subject);
         desiredRotation.copy(camera.quaternion);
         camera.quaternion.copy(currentRotation);
       }

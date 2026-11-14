@@ -28,6 +28,10 @@ export default function createLevel({ shape = false } = {}) {
       bloomStrength: 0.1,
       bloomThreshold: 1.6,
       reflectionFar: 2600,
+      // Retained member-contact shading supplies recess depth without another
+      // full architecture normal pass. Bound the nearby dynamic shadow field.
+      ambientOcclusion: { enabled: false },
+      sunShadowSize: 2048,
     },
     camera: {
       preserveFlightView: true,

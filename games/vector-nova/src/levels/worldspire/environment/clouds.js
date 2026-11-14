@@ -1,6 +1,6 @@
 import * as T from 'three';
 import { Pass, FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
-import { createNacreOceanClock } from '../../nacre/environment/ocean-clock.js';
+import { createAmbientClock } from '../../../presentation/ambient-clock.js';
 
 const ROOT_BODY_THRESHOLD = 0.32;
 const ROOT_LIGHT_WRAP = 0.08,
@@ -589,7 +589,7 @@ class WorldspireCloudPass extends Pass {
     this.settings = settings;
     this.uniforms = uniforms;
     this.width = this.height = 1;
-    this.scale = settings?.quality === 'low' ? 0.35 : 0.5;
+    this.scale = settings?.quality === 'low' ? 0.25 : 0.4;
     this.target = new T.WebGLRenderTarget(1, 1, {
       count: 2,
       type: T.HalfFloatType,
@@ -774,10 +774,10 @@ export function createWorldspireClouds({ track, camera, settings = {} }) {
         new T.Vector3(1.3, 0.94, 0.62),
       ],
     },
-    steps: { value: settings.quality === 'low' ? 16 : 24 },
+    steps: { value: settings.quality === 'low' ? 12 : 24 },
   };
   const pass = new WorldspireCloudPass({ camera, settings, uniforms });
-  const clock = createNacreOceanClock();
+  const clock = createAmbientClock();
   let disposed = false,
     lastClock = null,
     presentationTime = 0,
@@ -793,8 +793,8 @@ export function createWorldspireClouds({ track, camera, settings = {} }) {
       if (disposed) return;
       if (frame.camera) pass.camera = frame.camera;
       const quality = frame.settings?.quality ?? settings.quality;
-      const scale = quality === 'low' ? 0.35 : 0.5;
-      uniforms.steps.value = quality === 'low' ? 16 : 24;
+      const scale = quality === 'low' ? 0.25 : 0.4;
+      uniforms.steps.value = quality === 'low' ? 12 : 24;
       if (scale !== pass.scale) {
         pass.scale = scale;
         pass.setSize(pass.width, pass.height);

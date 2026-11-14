@@ -34,6 +34,9 @@ export default function createLevel({ shape = false } = {}) {
       reflectionFar: 22000,
       fillHeight: 70,
       catapultBlurScale: 0.12,
+      // The retained city already carries contact/sky visibility shading.
+      // Avoid drawing its complete districts again for screen-space normals.
+      ambientOcclusion: { enabled: false },
     },
     camera: {
       preserveFlightView: true,

@@ -1,4 +1,8 @@
 import * as T from 'three';
+import {
+  configureSurfaceTexture,
+  createSurfaceTextureLoader,
+} from '../../../assets/surface-texture.js';
 import { FOREST_MATERIAL_ASSETS } from '@worldkit/environment/forest';
 
 const samplerProperties = {
@@ -48,14 +52,10 @@ export function createNacreMineralSurface({ loadTexture } = {}) {
           throw new Error('Nacre mineral inputs require two distinct textures');
         owned.add(texture);
         texture.name = `Nacre / shared Worldkit mineral ${kind}`;
-        texture.colorSpace =
-          kind === 'color' ? T.SRGBColorSpace : T.NoColorSpace;
-        texture.wrapS = texture.wrapT = T.RepeatWrapping;
-        texture.minFilter = T.LinearMipmapLinearFilter;
-        texture.magFilter = T.LinearFilter;
-        texture.generateMipmaps = true;
-        texture.anisotropy = 4;
-        texture.needsUpdate = true;
+        configureSurfaceTexture(texture, {
+          colorSpace: kind === 'color' ? T.SRGBColorSpace : T.NoColorSpace,
+          mipmaps: true,
+        });
         publish(kind, texture);
         return texture;
       });
@@ -71,8 +71,7 @@ export function createNacreMineralSurface({ loadTexture } = {}) {
     get ready() {
       if (ready) return ready;
       if (disposed || !canLoad) return (ready = Promise.resolve(false));
-      const textureLoader = loadTexture ? null : new T.TextureLoader();
-      const loader = loadTexture ?? ((url) => textureLoader.loadAsync(url));
+      const loader = createSurfaceTextureLoader({ loadTexture });
       ready = Promise.all([
         load('color', FOREST_MATERIAL_ASSETS.rockColor, loader),
         load('normal', FOREST_MATERIAL_ASSETS.rockNormal, loader),

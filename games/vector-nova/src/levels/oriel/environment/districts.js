@@ -7,6 +7,7 @@ import {
   livingForestLeafURL,
 } from '@worldkit/environment/living-forest';
 import { createCivicKit } from './civic-kit.js';
+import { boroughAt } from './land-use.js';
 import { orielIslandEdge, orielIslandWeight } from '../hazards.js';
 import {
   shellPoint,
@@ -18,33 +19,9 @@ import {
   finishHabitatMaterial,
   randomSource,
   TAU,
-  townAt,
   hubGateDistances,
   civicExcluded,
-  LAKE_BASINS,
 } from './habitat.js';
-
-function lakeFacingYaw(row, col) {
-  // Neighbours share an orientation toward the reservoir their streets serve.
-  // Cardinal fronts retain the existing parcel grid and its pedestrian paths.
-  const angle = ((Math.floor(col / 3) * 3 + 1) / 48) * TAU;
-  const z = -2200 + (Math.floor(row / 3) * 3 + 1) * 130;
-  let nearest = Infinity;
-  let yaw = 0;
-  for (const [lakeAngle, lakeZ] of LAKE_BASINS) {
-    const across =
-      Math.atan2(Math.sin(lakeAngle - angle), Math.cos(lakeAngle - angle)) *
-      1000;
-    const along = lakeZ - z;
-    const distance = across * across + along * along;
-    if (distance < nearest) {
-      nearest = distance;
-      yaw =
-        Math.round(Math.atan2(across, along) / (Math.PI / 2)) * (Math.PI / 2);
-    }
-  }
-  return yaw;
-}
 
 function batchParts(parts, placements, name, group, own, shadows = false) {
   if (!placements.length) return;
@@ -335,17 +312,16 @@ export async function createHabitatDistricts(
     }
   let placed = 0;
   const parcels = [];
+  const occupiedBoroughs = new Set();
   for (let row = 0; row < 35; row++) {
     const z = -2200 + row * 130;
     for (let col = 0; col < 48; col++) {
-      const angle = (col / 48) * TAU,
-        axial = z;
-      if (
-        lakeAt(angle, axial) < 1.13 ||
-        groundSlope(angle, axial) > 0.065 ||
-        townAt(angle, axial) < 0.13 ||
-        random() > 0.92
-      )
+      const nominalAngle = (col / 48) * TAU;
+      const borough = boroughAt(nominalAngle, z);
+      if (!borough) continue;
+      const angle = nominalAngle + (random() - 0.5) * 0.036;
+      const axial = z + (random() - 0.5) * 36;
+      if (lakeAt(angle, axial) < 1.13 || groundSlope(angle, axial) > 0.065)
         continue;
       const height = terrainHeight(angle, axial) - 3.5;
       const p = shellPoint(angle, axial, height + 30);
@@ -357,7 +333,12 @@ export async function createHabitatDistricts(
         continue;
       const near = nearRoute(p),
         r = random();
-      const base = r < 0.08 ? 'tower' : r < 0.55 ? 'waterfront' : 'gardenCourt';
+      const base =
+        borough.distance < 0.32 && r < 0.25
+          ? 'tower'
+          : borough.id % 3 === 0 && r < 0.68
+            ? 'waterfront'
+            : 'gardenCourt';
       const scale =
         base === 'tower'
           ? 0.9 + random() * 0.2
@@ -365,15 +346,19 @@ export async function createHabitatDistricts(
             ? 0.72 + random() * 0.12
             : 0.95 + random() * 0.1;
       const category = base + (near ? '' : 'Far');
-      const yaw = lakeFacingYaw(row, col);
+      // Unequal founded wings address their shared civic court, rather than
+      // every parcel repeating the same frontage across a long town row.
+      const yaw = borough.yaw + (row % 2 ? Math.PI : 0);
       const matrix = shellMatrix(angle, axial, height, yaw, scale);
       add(category, matrix, angle, near);
       placed++;
+      occupiedBoroughs.add(borough.id);
       parcels.push({
         row,
         col,
         angle,
         z: axial,
+        borough: borough.id,
         height: terrainHeight(angle, axial),
       });
       if (base !== 'tower' && random() < 0.68) {
@@ -478,6 +463,7 @@ export async function createHabitatDistricts(
     );
   }
   group.userData.civicCount = placed;
+  group.userData.boroughCount = occupiedBoroughs.size;
   group.userData.neighborhoodCount = neighborhoods.length;
   group.userData.usesWorldkit =
     '@worldkit/environment/living-forest; low windward canopy and canonical bark/foliage textures';

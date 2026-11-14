@@ -103,6 +103,7 @@ export async function createGame({
   onCupRetry,
   onCircuit,
   contentAccess = { complete: false },
+  customCourse = null,
 } = {}) {
   if (import.meta.env?.VN_DESKTOP)
     parameters = new URLSearchParams({
@@ -170,15 +171,20 @@ export async function createGame({
         !import.meta.env?.VN_DESKTOP &&
         ['1', '2'].includes(parameters.get('dev')),
     };
-    if (!levelAvailable(requestedLevel, access))
-      throw new Error(lockedLevelMessage(requestedLevel, access));
-    const {
-      metadata,
-      definition,
-      shape: blockout,
-    } = await levelCatalog.load(requestedLevel, {
-      review: !import.meta.env?.VN_DESKTOP ? parameters.get('review') : null,
-    });
+    let loadedCourse;
+    if (customCourse) {
+      if (import.meta.env?.VN_EDITION !== 'demo') {
+        const { loadEditorCourse } = await import('../editor/course.js');
+        loadedCourse = loadEditorCourse(customCourse);
+      } else throw new Error('Track Workshop requires the full edition.');
+    } else {
+      if (!levelAvailable(requestedLevel, access))
+        throw new Error(lockedLevelMessage(requestedLevel, access));
+      loadedCourse = await levelCatalog.load(requestedLevel, {
+        review: !import.meta.env?.VN_DESKTOP ? parameters.get('review') : null,
+      });
+    }
+    const { metadata, definition, shape: blockout } = loadedCourse;
     const VERSION = definition.version;
     const freestyle = Boolean(definition.freestyle);
     let eventPresentation = null,

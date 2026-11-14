@@ -21,6 +21,16 @@
   align-items: flex-start;
   gap: 10px;
 }
+.music-player[hidden] {
+  display: none !important;
+}
+body[data-screen='editor'] .music-player.is-launcher-only {
+  top: var(--music-launcher-top, 76px);
+  right: 16px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100dvh - var(--music-launcher-top, 76px) - 16px);
+  overflow-y: auto;
+}
 .music-player .music-compact-toggle {
   display: none;
 }

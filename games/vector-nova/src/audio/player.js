@@ -34,6 +34,7 @@ export function createMusicPlayer(
   let shuffled = preferences.shuffle === true;
   let queue = musicTracks;
   let driving = false;
+  let launcherOnly = false;
   let returnFocus = null;
   const compact = matchMedia('(max-width: 760px)');
   const isCompact = () => compact.matches && (driving || !isMenuVisible());
@@ -273,6 +274,7 @@ export function createMusicPlayer(
     save();
   }
   function collapse(collapsed) {
+    root.hidden = launcherOnly && collapsed;
     root.classList.toggle('is-compact', isCompact());
     controls.hidden = collapsed;
     root.classList.toggle('is-collapsed', collapsed);
@@ -297,6 +299,7 @@ export function createMusicPlayer(
   function open(origin = document.activeElement) {
     if (driving && !isCompact()) return;
     if (origin && !root.contains(origin)) returnFocus = origin;
+    positionLauncherPanel();
     if (returnFocus?.getAttribute('aria-controls') === 'music-panel')
       returnFocus.setAttribute('aria-expanded', 'true');
     collapse(false);
@@ -304,6 +307,15 @@ export function createMusicPlayer(
     play.focus();
     save();
   }
+  function positionLauncherPanel() {
+    if (!launcherOnly) return;
+    const header = returnFocus?.closest?.('[data-editor-header]');
+    root.style.setProperty(
+      '--music-launcher-top',
+      `${Math.max(16, (header?.getBoundingClientRect().bottom ?? 68) + 8)}px`,
+    );
+  }
+  listen(window, 'resize', positionLauncherPanel);
   function close() {
     collapse(true);
     if (returnFocus?.getAttribute('aria-controls') === 'music-panel')
@@ -484,6 +496,13 @@ export function createMusicPlayer(
     open,
     close,
     togglePlayback,
+    setLauncherOnly(value) {
+      const next = !!value;
+      if (launcherOnly === next) return;
+      launcherOnly = next;
+      root.classList.toggle('is-launcher-only', launcherOnly);
+      close();
+    },
     configureNavigation({
       clearInput: nextClearInput,
       isMenuVisible: nextIsMenuVisible,

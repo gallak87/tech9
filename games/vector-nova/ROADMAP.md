@@ -4,6 +4,8 @@ Current direction updated on **2026-11-13**. Remaining work covers hardware vali
 
 ## Current baseline
 
+- The top-level Editor opens Nightweir Track Workshop with direct 3D road editing, blank/seeded Circuit or Downhill courses through 20 km, starter jumps and flight previews, seeded world presets, connected 90°/180°/270°/straight sections, pickup fill, automatic infrastructure, free-camera inspection, practice testing and independent track libraries. Freeform wave tools, additional biome kits, individual prop placement, custom race competition, branches, Steam Cloud and Workshop distribution remain separate scope.
+
 - Main has seventeen racing courses, four original championships plus the unlockable Encore Cup, four playable ships and a ten-racer field. Quick Race, Practice, continuous circuit Time Trials, sprint trials, saved bests and personal ghosts are implemented. Course details and shared rules live in [architecture](ARCHITECTURE.md) and the [level API](docs/LEVEL_API.md).
 - All 28 career rewards, six enhancement tracks, six equipped abilities, Quad Core, the live Garage, physical combat/contact and demo-to-full save transfer are implemented. The full collection now has 37 unlocks: those 28 items plus nine derived mode-course unlocks. Completing it opens the original Oriel, Ravel and Nomad Procession courses, Encore Cup and the Shatterline completion cinematic. Browser developer modes require `showcase=1` to preview that cinematic. The manual title screen, three named career slots, top-level navigation and shared audio controls are described in [entry and careers](docs/intro-and-profiles.md).
 - Eight songs, local music/SFX generation, browser publishing and offline Electron demo/full packages exist. Startup selects Blue Hour and honors the saved startup-pause preference. See [audio](docs/audio/README.md), [desktop builds](docs/steam/desktop.md) and the [release checklist](docs/steam/release.md).
@@ -48,10 +50,12 @@ Remaining audit work; original item numbers are retained. Preserve approved hand
 
 ## Later
 
+See the [track editor roadmap](track-editor-roadmap.md) for mixed biomes, cross-biome props/hazards, selectable skies and the deferred optional trick-scoring setting.
+
 ### Optional systems and content
 
 - [ ] Consider briefings and a dedicated podium presentation, or a field larger than ten racers after measuring performance and independent finishes.
-- [ ] Consider badges, cosmetics, titles, difficulty milestones and build/loadout codes. Further offensive devices, side attacks, destructive ship damage, online systems, procedural tracks and a consumable economy each need separate scope.
+- [ ] Consider badges, cosmetics, titles, difficulty milestones and build/loadout codes. Further offensive devices, side attacks, destructive ship damage, online systems, procedural campaign tracks and a consumable economy each need separate scope.
 - [ ] Consider bronze/silver/gold mastery targets and clearer sector improvement. Prototype perceived speed through camera/FOV, nearby geometry, audio and frame pacing before propulsion changes; preserve approved handling and 0.3 assistance outside an assigned experiment.
 - [ ] Optionally prove a forward/cockpit view with real-state instruments on one ship, checking banks, inversions, flight, clipping and motion comfort before interiors. Story, open-world and manual-aiming directions remain separate proposals.
 - [ ] Revisit the Umbra gravity-lens arrow that can imply steering toward the pull when the player must counter-steer.

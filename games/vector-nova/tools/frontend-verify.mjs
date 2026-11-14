@@ -2482,6 +2482,7 @@ try {
         await press('Home', '[data-action="quick-race"]');
         await press('ArrowUp', '[data-action="race-tab"]');
         await press('ArrowRight', '[data-action="garage-tab"]');
+        await press('ArrowRight', '[data-action="track-editor"]');
         await press('ArrowRight', '[data-action="settings"]');
         await press('Enter', '[data-action="settings-back"]');
         await press('Tab', '[data-setting="quality"]');

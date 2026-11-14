@@ -157,7 +157,7 @@ export async function buildDesktop(edition) {
     await mkdir(dirname(target), { recursive: true });
     await cp(file, target);
   }
-  for (const file of ['main.cjs', 'preload.cjs', 'security.cjs'])
+  for (const file of ['main.cjs', 'preload.cjs', 'security.cjs', 'tracks.cjs'])
     await cp(resolve(root, 'desktop', file), resolve(stage, file));
   const sourcePackage = JSON.parse(
     await readFile(resolve(root, 'package.json')),

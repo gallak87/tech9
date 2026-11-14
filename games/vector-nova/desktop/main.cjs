@@ -16,6 +16,7 @@ const {
   trustedSender,
   forbiddenArguments,
 } = require('./security.cjs');
+const { registerTrackHandlers } = require('./tracks.cjs');
 const identity = require('./package.json');
 if (forbiddenArguments(process.argv.slice(1))) app.exit(1);
 app.enableSandbox();
@@ -191,6 +192,13 @@ app.whenReady().then(() => {
   });
   ipcMain.on('window:quit', (event) => {
     if (trustedSender(event, window)) app.quit();
+  });
+  registerTrackHandlers({
+    ipcMain,
+    dialog,
+    getWindow: () => window,
+    trustedSender,
+    root: join(app.getPath('userData'), 'tracks'),
   });
   createWindow();
   app.on('activate', () => {

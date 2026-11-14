@@ -36,6 +36,7 @@ export function bindMenuGamepad(
     nextRepeat = 0,
     connected = false,
     padIdentity = null,
+    editorFlyBlocked = false,
     frame;
   const visible = (element) =>
     element &&
@@ -50,13 +51,22 @@ export function bindMenuGamepad(
     if (visible(music)) return music;
     const front = document.querySelector('#front-shell');
     if (visible(front)) return front;
+    const editorLoading = document.querySelector('[data-editor-loading]');
+    if (visible(editorLoading)) return editorLoading;
+    const editor = document.querySelector('#track-editor-host');
+    if (visible(editor)) return editor;
     const inspector = document.querySelector('#inspector-host');
     if (visible(inspector)) return inspector;
     const pause = document.querySelector('#pause-panel');
     return visible(pause) ? pause : null;
   };
   const externalPanelsFor = (root) =>
-    ['front-shell', 'inspector-host', 'pause-panel'].includes(root.id)
+    [
+      'front-shell',
+      'inspector-host',
+      'track-editor-host',
+      'pause-panel',
+    ].includes(root.id)
       ? [
           document.querySelector('[data-sound-panel]'),
           document.querySelector('[data-music-player]'),
@@ -162,6 +172,31 @@ export function bindMenuGamepad(
       nextRepeat = 0;
       padIdentity = identity;
     }
+    const editorFly = document.querySelector(
+      '#track-editor-host[data-editor-fly-active="true"]',
+    );
+    const flying = visible(editorFly);
+    if (flying) editorFlyBlocked = true;
+    if (editorFlyBlocked) {
+      // The preview owns movement and Back until its controls are released.
+      // Consume the exit edge so B cannot also close the whole workshop.
+      previous = intent;
+      direction = '';
+      nextRepeat = 0;
+      if (
+        !flying &&
+        !intent.x &&
+        !intent.y &&
+        !intent.accept &&
+        !intent.back &&
+        !intent.pause &&
+        !intent.secondary &&
+        !intent.camera
+      )
+        editorFlyBlocked = false;
+      frame = requestAnimationFrame(poll);
+      return;
+    }
     if (!document.hidden) {
       if (
         intent.music &&
@@ -198,6 +233,14 @@ export function bindMenuGamepad(
         // Camera is a semantic action rather than a synthetic keyboard event.
         window.dispatchEvent(new Event('vn-camera-toggle'));
     }
+    if (
+      visible(
+        document.querySelector(
+          '#track-editor-host[data-editor-fly-active="true"]',
+        ),
+      )
+    )
+      editorFlyBlocked = true;
     previous = intent;
     frame = requestAnimationFrame(poll);
   }

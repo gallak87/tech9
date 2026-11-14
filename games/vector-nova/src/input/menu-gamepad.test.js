@@ -28,7 +28,12 @@ function harness(t, specifications = [{}]) {
   const document = {
     hidden: false,
     activeElement: null,
-    querySelector: (selector) => (selector === '#front-shell' ? root : null),
+    querySelector: (selector) =>
+      selector === '#front-shell' ||
+      (selector === '#track-editor-host[data-editor-fly-active="true"]' &&
+        root.flyActive)
+        ? root
+        : null,
   };
   const controls = specifications.map(
     ({ skip = false, input = false } = {}) => ({
@@ -242,4 +247,39 @@ test('controller Back reaches a focused editor before its page and never a cover
   h.press(1, true);
   h.frame(60);
   assert.equal(pageBack, 1);
+});
+
+test('editor free camera owns controller movement and consumes Back until release', (t) => {
+  const h = harness(t);
+  let back = 0;
+  h.controls[0].dispatchEvent = (event) => {
+    if (event.key === 'Escape') back++;
+    return true;
+  };
+  h.controls[0].click = () => {
+    h.controls[0].clicks++;
+    h.root.flyActive = true;
+  };
+  bindMenuGamepad(h.life.signal);
+  h.frame(0);
+  h.press(0, true);
+  h.frame(20);
+  assert.equal(h.controls[0].clicks, 1);
+  h.press(0, false);
+  h.pad.axes[1] = -1;
+  h.frame(40);
+  assert.equal(h.document.activeElement, h.controls[0]);
+  h.root.flyActive = false;
+  h.press(1, true);
+  h.frame(60);
+  assert.equal(back, 0, 'camera exit must not escape the editor');
+  h.frame(80);
+  assert.equal(back, 0);
+  h.press(1, false);
+  h.pad.axes[1] = 0;
+  h.frame(100);
+  h.frame(120);
+  h.press(1, true);
+  h.frame(140);
+  assert.equal(back, 1, 'a fresh Back press reaches the editor after release');
 });

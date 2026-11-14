@@ -12,5 +12,13 @@ contextBridge.exposeInMainWorld(
         ipcRenderer.removeListener('window:fullscreen-changed', listener);
     },
     quit: () => ipcRenderer.send('window:quit'),
+    tracks: Object.freeze({
+      list: () => ipcRenderer.invoke('tracks:list'),
+      read: (id) => ipcRenderer.invoke('tracks:read', id),
+      save: (document) => ipcRenderer.invoke('tracks:save', document),
+      remove: (id) => ipcRenderer.invoke('tracks:remove', id),
+      import: () => ipcRenderer.invoke('tracks:import'),
+      export: (document) => ipcRenderer.invoke('tracks:export', document),
+    }),
   }),
 );

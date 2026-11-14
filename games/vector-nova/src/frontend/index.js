@@ -317,6 +317,11 @@ export async function createFrontend(
   let inspector = null,
     inspectorController = null,
     inspectorPending = null;
+  let workshop = null,
+    workshopPending = null,
+    workshopGeneration = 0,
+    workshopDraft = null,
+    workshopClosing = null;
   let completion = null,
     completionPending = null,
     completionController = null,
@@ -373,12 +378,15 @@ export async function createFrontend(
   const menuBackdrop = backdrop ?? createMenuBackdrop(life.signal);
   const inspectorHost = document.createElement('div');
   inspectorHost.id = 'inspector-host';
+  const workshopHost = document.createElement('div');
+  workshopHost.id = 'workshop-host';
   const desktopControls = import.meta.env?.VN_DESKTOP
     ? bindDesktopControls(host, life.signal)
     : null;
   const musicNavigation = {
     clearInput: () => game?.clearInput(),
-    isMenuVisible: () => !shell.hidden,
+    isMenuVisible: () =>
+      !shell.hidden || (screen === 'editor' && !workshop?.isTestDriving()),
   };
   const music =
     artPass || inspectShip || parameters.get('music') === '0'
@@ -622,6 +630,10 @@ export async function createFrontend(
     if (['home', 'cup', 'circuits', 'setup', 'loading'].includes(next))
       clearCompletedCup();
     const navigating = screen !== next;
+    if (workshop && next !== 'editor') workshop.suspend();
+    workshopHost.hidden = next !== 'editor';
+    if (next === 'editor') gameHost.remove();
+    else if (!gameHost.isConnected) host.prepend(gameHost);
     if (!shell.hidden)
       menuHistory.remember(screen, {
         scroll: shell.scrollTop,
@@ -643,15 +655,22 @@ export async function createFrontend(
       shipPreview = null;
     }
     document.body.classList.toggle('reduced-motion', settings.reducedMotion);
-    shell.hidden = ['race', 'inspection', 'review'].includes(next);
+    shell.hidden = ['race', 'inspection', 'review', 'editor'].includes(next);
     document.body.classList.toggle('developer-entry', special);
-    gameHost.inert = !shell.hidden || !!inspector;
+    gameHost.inert = !shell.hidden || !!inspector || next === 'editor';
     sessionNavigation.sync(next, { inspector: !!inspector });
     document.body.dataset.screen = next;
+    music?.setLauncherOnly?.(next === 'editor');
     music?.setDriving(next === 'race');
     render();
     desktopControls?.mount(
-      next === 'inspection' ? inspectorHost : shell.hidden ? null : shell,
+      next === 'inspection'
+        ? inspectorHost
+        : next === 'editor'
+          ? workshopHost
+          : shell.hidden
+            ? null
+            : shell,
     );
     if (navigating) shell.scrollTop = savedPage?.scroll ?? 0;
     const focus =
@@ -1000,6 +1019,9 @@ export async function createFrontend(
     const tabs = [
       ['race-tab', 'Race'],
       ['garage-tab', 'Garage'],
+      ...(import.meta.env?.VN_EDITION !== 'demo'
+        ? [['track-editor', 'Editor']]
+        : []),
       ['settings', 'Settings'],
       ['career', 'Career'],
       ...(music ? [['tunes', 'Tunes']] : []),
@@ -1509,6 +1531,7 @@ export async function createFrontend(
     updateStatus();
     const promise = (async () => {
       await previous?.catch(() => {});
+      await workshopClosing;
       signal.throwIfAborted();
       game?.dispose();
       game = null;
@@ -1762,6 +1785,70 @@ export async function createFrontend(
     } finally {
       if (attempt === launchGeneration) launching = false;
     }
+  }
+  function closeWorkshop() {
+    workshopGeneration++;
+    workshopDraft = workshop?.getDocument() ?? workshopDraft;
+    const closing = workshop?.dispose();
+    if (closing)
+      workshopClosing = Promise.resolve(closing).finally(() => {
+        if (workshopClosing === settled) workshopClosing = null;
+      });
+    const settled = workshopClosing;
+    workshop = null;
+    workshopHost.remove();
+    host.prepend(gameHost);
+    setScreen('home');
+    focusMenu('[data-action="track-editor"]');
+  }
+  async function openWorkshop() {
+    if (import.meta.env?.VN_EDITION === 'demo' || workshopPending) return;
+    game?.setSuspended(true);
+    gameHost.remove();
+    host.prepend(workshopHost);
+    workshopHost.hidden = false;
+    setScreen('editor');
+    if (workshop) {
+      workshop.resume();
+      return;
+    }
+    const token = ++workshopGeneration;
+    workshopHost.innerHTML =
+      '<section data-editor-loading role="status" style="position:fixed;inset:0;z-index:25;background:#090909;color:#eee;padding:8vw"><h1>Opening Track Workshop</h1><button type="button">Back to setup</button></section>';
+    workshopHost.querySelector('button').onclick = closeWorkshop;
+    const promise = (async () => {
+      const { createWorkshop } = await import('../editor/workshop.js');
+      await workshopClosing;
+      if (disposed || token !== workshopGeneration) return;
+      workshopHost.replaceChildren();
+      const created = await createWorkshop(workshopHost, {
+        document: workshopDraft,
+        shipId,
+        onExit: closeWorkshop,
+        onDriving: (driving) => music?.setDriving(driving),
+        onTunes: music ? (opener) => music.open(opener) : null,
+        onSettings() {
+          settingsBack = 'editor';
+          settingsFocus = null;
+          setScreen('settings');
+        },
+      });
+      if (disposed || token !== workshopGeneration) await created.dispose();
+      else workshop = created;
+    })()
+      .catch((failure) => {
+        if (disposed || token !== workshopGeneration) return;
+        workshopHost.innerHTML =
+          '<section data-editor-loading role="status" style="position:fixed;inset:0;z-index:25;background:#090909;color:#eee;padding:8vw"><h1>Workshop could not open</h1><p></p><button type="button">Back to setup</button></section>';
+        workshopHost.querySelector('p').textContent = failure.message;
+        workshopHost.querySelector('button').onclick = closeWorkshop;
+        workshopHost.querySelector('button').focus();
+      })
+      .finally(() => {
+        if (workshopPending === promise) workshopPending = null;
+      });
+    workshopPending = promise;
+    await promise;
   }
   function setInspectorURL(active) {
     if (import.meta.env?.VN_DESKTOP) return;
@@ -2046,6 +2133,9 @@ export async function createFrontend(
     setScreen(next);
   }
   const actions = {
+    'track-editor'() {
+      void openWorkshop();
+    },
     eliminator() {
       chooseMode('eliminator');
     },
@@ -2215,6 +2305,7 @@ export async function createFrontend(
           ? 'home'
           : settingsBack;
       setScreen(destination);
+      if (destination === 'editor') workshop?.resume();
       if (destination === 'race') {
         game?.resumeSession();
         gameHost.querySelector('#pause-settings')?.focus();
@@ -2790,6 +2881,9 @@ export async function createFrontend(
     previewGeneration++;
     controller?.abort();
     inspectorController?.abort();
+    workshopGeneration++;
+    const workshopDisposal = workshop?.dispose();
+    workshop = null;
     stopCompletion();
     life.abort();
     game?.dispose();
@@ -2804,14 +2898,18 @@ export async function createFrontend(
     unsubscribeSettings?.();
     disposeControllerSettings?.();
     progressionMenu.unmountCareer();
-    disposal = Promise.allSettled([pending?.promise, inspectorPending]).then(
-      () => {
-        // Parsed fleet sources and their decoder belong to the page session.
-        // Career switches dispose instances above; pagehide releases the cache.
-        if (!import.meta.env?.VN_DESKTOP) delete window.__VN_FRONTEND;
-        host.replaceChildren();
-      },
-    );
+    disposal = Promise.allSettled([
+      pending?.promise,
+      inspectorPending,
+      workshopPending,
+      workshopDisposal,
+      workshopClosing,
+    ]).then(() => {
+      // Parsed fleet sources and their decoder belong to the page session.
+      // Career switches dispose instances above; pagehide releases the cache.
+      if (!import.meta.env?.VN_DESKTOP) delete window.__VN_FRONTEND;
+      host.replaceChildren();
+    });
     return disposal;
   }
   window.addEventListener('pagehide', () => void dispose(), {
@@ -2860,6 +2958,7 @@ export async function createFrontend(
         loadedId,
         loading: !!pending || !!inspectorPending,
         inspector: inspector?.getSnapshot() ?? null,
+        editor: workshop?.getState() ?? null,
         error,
         intent,
         cup: cupStore.snapshot(),
@@ -2888,7 +2987,12 @@ export async function createFrontend(
     void launchSpecial();
   } else {
     setScreen('home');
-    void showCompletion();
+    if (
+      parameters.get('editor') === '1' &&
+      import.meta.env?.VN_EDITION !== 'demo'
+    )
+      void openWorkshop();
+    else void showCompletion();
   }
   if (!special) {
     // Let the lightweight circuit picker paint before parsing the first model.

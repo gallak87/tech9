@@ -10,6 +10,7 @@ This review branch includes:
 - Quick Race, four initial championships and the unlockable Encore Cup, Time Trial and Practice. Time Trials use stock ships, manual boost and local standing/flying records with personal ghosts.
 - One 37-unlock career collection: 28 existing reward items—permanent enhancements, ship unlocks, six equipped abilities and Quad Core—plus nine derived course unlocks. Road devices add automatic boost, shields and combat during races and practice.
 - A manual Start screen, three named career slots, dedicated Race/Garage pages, save export/import, shared Settings and a persistent Tunes player.
+- [Track Workshop](docs/TRACK_EDITOR.md): click and drag roads in 3D, generate Circuit or Downhill courses through 20 km with starter jumps, choose seeded Nightweir world presets, add connected rotation/straight sections, fill pickups and test drive. Track files save separately from careers. Planned biome/prop/hazard expansion is in the [editor roadmap](track-editor-roadmap.md).
 
 Start, choose or create a career, then configure a session. Browsing courses and ships does not load a world. Escape pauses a race; returning to setup retains it until you resume or start another run. The full game starts with Shrike; the demo starts with Kestrel. Demo progress can be transferred manually through career save export/import.
 

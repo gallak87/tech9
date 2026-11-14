@@ -39,6 +39,8 @@ The unshipped native verifier loads staged code or `--archive` without enabling 
 
 ## Player controls and saves
 
+Track Workshop is a full-edition feature. Custom tracks save as versioned JSON in the edition’s `userData/tracks` directory, independently of career selection. Save/Load and native Import/Export work offline; custom circuits currently run as practice and do not award career progress. See [Track Workshop](../TRACK_EDITOR.md).
+
 Each edition has three isolated careers; progress, cups, ghosts and backups belong to the selected career, while Settings/music are shared within that edition. Manual career export/import supports demo-to-full transfer; automatic migration and Steam Cloud are absent. See [career ownership and startup](../intro-and-profiles.md).
 
 Use [player controls](../../README.md#controls) and Settings for bindings/presets. F11 or Alt/Option+Enter toggles native fullscreen; menu/window controls and persisted window state are also supported. Physical hardware, Steam Input and OS window behavior require the release-gate playtest.

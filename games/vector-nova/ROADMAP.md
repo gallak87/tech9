@@ -17,13 +17,6 @@ Current direction updated on **2026-11-13**. Remaining work covers release integ
 - [ ] Reproduce the reported iPhone 13 graphics-context loss after Halcyon's countdown on the affected hardware and collect failure timing and graphics diagnostics. Browser emulation cannot establish whether this device-specific fault remains after the rendering-budget fixes.
 - [ ] Move the game and desktop CI into a private repository when ready; decide what remains publicly playable. Complete the remaining hardware, distribution and store gates in the [release checklist](docs/steam/release.md).
 
-## Code quality and maintenance
-
-Remaining audit work; original item numbers are retained. Preserve approved handling, save/replay compatibility, deterministic stepping, resource ownership and desktop edition boundaries.
-
-- [ ] **Explicit collision metadata (#8):** replace art-name/UV assumptions with explicit solid roles and route-coordinate meanings. Distinguish broad ownership intervals from actual face coverage; migrate one level first while preserving collider geometry, triangle order, fingerprints and replay identities.
-- [ ] **One completion overlay shell:** consolidate duplicated boot/loading, failure, credits and focus handling in `src/frontend/index.js` and `src/frontend/completion-cinematic.js`. Preserve eager loading feedback, cancellation/retry, saved completion acknowledgement and keyboard/controller focus return.
-
 ## Next
 
 ### Worlds, effects and presentation

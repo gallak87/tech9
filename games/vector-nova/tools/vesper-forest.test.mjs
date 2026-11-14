@@ -284,7 +284,13 @@ test('Forest road geometry, materials and guidance retain the authored mesh cont
       delete state.uuid;
       meshes.push({
         name: object.name,
-        userData: object.userData,
+        // Collision declarations add no render input. Keep the approved visual
+        // fingerprint while the separate solid tests cover authoring metadata.
+        userData: Object.fromEntries(
+          Object.entries(object.userData).filter(
+            ([key]) => key !== 'collisionSolid',
+          ),
+        ),
         index: object.geometry.index?.array,
         attributes: Object.fromEntries(
           Object.entries(object.geometry.attributes).map(([id, attribute]) => [

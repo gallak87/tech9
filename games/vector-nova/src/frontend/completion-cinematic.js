@@ -1,84 +1,17 @@
-import './completion-cinematic.css';
-import { createMenuBackdrop } from './menu-backdrop.js';
 import { createCompletionStage } from './completion-stage.js';
 import { createCompletionAudio } from './completion-audio.js';
 import { completionPlaybackTiming } from './completion-timeline.js';
 
-const PLAYER_SHIPS = new Set(['kestrel', 'shrike', 'bastion', 'needle']);
-
-// Progression owns eligibility and acknowledgement. This view owns only the
-// film, its resources, and the explicit Close action at the end.
+// The eager overlay owns the dialog and its controls. This lazy owner supplies
+// only the film, audio and their resource lifetime.
 export function createCompletionCinematic({
-  host,
-  shipId = 'kestrel',
+  overlay,
   settings = {},
-  onClose = () => {},
-  signal,
   onState,
 } = {}) {
-  shipId = PLAYER_SHIPS.has(shipId) ? shipId : 'kestrel';
-  const readSettings = () =>
-    typeof settings === 'function' ? settings() : settings;
-  const reduced = () =>
-    Boolean(
-      readSettings()?.reducedMotion ||
-      matchMedia('(prefers-reduced-motion: reduce)').matches,
-    );
-  const previousFocus = document.activeElement;
+  const { element, stageHost, shipId, reduced } = overlay;
   const life = new AbortController();
-  const element = document.createElement('section');
-  element.className = 'completion-cinematic';
-  element.dataset.phase = 'loading';
-  element.dataset.stageReady = 'false';
-  element.dataset.reducedMotion = String(reduced());
-  element.setAttribute('role', 'dialog');
-  element.setAttribute('aria-modal', 'true');
-  element.setAttribute('aria-label', 'Career collection complete');
-  element.setAttribute(
-    'aria-description',
-    'Your racer takes Shatterline’s last jump, crosses the finish, and drifts to a stop. Skip leads to the completion credits.',
-  );
-  element.innerHTML = `
-    <div class="completion-stage"></div>
-    <div class="completion-letterbox" aria-hidden="true"></div>
-    <div class="completion-wordmark" aria-hidden="true">VECTOR<span>//</span>NOVA</div>
-    <button type="button" class="completion-skip" data-completion-skip>Skip cinematic <span aria-hidden="true">↗</span></button>
-    <div class="completion-loading" role="status" aria-live="polite">
-      <span class="completion-eyebrow">37 / 37 · CAREER COMPLETE</span>
-      <h1>Loading…</h1>
-      <progress max="1" value="0" aria-label="Loading"></progress>
-      <span class="completion-progress" aria-hidden="true">0%</span>
-    </div>
-    <div class="completion-credits" hidden>
-      <div class="completion-card">
-        <div class="completion-medal" aria-hidden="true"><i></i><b>V</b><i></i></div>
-        <span class="completion-eyebrow">THE NEXT CHAPTER</span>
-        <h1 id="completion-thanks">Thx for playing, 3 Encore courses unlocked!</h1>
-        <p class="completion-next">Oriel <span>·</span> Ravel <span>·</span> Nomad</p>
-        <div class="completion-credit-lines">
-          <p><span>DEV</span><strong>George Allakhverdyan</strong><small>Studio name TBD</small></p>
-          <p><span>HOMIES WHO HELPED TEST THE GAME</span><strong>Noyan Gunday</strong></p>
-        </div>
-        <p class="completion-error" role="alert" hidden>The cinematic couldn’t load. Your unlocks are still available.</p>
-        <button type="button" class="completion-retry" data-completion-retry hidden>Reload and retry</button>
-        <button type="button" class="primary completion-close" data-completion-close>Close <span aria-hidden="true">↗</span></button>
-      </div>
-    </div>`;
-  const stageHost = element.querySelector('.completion-stage');
-  const loading = element.querySelector('.completion-loading');
-  const credits = element.querySelector('.completion-credits');
-  const skip = element.querySelector('[data-completion-skip]');
-  const close = element.querySelector('[data-completion-close]');
-  const retry = element.querySelector('[data-completion-retry]');
-  const errorNotice = element.querySelector('.completion-error');
-  const progressBar = element.querySelector('progress');
-  const progressText = element.querySelector('.completion-progress');
-  host.append(element);
-  const backdrop = createMenuBackdrop(life.signal);
-  backdrop.mount(element);
-  backdrop.configure({ active: true, reducedMotion: reduced() });
-  let phase = 'loading',
-    progress = 0,
+  let phase = overlay.phase,
     time = 0,
     error = null;
   let stage,
@@ -87,10 +20,9 @@ export function createCompletionCinematic({
     frame = 0,
     last = 0,
     blurred = false,
-    closed = false;
+    disposed = false;
   const snapshot = () => ({
     phase,
-    progress,
     time,
     shipId,
     error,
@@ -99,77 +31,52 @@ export function createCompletionCinematic({
   });
   const announce = () => onState?.(snapshot());
   function setProgress(value) {
-    if (phase === 'disposed') return;
-    progress = Math.max(progress, Math.min(1, value));
-    progressBar.value = progress;
-    progressText.textContent = `${Math.round(progress * 100)}%`;
-    announce();
+    if (phase !== 'disposed') overlay.setProgress(value);
   }
   function stopFrame() {
     cancelAnimationFrame(frame);
     frame = 0;
     last = 0;
   }
-  function showFailure() {
-    errorNotice.hidden = retry.hidden = !error;
-  }
   function dispose() {
-    if (phase === 'disposed') return;
+    if (disposed) return;
+    disposed = true;
     phase = 'disposed';
     stopFrame();
     life.abort();
     stage?.dispose();
     audio?.dispose();
-    element.remove();
-    signal?.removeEventListener('abort', dispose);
-    if (previousFocus?.isConnected && !previousFocus.closest('[inert]'))
-      previousFocus.focus({ preventScroll: true });
+    overlay.signal.removeEventListener('abort', dispose);
     announce();
   }
   function showCredits({ fade = false } = {}) {
     if (phase === 'disposed' || phase === 'credits') return;
     phase = 'credits';
-    element.dataset.phase = phase;
-    element.setAttribute('aria-labelledby', 'completion-thanks');
     stopFrame();
-    const reducedMotion = reduced();
-    element.dataset.reducedMotion = String(reducedMotion);
-    element.dataset.creditsTransition =
-      fade && !reducedMotion ? 'fade' : 'instant';
     time = timing?.creditsAt ?? time;
     try {
       stage?.draw(time, true);
     } catch (failure) {
       error = failure?.message ?? 'Finale unavailable';
-      element.dataset.creditsTransition = 'instant';
+      fade = false;
       stage?.dispose();
       stage = null;
-      element.dataset.stageReady = 'false';
-      backdrop.configure({ active: true, reducedMotion: reduced() });
+      overlay.setStageReady(false);
     }
-    showFailure();
     audio?.pause();
-    loading.hidden = skip.hidden = true;
-    credits.hidden = false;
-    close.focus({ preventScroll: true });
+    overlay.showCredits({ fade, ...(error ? { error } : {}) });
     announce();
-  }
-  function closeCredits() {
-    if (closed || phase !== 'credits') return;
-    closed = true;
-    dispose();
-    onClose();
   }
   function fail(failure) {
     if (phase === 'disposed') return;
     error = failure?.message ?? 'Finale unavailable';
-    element.dataset.creditsTransition = 'instant';
     stage?.dispose();
     stage = null;
-    element.dataset.stageReady = 'false';
-    backdrop.configure({ active: true, reducedMotion: reduced() });
-    showFailure();
-    showCredits();
+    overlay.setStageReady(false);
+    stopFrame();
+    phase = 'credits';
+    audio?.pause();
+    overlay.showCredits({ error });
     announce();
   }
   function tick(now) {
@@ -201,34 +108,6 @@ export function createCompletionCinematic({
       frame = requestAnimationFrame(tick);
     }
   }
-  skip.addEventListener('click', showCredits, { signal: life.signal });
-  close.addEventListener('click', closeCredits, { signal: life.signal });
-  retry.addEventListener('click', () => location.reload(), {
-    signal: life.signal,
-  });
-  element.addEventListener(
-    'keydown',
-    (event) => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        event.stopPropagation();
-        if (phase === 'credits') closeCredits();
-        else showCredits();
-      } else if (event.key === 'Tab') {
-        const controls =
-          phase === 'credits' ? (error ? [retry, close] : [close]) : [skip];
-        const index = controls.indexOf(document.activeElement);
-        const control =
-          controls[
-            (index + (event.shiftKey ? -1 : 1) + controls.length) %
-              controls.length
-          ];
-        event.preventDefault();
-        control.focus({ preventScroll: true });
-      }
-    },
-    { signal: life.signal },
-  );
   window.addEventListener(
     'blur',
     () => {
@@ -248,10 +127,11 @@ export function createCompletionCinematic({
   document.addEventListener('visibilitychange', syncPlayback, {
     signal: life.signal,
   });
-  skip.focus({ preventScroll: true });
-  signal?.addEventListener('abort', dispose, { once: true });
-  const ready = (async () => {
-    if (signal?.aborted) {
+  overlay.signal.addEventListener('abort', dispose, { once: true });
+  const api = { ready: null, dispose, snapshot, finish: showCredits };
+  overlay.attachPlayback(api);
+  api.ready = (async () => {
+    if (overlay.signal.aborted) {
       dispose();
       return snapshot();
     }
@@ -279,10 +159,8 @@ export function createCompletionCinematic({
         '--completion-dialog-fade',
         `${timing.dialogFadeSeconds}s`,
       );
-      element.dataset.stageReady = 'true';
+      overlay.setStageReady(true);
       setProgress(1);
-      backdrop.configure({ active: false, reducedMotion: reduced() });
-      loading.hidden = true;
       if (phase === 'credits' || reduced()) {
         if (phase === 'credits') {
           time = timing.creditsAt;
@@ -290,7 +168,7 @@ export function createCompletionCinematic({
         } else showCredits();
       } else {
         phase = 'playing';
-        element.dataset.phase = phase;
+        overlay.play();
         announce();
         syncPlayback();
       }
@@ -299,5 +177,5 @@ export function createCompletionCinematic({
     }
     return snapshot();
   })();
-  return { element, ready, dispose, snapshot, finish: showCredits };
+  return api;
 }

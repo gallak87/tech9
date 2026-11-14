@@ -173,12 +173,14 @@ async function check(
     reducedMotion = true,
     game = false,
     failImport = false,
+    component = false,
     viewport = { width: 1440, height: 900 },
   } = {},
 ) {
   if (!selectedChecks.test(name)) return;
   const context = await browser.newContext({
     viewport,
+    hasTouch: responsive,
     deviceScaleFactor: 1,
   });
   const page = await context.newPage();
@@ -242,6 +244,7 @@ async function check(
       );
     await run(page);
     if (
+      !component &&
       !failImport &&
       [...requests].some((path) =>
         path.endsWith('/src/frontend/completion-stage.js'),
@@ -317,6 +320,105 @@ async function creditsClose(page, { controller = false } = {}) {
     'acknowledged finale never replays on reload',
   );
 }
+// Real overlay/playback code with only the heavy world replaced at the HTTP
+// boundary, so late stage completion can be controlled without release hooks.
+async function completionLifecycleFixture(
+  page,
+  { disposeBeforeFilm = false } = {},
+) {
+  await page.route('**/completion-overlay-fixture', (route) =>
+    route.fulfill({
+      contentType: 'text/html',
+      body: '<!doctype html><link rel="stylesheet" href="/src/frontend/completion-cinematic.css"><main id="fixture"><button id="invoker">Return here</button></main>',
+    }),
+  );
+  await page.route('**/src/frontend/completion-stage.js*', (route) =>
+    route.fulfill({
+      contentType: 'application/javascript',
+      body: `export function createCompletionStage({mount,onProgress}) {
+      window.__stageCreates=(window.__stageCreates??0)+1;
+      let prepared=false,disposed=false;
+      const canvas=document.createElement('canvas'); mount.append(canvas);
+      window.__stageDraws=[]; window.__stageDisposals=0;
+      const ready=new Promise((resolve,reject)=>window.__stageSettle=(fail=false)=>{
+        prepared=true; fail ? reject(new Error('Late stage failure')) : resolve();
+      });
+      onProgress(.25);
+      return { ready, draw(time,reduced){window.__stageDraws.push({time,reduced,disposed});
+          if(disposed)throw Error('Disposed stage drew again'); if(!prepared)return null; return {};},
+        metrics:()=>({replay:{duration:4,landmarks:{finishTime:1,slideStopTime:2}}}),
+        dispose(){if(disposed)return;disposed=true;window.__stageDisposals++;canvas.remove();} };
+    }`,
+    }),
+  );
+  await page.goto(new URL('/completion-overlay-fixture', base).href);
+  await page.evaluate(
+    async ({ disposeBeforeFilm }) => {
+      const [
+        { createCompletionOverlay },
+        { createCompletionCinematic },
+        { bindMenuGamepad },
+      ] = await Promise.all([
+        import('/src/frontend/completion-overlay.js'),
+        import('/src/frontend/completion-cinematic.js'),
+        import('/src/input/menu-gamepad.js'),
+      ]);
+      document.querySelector('#invoker').focus();
+      window.__fixtureLife = new AbortController();
+      bindMenuGamepad(window.__fixtureLife.signal);
+      window.__fixtureCloses = 0;
+      window.__fixtureOverlay = createCompletionOverlay({
+        host: document.querySelector('#fixture'),
+        settings: { reducedMotion: true },
+        signal: window.__fixtureLife.signal,
+        onClose: () => window.__fixtureCloses++,
+      });
+      window.__stageCreates = 0;
+      window.__playbackCallbacks = 0;
+      window.__playbackListenerSignals = [];
+      const addEventListener = EventTarget.prototype.addEventListener;
+      if (disposeBeforeFilm) {
+        window.__fixtureOverlay.dispose();
+        EventTarget.prototype.addEventListener = function (
+          type,
+          listener,
+          options,
+        ) {
+          if (
+            (this === window || this === document) &&
+            ['blur', 'focus', 'visibilitychange'].includes(type)
+          ) {
+            window.__playbackListenerSignals.push(options?.signal);
+            const original = listener;
+            listener = function (...args) {
+              window.__playbackCallbacks++;
+              return original.apply(this, args);
+            };
+          }
+          return addEventListener.call(this, type, listener, options);
+        };
+      }
+      try {
+        window.__fixtureFilm = createCompletionCinematic({
+          overlay: window.__fixtureOverlay,
+          settings: { reducedMotion: true },
+        });
+      } finally {
+        EventTarget.prototype.addEventListener = addEventListener;
+      }
+      window.__fixtureRoot = window.__fixtureOverlay.element;
+    },
+    { disposeBeforeFilm },
+  );
+}
+const settleBrowser = (page) =>
+  page.evaluate(
+    () =>
+      new Promise((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(resolve)),
+      ),
+  );
+
 async function launchHorizonFinal(page) {
   await page.goto(url());
   await ready(page);
@@ -885,6 +987,293 @@ try {
       { game: true },
     );
     await check(
+      'eager completion shell can skip and close before its chunk arrives',
+      pending,
+      async (page) => {
+        let release, finished;
+        const held = new Promise((resolve) => {
+          release = resolve;
+        });
+        const fulfilled = new Promise((resolve) => {
+          finished = resolve;
+        });
+        await page.route(
+          '**/src/frontend/completion-cinematic.js*',
+          async (route) => {
+            await held;
+            await route.fulfill({
+              contentType: 'application/javascript',
+              body: 'export function createCompletionCinematic(){window.__unexpectedFinaleCreates=(window.__unexpectedFinaleCreates??0)+1;throw Error("Closed finale revived");}',
+            });
+            finished();
+          },
+        );
+        try {
+          await page.goto(url(), { waitUntil: 'domcontentloaded' });
+          await page.locator('.completion-loading').waitFor();
+          const root = page.locator('.completion-cinematic');
+          assert.equal(await root.count(), 1);
+          assert.equal(await root.getAttribute('role'), 'dialog');
+          assert.equal(
+            await root.evaluate((el) => getComputedStyle(el).position),
+            'fixed',
+            'shell CSS is eager',
+          );
+          await page.evaluate(() => {
+            window.__eagerCompletionRoot = document.querySelector(
+              '.completion-cinematic',
+            );
+          });
+          assert.equal(
+            await page.evaluate(() =>
+              document.activeElement.hasAttribute('data-completion-skip'),
+            ),
+            true,
+          );
+          await page.keyboard.press('Tab');
+          assert.equal(
+            await page.evaluate(() =>
+              document.activeElement.hasAttribute('data-completion-skip'),
+            ),
+            true,
+          );
+          assert.equal((await state(page)).completion.phase, 'loading');
+          assert.equal(
+            (await state(page)).career.state.completion.acknowledged,
+            false,
+          );
+          await padButton(page, 1);
+          assert.equal((await state(page)).completion.phase, 'credits');
+          assert.equal(
+            (await state(page)).career.state.completion.acknowledged,
+            false,
+            'Skip is not acknowledgement',
+          );
+          assert.equal(
+            await page.evaluate(
+              () =>
+                window.__eagerCompletionRoot ===
+                document.querySelector('.completion-cinematic'),
+            ),
+            true,
+          );
+          await padButton(page, 0);
+          assert.equal((await state(page)).completion, null);
+          assert.equal(
+            (await state(page)).career.state.completion.acknowledged,
+            true,
+          );
+          assert.equal(
+            await page.evaluate(
+              () =>
+                document.activeElement.dataset.cup ??
+                document.activeElement.dataset.action,
+            ),
+            'encore',
+          );
+          const saved = await page.evaluate(() =>
+            JSON.stringify(Object.entries(localStorage).sort()),
+          );
+          release();
+          await fulfilled;
+          await settleBrowser(page);
+          assert.equal(await root.count(), 0);
+          assert.equal(
+            await page.evaluate(() => window.__unexpectedFinaleCreates ?? 0),
+            0,
+          );
+          assert.equal(
+            await page.evaluate(() =>
+              JSON.stringify(Object.entries(localStorage).sort()),
+            ),
+            saved,
+            'late chunk cannot write career state',
+          );
+          assert.equal((await state(page)).completion, null);
+        } finally {
+          release();
+        }
+      },
+    );
+    await check(
+      'completion chunk adopts the eager shell without replacing its dialog',
+      pending,
+      async (page) => {
+        let release;
+        const held = new Promise((resolve) => {
+          release = resolve;
+        });
+        await page.route(
+          '**/src/frontend/completion-cinematic.js*',
+          async (route) => {
+            const response = await route.fetch();
+            await held;
+            await route.fulfill({ response });
+          },
+        );
+        try {
+          await page.goto(url(), { waitUntil: 'domcontentloaded' });
+          await page.locator('.completion-loading').waitFor();
+          await page.evaluate(() => {
+            window.__adoptedCompletionRoot = document.querySelector(
+              '.completion-cinematic',
+            );
+          });
+          release();
+          await phase(page, 'credits');
+          assert.equal(
+            await page.evaluate(
+              () =>
+                window.__adoptedCompletionRoot ===
+                document.querySelector('.completion-cinematic'),
+            ),
+            true,
+          );
+          assert.equal(await page.locator('.completion-cinematic').count(), 1);
+          assert.equal(
+            await page.locator('.completion-cinematic .menu-backdrop').count(),
+            1,
+          );
+          await creditsClose(page, { controller: true });
+        } finally {
+          release();
+        }
+      },
+    );
+    await check(
+      'pre-disposed completion shell aborts newly attached playback listeners',
+      fresh,
+      async (page) => {
+        await completionLifecycleFixture(page, { disposeBeforeFilm: true });
+        const current = await page.evaluate(async () => {
+          const snapshot = await window.__fixtureFilm.ready;
+          window.dispatchEvent(new Event('blur'));
+          window.dispatchEvent(new Event('focus'));
+          document.dispatchEvent(new Event('visibilitychange'));
+          return {
+            phase: snapshot.phase,
+            stageCreates: window.__stageCreates,
+            stageDraws: window.__stageDraws?.length ?? 0,
+            listenerCount: window.__playbackListenerSignals.length,
+            listenersAborted: window.__playbackListenerSignals.every(
+              (signal) => signal?.aborted,
+            ),
+            callbacks: window.__playbackCallbacks,
+            closes: window.__fixtureCloses,
+            focus: document.activeElement.id,
+          };
+        });
+        assert.deepEqual(current, {
+          phase: 'disposed',
+          stageCreates: 0,
+          stageDraws: 0,
+          listenerCount: 3,
+          listenersAborted: true,
+          callbacks: 0,
+          closes: 0,
+          focus: 'invoker',
+        });
+        assert.equal(
+          await page.locator('.completion-cinematic, #fixture canvas').count(),
+          0,
+        );
+        await page.evaluate(() => window.__fixtureLife.abort());
+      },
+      { component: true },
+    );
+    for (const failure of [false, true])
+      await check(
+        `late ${failure ? 'failed' : 'successful'} stage settlement cannot revive an aborted completion shell`,
+        fresh,
+        async (page) => {
+          await completionLifecycleFixture(page);
+          assert.equal(
+            await page.evaluate(() => window.__fixtureOverlay.snapshot().phase),
+            'loading',
+          );
+          await page.evaluate(() => window.__fixtureLife.abort());
+          assert.equal(await page.locator('.completion-cinematic').count(), 0);
+          assert.equal(
+            await page.evaluate(() => document.activeElement.id),
+            'invoker',
+          );
+          const draws = await page.evaluate(() => window.__stageDraws.length);
+          await page.evaluate((fail) => window.__stageSettle(fail), failure);
+          await page.evaluate(() => window.__fixtureFilm.ready);
+          await settleBrowser(page);
+          assert.equal(
+            await page
+              .locator('.completion-cinematic, #fixture canvas')
+              .count(),
+            0,
+          );
+          assert.equal(
+            await page.evaluate(() => window.__stageDraws.length),
+            draws,
+          );
+          assert.equal(await page.evaluate(() => window.__stageDisposals), 1);
+          assert.equal(
+            await page.evaluate(() => window.__fixtureCloses),
+            0,
+            'abort never acknowledges completion',
+          );
+          assert.equal(
+            await page.evaluate(() => document.activeElement.id),
+            'invoker',
+          );
+        },
+        { component: true },
+      );
+    await check(
+      'loading Skip preserves credits when its stage becomes ready later',
+      fresh,
+      async (page) => {
+        await completionLifecycleFixture(page);
+        await page.keyboard.press('Escape');
+        assert.equal(
+          await page.evaluate(() => window.__fixtureOverlay.snapshot().phase),
+          'credits',
+        );
+        await page.evaluate(() => window.__stageSettle());
+        await page.evaluate(() => window.__fixtureFilm.ready);
+        await settleBrowser(page);
+        assert.equal(
+          await page.evaluate(
+            () =>
+              window.__fixtureRoot ===
+              document.querySelector('.completion-cinematic'),
+          ),
+          true,
+        );
+        assert.equal(
+          await page.evaluate(() => window.__fixtureOverlay.snapshot().phase),
+          'credits',
+        );
+        assert.equal(
+          await page.evaluate(
+            () => window.__fixtureOverlay.element.dataset.stageReady,
+          ),
+          'true',
+        );
+        assert.equal(await page.evaluate(() => window.__fixtureCloses), 0);
+        const draws = await page.evaluate(() => window.__stageDraws.length);
+        await settleBrowser(page);
+        assert.equal(
+          await page.evaluate(() => window.__stageDraws.length),
+          draws,
+          'late readiness cannot restart playback',
+        );
+        await page.keyboard.press('Escape');
+        assert.equal(await page.evaluate(() => window.__fixtureCloses), 1);
+        assert.equal(
+          await page.evaluate(() => document.activeElement.id),
+          'invoker',
+        );
+        await page.evaluate(() => window.__fixtureLife.abort());
+      },
+      { component: true },
+    );
+    await check(
       'pending reduced-motion finale resumes after interruption and can be closed once',
       pending,
       async (page) => {
@@ -914,8 +1303,10 @@ try {
         await retry.focus();
         await page.keyboard.press('Tab');
         assert.equal(
-          await page.evaluate(() => document.activeElement.textContent.trim()),
-          'Close',
+          await page.evaluate(() =>
+            document.activeElement.textContent.trim().startsWith('Close'),
+          ),
+          true,
           'Tab reaches Close from Retry',
         );
         await page.keyboard.press('Shift+Tab');
@@ -937,13 +1328,21 @@ try {
           false,
           'Retry preserves pending completion',
         );
-        await page.getByRole('button', { name: /^Close/ }).click();
+        await padButton(page, 1);
         await page.waitForFunction(
           () => !window.__VN_FRONTEND.getState().completion,
         );
         assert.equal(
           (await state(page)).career.state.completion.acknowledged,
           true,
+        );
+        assert.equal(
+          await page.evaluate(
+            () =>
+              document.activeElement.dataset.cup ??
+              document.activeElement.dataset.action,
+          ),
+          'encore',
         );
         await page.reload();
         await ready(page);
@@ -996,6 +1395,70 @@ try {
           );
         },
         { viewport },
+      );
+      await check(
+        `failed completion controls fit and close by touch ${viewport.width}×${viewport.height}`,
+        pending,
+        async (page) => {
+          await page.goto(url());
+          await phase(page, 'credits');
+          assert.match(
+            (await state(page)).completion.error,
+            /Injected finale chunk failure/,
+          );
+          const card = await page.locator('.completion-card').boundingBox();
+          assert.ok(
+            card.x >= -1 && card.x + card.width <= viewport.width + 1,
+            'failed credits fit horizontally',
+          );
+          assert.equal(
+            await page
+              .locator('.completion-credits')
+              .evaluate((el) => el.scrollWidth <= el.clientWidth + 1),
+            true,
+          );
+          assert.equal(
+            await page.evaluate(
+              () => document.documentElement.scrollWidth <= innerWidth + 1,
+            ),
+            true,
+          );
+          await page.keyboard.press('Shift+Tab');
+          assert.equal(
+            await page.evaluate(() =>
+              document.activeElement.hasAttribute('data-completion-retry'),
+            ),
+            true,
+            'Tab reaches Retry',
+          );
+          const retry = await page
+            .locator('[data-completion-retry]')
+            .boundingBox();
+          assert.ok(
+            retry.y >= -1 && retry.y + retry.height <= viewport.height + 1,
+            'focused Retry scrolls into view',
+          );
+          const close = page.locator('[data-completion-close]');
+          await close.scrollIntoViewIfNeeded();
+          await close.tap();
+          await page.waitForFunction(
+            () => !window.__VN_FRONTEND.getState().completion,
+          );
+          assert.equal(
+            (await state(page)).career.state.completion.acknowledged,
+            true,
+          );
+          assert.equal(await page.locator('.completion-cinematic').count(), 0);
+          assert.equal(
+            await page.evaluate(
+              () =>
+                document.activeElement.dataset.cup ??
+                document.activeElement.dataset.action,
+            ),
+            viewport.width >= 900 ? 'encore' : 'cup-hub',
+          );
+        },
+        { viewport, failImport: true },
       );
       await check(
         `mode badges remain reachable ${viewport.width}×${viewport.height}`,

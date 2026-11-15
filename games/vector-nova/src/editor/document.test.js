@@ -537,7 +537,7 @@ test('legacy environment migration preserves the old scenery seed and historical
 
 test('new constructors choose regional environment data and validate independent seed versions strictly', () => {
   assert.equal(ENVIRONMENT_VERSION, 1);
-  assert.equal(ENVIRONMENT_LAYOUT_VERSION, 1);
+  assert.equal(ENVIRONMENT_LAYOUT_VERSION, 2);
   const blank = createDocument({
     seed: 42,
     blank: true,
@@ -546,7 +546,7 @@ test('new constructors choose regional environment data and validate independent
   assert.deepEqual(blank.environment, {
     version: 1,
     seed: 9001,
-    layoutVersion: 1,
+    layoutVersion: 2,
   });
   assert.equal(blank.generator.seed, 42);
   for (const generatorVersion of [1, 2, 3]) {
@@ -558,7 +558,7 @@ test('new constructors choose regional environment data and validate independent
     assert.deepEqual(generated.environment, {
       version: 1,
       seed: 8,
-      layoutVersion: 1,
+      layoutVersion: 2,
     });
   }
   const source = structuredClone(blank);
@@ -568,7 +568,7 @@ test('new constructors choose regional environment data and validate independent
     null,
     [],
     { version: 2, seed: 1, layoutVersion: 1 },
-    { version: 1, seed: 1, layoutVersion: 2 },
+    { version: 1, seed: 1, layoutVersion: 3 },
     { version: 1, seed: 1, layoutVersion: '1' },
     ...[-1, 4294967296, 1.5, NaN, Infinity, '4'].map((seed) => ({
       version: 1,
@@ -711,7 +711,7 @@ test('all whole-course biomes validate their own presets without changing resolv
       assert.deepEqual(generated.environment, {
         version: 1,
         seed: 91,
-        layoutVersion: 1,
+        layoutVersion: 2,
       });
       assert.equal(analyzeDocument(generated).valid, true, biome.id);
     }

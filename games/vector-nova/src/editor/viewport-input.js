@@ -300,7 +300,7 @@ export function bindEditorViewportInput(
       if (gesture.kind === 'height')
         pending = constrainEditorPoint({
           ...gesture.position,
-          y: gesture.position.y - dy * gesture.units,
+          y: gesture.position.y - dy * gesture.units * (event.altKey ? 0.2 : 1),
         });
       else {
         const hit = ray.ray.intersectPlane(gesture.plane, new T.Vector3());

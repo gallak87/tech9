@@ -1,5 +1,75 @@
 import * as T from 'three';
 
+function clipFace(polygon, distance) {
+  const result = [];
+  for (let i = 0; i < polygon.length; i++) {
+    const a = polygon[i],
+      b = polygon[(i + 1) % polygon.length];
+    const da = distance(a),
+      db = distance(b);
+    if (da >= 0) result.push(a);
+    if (da >= 0 !== db >= 0) {
+      const t = da / (da - db);
+      result.push({
+        x: a.x + (b.x - a.x) * t,
+        z: a.z + (b.z - a.z) * t,
+        y: a.y + (b.y - a.y) * t,
+        water: a.water + (b.water - a.water) * t,
+      });
+    }
+  }
+  return result;
+}
+
+/** Court faces follow the exact terrain triangles and a continuous shoreline.
+ * The original layout1 retains its historical tiled paving below. */
+export function districtCourtFaces(plan, district) {
+  const { nx, nz, dx, dz, minX, minZ, heights, waterHeights } = plan.terrain;
+  const radius = district.radius * 0.86;
+  const point = (x, z) => {
+    const i = z * (nx + 1) + x;
+    return {
+      x: minX + x * dx,
+      z: minZ + z * dz,
+      y: heights[i],
+      water: waterHeights[i],
+    };
+  };
+  const planes = Array.from({ length: 12 }, (_, i) => {
+    const angle = district.yaw + (i * Math.PI) / 6;
+    const x = Math.cos(angle),
+      z = Math.sin(angle);
+    return (p) =>
+      radius * Math.cos(Math.PI / 12) -
+      (p.x - district.x) * x -
+      (p.z - district.z) * z;
+  });
+  const faces = [];
+  const x0 = Math.max(0, Math.floor((district.x - radius - minX) / dx));
+  const x1 = Math.min(nx, Math.ceil((district.x + radius - minX) / dx));
+  const z0 = Math.max(0, Math.floor((district.z - radius - minZ) / dz));
+  const z1 = Math.min(nz, Math.ceil((district.z + radius - minZ) / dz));
+  for (let z = z0; z < z1; z++)
+    for (let x = x0; x < x1; x++) {
+      const a = point(x, z),
+        b = point(x + 1, z),
+        c = point(x, z + 1),
+        d = point(x + 1, z + 1);
+      for (const triangle of [
+        [a, c, b],
+        [b, c, d],
+      ]) {
+        let polygon = triangle;
+        for (const plane of [...planes, (p) => p.y - p.water - 1]) {
+          polygon = clipFace(polygon, plane);
+          if (polygon.length < 3) break;
+        }
+        if (polygon.length >= 3) faces.push(polygon);
+      }
+    }
+  return faces;
+}
+
 /** Borrow one Nightweir owner/material family. The caller finishes/disposes it. */
 export function buildRegionEnvironment(
   plan,
@@ -211,9 +281,49 @@ export function buildRegionEnvironment(
           : district.kind === 'works'
             ? concrete
             : paving;
-      if (!byMaterial.has(material))
-        byMaterial.set(material, { positions: [], uv: [], indices: [] });
-      const data = byMaterial.get(material);
+      const tile =
+        plan.version >= 2
+          ? `:${Math.floor(district.x / 8192)}:${Math.floor(district.z / 8192)}`
+          : '';
+      const key = material.name + tile;
+      if (!byMaterial.has(key))
+        byMaterial.set(key, {
+          material,
+          tile,
+          positions: [],
+          uv: [],
+          indices: [],
+        });
+      const data = byMaterial.get(key);
+      if (plan.version >= 2) {
+        for (const face of districtCourtFaces(plan, district)) {
+          const minX = Math.min(...face.map((p) => p.x)),
+            maxX = Math.max(...face.map((p) => p.x));
+          const minZ = Math.min(...face.map((p) => p.z)),
+            maxZ = Math.max(...face.map((p) => p.z));
+          const ys = face.map((p) => p.y + 0.2);
+          if (
+            !clear(
+              (minX + maxX) / 2,
+              (minZ + maxZ) / 2,
+              maxX - minX,
+              maxZ - minZ,
+              Math.max(...ys) + 0.1,
+              0,
+              Math.min(...ys) - 0.1,
+            )
+          )
+            continue;
+          const first = data.positions.length / 3;
+          face.forEach((p) => {
+            data.positions.push(p.x, p.y + 0.2, p.z);
+            data.uv.push(p.x / 16, p.z / 16);
+          });
+          for (let i = 1; i < face.length - 1; i++)
+            data.indices.push(first, first + i, first + i + 1);
+        }
+        continue;
+      }
       const radius = district.radius * 0.86,
         step = 24,
         c = Math.cos(district.yaw),
@@ -262,7 +372,7 @@ export function buildRegionEnvironment(
           );
         }
     }
-    for (const [material, data] of byMaterial) {
+    for (const { material, tile, ...data } of byMaterial.values()) {
       if (!data.indices.length) continue;
       const geometry = new T.BufferGeometry();
       geometry.setAttribute(
@@ -274,7 +384,7 @@ export function buildRegionEnvironment(
       geometry.computeVertexNormals();
       geometry.computeBoundingSphere();
       owner.solid(
-        'Connected district courts and occupied ward grounds',
+        'Connected district courts and occupied ward grounds' + tile,
         geometry,
         material,
         { kind: 'structure' },

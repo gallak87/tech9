@@ -1597,11 +1597,21 @@
   }
 }
 @media (max-height: 600px) {
+  .track-editor-host {
+    overflow-y: auto;
+  }
+  .track-workshop.workshop-strip-editor {
+    height: 690px;
+    min-height: 690px;
+  }
   .workshop-palette-buttons {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
   .workshop-authoring-strip {
     width: 276px;
+  }
+  .workshop-camera-controls {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
   .workshop-tool-palette button {
     justify-content: center;
@@ -1860,4 +1870,71 @@
   border-color: #cf5b49;
   background: #32221f;
   box-shadow: inset 3px 0 #cf5b49;
+}
+.workshop-recovery {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 14px;
+  border-bottom: 1px solid #665a38;
+  background: #292518;
+  font-size: 12px;
+}
+.workshop-recovery[hidden] {
+  display: none;
+}
+.workshop-recovery > div {
+  display: flex;
+  gap: 6px;
+}
+.workshop-recovery-state {
+  color: #99b7af;
+  font-size: 11px;
+}
+.workshop-route-guide {
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+  padding: 3px 6px;
+  border: 1px solid var(--guide-color);
+  border-radius: 3px;
+  background: #102029e8;
+  color: var(--guide-color);
+  font-size: 10px;
+  font-weight: 600;
+  max-width: 220px;
+}
+.workshop-route-guide[hidden] {
+  display: none;
+}
+.workshop-jump-proposal {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  border-left: 2px solid #8ce4db;
+  padding: 8px;
+  background: #16302d;
+}
+.workshop-jump-error {
+  padding: 8px;
+  color: #ffd0bc;
+  background: #3b2520;
+  font-size: 12px;
+}
+.workshop-advanced > summary {
+  cursor: pointer;
+  padding: 12px 0;
+  color: #b9c7c6;
+  font-size: 12px;
+}
+.workshop-test-feedback {
+  font-size: 12px;
+  line-height: 1.4;
+  color: #c2d9d0;
+  padding: 5px 12px;
+  border-top: 1px solid #303434;
+}
+.workshop-test-feedback:empty {
+  display: none;
 }

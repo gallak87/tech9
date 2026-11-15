@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   DOCUMENT_LIMITS,
+  ENVIRONMENT_LAYOUT_VERSION,
   generateDocument,
   validateDocument,
   analyzeDocument,
@@ -146,7 +147,7 @@ test('environment seed regeneration upgrades only environment data and preserves
   assert.deepEqual(regenerated.environment, {
     version: 1,
     seed: 9001,
-    layoutVersion: 1,
+    layoutVersion: ENVIRONMENT_LAYOUT_VERSION,
   });
   const oldRoad = { ...before };
   const newRoad = { ...regenerated };

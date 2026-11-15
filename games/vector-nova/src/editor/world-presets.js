@@ -1,6 +1,7 @@
 // Seeded Nightweir regional profiles. Environment layout version 0 retains
-// the historical roadside builder; version 1 owns a complete regional plan.
-export const REGIONAL_LAYOUT_VERSION = 1;
+// the historical roadside builder; 1 retains the original regional survey and
+// 2 stabilizes regional buffers for bounded nearby editing.
+export const REGIONAL_LAYOUT_VERSION = 2;
 export const WORLD_PRESETS = Object.freeze([
   Object.freeze({
     id: 'waterfront',

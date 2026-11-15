@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { analyzeDocument, generateDocument } from '../src/editor/document.js';
+import {
+  analyzeDocument,
+  generateDocument,
+  ENVIRONMENT_LAYOUT_VERSION,
+} from '../src/editor/document.js';
 import { ROAD_PRESETS, roadPresetOptions } from '../src/editor/road-presets.js';
 import { seedVerificationCareer } from './verification-career.mjs';
 import {
@@ -627,7 +631,7 @@ try {
       (current.environment.seed + 997) >>> 0,
     );
     assert.equal(applied.environment.version, 1);
-    assert.equal(applied.environment.layoutVersion, 1);
+    assert.equal(applied.environment.layoutVersion, ENVIRONMENT_LAYOUT_VERSION);
     assert.equal(applied.settings.sceneryPreset, 'industrial');
     assert.equal(applied.settings.density, 0.65);
     assert.equal(

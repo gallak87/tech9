@@ -32,7 +32,7 @@ function noise(x, z, scale, seed) {
     fz,
   );
 }
-function routeSurvey(track) {
+function routeSurvey(track, stable = false) {
   if (!track) return [];
   const count = Math.ceil(track.length / 12);
   return Array.from({ length: count + 1 }, (_, i) => {
@@ -44,7 +44,7 @@ function routeSurvey(track) {
       tangent = frame.tangent ?? { x: 0, y: 0, z: 1 };
     const half = track.width / 2 + (jump ? 58 : 28),
       vertical = jump ? 90 : 34;
-    return {
+    const survey = {
       distance,
       x: frame.position.x,
       y: frame.position.y,
@@ -72,6 +72,17 @@ function routeSurvey(track) {
           Math.abs(tangent.y) * 18 +
           10,
     };
+    if (stable) {
+      // Whole-metre, outward-rounded reservations are conservative and avoid
+      // distant terrain/bearing churn from submillimetre arc-table changes.
+      survey.x = Math.round(survey.x);
+      survey.z = Math.round(survey.z);
+      survey.halfX = Math.ceil(survey.halfX + 0.5);
+      survey.halfZ = Math.ceil(survey.halfZ + 0.5);
+      survey.minY = Math.floor(survey.minY);
+      survey.maxY = Math.ceil(survey.maxY);
+    }
+    return survey;
   });
 }
 function reservations(samples) {
@@ -180,30 +191,51 @@ export function createRegionPlan(doc, track = null) {
     preset = doc.settings?.sceneryPreset ?? 'waterfront',
     density = doc.settings?.density ?? 0.82,
     sea = doc.settings?.waterLevel ?? -28;
+  const stable = doc.environment?.layoutVersion >= 2;
   const random = randomFor(seed ^ 0x72656731),
-    samples = routeSurvey(track),
+    samples = routeSurvey(track, stable),
     reserve = reservations(samples),
     basis = projection(samples);
+  if (stable) {
+    const angle =
+      Math.round(Math.atan2(basis.sin, basis.cos) / (Math.PI / 12)) *
+      (Math.PI / 12);
+    Object.assign(basis, {
+      x: Math.round(basis.x / 500) * 500,
+      z: Math.round(basis.z / 500) * 500,
+      y: Math.round(basis.y / 64) * 64,
+      cos: Math.cos(angle),
+      sin: Math.sin(angle),
+      du: Math.round(basis.du / 0.04) * 0.04,
+      dv: Math.round(basis.dv / 0.04) * 0.04,
+    });
+  }
   const margin = 1450 + random() * 400;
-  const minX = samples.length
+  let minX = samples.length
       ? Math.min(...samples.map((p) => p.x)) - margin
       : -1900,
     maxX = samples.length
       ? Math.max(...samples.map((p) => p.x)) + margin
       : 1900;
-  const minZ = samples.length
+  let minZ = samples.length
       ? Math.min(...samples.map((p) => p.z)) - margin
       : -1900,
     maxZ = samples.length
       ? Math.max(...samples.map((p) => p.z)) + margin
       : 1900;
+  if (stable) {
+    minX = Math.floor(minX / 500) * 500;
+    minZ = Math.floor(minZ / 500) * 500;
+    maxX = Math.ceil(maxX / 500) * 500;
+    maxZ = Math.ceil(maxZ / 500) * 500;
+  }
   const bounds = {
     min: { x: minX, y: sea - 45, z: minZ },
     max: { x: maxX, y: Math.max(220, basis.y + 180), z: maxZ },
   };
   const width = maxX - minX,
     depth = maxZ - minZ;
-  const nx = Math.min(
+  let nx = Math.min(
       REGION_LIMITS.axisCells,
       Math.max(24, Math.ceil(width / 125)),
     ),
@@ -213,6 +245,25 @@ export function createRegionPlan(doc, track = null) {
     ),
     dx = width / nx,
     dz = depth / nz;
+  if (stable) {
+    const cell =
+      125 *
+      2 **
+        Math.max(
+          0,
+          Math.ceil(
+            Math.log2(Math.max(width, depth) / (REGION_LIMITS.axisCells * 125)),
+          ),
+        );
+    nx = Math.ceil(width / cell);
+    nz = Math.ceil(depth / cell);
+    dx = cell;
+    dz = cell;
+    maxX = minX + nx * dx;
+    maxZ = minZ + nz * dz;
+    bounds.max.x = maxX;
+    bounds.max.z = maxZ;
+  }
   const project = (x, z) => ({
     u: (x - basis.x) * basis.cos + (z - basis.z) * basis.sin,
     v: -(x - basis.x) * basis.sin + (z - basis.z) * basis.cos,
@@ -347,8 +398,10 @@ export function createRegionPlan(doc, track = null) {
     REGION_LIMITS.districts,
     Math.max(16, Math.round(14 + (track?.length ?? 3000) / 700)),
   );
-  for (const band of ['near', 'mid', 'far'])
-    for (const p of candidates.filter((c) => c.band === band)) {
+  for (const band of stable ? ['all'] : ['near', 'mid', 'far'])
+    for (const p of candidates.filter(
+      (c) => band === 'all' || c.band === band,
+    )) {
       if (districts.length >= target) break;
       const share = band === 'near' ? 0.35 : band === 'mid' ? 0.72 : 1;
       if (districts.length >= Math.ceil(target * share)) break;
@@ -464,11 +517,19 @@ export function createRegionPlan(doc, track = null) {
       sin = Math.sin(d.yaw);
     for (let row = -2; row <= 2; row++)
       for (let col = -2; col <= 2; col++) {
+        const pick = stable
+          ? randomFor(
+              seed ^
+                Math.imul(Number(d.id.slice(9)) + 1, 7919) ^
+                Math.imul(row + 3, 15485863) ^
+                Math.imul(col + 3, 32452843),
+            )
+          : random;
         if (
           row === 0 ||
           col === 0 ||
           parcels.length >= REGION_LIMITS.parcels ||
-          random() > density
+          pick() > density
         )
           continue;
         const x = d.x + col * 58 * cos - row * 58 * sin,
@@ -480,15 +541,15 @@ export function createRegionPlan(doc, track = null) {
           d.kind === 'garden'
             ? 'trees'
             : d.kind === 'works'
-              ? random() < 0.65
+              ? pick() < 0.65
                 ? 'warehouse'
                 : 'pump'
               : d.kind === 'harbor'
-                ? random() < 0.58
+                ? pick() < 0.58
                   ? 'warehouse'
                   : 'building'
                 : 'building';
-        const scale = 0.8 + random() * 0.45;
+        const scale = 0.8 + pick() * 0.45;
         const h =
           (type === 'building'
             ? 72
@@ -504,7 +565,9 @@ export function createRegionPlan(doc, track = null) {
         if (lod === 'mid' && lodCounts.mid >= 160) lod = 'far';
         lodCounts[lod]++;
         parcels.push({
-          id: 'parcel-' + parcels.length,
+          id: stable
+            ? d.id + '-parcel-' + row + '-' + col
+            : 'parcel-' + parcels.length,
           districtId: d.id,
           type,
           x,
@@ -513,7 +576,7 @@ export function createRegionPlan(doc, track = null) {
           yaw: d.yaw,
           scale,
           lod,
-          seed: Math.floor(random() * 4294967296),
+          seed: Math.floor(pick() * 4294967296),
         });
       }
   }
@@ -556,7 +619,9 @@ export function createRegionPlan(doc, track = null) {
       z,
       yaw: d.yaw,
       lod: d.band,
-      seed: Math.floor(random() * 4294967296),
+      seed: stable
+        ? (seed ^ Math.imul(Number(d.id.slice(9)) + 1, 104729)) >>> 0
+        : Math.floor(random() * 4294967296),
     });
     if (landmarks.length >= REGION_LIMITS.landmarks) break;
   }
@@ -588,7 +653,7 @@ export function createRegionPlan(doc, track = null) {
     }
   bounds.max.y = Math.max(...heights) + 130;
   return {
-    version: 1,
+    version: stable ? 2 : 1,
     seed,
     preset,
     bounds,

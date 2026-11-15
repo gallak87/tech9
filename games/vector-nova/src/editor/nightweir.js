@@ -36,7 +36,7 @@ import { createEditorFlightRuntime } from './jumps.js';
 import { createEditorDevices, createEditorPickupHardware } from './pickups.js';
 
 function prepareRegion(doc, track) {
-  if (doc.environment.layoutVersion !== 1 || !track) return null;
+  if (doc.environment.layoutVersion < 1 || !track) return null;
   track.editorRegionPlan ??= createRegionPlan(doc, track);
   const profile = editorBiome(doc.biome);
   track.groundHeightAt =
@@ -190,20 +190,103 @@ export function createEditorRoad(
           ? 1
           : 2,
     };
-  part.solid(
-    'Continuous asphalt driving deck',
-    sweepRoad(
-      track,
-      [
-        [-half, 0],
-        [half, 0],
-      ],
-      range,
-    ),
-    deck,
-    { kind: 'deck', start: 0, end: track.length },
-    collectSolid,
-  );
+  const surfaceMaterials = new Map([[biome.id, deck]]);
+  function surfaceMaterial(id) {
+    if (surfaceMaterials.has(id)) return surfaceMaterials.get(id);
+    const family = editorBiome(id),
+      road = family.road;
+    const asphalt =
+      road.kind === 'asphalt' && renderer && !collectSolid
+        ? createAsphalt(renderer, track.width, {
+            label: `${family.label} section`,
+            moisture: 0.28,
+          })
+        : null;
+    if (asphalt) part.borrowed.push(asphalt);
+    const material =
+      asphalt?.material ??
+      part.material(`Editor / ${family.label} section surface`, {
+        color: road.deck,
+        roughness: road.roughness,
+        metalness: road.metalness,
+      });
+    if (road.kind !== 'asphalt') {
+      const finish = attachRoadFinish(material, {
+        id: family.id,
+        renderer: collectSolid ? null : renderer,
+        width: track.width,
+        uvLength: 16,
+      });
+      if (finish) part.borrowed.push(finish);
+    }
+    surfaceMaterials.set(id, material);
+    return material;
+  }
+  const spans = track.editorBiomeSpans ?? [];
+  const surfaces = [];
+  let surfaceStart = 0;
+  for (const span of spans) {
+    if (span.start > surfaceStart)
+      surfaces.push({ start: surfaceStart, end: span.start, biome: biome.id });
+    surfaces.push(span);
+    surfaceStart = span.end;
+  }
+  if (surfaceStart < track.length)
+    surfaces.push({ start: surfaceStart, end: track.length, biome: biome.id });
+  for (const surface of surfaces) {
+    if (
+      !roadRuns.some(
+        (run) =>
+          Math.min(run.end, surface.end) > Math.max(run.start, surface.start),
+      )
+    )
+      continue;
+    part.solid(
+      spans.length
+        ? `${editorBiome(surface.biome).label} section driving deck`
+        : 'Continuous asphalt driving deck',
+      sweepRoad(
+        track,
+        [
+          [-half, 0],
+          [half, 0],
+        ],
+        { ...range, start: surface.start, end: surface.end },
+      ),
+      surfaceMaterial(surface.biome),
+      { kind: 'deck', start: surface.start, end: surface.end },
+      collectSolid,
+    );
+  }
+  if (spans.length) {
+    const join = part.material('Editor / passive surface join', {
+      color: '#bdd3b5',
+      roughness: 0.88,
+    });
+    const boundaries = new Set(spans.flatMap((span) => [span.start, span.end]));
+    for (const distance of boundaries) {
+      const start = Math.max(0, distance - 0.35),
+        end = Math.min(track.length, distance + 0.35);
+      if (
+        !roadRuns.some(
+          (run) => Math.min(run.end, end) > Math.max(run.start, start),
+        )
+      )
+        continue;
+      part.solid(
+        'Road surface biome join',
+        sweepRoad(
+          track,
+          [
+            [-half, 0.035],
+            [half, 0.035],
+          ],
+          { ...range, start, end, step: 0.7 },
+        ),
+        join,
+      );
+    }
+  }
   const soffit =
     style.kind === 'alloy' ||
     style.kind === 'membrane' ||
@@ -562,14 +645,18 @@ export function createEditorRoad(
   );
   track.supportFootprints = footprints;
   part.finish();
-  part.ready = Promise.all([asphalt?.ready, finish?.ready]);
+  // Section finishes are owned leases too: wait for all asynchronous assets.
+  part.ready = Promise.all(part.borrowed.map((resource) => resource.ready));
   const reflect = part.setReflection;
   part.setReflection = (texture) => {
     reflect(texture);
-    if (asphalt) {
-      asphalt.material.envMap = texture;
-      asphalt.material.envMapIntensity = 0.75;
-      asphalt.material.needsUpdate = true;
+    for (const [id, material] of surfaceMaterials) {
+      if (editorBiome(id).road.kind !== 'asphalt') continue;
+      // Asphalt owns its material outside part.materials and has no reflection
+      // method. Other finishes keep their registered reflection behavior.
+      material.envMap = texture;
+      material.envMapIntensity = 0.75;
+      material.needsUpdate = true;
     }
   };
   return part;
@@ -588,13 +675,19 @@ function propDimensions(type, scale) {
 export function createEditorEnvironment(
   doc,
   track,
-  { collectSolid = null, renderer = null, preview = false } = {},
+  {
+    collectSolid = null,
+    renderer = null,
+    preview = false,
+    previous = null,
+  } = {},
 ) {
   if (doc.biome !== 'nightweir')
     return createBiomeEnvironment(doc, track, {
       renderer,
       collectSolid,
       preview,
+      previous,
       plan: prepareRegion(doc, track),
     });
   const preset = worldPreset(doc.settings.sceneryPreset);
@@ -643,7 +736,7 @@ export function createEditorEnvironment(
   const style = styles[preset.id];
   const blank = !track;
   const region =
-    doc.environment.layoutVersion === 1
+    doc.environment.layoutVersion >= 1
       ? (prepareRegion(doc, track) ?? createRegionPlan(doc, null))
       : null;
   if (!track) {
@@ -670,7 +763,10 @@ export function createEditorEnvironment(
       },
     };
   }
-  const part = owner('Editor / ' + preset.label, preview);
+  const part = owner('Editor / ' + preset.label, preview, {
+    previous,
+    regional: doc.environment.layoutVersion >= 2,
+  });
   part.group.userData.sceneryPreset = preset.id;
   part.group.userData.emptyRoad = blank;
   part.group.userData.assemblyCounts = {
@@ -781,7 +877,7 @@ export function createEditorEnvironment(
   );
   const plots = [];
   const canopyGeometry = new T.IcosahedronGeometry(1, 1);
-  part.geometries.add(canopyGeometry);
+  part.addGeometry(canopyGeometry);
   const drawProp = (prop, automatic = false) => {
     const f = prop.absolute
       ? null
@@ -789,6 +885,14 @@ export function createEditorEnvironment(
     const position = prop.absolute
       ? new T.Vector3(prop.x, prop.y, prop.z)
       : f.position.clone().addScaledVector(f.right, prop.lateral);
+    const pick =
+      region?.version >= 2
+        ? editorRandom(
+            (prop.seed ??
+              Math.imul(Math.round(position.x), 7919) ^
+                Math.imul(Math.round(position.z), 104729)) ^ region.seed,
+          )
+        : random;
     const [width, height, depth] = propDimensions(prop.type, prop.scale),
       bottom = prop.absolute ? prop.y : doc.settings.waterLevel + 5;
     const yaw = prop.absolute
@@ -922,7 +1026,7 @@ export function createEditorEnvironment(
     block(
       'Connected district frontage',
       prop.type === 'building'
-        ? automatic && random() > 0.5
+        ? automatic && pick() > 0.5
           ? brick
           : plaster
         : concrete,
@@ -970,7 +1074,7 @@ export function createEditorEnvironment(
         for (let x = -width / 2 + 4; x < width / 2 - 2; x += 6 * prop.scale) {
           block(
             'Recessed occupied room',
-            random() > 0.55 ? occupied : windows,
+            pick() > 0.55 ? occupied : windows,
             x,
             y,
             side * (depth / 2 + 0.15),
@@ -1159,16 +1263,30 @@ export function createEditorEnvironment(
 
 export function createEditorWorld(
   value,
-  { renderer = null, preview = false } = {},
+  { renderer = null, preview = false, previous = null } = {},
 ) {
   const doc = validateDocument(value),
     group = new T.Group();
   group.name = `${editorBiome(doc.biome).label} track editor preview`;
   const track = doc.points.length >= 4 ? createPreparedTrack(doc) : null;
   const road = track ? createEditorRoad(track, { renderer, preview }) : null;
+  const reuseKey = JSON.stringify([
+    doc.biome,
+    doc.environment,
+    doc.settings,
+    preview,
+  ]);
+  const priorEnvironment =
+    doc.environment.layoutVersion >= 2 &&
+    previous?.reuseKey === reuseKey &&
+    previous?.resourceContext === renderer &&
+    !previous?.isDisposed()
+      ? previous.environmentOwner
+      : null;
   const environment = createEditorEnvironment(doc, track, {
     renderer,
     preview,
+    previous: priorEnvironment,
   });
   const pickups = road ? createEditorPickupHardware(track, doc, road) : null;
   if (pickups) group.add(pickups.group);
@@ -1183,6 +1301,14 @@ export function createEditorWorld(
   return {
     group,
     track,
+    reuseKey,
+    resourceContext: renderer,
+    environmentOwner: environment,
+    incremental: {
+      ...environment.incremental,
+      eligible: Boolean(priorEnvironment),
+    },
+    isDisposed: () => disposed,
     get ownedTextures() {
       return new Set([
         ...(road?.ownedTextures ?? []),

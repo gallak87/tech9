@@ -8,6 +8,7 @@ import { routeCurve } from './route.js';
 import { readGamepad, steeringAxis } from '../input/gamepad.js';
 import { createEditorHandles } from './viewport-handles.js';
 import { bindEditorViewportInput } from './viewport-input.js';
+import { createPreviewGuides } from './preview-guides.js';
 
 // Road generation preferences do not rebuild resolved geometry or scenery.
 export function editorWorldFingerprint(value) {
@@ -16,6 +17,11 @@ export function editorWorldFingerprint(value) {
     id: undefined,
     name: undefined,
     generator: undefined,
+    jumps: value.jumps?.map((jump) => {
+      const physical = { ...jump };
+      delete physical.authoring;
+      return physical;
+    }),
   });
 }
 
@@ -61,6 +67,8 @@ export function createEditorViewport(
   let trajectories = [];
   let trajectoryLayer;
   let trajectoryKey = '';
+  let guides;
+  let guideData = {};
   let renderWidth = 0;
   let renderHeight = 0;
   let scene;
@@ -135,6 +143,8 @@ export function createEditorViewport(
     renderer.domElement.setAttribute('aria-keyshortcuts', 'Enter Escape');
     host.append(renderer.domElement);
     scene = new T.Scene();
+    guides = createPreviewGuides(scene, host);
+    guides.setData(guideData);
     scene.background = new T.Color('#111b20');
     scene.fog = new T.FogExp2('#657682', 0.00011);
     skyLight = new T.HemisphereLight('#a7c2d0', '#52666d', 1.4);
@@ -310,6 +320,7 @@ export function createEditorViewport(
           : Math.min(0.00011, 0.5 / Math.max(1, distance));
       handles?.setVisible(!flying);
       handles?.update(camera, width, height);
+      guides?.update(camera, width, height, flying);
       const state = handles?.getState();
       const placeLabel = (label, at, text) => {
         if (!label) return;
@@ -320,7 +331,13 @@ export function createEditorViewport(
           label.style.top = `${Math.min(height - 28, Math.max(4, at.y - 12))}px`;
         }
       };
-      placeLabel(heightLabel, state?.heightHandle, '↕ Height');
+      placeLabel(
+        heightLabel,
+        guideData.candidate ? null : state?.heightHandle,
+        selection.heightDelta == null
+          ? '↕ Height · Alt for fine'
+          : `${selection.heightDelta >= 0 ? '+' : ''}${selection.heightDelta.toFixed(1)} m · Alt for fine`,
+      );
       placeLabel(
         issueLabel,
         state?.problemMarker,
@@ -357,6 +374,7 @@ export function createEditorViewport(
         preset: 'Low / static editor preview',
         biome: world?.group.userData.editorBiome ?? null,
         environment: world?.group.userData.environment ?? null,
+        incremental: world?.incremental ?? null,
         frames: ++frames,
         timing: 'CPU render submission only',
         estimatedGpuBytes: world ? estimatedGpuBytes : 0,
@@ -748,6 +766,7 @@ export function createEditorViewport(
       next = await createEditorWorld(buildingDocument, {
         renderer,
         preview: true,
+        previous: world,
       });
       await next.ready;
       if (
@@ -805,6 +824,8 @@ export function createEditorViewport(
     world = undefined;
     builtFingerprint = null;
     clearTrajectories();
+    guides?.dispose();
+    guides = null;
     backdrop?.dispose();
     backdrop = undefined;
     backdropPromise = undefined;
@@ -830,6 +851,7 @@ export function createEditorViewport(
             camera: cameraState(),
             worldReady: Boolean(world) && builtFingerprint === fingerprint,
             interaction: handles?.getState() ?? null,
+            guideRouteBuilds: guides?.getMetrics().routeBuilds ?? 0,
           }
         : null,
     isFlying: () => flying,
@@ -848,6 +870,7 @@ export function createEditorViewport(
         tool = drawMode ? 'draw' : 'move',
         problemPoint = null,
         problemLabel = 'Check this point',
+        heightDelta = null,
       } = {},
     ) {
       const next = editorWorldFingerprint(document);
@@ -861,6 +884,7 @@ export function createEditorViewport(
         tool,
         problemPoint,
         problemLabel,
+        heightDelta,
       };
       fingerprint = next;
       handles?.setDocument(latest, selection);
@@ -878,6 +902,11 @@ export function createEditorViewport(
       if (key === trajectoryKey) return;
       trajectoryKey = key;
       rebuildTrajectories();
+    },
+    setGuides(next) {
+      guideData = next;
+      guides?.setData(next);
+      draw();
     },
     setVisible(value) {
       if (visible === value) {

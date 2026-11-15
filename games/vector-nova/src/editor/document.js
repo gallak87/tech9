@@ -127,7 +127,7 @@ export function validateDocument(value) {
   if (!record(e) || e.version !== ENVIRONMENT_VERSION)
     fail('Unsupported environment version');
   if (!Number.isInteger(e.seed)) fail('Environment seed must be an integer');
-  if (![0, ENVIRONMENT_LAYOUT_VERSION].includes(e.layoutVersion))
+  if (![0, 1, 2].includes(e.layoutVersion))
     fail('Unsupported environment layout version');
   const environment = {
     version: ENVIRONMENT_VERSION,
@@ -236,6 +236,87 @@ export function validateDocument(value) {
       }
       if (jump.end <= jump.start)
         fail('Choose a jump landing after its launch');
+      if (j.authoring !== undefined) {
+        const saved = j.authoring;
+        if (
+          !record(saved) ||
+          saved.version !== 1 ||
+          !['small', 'medium', 'large'].includes(saved.size) ||
+          !Array.isArray(saved.beforePoints) ||
+          saved.beforePoints.length > DOCUMENT_LIMITS.points ||
+          !Array.isArray(saved.generatedPointIds) ||
+          !saved.generatedPointIds.length ||
+          saved.generatedPointIds.length > DOCUMENT_LIMITS.points ||
+          typeof saved.signature !== 'string' ||
+          saved.signature.length > 150000
+        )
+          fail('Unsupported saved jump authoring data');
+        const storedIds = new Set();
+        const savedPoint = (p) => {
+          if (!record(p)) fail('Invalid saved jump road point');
+          const id = identifier(p.id, 'Saved jump point ID');
+          if (storedIds.has(id)) fail('Duplicate saved jump point ID');
+          storedIds.add(id);
+          return {
+            id,
+            x: number(p.x, -25000, 25000, 'Saved jump point X'),
+            y: number(p.y, 0, 3000, 'Saved jump point height'),
+            z: number(p.z, -25000, 25000, 'Saved jump point Z'),
+            bank: number(p.bank, -0.35, 0.35, 'Saved jump bank'),
+            roll: number(
+              p.roll ?? 0,
+              -Math.PI * 8,
+              Math.PI * 8,
+              'Saved jump roll',
+            ),
+          };
+        };
+        const beforePoints = saved.beforePoints.map(savedPoint);
+        const generatedPointIds = saved.generatedPointIds.map((id) =>
+          identifier(id, 'Generated jump point ID'),
+        );
+        if (new Set(generatedPointIds).size !== generatedPointIds.length)
+          fail('Duplicate generated jump point ID');
+        let signedPoints;
+        try {
+          signedPoints = JSON.parse(saved.signature);
+        } catch {
+          fail('Invalid saved jump signature');
+        }
+        storedIds.clear();
+        if (
+          !Array.isArray(signedPoints) ||
+          signedPoints.length !== generatedPointIds.length
+        )
+          fail('Invalid saved jump signature');
+        const canonicalSignedPoints = signedPoints.map(savedPoint);
+        if (
+          canonicalSignedPoints.some((p, i) => p.id !== generatedPointIds[i]) ||
+          JSON.stringify(canonicalSignedPoints) !== saved.signature
+        )
+          fail('Invalid saved jump signature');
+        jump.authoring = {
+          version: 1,
+          size: saved.size,
+          sourceOffset: number(
+            saved.sourceOffset,
+            0,
+            DOCUMENT_LIMITS.length,
+            'Saved jump source offset',
+          ),
+          beforeId:
+            saved.beforeId === null
+              ? null
+              : identifier(saved.beforeId, 'Jump corridor preceding point'),
+          afterId:
+            saved.afterId === null
+              ? null
+              : identifier(saved.afterId, 'Jump corridor following point'),
+          beforePoints,
+          generatedPointIds,
+          signature: saved.signature,
+        };
+      }
       return jump;
     })
     .sort((a, b) => a.start - b.start);
@@ -271,6 +352,44 @@ export function validateDocument(value) {
       };
     }),
   };
+  if (
+    !Array.isArray(value.biomeSpans ?? []) ||
+    (value.biomeSpans?.length ?? 0) > 32
+  )
+    fail('A course can have at most 32 road-finish sections');
+  const pointIndices = new Map(points.map((point, i) => [point.id, i]));
+  const biomeSpans = (value.biomeSpans ?? [])
+    .map((span) => {
+      if (!record(span) || !['nightweir', 'vesper-forest'].includes(span.biome))
+        fail(
+          'Road-finish sections support registered Nightweir and Vesper finishes only',
+        );
+      const result = {
+        id: unique(span.id, 'Road-finish section ID'),
+        startPointId: identifier(span.startPointId, 'Road-finish start point'),
+        endPointId: identifier(span.endPointId, 'Road-finish end point'),
+        biome: span.biome,
+      };
+      const start = pointIndices.get(result.startPointId),
+        end = pointIndices.get(result.endPointId);
+      if (start === undefined || end === undefined)
+        fail('Clear the road-finish section before deleting its endpoint');
+      if (end <= start)
+        fail(
+          'Choose a road-finish endpoint after its start; sections cannot cross the start line',
+        );
+      return result;
+    })
+    .sort(
+      (a, b) =>
+        pointIndices.get(a.startPointId) - pointIndices.get(b.startPointId),
+    );
+  for (let i = 1; i < biomeSpans.length; i++)
+    if (
+      pointIndices.get(biomeSpans[i].startPointId) <
+      pointIndices.get(biomeSpans[i - 1].endPointId)
+    )
+      fail('Road-finish sections must not overlap');
   return {
     format: DOCUMENT_FORMAT,
     version: 1,
@@ -288,6 +407,7 @@ export function validateDocument(value) {
     rolls,
     jumps,
     pickups,
+    biomeSpans,
   };
 }
 
@@ -296,6 +416,12 @@ export function documentIdentity(doc) {
   // Resolved road geometry and environment inputs own physics. Generator
   // preferences remain saved without changing regional-course identity.
   const geometry = { ...canonical };
+  geometry.jumps = geometry.jumps.map((jump) => {
+    const physical = { ...jump };
+    delete physical.authoring;
+    return physical;
+  });
+  if (!geometry.biomeSpans.length) delete geometry.biomeSpans;
   delete geometry.id;
   delete geometry.name;
   const legacy = canonical.environment.layoutVersion === 0;

@@ -208,6 +208,28 @@ test('Draw survives a height-handle edit and can place the next point above an e
   assert.equal(h.doc.points.length, 3);
 });
 
+test('Alt makes a height gesture precise while keeping one undo transaction', (t) => {
+  const h = harness(t, { tool: 'height' });
+  const at = h.screen(h.doc.points[1]);
+  h.hit = { kind: 'height', index: 1 };
+  h.event('pointerdown', at);
+  h.event('pointermove', { ...at, clientY: at.clientY - 40 });
+  h.frame();
+  const ordinaryDelta = h.doc.points[1].y - 52;
+  h.event('pointermove', { ...at, clientY: at.clientY - 40, altKey: true });
+  h.frame();
+  const fineDelta = h.doc.points[1].y - 52;
+  assert.ok(ordinaryDelta > 0);
+  assert.ok(fineDelta > 0 && fineDelta < ordinaryDelta);
+  assert.ok(
+    Math.abs(fineDelta - ordinaryDelta * 0.2) <= 1,
+    'fine movement respects the metre grid',
+  );
+  h.event('pointerup', { ...at, clientY: at.clientY - 40, altKey: true });
+  assert.equal(h.ended, 1);
+  assert.equal(h.selection.tool, 'height');
+});
+
 test('Draw point selection and Shift-height edits preserve the active drawing tool', (t) => {
   const h = harness(t);
   h.hit = { kind: 'point', index: 0 };

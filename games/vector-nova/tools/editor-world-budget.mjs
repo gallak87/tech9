@@ -1,18 +1,47 @@
 import assert from 'node:assert/strict';
+import { mkdir } from 'node:fs/promises';
+import { resolve } from 'node:path';
 import { generateDocument } from '../src/editor/document.js';
 import {
   launchVerificationBrowser,
   collectPageErrors,
 } from './verification-browser.mjs';
 import { seedVerificationCareer } from './verification-career.mjs';
-import { openEditorSection, revealEditorAction } from './editor-controls.mjs';
+import {
+  openEditorSection,
+  revealEditorAction,
+  revealEditorField,
+} from './editor-controls.mjs';
 
 // Matched warm CPU-submission/resource comparison. Run alone after functional
 // checks; neither headless CPU submission nor estimates establish GPU/FPS headroom.
 const practice = process.argv.includes('--practice');
+const localRebuild = process.argv.includes('--local-rebuild');
+assert(
+  !(practice && localRebuild),
+  '--local-rebuild measures the static editor; run Practice separately.',
+);
+const layoutArgument = process.argv.find((value) =>
+  value.startsWith('--layouts='),
+);
+const layouts = layoutArgument
+  ? layoutArgument.slice('--layouts='.length).split(',').map(Number)
+  : [0, 1];
+assert(
+  layouts.length > 0 &&
+    layouts.length <= 3 &&
+    new Set(layouts).size === layouts.length &&
+    layouts.every(
+      (value) => Number.isInteger(value) && [0, 1, 2].includes(value),
+    ),
+  'Choose --layouts=0,1,2 (or a unique subset).',
+);
 const quality = process.env.VN_QUALITY ?? 'low';
 assert(['low', 'high'].includes(quality));
 const base = process.env.VN_URL;
+const evidence = process.env.VN_EVIDENCE
+  ? resolve(process.env.VN_EVIDENCE)
+  : null;
 if (!base) throw new Error('Set VN_URL to the isolated editor server.');
 const browser = await launchVerificationBrowser();
 const context = await browser.newContext({
@@ -23,7 +52,108 @@ const errors = [];
 const results = [];
 const quantile = (values, q) =>
   [...values].sort((a, b) => a - b)[Math.floor((values.length - 1) * q)];
+const state = (page) =>
+  page.evaluate(() => window.__VN_FRONTEND.getState().editor);
+async function settleFrame(page) {
+  await page.waitForFunction(
+    () => {
+      const editor = window.__VN_FRONTEND.getState().editor;
+      return !editor.busy && editor.preview?.worldReady;
+    },
+    null,
+    { timeout: 90000 },
+  );
+  // This preview is on demand, so waiting for N additional frames can hang.
+  // Two RAFs let its queued final draw complete before reading resource metrics.
+  await page.evaluate(
+    () =>
+      new Promise((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(resolve)),
+      ),
+  );
+}
+async function savedCourse(page, id) {
+  await page.locator('[data-editor-action="save"]').click();
+  await page.waitForFunction(
+    () =>
+      !window.__VN_FRONTEND.getState().editor.busy &&
+      document
+        .querySelector('[data-editor-status]')
+        ?.textContent.includes('Track saved'),
+    null,
+    { timeout: 90000 },
+  );
+  return page.evaluate(
+    (id) =>
+      JSON.parse(localStorage.getItem('vector-nova.tracks.v1.' + id)).document,
+    id,
+  );
+}
+async function measureLocalRebuild(page, fixture) {
+  const before = await savedCourse(page, fixture.id);
+  const pointIndex = Math.min(20, before.points.length - 2);
+  await (
+    await revealEditorField(page, 'point')
+  ).selectOption(String(pointIndex));
+  const elevation = await revealEditorField(page, 'point-y');
+  await elevation.focus();
+  const previous = await state(page);
+  const started = Date.now();
+  await elevation.press('ArrowRight');
+  await settleFrame(page);
+  const readyMs = Date.now() - started;
+  const after = await savedCourse(page, fixture.id);
+  assert.equal(after.points.length, before.points.length);
+  assert.deepEqual(after.environment, before.environment);
+  assert.deepEqual(after.settings, before.settings);
+  assert.deepEqual(
+    after.points.filter((_, i) => i !== pointIndex),
+    before.points.filter((_, i) => i !== pointIndex),
+  );
+  const actualDeltaMetres =
+    after.points[pointIndex].y - before.points[pointIndex].y;
+  assert(
+    actualDeltaMetres > 0 && actualDeltaMetres <= 10,
+    'a native elevation ArrowRight edits only the selected point',
+  );
+  await settleFrame(page);
+  const metric = (await state(page)).preview;
+  if (fixture.environment.layoutVersion >= 2) {
+    assert(
+      metric.incremental?.eligible,
+      'same environment enables local geometry reuse',
+    );
+    assert(
+      metric.incremental.reusedChunks > 0,
+      'the public local height edit reuses unchanged scenery buffers',
+    );
+  } else {
+    assert.equal(
+      metric.incremental?.eligible,
+      false,
+      'historical layouts retain independent builds',
+    );
+  }
+  const result = {
+    scope:
+      'Native selected-point height edit; full CPU checks, unchanged scenery GPU buffers retained',
+    pointIndex,
+    actualDeltaMetres: Number(actualDeltaMetres.toFixed(3)),
+    editToReadyMs: readyMs,
+    incremental: metric.incremental,
+    calls: metric.calls,
+    triangles: metric.triangles,
+    geometries: metric.geometries,
+    textures: metric.textures,
+    estimatedGpuMiB: Number((metric.estimatedGpuBytes / 1048576).toFixed(2)),
+    previousGeometries: previous.preview.geometries,
+  };
+  await page.locator('[data-editor-action="undo"]').click();
+  await settleFrame(page);
+  return result;
+}
 try {
+  if (evidence) await mkdir(evidence, { recursive: true });
   await seedVerificationCareer(context);
   await context.routeWebSocket('**/*', () => {});
   await context.addInitScript((quality) => {
@@ -54,7 +184,7 @@ try {
       density: 0.82,
       waterLevel: -28,
     };
-    for (const layoutVersion of [0, 1]) {
+    for (const layoutVersion of layouts) {
       const fixture = structuredClone(source);
       fixture.name = `Budget ${length} layout ${layoutVersion}`;
       fixture.environment = { version: 1, seed: 7001, layoutVersion };
@@ -119,6 +249,10 @@ try {
           pipeline: metric.pipeline,
         });
         console.log(JSON.stringify(results.at(-1)));
+        if (evidence && quality === 'low' && layoutVersion === 2)
+          await page.screenshot({
+            path: resolve(evidence, `${length / 1000}km-nightweir-driving.png`),
+          });
         await page.evaluate(() => window.__VN.pause());
         await page.locator('#home').click();
         await page
@@ -145,6 +279,9 @@ try {
         if (i >= 18) samples.push(metric);
       }
       const last = samples.at(-1);
+      const localEdit = localRebuild
+        ? await measureLocalRebuild(page, fixture)
+        : null;
       results.push({
         length,
         layoutVersion,
@@ -171,6 +308,7 @@ try {
         estimatedGpuMB: Number((last.estimatedGpuBytes / 1048576).toFixed(2)),
         geometries: last.geometries,
         textures: last.textures,
+        ...(localEdit ? { localEdit } : {}),
       });
       console.log(JSON.stringify(results.at(-1)));
     }

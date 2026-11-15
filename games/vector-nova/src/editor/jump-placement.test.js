@@ -4,10 +4,43 @@ import {
   generateDocument,
   analyzeDocument,
   pointRouteFractions,
+  createDocument,
 } from './document.js';
 import { findNextSuitableJump } from './jump-placement.js';
 import { createEditorTrack } from './track.js';
 import { predictEditorJumpTrajectory } from './jumps.js';
+
+test('automatic jump suggestions sample sparse hand-drawn roads between controls', async () => {
+  const source = createDocument({ blank: true });
+  source.points = Array.from({ length: 8 }, (_, i) => ({
+    id: `point-${i}`,
+    x: 650 * Math.cos((i * Math.PI) / 4),
+    y: 100,
+    z: 650 * Math.sin((i * Math.PI) / 4),
+    bank: 0,
+    roll: 0,
+  }));
+  assert(analyzeDocument(source).valid);
+  const before = JSON.stringify(source),
+    prepared = await findNextSuitableJump(source, { fromIndex: 6 });
+  assert.equal(JSON.stringify(source), before);
+  assert(analyzeDocument(prepared.document).valid);
+  assert(prepared.ghost);
+  assert(
+    prepared.resolved.horizontalGap > 140 &&
+      prepared.resolved.horizontalGap < 220,
+  );
+  assert(prepared.document.jumps[0].authoring);
+  for (const [size, target] of [
+    ['medium', 300],
+    ['large', 500],
+  ]) {
+    const sized = await findNextSuitableJump(source, { size });
+    assert.equal(sized.requestedSize, size);
+    assert(Math.abs(sized.resolved.horizontalGap - target) < 35);
+    assert(analyzeDocument(sized.document).valid);
+  }
+});
 
 test('automatic jump suggestions avoid the start and leave the source untouched until explicitly added', async () => {
   for (const courseType of ['circuit', 'downhill']) {

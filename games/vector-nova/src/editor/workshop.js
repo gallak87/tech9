@@ -1,4 +1,5 @@
 import { createTrackEditor } from './index.js';
+import { resolveEditorTestStart } from './test-drive.js';
 import './workshop.css';
 
 // The workshop owns a separate practice session. Career races stay suspended.
@@ -23,55 +24,93 @@ export async function createWorkshop(
     game = null,
     controller = null,
     generation = 0,
-    disposed = false;
+    disposed = false,
+    activeTest = false,
+    gameKey = null;
   let pending = null,
     suspended = false,
-    previousDiagnostics = null,
+    previousDiagnostics,
+    diagnosticsSaved = false,
     disposal = null;
 
   function restoreDiagnostics() {
-    if (!import.meta.env?.VN_DESKTOP && previousDiagnostics) {
-      window.__VN = previousDiagnostics;
-      previousDiagnostics = null;
+    if (!import.meta.env?.VN_DESKTOP && diagnosticsSaved) {
+      if (previousDiagnostics === undefined) delete window.__VN;
+      else window.__VN = previousDiagnostics;
+      diagnosticsSaved = false;
     }
+  }
+  function claimDiagnostics() {
+    if (import.meta.env?.VN_DESKTOP) return;
+    if (!diagnosticsSaved) {
+      previousDiagnostics = window.__VN;
+      diagnosticsSaved = true;
+    }
+    if (game) window.__VN = game;
+  }
+  function discardGame() {
+    game?.dispose();
+    game = null;
+    gameKey = null;
   }
   function returnToEditor() {
     if (disposed) return;
     generation++;
-    controller?.abort();
-    game?.dispose();
-    game = null;
-    const token = generation;
+    activeTest = false;
+    if (pending) controller?.abort();
+    if (game) {
+      const attempt = game.getEditorTestAttempt();
+      if (attempt) editor?.setTestDriveAttempt?.(attempt);
+      game.pause();
+      game.setSuspended(true);
+    }
     sessionHost.hidden = true;
-    const restore = () => {
-      if (disposed || token !== generation) return;
-      restoreDiagnostics();
-      sessionHost.replaceChildren();
-      editorHost.hidden = false;
-      document.body.dataset.screen = 'editor';
-      onDriving(false);
-      editor?.resume();
-    };
-    if (pending) void pending.catch(() => {}).then(restore);
-    else restore();
+    restoreDiagnostics();
+    editorHost.hidden = false;
+    document.body.dataset.screen = 'editor';
+    onDriving(false);
+    editor?.resume();
   }
-  async function testDrive(documentData) {
+  async function testDrive(documentData, request = {}) {
+    const plan = resolveEditorTestStart(documentData, request, { shipId });
+    const key = JSON.stringify([
+      plan.courseIdentity,
+      shipId,
+      documentData.id,
+      documentData.name,
+    ]);
     const token = ++generation;
-    controller?.abort();
+    if (pending) controller?.abort();
     controller = new AbortController();
     const signal = controller.signal;
     const previous = pending;
+    activeTest = true;
     editor.suspend();
     editorHost.hidden = true;
     sessionHost.hidden = false;
+    claimDiagnostics();
+    if (game && gameKey === key && !previous) {
+      try {
+        game.setSuspended(false);
+        document.body.dataset.screen = 'race';
+        if (!game.startEditorTest(plan.request))
+          throw new Error('The selected test could not be started.');
+        return;
+      } catch (error) {
+        returnToEditor();
+        throw error;
+      }
+    }
+    discardGame();
+    await previous?.catch(() => {});
+    if (disposed || signal.aborted || token !== generation) return;
+    sessionHost.replaceChildren();
     sessionHost.innerHTML =
       '<section class="editor-session-loading" data-editor-loading><p>TRACK WORKSHOP / TEST DRIVE</p><h1>Preparing your circuit</h1><p role="status">Reading track</p><button type="button">Back to editor</button></section>';
     const loading = sessionHost.firstElementChild;
     loading.querySelector('button').onclick = returnToEditor;
     loading.querySelector('button').focus();
-    if (!import.meta.env?.VN_DESKTOP) previousDiagnostics = window.__VN ?? null;
     const task = (async () => {
-      await previous?.catch(() => {});
       signal.throwIfAborted();
       const { createGame } = await import('../core/game.js');
       signal.throwIfAborted();
@@ -81,7 +120,7 @@ export async function createWorkshop(
         parameters: new URLSearchParams(),
         signal,
         onProgress(stage) {
-          if (!signal.aborted)
+          if (!signal.aborted && activeTest)
             loading.querySelector('[role="status"]').textContent = stage;
         },
         onHome: returnToEditor,
@@ -93,7 +132,7 @@ export async function createWorkshop(
           ? () => onTunes(sessionHost.querySelector('#pause-tunes'))
           : null,
         onMode(mode) {
-          if (!signal.aborted)
+          if (!signal.aborted && activeTest)
             onDriving(['racing', 'countdown'].includes(mode));
         },
       });
@@ -103,7 +142,7 @@ export async function createWorkshop(
         return;
       }
       game = created;
-      game.prepareSession();
+      gameKey = key;
       if (
         game.getSnapshot().ship.id !== shipId &&
         !(await game.selectShip(shipId))
@@ -112,16 +151,21 @@ export async function createWorkshop(
       signal.throwIfAborted();
       loading.remove();
       document.body.dataset.screen = 'race';
-      game.practice();
+      if (!game.startEditorTest(plan.request))
+        throw new Error('The selected test could not be started.');
     })();
     pending = task;
     try {
       await task;
     } catch (error) {
-      if (token === generation && !disposed) returnToEditor();
+      if (token === generation && !disposed) {
+        discardGame();
+        returnToEditor();
+      }
       if (error.name !== 'AbortError') throw error;
     } finally {
       if (pending === task) pending = null;
+      if (!activeTest) restoreDiagnostics();
     }
   }
   editor = await createTrackEditor(editorHost, {
@@ -135,15 +179,16 @@ export async function createWorkshop(
     getDocument: () => editor.getDocument(),
     getState: () => ({
       ...editor.getState(),
-      testDriving: !!game,
+      testDriving: activeTest,
       loadingTest: !!pending,
+      retainedTest: !!game,
     }),
-    isTestDriving: () => !!game || !!pending,
+    isTestDriving: () => activeTest,
     suspend() {
       if (disposed || suspended) return;
       suspended = true;
       host.hidden = true;
-      if (game) {
+      if (activeTest && game) {
         game.pause();
         game.setSuspended(true);
       } else editor.suspend();
@@ -153,7 +198,7 @@ export async function createWorkshop(
       if (disposed) return;
       suspended = false;
       host.hidden = false;
-      if (game) {
+      if (activeTest && game) {
         document.body.dataset.screen = 'race';
         game.resumeSession();
         sessionHost.querySelector('#pause-settings')?.focus();
@@ -167,8 +212,8 @@ export async function createWorkshop(
       disposed = true;
       generation++;
       controller?.abort();
-      game?.dispose();
-      game = null;
+      activeTest = false;
+      discardGame();
       editor.dispose();
       editorHost.remove();
       sessionHost.remove();

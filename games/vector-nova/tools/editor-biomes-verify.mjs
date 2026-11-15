@@ -2,7 +2,10 @@ import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { EDITOR_BIOMES } from '../src/editor/biomes.js';
-import { generateDocument } from '../src/editor/document.js';
+import {
+  generateDocument,
+  ENVIRONMENT_LAYOUT_VERSION,
+} from '../src/editor/document.js';
 import { seedVerificationCareer } from './verification-career.mjs';
 import {
   openEditorSection,
@@ -245,7 +248,7 @@ async function applyFamily(id, previous, canonicalRoad) {
   assert.deepEqual(applied.environment, {
     version: 1,
     seed: environmentSeed,
-    layoutVersion: 1,
+    layoutVersion: ENVIRONMENT_LAYOUT_VERSION,
   });
   assert.deepEqual(applied.settings, {
     sceneryPreset: preset.id,
@@ -321,6 +324,8 @@ async function importTrack(document) {
 async function loadAfterReload(expected) {
   await page.reload();
   await page.locator('[data-editor-field="name"]').waitFor({ timeout: 90000 });
+  const recovered = page.locator('[data-editor-action="recover-draft"]');
+  if (await recovered.isVisible()) await recovered.click();
   await section('library');
   await change('saved', expected.id);
   await choose('load');

@@ -171,11 +171,12 @@ export async function createGame({
         !import.meta.env?.VN_DESKTOP &&
         ['1', '2'].includes(parameters.get('dev')),
     };
-    let loadedCourse;
+    let loadedCourse, editorTestTools;
     if (customCourse) {
       if (import.meta.env?.VN_EDITION !== 'demo') {
         const { loadEditorCourse } = await import('../editor/course.js');
         loadedCourse = loadEditorCourse(customCourse);
+        editorTestTools = await import('../editor/test-drive.js');
       } else throw new Error('Track Workshop requires the full edition.');
     } else {
       if (!levelAvailable(requestedLevel, access))
@@ -185,6 +186,9 @@ export async function createGame({
       });
     }
     const { metadata, definition, shape: blockout } = loadedCourse;
+    const editorTestRecorder =
+      editorTestTools?.createEditorTestAttemptRecorder();
+    let editorTestRequest = null;
     const VERSION = definition.version;
     const freestyle = Boolean(definition.freestyle);
     let eventPresentation = null,
@@ -394,6 +398,8 @@ export async function createGame({
       }
       events.push(event);
       if (events.length > 500) events.shift();
+      if (editorTestRequest)
+        editorTestRecorder.event(event, state, trialPose());
       if (e.type === 'jump-transfer' || e.type === 'road-recovery')
         prev = { ...state };
       raceFeedback.event(event);
@@ -523,47 +529,54 @@ export async function createGame({
     const { createDeviceRuntime } = interceptor
       ? await import('../pickups/runtime.js')
       : {};
-    const racers = await simulationActors.createField({
-      continuous: !!eliminator || !!interceptor,
-      field: raceField,
-      ...(interceptor
-        ? {
-            createRuntime(specification, { context, combat, devices }) {
-              const motion =
-                specification.id === missionBoss.id
-                  ? createInterceptorMotion(context, {
-                      createMotion:
-                        definition.racing.createMotion ?? createMagneticRuntime,
-                      getYaw: () => interceptor.snapshot().counterattack.yaw,
-                    })
-                  : (definition.racing.createMotion ?? createMagneticRuntime)(
-                      context,
-                    );
-              try {
-                return createDeviceRuntime({
-                  combat,
-                  combatId: specification.id,
-                  team: specification.team,
-                  hitBounds: specification.hitBounds,
-                  ...(specification.id === missionBoss.id
-                    ? { combatResistance: 0.9, damageDuringGrace: true }
-                    : {}),
-                  track,
-                  devices:
+    // Workshop sessions are solo. Keep normal devices/contact physics, while
+    // avoiding nine unused rival runtimes and their presentation resources.
+    const racers = customCourse
+      ? null
+      : await simulationActors.createField({
+          continuous: !!eliminator || !!interceptor,
+          field: raceField,
+          ...(interceptor
+            ? {
+                createRuntime(specification, { context, combat, devices }) {
+                  const motion =
                     specification.id === missionBoss.id
-                      ? devices.filter((device) => device.type === 'aegis')
-                      : devices,
-                  identity: definition.racing.identity,
-                  motion,
-                });
-              } catch (error) {
-                motion.dispose();
-                throw error;
+                      ? createInterceptorMotion(context, {
+                          createMotion:
+                            definition.racing.createMotion ??
+                            createMagneticRuntime,
+                          getYaw: () =>
+                            interceptor.snapshot().counterattack.yaw,
+                        })
+                      : (
+                          definition.racing.createMotion ??
+                          createMagneticRuntime
+                        )(context);
+                  try {
+                    return createDeviceRuntime({
+                      combat,
+                      combatId: specification.id,
+                      team: specification.team,
+                      hitBounds: specification.hitBounds,
+                      ...(specification.id === missionBoss.id
+                        ? { combatResistance: 0.9, damageDuringGrace: true }
+                        : {}),
+                      track,
+                      devices:
+                        specification.id === missionBoss.id
+                          ? devices.filter((device) => device.type === 'aegis')
+                          : devices,
+                      identity: definition.racing.identity,
+                      motion,
+                    });
+                  } catch (error) {
+                    motion.dispose();
+                    throw error;
+                  }
+                },
               }
-            },
-          }
-        : {}),
-    });
+            : {}),
+        });
     const racerModule = racers ? await import('../race/racers.js') : null;
     const racerPresentation = racers
       ? lifetime.own(
@@ -615,7 +628,7 @@ export async function createGame({
     const makeRace = () =>
       createRace(track, {
         rulesId: `${runtime.rulesId}:ship-${ship.selected.id}-v${ship.selected.version}${competition ? `:difficulty-${raceDifficulty}` : ''}`,
-        untimed: Boolean(playtest),
+        untimed: Boolean(playtest || editorTestRequest),
         laps: freestyle || (timeTrial && track.closed === false) ? 1 : Infinity,
         continuous: timeTrial && track.closed !== false,
       });
@@ -1292,9 +1305,42 @@ export async function createGame({
       audio.unlock().catch(() => {});
     }
     function retrySession() {
+      if (editorTestRequest) return startEditorTest(editorTestRequest);
       if (freestylePractice)
         return practiceFreestyleTransfer(freestylePractice.id);
       return playtest ? repeatPlaytest() : restart(competition, true);
+    }
+    // A release-build workshop capability, deliberately limited to this loaded
+    // custom document and bundled stock speed/reserve choices. It does not use
+    // developer scenario injection or alter the shared vehicle/flight rules.
+    function startEditorTest(request = {}) {
+      if (!editorTestTools || shipLoading) return false;
+      const plan = editorTestTools.resolveEditorTestStart(
+        customCourse,
+        request,
+        {
+          shipId: ship.selected.id,
+          track,
+        },
+      );
+      editorTestRequest = plan.request;
+      cupRace = null;
+      restart(false, false, false);
+      state = { ...playerState(true), ...plan.state };
+      scenario = `editor-${plan.kind}`;
+      race = makeRace();
+      race.placeScenario(state.distance);
+      resetRuntime('scenario');
+      editorTestRecorder.begin(plan);
+      initial = !import.meta.env?.VN_DESKTOP
+        ? captureInitial(state, runtime, dynamics)
+        : null;
+      prev = { ...state };
+      input.clear();
+      rig.reset();
+      last = 0;
+      audio.unlock().catch(() => {});
+      return plan;
     }
     function repeatPlaytest() {
       window.__VN.loadScenario(selectedPlaytestCase.scenario, 7);
@@ -1617,7 +1663,15 @@ export async function createGame({
             else home();
           }
           if (command === 'restart') {
-            if (playtest && ['racing', 'paused', 'countdown'].includes(mode))
+            if (
+              editorTestRequest &&
+              ['racing', 'paused', 'countdown'].includes(mode)
+            )
+              startEditorTest(editorTestRequest);
+            else if (
+              playtest &&
+              ['racing', 'paused', 'countdown'].includes(mode)
+            )
               repeatPlaytest();
             else recover();
           }
@@ -2336,6 +2390,13 @@ export async function createGame({
         restart(false, false, false);
         audio.unlock().catch(() => {});
       },
+      ...(editorTestTools
+        ? {
+            startEditorTest,
+            getEditorTestAttempt: () =>
+              editorTestRecorder.read(state, trialPose()),
+          }
+        : {}),
       pause,
       hasSession: () => sessionActive,
       prepareSession,
@@ -2423,7 +2484,7 @@ export async function createGame({
                 seed,
                 scenario,
                 competition,
-                untimed: Boolean(playtest),
+                untimed: Boolean(playtest || editorTestRequest),
                 ...(competition ? { field: racers.identity } : {}),
                 ...(testLaunch
                   ? { testLaunch: structuredClone(testLaunch) }
@@ -2452,7 +2513,8 @@ export async function createGame({
                 (track.closed === false &&
                   JSON.stringify(replay.course) !==
                     JSON.stringify(courseIdentity(track))) ||
-                Boolean(replay.untimed) !== Boolean(playtest) ||
+                Boolean(replay.untimed) !==
+                  Boolean(playtest || editorTestRequest) ||
                 replay.ship?.id !== ship.selected.id ||
                 replay.ship?.version !== ship.selected.version ||
                 !compatibleRuntime(runtime, replay.runtime)

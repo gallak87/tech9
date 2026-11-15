@@ -8,16 +8,22 @@ The editor includes direct road editing, seeded Circuit/Downhill courses through
 - **Independent seeds:** road generation preserves the applied environment; environment regeneration preserves authored road points, roll/bank, jump anchors and pickups. Pending world controls remain separate from the applied saved course.
 - **Nightweir regions:** seeded terrain, connected shore/basins/canals, neighborhoods, near-road wards, industrial yards, parks and founded landmarks. Automatic infrastructure reserves road, camera and flight corridors.
 - **Whole-course biomes:** all 17 base world families have curated characters, distinct generated scenery/road kits and registered backdrop/lighting. Campaign routes and active hazards remain separate. Mode variants reuse their base biome.
-- **Compatibility:** legacy missing environment data inherits its old seed and roadside layout; new courses use regional layout 1. Loading never regenerates authored road points.
+- **Compatibility:** legacy missing environment data inherits its old seed and roadside layout; new courses use stable regional layout 2, while saved layouts 0/1 remain supported. Loading never regenerates authored road points.
+- **Jump editing and local testing:** sampled size proposals, reversible resize, stock point/jump starts, immediate retry and retained actual landing/miss feedback.
+- **Draft recovery:** separate applied-draft checkpoints, native Continue/Start fresh, unchanged explicit library saves.
+- **Stable regional editing:** layout 2 preserves earlier layouts, clips Nightweir courts to terrain/shore contours and reuses unchanged distant buffers after full CPU clearance checks.
+- **Road-finish pilot:** anchored Nightweir/Vesper sections, passive join bands, continuous physical decks and shared Undo/save behavior. Environment mixing remains below.
 
 ## Regional generation improvements
 
 - Let route generation optionally follow the regional plan so a course deliberately visits distinct places; current scenery fits around the authoritative road.
-- Rebuild only affected local chunks after road edits. Retain the shared preview/history and exact matching rendered/collision placement.
-- Improve court boundaries and terrain/shore detail, particularly at clearance cutouts. Add richer connected drainage/waterfall systems and founded large assemblies.
+- Extend the current exact-content environment geometry/buffer reuse into incremental CPU survey/assembly generation. Current road edits still reevaluate all CPU clearance commands, with matching fresh collision geometry; distant byte-identical chunks retain their buffers.
+- Extend the terrain-triangle-clipped Nightweir court/shore boundaries to richer clearance-edge treatments. Add richer connected drainage/waterfall systems and founded large assemblies.
 - Continue measuring detailed near, simpler middle and distant geometry at both quality presets over 20 km courses. Static preview CPU submission measurements do not establish GPU/FPS headroom; keep the 60 FPS target and bound reflection/water costs.
 
 ## Mix and match biomes
+
+The first bounded pilot supports anchored Nightweir/Vesper road-finish spans, passive join bands and unchanged driving geometry. It does not mix environment kits, skies or hazards.
 
 - Apply a biome to an individual road placement or route span rather than locking the entire track to one biome.
 - Keep the centerline, elevation, width, rotation, jumps and race progress continuous across biome boundaries. Automatically choose compatible road edges, supports and foundations, and blend road finishes at seams.
@@ -60,8 +66,8 @@ Hazards must remain available across biome boundaries. Placement should preserve
 
 ## Suggested sequence
 
-1. Mature the whole-course foundation with local rebuilds and richer regional terrain/water boundaries.
-2. Add a small mixed-biome route-span workflow with deliberate transitions, automatic supports and continuous driving/race progress; expand combinations after that path is proven.
+1. Continue the whole-course foundation: local CPU generation and richer connected regional water/clearance boundaries. Jump proposals/resizing, local test/retry feedback, draft recovery and immutable distant geometry reuse are implemented.
+2. Extend the Nightweir/Vesper road-finish pilot to complete mixed environment regions with deliberate transitions, compatible supports/foundations and continuous driving/race progress; expand combinations only after that path is proven.
 3. Add the independent sky picker. Reconsider an optional cross-biome static prop palette after the complete-world workflow is established.
 4. Add a stationary road hazard such as Vesper sap or a lava/fire floor. Validate exact road contact, reset, replay identity and clear visual warnings.
 5. Add connected water systems and richer Nightweir/Zephyr construction assemblies.

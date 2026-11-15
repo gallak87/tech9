@@ -73,7 +73,13 @@ function curvedSail() {
 export function createBiomeEnvironment(
   doc,
   track,
-  { renderer = null, collectSolid = null, preview = false, plan = null } = {},
+  {
+    renderer = null,
+    collectSolid = null,
+    preview = false,
+    plan = null,
+    previous = null,
+  } = {},
 ) {
   const biome = editorBiome(doc.biome),
     profile = biome.environment;
@@ -85,6 +91,7 @@ export function createBiomeEnvironment(
   const owner = createEditorOwner(
       'Editor / ' + biome.label + ' regional world',
       preview,
+      { previous, regional: doc.environment.layoutVersion >= 2 },
     ),
     family = doc.biome;
   const finish =
@@ -196,7 +203,7 @@ export function createBiomeEnvironment(
     lancet: pointedArch(),
     sail: curvedSail(),
   };
-  Object.values(bases).forEach((g) => owner.geometries.add(g));
+  Object.values(bases).forEach((g) => owner.addGeometry(g));
   const batches = new Map(),
     accepted = [],
     cells = new Map(),
@@ -723,11 +730,16 @@ export function createBiomeEnvironment(
       return;
     }
     for (const entry of pendingKit) {
-      const key = entry.material.uuid + ':' + entry.solid;
+      const tile =
+        doc.environment.layoutVersion >= 2
+          ? `:${Math.floor(candidate.x / 8192)}:${Math.floor(candidate.z / 8192)}`
+          : '';
+      const key = entry.material.uuid + ':' + entry.solid + tile;
       if (!batches.has(key))
         batches.set(key, {
           material: entry.material,
           solid: entry.solid,
+          tile,
           geometries: [],
         });
       batches.get(key).geometries.push(entry.geometry);
@@ -791,13 +803,13 @@ export function createBiomeEnvironment(
         });
       }
   }
-  for (const { material, solid, geometries } of batches.values()) {
+  for (const { material, solid, geometries, tile } of batches.values()) {
     const geometry = mergeGeometries(geometries, false);
     geometries.forEach((g) => g.dispose());
     if (!geometry)
       throw new Error('Regional kit geometry could not be batched');
     owner.solid(
-      biome.label + ' / ' + (solid ? 'founded kit' : 'visual detail'),
+      biome.label + ' / ' + (solid ? 'founded kit' : 'visual detail') + tile,
       geometry,
       material,
       solid ? { kind: 'structure' } : null,

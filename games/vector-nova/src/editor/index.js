@@ -10,8 +10,11 @@ import {
   pointRouteFractions,
   addJump,
   setCourseType,
+  documentIdentity,
+  ENVIRONMENT_LAYOUT_VERSION,
 } from './document.js';
 import { createTrackLibrary } from './library.js';
+import { createDraftRecovery } from './draft-recovery.js';
 import { createRouteMap } from './map.js';
 import { createEditorViewport, editorWorldFingerprint } from './viewport.js';
 import {
@@ -27,9 +30,19 @@ import { WORLD_PRESETS } from './world-presets.js';
 import { ROAD_PRESETS, roadPresetOptions } from './road-presets.js';
 import { EDITOR_BIOMES, editorBiome } from './biomes.js';
 import { findNextSuitableJump } from './jump-placement.js';
+import { prepareJumpEdit } from './jump-authoring.js';
+import {
+  resolveEditorTestStart,
+  getEditorTestStartSummary,
+} from './test-drive.js';
 import { canSpreadRoad, spreadRoad } from './road-room.js';
 import { EDITOR_TOOLS } from './tools.js';
 import { smoothCorner, canSmoothCorner } from './corner-repair.js';
+import {
+  applyBiomeSpan,
+  clearBiomeSpan,
+  ROAD_SPAN_BIOMES,
+} from './biome-spans.js';
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
 const escape = (value) =>
@@ -50,7 +63,7 @@ const uid = (prefix) =>
 
 const AUTHOR_GROUPS = [
   ['route', 'Point'],
-  ['shape', 'Bank / twist'],
+  ['shape', 'Road section'],
   ['jumps', 'Jumps'],
 ];
 const GLOBAL_GROUPS = [
@@ -74,6 +87,7 @@ export function createTrackEditor(
     shipId = 'kestrel',
     document: initial,
     library = createTrackLibrary(),
+    recovery = createDraftRecovery(),
   } = {},
 ) {
   const previewShip = getShip(shipId);
@@ -108,6 +122,17 @@ export function createTrackEditor(
   let busy = false;
   let disposed = false;
   let suspended = false;
+  let recoveryEntry = null;
+  let recoveryError = '';
+  let recoveryState = '';
+  let recoveryTimer;
+  let checkpointJSON = JSON.stringify(doc);
+  try {
+    if (!initial) recoveryEntry = recovery.read();
+  } catch {
+    recoveryError =
+      'Draft recovery unavailable. Save or Export to keep your work.';
+  }
   let tab = 'route';
   let authorGroup = '';
   let globalGroup = '';
@@ -136,6 +161,15 @@ export function createTrackEditor(
   let seedPickups = true;
   let jumpManualChosen = false;
   let jumpSuggestion = null;
+  let jumpSizePreset = 'small';
+  let jumpCandidate = null;
+  let jumpProposalError = '';
+  let lastTestAttempt = null;
+  let testEntrySpeed = 'cruise';
+  let testReserve = 'full';
+  let roadSpanBiome = ROAD_SPAN_BIOMES[1];
+  const hasJumpCandidate = () =>
+    jumpCandidate?.sourceKey === JSON.stringify(doc);
   const analysisCache = new WeakMap();
   const fractionCache = new WeakMap();
   function analysisFor(value = doc) {
@@ -180,6 +214,7 @@ export function createTrackEditor(
         <div class="workshop-options-scroll" data-editor-global-tools></div>
       </aside>
       <main class="workshop-main">
+        <div class="workshop-recovery" data-editor-recovery hidden role="status"></div>
         <div class="workshop-viewbar"><span data-editor-view-hint></span><div class="workshop-selection-summary" data-editor-selection></div></div>
         <div class="workshop-canvas">
           <div class="workshop-map-wrap workshop-map-popover" data-editor-map-wrap hidden role="dialog" aria-label="2D route map">
@@ -199,6 +234,7 @@ export function createTrackEditor(
           </div>
         </div>
         <div class="workshop-camera-help" data-editor-camera-help role="status"></div>
+        <div class="workshop-test-feedback" data-editor-test-feedback role="status"></div>
       </main>
     </div>
     <footer class="workshop-footer"><span class="workshop-status" role="status" aria-live="polite" data-editor-status></span><section class="workshop-validation" aria-label="Track checks" data-editor-validation></section></footer>
@@ -245,7 +281,7 @@ export function createTrackEditor(
         ?.focus({ preventScroll: true });
   }
   function selectPoint(index, meta = {}) {
-    if (busy || suspended || disposed) return;
+    if (busy || suspended || disposed || recoveryEntry) return;
     if (index < 0 || index >= doc.points.length) {
       selected = -1;
       selectedProp = -1;
@@ -278,7 +314,7 @@ export function createTrackEditor(
     render();
   }
   function dragPoint(index, position) {
-    if (busy || suspended || disposed) return;
+    if (busy || suspended || disposed || recoveryEntry) return;
     if (!dragBefore) {
       dragBefore = clone(doc);
       status('Moving point… release to finish, Escape to cancel.');
@@ -406,6 +442,44 @@ export function createTrackEditor(
     if (undo.length > 80) undo.shift();
     redo = [];
   }
+  function flushRecovery() {
+    clearTimeout(recoveryTimer);
+    if (recoveryEntry || dragBefore || recoveryState !== 'Saving draft…')
+      return;
+    try {
+      recovery.write(doc);
+      recoveryState = 'Draft backed up';
+      recoveryError = '';
+    } catch {
+      recoveryError =
+        'Draft recovery unavailable. Save or Export to keep your work.';
+      recoveryState = '';
+    }
+    if (!disposed) syncRecovery();
+  }
+  function checkpointRecovery() {
+    const next = JSON.stringify(doc);
+    if (dragBefore || recoveryEntry || next === checkpointJSON) return;
+    checkpointJSON = next;
+    recoveryState = 'Saving draft…';
+    clearTimeout(recoveryTimer);
+    recoveryTimer = setTimeout(flushRecovery, 700);
+  }
+  function syncRecovery() {
+    const node = root.querySelector('[data-editor-recovery]');
+    node.hidden = !recoveryEntry && !recoveryError;
+    node.innerHTML = recoveryEntry
+      ? `<span><strong>Continue your last draft?</strong> ${escape(recoveryEntry.document.name)} · ${escape(new Date(recoveryEntry.updatedAt).toLocaleString())}</span><div>${button('recover-draft', 'Continue draft')}${button('discard-recovery', 'Start fresh')}</div>`
+      : escape(recoveryError);
+    root.querySelector('[data-editor-recovery-state]')?.remove();
+    if (recoveryState) {
+      const state = document.createElement('span');
+      state.dataset.editorRecoveryState = '';
+      state.className = 'workshop-recovery-state';
+      state.textContent = recoveryState;
+      root.querySelector('[data-editor-facts]').append(state);
+    }
+  }
   function commit(next, text, { frame = false } = {}) {
     try {
       next = validateDocument(next);
@@ -431,6 +505,7 @@ export function createTrackEditor(
           fractionCache.set(next, fractionCache.get(doc));
       }
       doc = next;
+      jumpCandidate = null;
       jumpSuggestion = null;
       jumpManualChosen = false;
       restoreJumpSelection();
@@ -564,11 +639,27 @@ export function createTrackEditor(
         latestAnalysis?.primaryIssue?.kind === 'bend'
           ? 'Tight corner'
           : 'Check this point',
+      heightDelta:
+        dragBefore && selected >= 0
+          ? doc.points[selected].y - dragBefore.points[selected].y
+          : null,
       section: activeSection,
       drawMode: tool === 'draw',
       tool,
     });
     viewport.setTrajectories(flightLines());
+    if (dragBefore) viewport.setGuides({ document: null });
+    else
+      viewport.setGuides({
+        document: doc,
+        selectedPoint: selected,
+        selectedJumpId,
+        candidate: hasJumpCandidate() ? jumpCandidate.ghost : null,
+        attempt:
+          lastTestAttempt?.courseIdentity === documentIdentity(doc)
+            ? lastTestAttempt
+            : null,
+      });
     root.querySelector('[data-editor-empty]').hidden =
       doc.points.length >= 4 || mapOpen;
     root.querySelector('[data-editor-empty-title]').textContent =
@@ -697,7 +788,10 @@ export function createTrackEditor(
   function renderRoadPanel() {
     const point = doc.points[selected],
       disabled = point ? '' : 'disabled';
-    return `<p class="workshop-help">${point ? 'Drag its handle to move. Shift-drag or use Height to raise it.' : 'Draw or add a road point to edit its position.'}</p><div class="workshop-button-row">${button('context-prev', 'Previous point', disabled)}${button('context-next', 'Next point', disabled)}</div><label class="workshop-label">Selected point<select data-editor-field="point" aria-label="Selected route point" ${disabled}>${doc.points.length ? doc.points.map((p, i) => option(i, `${String(i + 1).padStart(2, '0')} · ${pointLabel(i)}`, i === selected)).join('') : '<option>No points yet</option>'}</select></label><div class="workshop-button-row">${button('add-point', 'Add point after this', doc.points.length >= DOCUMENT_LIMITS.points ? 'disabled' : '')}${button('delete-point', 'Delete point', disabled)}</div><div class="workshop-coordinate-grid"><label>X / East<input type="number" data-editor-field="point-x" aria-label="Point X coordinate" min="-25000" max="25000" step="5" value="${rounded(point?.x ?? 0, 1)}" ${disabled}></label><label>Z / South<input type="number" data-editor-field="point-z" aria-label="Point Z coordinate" min="-25000" max="25000" step="5" value="${rounded(point?.z ?? 0, 1)}" ${disabled}></label></div>${range('point-y', 'Elevation / Y', rounded(point?.y ?? 52, 1), 0, 3000, 5, ' m', false, !point)}<div class="workshop-button-row">${button('context-raise', 'Raise 10 m', disabled)}${button('context-lower', 'Lower 10 m', disabled)}</div><label class="workshop-label">Move distance<select data-editor-field="step" aria-label="Point movement distance">${[5, 20, 100].map((size) => option(size, `${size} m`, size === step)).join('')}</select></label><div class="workshop-nudge" role="group" aria-label="Move selected point">${button('north', '↑ North', disabled)}${button('west', '← West', disabled)}${button('east', 'East →', disabled)}${button('south', '↓ South', disabled)}</div>${range('point-bank', 'Bank trim', rounded(((point?.bank ?? 0) * 180) / Math.PI, 1), -20, 20, 1, '°', false, !point)}<label class="workshop-label">Road width<select data-editor-field="width" aria-label="Road width">${[32, 40, 48, 64].map((width) => option(width, `${width} m`, width === doc.width)).join('')}</select></label><div class="workshop-button-row">${button('earlier', 'Move earlier', !point || selected <= 0 ? 'disabled' : '')}${button('later', 'Move later', !point || selected >= doc.points.length - 1 ? 'disabled' : '')}</div>`;
+    return (
+      renderLocalTestControls('point') +
+      `<p class="workshop-help">${point ? 'Drag its handle to move. Shift-drag or use Height to raise it.' : 'Draw or add a road point to edit its position.'}</p><div class="workshop-button-row">${button('context-prev', 'Previous point', disabled)}${button('context-next', 'Next point', disabled)}</div><label class="workshop-label">Selected point<select data-editor-field="point" aria-label="Selected route point" ${disabled}>${doc.points.length ? doc.points.map((p, i) => option(i, `${String(i + 1).padStart(2, '0')} · ${pointLabel(i)}`, i === selected)).join('') : '<option>No points yet</option>'}</select></label><div class="workshop-button-row">${button('add-point', 'Add point after this', doc.points.length >= DOCUMENT_LIMITS.points ? 'disabled' : '')}${button('delete-point', 'Delete point', disabled)}</div><div class="workshop-coordinate-grid"><label>X / East<input type="number" data-editor-field="point-x" aria-label="Point X coordinate" min="-25000" max="25000" step="5" value="${rounded(point?.x ?? 0, 1)}" ${disabled}></label><label>Z / South<input type="number" data-editor-field="point-z" aria-label="Point Z coordinate" min="-25000" max="25000" step="5" value="${rounded(point?.z ?? 0, 1)}" ${disabled}></label></div>${range('point-y', 'Elevation / Y', rounded(point?.y ?? 52, 1), 0, 3000, 5, ' m', false, !point)}<div class="workshop-button-row">${button('context-raise', 'Raise 10 m', disabled)}${button('context-lower', 'Lower 10 m', disabled)}</div><label class="workshop-label">Move distance<select data-editor-field="step" aria-label="Point movement distance">${[5, 20, 100].map((size) => option(size, `${size} m`, size === step)).join('')}</select></label><div class="workshop-nudge" role="group" aria-label="Move selected point">${button('north', '↑ North', disabled)}${button('west', '← West', disabled)}${button('east', 'East →', disabled)}${button('south', '↓ South', disabled)}</div>${range('point-bank', 'Bank trim', rounded(((point?.bank ?? 0) * 180) / Math.PI, 1), -20, 20, 1, '°', false, !point)}<label class="workshop-label">Whole course width<select data-editor-field="width" aria-label="Road width">${[32, 40, 48, 64].map((width) => option(width, `${width} m`, width === doc.width)).join('')}</select></label><div class="workshop-button-row">${button('earlier', 'Move earlier', !point || selected <= 0 ? 'disabled' : '')}${button('later', 'Move later', !point || selected >= doc.points.length - 1 ? 'disabled' : '')}</div>`
+    );
   }
   function renderShape() {
     const point = doc.points[selected];
@@ -778,7 +872,7 @@ export function createTrackEditor(
               ]
                 .map(
                   ([key, label, color]) =>
-                    `<div data-editor-flight="${key}" data-flight-status="${flightPreview[key].status}" style="--flight-color:${color}"><strong>Full ${label.toLowerCase()} · ${Math.round(flightPreview[key].speed * 3.6)} km/h</strong><span>${escape(flightPreview[key].summary)}</span></div>`,
+                    `<div data-editor-flight="${key}" data-flight-status="${flightPreview[key].status}" style="--flight-color:${color}"><strong>At full ${label.toLowerCase()} · ${Math.round(flightPreview[key].speed * 3.6)} km/h</strong><span>${escape(flightPreview[key].summary)}</span></div>`,
                 )
                 .join(
                   '',
@@ -790,7 +884,73 @@ export function createTrackEditor(
     const inspector = gaps.length
       ? `<section class="workshop-section"><div class="workshop-section-row"><h2>Your jumps</h2><span>${gaps.length} ${gaps.length === 1 ? 'gap' : 'gaps'}</span></div><label class="workshop-label">Gap to inspect<select data-editor-field="jump-selected" aria-label="Selected jump gap">${gapOptions}</select></label>${current ? `<label class="workshop-label">This gap’s landing runout<select data-editor-field="selected-jump-receiving" aria-label="Selected gap landing runout">${[150, 300, 600, 1200].map((metres) => option(metres, `${metres} m`, current.receiving === metres)).join('')}${![150, 300, 600, 1200].includes(current.receiving) ? option(current.receiving, `${Math.round(current.receiving)} m`, true) : ''}</select></label>` : ''}${button('inspect-jump', 'Focus jump in 3D', `class="workshop-wide" ${current ? '' : 'disabled'}`)}<label class="workshop-checkbox"><input type="checkbox" data-editor-field="show-flight-paths" ${showFlightPaths ? 'checked' : ''}><span>Show cruise and boost flight paths</span></label><div data-editor-flight-report></div><div class="workshop-button-row">${button('remove-jump', 'Remove gap', current ? '' : 'disabled')}${button('clear-jumps', 'Clear all gaps', gaps.length ? '' : 'disabled')}</div><p class="workshop-help">Removing a gap restores its road and supports. Ramp and landing edits stay; Undo restores the whole edit.</p></section>`
       : '';
-    return inspector + creation;
+    const candidate = hasJumpCandidate() ? jumpCandidate : null;
+    const proposal = candidate
+      ? `<div class="workshop-jump-proposal" data-editor-jump-proposal><strong>${Math.round(candidate.resolved.gapLength)} m proposed gap</strong><p>${Math.round(candidate.resolved.receiving)} m landing · ${Math.round(candidate.resolved.footprint)} m footprint</p><div class="workshop-button-row">${button('apply-jump', 'Apply jump', 'class="workshop-primary"')}${button('cancel-jump-preview', 'Cancel preview')}</div>${candidate.warnings.map((warning) => `<p class="workshop-help">${escape(warning)}</p>`).join('')}</div>`
+      : '';
+    const choices = candidate
+      ? ''
+      : `<h2>${current ? 'New jump / resize' : 'Insert a jump here'}</h2><p class="workshop-help">Select a road point and preview, or find clear space. Apply keeps the proposed road.</p><label class="workshop-label">Jump size<select data-editor-field="jump-size-preset" aria-label="Jump size">${[
+          ['small', 'Small · ~180 m across'],
+          ['medium', 'Medium · ~300 m across'],
+          ['large', 'Large · ~500 m across'],
+        ]
+          .map(([value, label]) =>
+            option(value, label, value === jumpSizePreset),
+          )
+          .join(
+            '',
+          )}</select></label>${button('preview-jump', 'Preview new jump here', `class="workshop-wide" ${count >= 4 && selected >= 0 ? '' : 'disabled'}`)}${button('preview-find-jump', 'Find clear space', `class="workshop-wide" ${count >= 4 ? '' : 'disabled'}`)}${current ? button(current.authoring ? 'preview-resize' : 'preview-rebuild', current.authoring ? 'Preview resize' : 'Preview rebuild', 'class="workshop-wide"') : ''}${current && !current.authoring ? '<p class="workshop-help">This older jump has no original road snapshot. Rebuild previews new ramps over its current road; Undo restores it.</p>' : ''}`;
+    const builder = `<section class="workshop-section">${proposal}${choices}${jumpProposalError ? `<p class="workshop-jump-error" role="status">${escape(jumpProposalError)}</p>` : ''}${renderLocalTestControls('jump')}</section>`;
+    return (
+      builder +
+      inspector +
+      `<details class="workshop-advanced"><summary>Advanced endpoints / huge jumps</summary>${creation}</details>`
+    );
+  }
+  function renderRoadFinish() {
+    const count = doc.points.length;
+    return `<section class="workshop-section"><h2>Section road finish</h2><p class="workshop-help">Uses the From / To points above. This pilot changes the road surface between Nightweir and Vesper. Scenery and sky keep the world you chose.</p><label class="workshop-label">Road finish<select data-editor-field="road-span-biome" aria-label="Section road finish">${ROAD_SPAN_BIOMES.map((biome) => option(biome, editorBiome(biome).label, roadSpanBiome === biome)).join('')}</select></label>${button('apply-road-finish', 'Apply road finish', `class="workshop-wide" ${count >= 4 ? '' : 'disabled'}`)}${button('clear-road-finish', 'Use world finish in section', `class="workshop-wide" ${doc.biomeSpans.length ? '' : 'disabled'}`)}${doc.biomeSpans.map((span) => `<p class="workshop-help">${escape(editorBiome(span.biome).label)} · points ${doc.points.findIndex((point) => point.id === span.startPointId) + 1}–${doc.points.findIndex((point) => point.id === span.endPointId) + 1} ${button(`clear-road-span-${span.id}`, 'Clear', 'aria-label="Clear this road finish section"')}</p>`).join('')}<p class="workshop-help">Clear finish overrides before deleting their end points. Jump and twist corridors stay protected.</p></section>`;
+  }
+  function localTestRequest(kind = 'point') {
+    return {
+      kind,
+      ...(kind === 'jump'
+        ? { jumpId: selectedJumpId }
+        : { pointId: doc.points[selected]?.id }),
+      speed: testEntrySpeed,
+      reserve: testReserve,
+    };
+  }
+  function renderLocalTestControls(kind) {
+    let summary,
+      available = analysisFor().valid;
+    if (kind === 'jump' && !selectedJumpId) return '';
+    try {
+      summary = getEditorTestStartSummary(
+        resolveEditorTestStart(doc, localTestRequest(kind), { shipId }),
+      );
+    } catch (error) {
+      available = false;
+      summary = error.message;
+    }
+    return `<div class="workshop-local-test"><label class="workshop-label">Test entry speed<select data-editor-field="${kind === 'jump' ? 'test-entry-speed' : 'point-test-entry-speed'}" aria-label="${kind === 'jump' ? 'Test entry speed' : 'Point test entry speed'}">${[
+      ['cruise', 'Full cruise'],
+      ['boost', 'Full boost'],
+      ['standing', 'Standing start'],
+    ]
+      .map(([value, label]) => option(value, label, value === testEntrySpeed))
+      .join(
+        '',
+      )}</select></label><label class="workshop-label">Test reserve<select data-editor-field="${kind === 'jump' ? 'test-reserve' : 'point-test-reserve'}" aria-label="${kind === 'jump' ? 'Test reserve' : 'Point test reserve'}">${[
+      ['full', 'Full'],
+      ['half', 'Half'],
+      ['empty', 'Empty'],
+    ]
+      .map(([value, label]) => option(value, label, value === testReserve))
+      .join(
+        '',
+      )}</select></label>${button(kind === 'jump' ? 'test-jump' : 'test-point', kind === 'jump' ? 'Test this jump' : 'Test from here', `class="workshop-wide" ${available ? '' : 'disabled'}`)}<p class="workshop-help">${escape(summary)}. R retries the same approach.</p></div>`;
   }
   function renderPickups() {
     const pickups = doc.pickups ?? {
@@ -877,7 +1037,7 @@ export function createTrackEditor(
       ).join('');
     const renderers = {
       route: renderRoadPanel,
-      shape: renderShape,
+      shape: () => renderShape() + renderRoadFinish(),
       jumps: renderJumps,
       generate: renderGenerator,
       world: renderWorld,
@@ -940,19 +1100,25 @@ export function createTrackEditor(
       `TRACK EDITOR · ${doc.courseType === 'downhill' ? 'DOWNHILL' : 'CIRCUIT'}`;
     root.querySelector('[data-editor-facts]').innerHTML =
       `<span><strong>${(analysis.length / 1000).toFixed(2)}</strong> km</span><span><strong>${doc.width}</strong> m wide</span>${doc.courseType === 'downhill' ? `<span class="workshop-runout-fact">Includes ${DOWNHILL_RUNOUT} m runout</span>` : ''}<span class="workshop-draft-state">${JSON.stringify(doc) === saved ? 'Saved' : 'Unsaved draft'}</span>`;
+    checkpointRecovery();
+    syncRecovery();
     const locatedIssue =
+      doc.points.length >= 4 &&
       analysis.errors.length &&
       Number.isInteger(analysis.primaryIssue?.pointIndex)
         ? analysis.primaryIssue
         : null;
-    root.querySelector('[data-editor-validation]').innerHTML = locatedIssue
-      ? `${button('show-issue', `Point ${locatedIssue.pointIndex + 1} · ${locatedIssue.kind === 'bend' ? 'Tight corner' : escape(locatedIssue.label)} <span aria-hidden="true">↗</span>`, `class="workshop-issue-link" title="Select and zoom to point ${locatedIssue.pointIndex + 1}"`)}<span class="workshop-issue-message">${escape(locatedIssue.message)}</span>${canSmoothCorner(doc, analysis) ? button('smooth-corner', 'Auto fix corner', 'title="Smooth this corner and nearby road. Undo restores your layout."') : ''}${canSpreadRoad(doc) ? button('spread-road', 'Spread road out', 'title="Makes the road longer to give corners more room. Undo restores your layout."') : ''}`
-      : analysis.errors.length
-        ? `<strong>Before you drive</strong><ul>${analysis.errors
-            .slice(0, 2)
-            .map((error) => `<li>${escape(error)}</li>`)
-            .join('')}</ul>`
-        : `<strong class="workshop-valid">✓ Ready to drive</strong><span>${analysis.warnings.length ? escape(analysis.warnings[0]) : `${doc.courseType === 'downhill' ? 'Start to finish' : 'Closed route'} · Automatic supports · Scenery clearance`}</span>`;
+    root.querySelector('[data-editor-validation]').innerHTML =
+      doc.points.length < 4
+        ? `<strong>Keep drawing</strong><span>Add ${4 - doc.points.length} more road ${doc.points.length === 3 ? 'point' : 'points'} to form your route.</span>`
+        : locatedIssue
+          ? `${button('show-issue', `Point ${locatedIssue.pointIndex + 1} · ${locatedIssue.kind === 'bend' ? 'Tight corner' : escape(locatedIssue.label)} <span aria-hidden="true">↗</span>`, `class="workshop-issue-link" title="Select and zoom to point ${locatedIssue.pointIndex + 1}"`)}<span class="workshop-issue-message">${escape(locatedIssue.message)}</span>${canSmoothCorner(doc, analysis) ? button('smooth-corner', 'Auto fix corner', 'title="Smooth this corner and nearby road. Undo restores your layout."') : ''}${canSpreadRoad(doc) ? button('spread-road', 'Spread road out', 'title="Makes the road longer to give corners more room. Undo restores your layout."') : ''}`
+          : analysis.errors.length
+            ? `<strong>Before you drive</strong><ul>${analysis.errors
+                .slice(0, 2)
+                .map((error) => `<li>${escape(error)}</li>`)
+                .join('')}</ul>`
+            : `<strong class="workshop-valid">✓ ${doc.jumps.length ? 'Road checks passed' : 'Ready to drive'}</strong><span>${analysis.warnings.length ? escape(analysis.warnings[0]) : `${doc.courseType === 'downhill' ? 'Start to finish' : 'Closed route'} · Automatic supports · Scenery clearance`}</span>`;
     root.querySelector('[data-editor-action="tab-jumps"]').textContent =
       `Jumps (${doc.jumps.length})`;
     root.querySelector('[data-editor-action="tab-pickups"]').textContent =
@@ -965,7 +1131,13 @@ export function createTrackEditor(
     )) {
       if (!node.hasAttribute('data-editor-base-disabled'))
         node.dataset.editorBaseDisabled = String(node.disabled);
-      node.disabled = busy || node.dataset.editorBaseDisabled === 'true';
+      node.disabled =
+        busy ||
+        node.dataset.editorBaseDisabled === 'true' ||
+        (Boolean(recoveryEntry) &&
+          !['recover-draft', 'discard-recovery'].includes(
+            node.dataset.editorAction,
+          ));
       if (!node.dataset.editorAction) continue;
       const action = node.dataset.editorAction;
       if (action === 'undo') node.disabled = busy || !undo.length;
@@ -1016,13 +1188,35 @@ export function createTrackEditor(
           mapOpen ? 'Close route map' : 'Open route map',
         );
       }
+      if (
+        recoveryEntry &&
+        !['recover-draft', 'discard-recovery'].includes(action)
+      )
+        node.disabled = true;
     }
+    worldHost.inert = Boolean(recoveryEntry);
     mapPopover.hidden = !mapOpen;
     worldHost.hidden = false;
     const activeTool = PREVIEW_TOOLS.find((item) => item.id === tool);
     root.querySelector('[data-editor-view-hint]').textContent =
       `${activeTool.label.toUpperCase()} · ${activeTool.hint}`;
     syncCanvas({ frame });
+    const forecast =
+      selectedJumpId && flightPreview?.cruise
+        ? `Jump estimate · At full cruise: ${flightPreview.cruise.summary} At full boost: ${flightPreview.boost.summary}`
+        : '';
+    const attempt = lastTestAttempt?.lastAttempt;
+    const actual = attempt
+      ? `${lastTestAttempt.courseIdentity === documentIdentity(doc) ? 'Last test' : 'Previous road version'} · ${attempt.outcome === 'landed' ? 'Landed' : attempt.outcome === 'missed' ? `Missed: ${attempt.reason ?? 'landing'}` : 'Airborne'} · actual launch ${Math.round(attempt.launch.speed * 3.6)} km/h.`
+      : lastTestAttempt
+        ? 'Last test · Returned before a jump launch.'
+        : '';
+    root.querySelector('[data-editor-test-feedback]').textContent = [
+      actual,
+      forecast,
+    ]
+      .filter(Boolean)
+      .join(' ');
     syncStatus();
     syncCameraUI();
     tools.scrollTop = scrollTop;
@@ -1035,6 +1229,7 @@ export function createTrackEditor(
       document.activeElement.setSelectionRange(...caret);
   }
   function addPoint(position) {
+    if (recoveryEntry) return;
     if (doc.points.length >= DOCUMENT_LIMITS.points) return;
     const current = doc.points[selected] ?? doc.points.at(-1);
     const point = {
@@ -1104,6 +1299,155 @@ export function createTrackEditor(
   }
   async function action(name) {
     if (disposed || busy) return;
+    if (recoveryEntry && !['recover-draft', 'discard-recovery'].includes(name))
+      return;
+    if (
+      ['apply-road-finish', 'clear-road-finish'].includes(name) ||
+      name.startsWith('clear-road-span-')
+    ) {
+      try {
+        const range = { startIndex: shapeStart, endIndex: shapeEnd };
+        const next =
+          name === 'apply-road-finish'
+            ? applyBiomeSpan(doc, { ...range, biome: roadSpanBiome })
+            : clearBiomeSpan(
+                doc,
+                name.startsWith('clear-road-span-')
+                  ? { spanId: name.slice('clear-road-span-'.length) }
+                  : range,
+              );
+        commit(
+          next,
+          'Section road finish updated. Road shape, scenery and sky are unchanged.',
+        );
+      } catch (error) {
+        status(error.message, 'error');
+      }
+      return;
+    }
+    if (
+      [
+        'preview-jump',
+        'preview-resize',
+        'preview-rebuild',
+        'preview-find-jump',
+      ].includes(name)
+    ) {
+      await run(async () => {
+        const source = doc;
+        status('Preparing the jump proposal…');
+        const options = {
+          pointIndex: Math.max(0, selected),
+          size: jumpSizePreset,
+          ...(['preview-resize', 'preview-rebuild'].includes(name)
+            ? { jumpId: selectedJumpId }
+            : {}),
+          legacyRebuild: name === 'preview-rebuild',
+          receiving: jumpReceiving,
+          yieldControl: () =>
+            new Promise((done) => requestAnimationFrame(done)),
+        };
+        let candidate;
+        jumpProposalError = '';
+        try {
+          candidate =
+            name === 'preview-find-jump'
+              ? await findNextSuitableJump(source, {
+                  ...options,
+                  fromIndex: Math.max(0, selected),
+                  rampAssist: true,
+                })
+              : await prepareJumpEdit(source, options);
+        } catch (error) {
+          jumpProposalError = error.message;
+          throw error;
+        }
+        jumpCandidate = {
+          ...candidate,
+          sourceKey: JSON.stringify(source),
+          editing: ['preview-resize', 'preview-rebuild'].includes(name),
+        };
+        status(
+          `Preview only · ${Math.round(candidate.resolved.gapLength)} m gap. Apply keeps it; Cancel leaves your road unchanged.`,
+        );
+        render();
+        viewport.focusTrajectories(candidate.ghost.sections, {
+          launch: candidate.ghost.takeoff,
+          landing: candidate.ghost.landing,
+        });
+      });
+      if (hasJumpCandidate()) {
+        const apply = root.querySelector('[data-editor-action="apply-jump"]');
+        apply?.focus({ preventScroll: true });
+        apply?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      }
+      return;
+    }
+    if (name === 'cancel-jump-preview') {
+      jumpCandidate = null;
+      status('Jump preview canceled. Road unchanged.');
+      render();
+      root
+        .querySelector('[data-editor-action="preview-jump"]')
+        ?.focus({ preventScroll: true });
+      return;
+    }
+    if (name === 'apply-jump' && hasJumpCandidate()) {
+      const candidate = jumpCandidate;
+      selectedJumpId = candidate.jumpId;
+      const jump = candidate.document.jumps.find(
+        (entry) => entry.id === selectedJumpId,
+      );
+      selected = candidate.document.points.findIndex(
+        (point) => point.id === jump.launchPointId,
+      );
+      rangeAnchor = rangeEnd = selected;
+      showFlightPaths = true;
+      commit(
+        candidate.document,
+        `${candidate.editing ? 'Jump resized' : 'Jump inserted'} · ${Math.round(candidate.resolved.gapLength)} m gap. One Undo restores the previous road.`,
+      );
+      return;
+    }
+    if (name === 'recover-draft' && recoveryEntry) {
+      const recovered = recoveryEntry.document;
+      recoveryEntry = null;
+      selected = recovered.points.length >= 4 ? 0 : recovered.points.length - 1;
+      rangeAnchor = rangeEnd = selected;
+      tool = recovered.points.length >= 4 ? 'move' : 'draw';
+      commit(
+        recovered,
+        'Draft recovered. Save keeps a named copy in My tracks.',
+        { frame: true },
+      );
+      await run(async () => {
+        const stored = await library.read(doc.id);
+        if (stored && JSON.stringify(stored) === JSON.stringify(doc))
+          saved = JSON.stringify(doc);
+      });
+      root
+        .querySelector(
+          `[data-editor-action="${tool === 'draw' ? 'draw-mode' : 'select-mode'}"]`,
+        )
+        ?.focus({ preventScroll: true });
+      return;
+    }
+    if (name === 'discard-recovery') {
+      try {
+        recovery.clear();
+        recoveryEntry = null;
+        recoveryError = '';
+        checkpointJSON = JSON.stringify(doc);
+        recoveryState = '';
+        render();
+      } catch {
+        status(
+          'Could not clear the recovery draft. Your current work is unchanged.',
+          'error',
+        );
+      }
+      return;
+    }
     if (name === 'context-road' || name === 'context-environment') {
       rememberGroupScroll();
       context = name === 'context-road' ? 'road' : 'environment';
@@ -1169,7 +1513,7 @@ export function createTrackEditor(
           next.environment = {
             version: 1,
             seed: pending.seed,
-            layoutVersion: 1,
+            layoutVersion: ENVIRONMENT_LAYOUT_VERSION,
           };
           next.settings = {
             sceneryPreset: pending.sceneryPreset,
@@ -1738,14 +2082,21 @@ export function createTrackEditor(
       return;
     }
     if (name === 'exit') {
+      flushRecovery();
       onExit(clone(doc));
       return;
     }
-    if (name === 'test') {
+    if (['test', 'test-jump', 'test-point'].includes(name)) {
       if (!analysisFor().valid) return;
       await run(async () => {
+        flushRecovery();
         status('Preparing Test Drive…');
-        await onTestDrive(clone(doc));
+        await onTestDrive(
+          clone(doc),
+          name === 'test'
+            ? { kind: 'course' }
+            : localTestRequest(name === 'test-jump' ? 'jump' : 'point'),
+        );
       });
       return;
     }
@@ -1845,16 +2196,54 @@ export function createTrackEditor(
         section &&
         AUTHOR_GROUPS.some(([id]) => id === section.dataset.editorSection);
       await action(target.dataset.editorAction);
-      if (authorOption && !disposed && !suspended && messageKind !== 'error')
+      if (
+        authorOption &&
+        ![
+          'preview-jump',
+          'preview-resize',
+          'preview-rebuild',
+          'cancel-jump-preview',
+          'preview-find-jump',
+        ].includes(target.dataset.editorAction) &&
+        !disposed &&
+        !suspended &&
+        messageKind !== 'error'
+      )
         closeAuthorGroup();
     },
     { signal: life.signal },
   );
   function fieldChange(event) {
     const field = event.target.dataset.editorField;
-    if (!field || busy) return;
+    if (!field || busy || recoveryEntry) return;
     const value = event.target.value;
     const number = Number(value);
+    if (
+      [
+        'jump-size-preset',
+        'test-entry-speed',
+        'point-test-entry-speed',
+        'test-reserve',
+        'point-test-reserve',
+        'road-span-biome',
+      ].includes(field)
+    ) {
+      if (field === 'jump-size-preset') {
+        jumpSizePreset = value;
+        jumpCandidate = null;
+        jumpProposalError = '';
+        status('Size chosen. Preview the proposed jump before applying it.');
+      } else if (
+        field === 'test-entry-speed' ||
+        field === 'point-test-entry-speed'
+      )
+        testEntrySpeed = value;
+      else if (field === 'test-reserve' || field === 'point-test-reserve')
+        testReserve = value;
+      else roadSpanBiome = value;
+      render();
+      return;
+    }
     if (field === 'course-type') {
       try {
         commit(
@@ -1894,6 +2283,7 @@ export function createTrackEditor(
       if (field === 'jump-receiving') jumpReceiving = number;
       if (field === 'jump-selected') {
         selectedJumpId = value || null;
+        jumpCandidate = null;
       }
       render();
       return;
@@ -2081,6 +2471,11 @@ export function createTrackEditor(
     'keydown',
     (event) => {
       if (event.key === 'Escape') {
+        if (recoveryEntry) {
+          event.preventDefault();
+          event.stopPropagation();
+          return;
+        }
         if (event.repeat) {
           event.preventDefault();
           event.stopPropagation();
@@ -2097,6 +2492,10 @@ export function createTrackEditor(
         if (busy) return;
         if (mapOpen) {
           closeMap({ focus: true });
+          return;
+        }
+        if (jumpCandidate) {
+          action('cancel-jump-preview');
           return;
         }
         if (authorGroup) {
@@ -2179,7 +2578,7 @@ export function createTrackEditor(
   viewport.setVisible(true);
   root
     .querySelector(
-      `[data-editor-action="${tool === 'draw' ? 'draw-mode' : 'select-mode'}"]`,
+      `[data-editor-action="${recoveryEntry ? 'recover-draft' : tool === 'draw' ? 'draw-mode' : 'select-mode'}"]`,
     )
     .focus({ preventScroll: true });
   refreshLibrary()
@@ -2187,8 +2586,24 @@ export function createTrackEditor(
       if (!disposed) render();
     })
     .catch((error) => status(error.message, 'error'));
+  window.addEventListener('pagehide', flushRecovery, { signal: life.signal });
+  document.addEventListener(
+    'visibilitychange',
+    () => {
+      if (document.visibilityState === 'hidden') flushRecovery();
+    },
+    { signal: life.signal },
+  );
   return {
     getDocument: () => clone(doc),
+    setTestDriveAttempt(report) {
+      lastTestAttempt = report;
+      if (
+        report.courseIdentity === documentIdentity(doc) &&
+        doc.jumps.some((jump) => jump.id === report.lastAttempt?.id)
+      )
+        selectedJumpId = report.lastAttempt.id;
+    },
     getState: () => ({
       selectedPoint: selected,
       selectedProp,
@@ -2217,6 +2632,10 @@ export function createTrackEditor(
       tab,
       busy,
       suspended,
+      recoveryAvailable: Boolean(recoveryEntry),
+      recoveryState,
+      jumpProposal: hasJumpCandidate() ? clone(jumpCandidate.resolved) : null,
+      lastTestAttempt: lastTestAttempt ? clone(lastTestAttempt) : null,
       points: doc.points.length,
       preview: viewport.getMetrics(),
       flyActive: viewport.isFlying(),
@@ -2240,9 +2659,11 @@ export function createTrackEditor(
     },
     dispose() {
       if (disposed) return;
+      flushRecovery();
       disposed = true;
       life.abort();
       clearTimeout(flightTimer);
+      clearTimeout(recoveryTimer);
       ++flightVersion;
       map.dispose();
       viewport.dispose();

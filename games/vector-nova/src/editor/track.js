@@ -2,6 +2,7 @@ import * as T from 'three';
 import { createRouteSampler } from './route.js';
 import { validateDocument, documentIdentity } from './document.js';
 import { compileEditorJumps } from './jumps.js';
+import { resolvedBiomeSpans } from './biome-spans.js';
 
 /** Compile the persisted control points; generator settings never replace edits. */
 export function createEditorTrack(value) {
@@ -29,6 +30,7 @@ export function createEditorTrack(value) {
     id,
     name: doc.name,
     editorBiome: doc.biome,
+    editorBiomeSpans: resolvedBiomeSpans(doc, length),
     editorEnvironment: {
       biome: doc.biome,
       environment: doc.environment,

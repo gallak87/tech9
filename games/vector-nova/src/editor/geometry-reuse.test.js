@@ -33,6 +33,28 @@ function make(previous, changed = false) {
   return owner;
 }
 
+test('an owner leaves borrowed kit instance disposal to that kit alone', () => {
+  const owner = make();
+  const borrowed = new T.Group();
+  const geometry = new T.BoxGeometry(),
+    material = new T.MeshBasicMaterial();
+  const mesh = new T.InstancedMesh(geometry, material, 1);
+  borrowed.add(mesh);
+  owner.group.add(borrowed);
+  let disposals = 0;
+  mesh.addEventListener('dispose', () => disposals++);
+  owner.borrowed.push({
+    dispose() {
+      mesh.dispose();
+      geometry.dispose();
+      material.dispose();
+    },
+  });
+  owner.dispose();
+  owner.dispose();
+  assert.equal(disposals, 1);
+});
+
 test('regional owners borrow only exact geometry and spatial instance buffers without moving old meshes', () => {
   const before = make();
   const originals = [...before.group.children];

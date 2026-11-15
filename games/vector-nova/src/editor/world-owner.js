@@ -265,9 +265,9 @@ export function createEditorOwner(
     dispose() {
       if (disposed) return;
       disposed = true;
-      group.traverse((o) => {
-        if (o.isInstancedMesh) releaseInstances(o);
-      });
+      // Borrowed kits own their descendants and instance buffers separately.
+      for (const mesh of chunks.values())
+        if (mesh.isInstancedMesh) releaseInstances(mesh);
       borrowed.forEach((part) => part.dispose());
       geometries.forEach(releaseGeometry);
       geometries.clear();

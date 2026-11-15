@@ -318,13 +318,14 @@ export function createEditorViewport(
         scene.fog.density = flying
           ? 0.000045
           : Math.min(0.00011, 0.5 / Math.max(1, distance));
-      handles?.setVisible(!flying);
+      handles?.setVisible(!flying && !selection.readOnly);
       handles?.update(camera, width, height);
-      guides?.update(camera, width, height, flying);
+      guides?.update(camera, width, height, flying || selection.readOnly);
+      if (trajectoryLayer) trajectoryLayer.visible = !selection.readOnly;
       const state = handles?.getState();
       const placeLabel = (label, at, text) => {
         if (!label) return;
-        label.hidden = flying || !at?.visible;
+        label.hidden = flying || selection.readOnly || !at?.visible;
         if (!label.hidden) {
           label.textContent = text;
           label.style.left = `${Math.min(width - (label === drawLabel ? 270 : label === issueLabel ? 200 : 120), Math.max(4, at.x + 12))}px`;
@@ -880,6 +881,7 @@ export function createEditorViewport(
         problemSeverity = 'error',
         problemLabel = 'Check this point',
         heightDelta = null,
+        readOnly = false,
       } = {},
     ) {
       const next = editorWorldFingerprint(document);
@@ -896,6 +898,7 @@ export function createEditorViewport(
         problemSeverity,
         problemLabel,
         heightDelta,
+        readOnly,
       };
       fingerprint = next;
       handles?.setDocument(latest, selection);

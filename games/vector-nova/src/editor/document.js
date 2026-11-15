@@ -138,7 +138,7 @@ export function validateDocument(value) {
   if (!record(e) || e.version !== ENVIRONMENT_VERSION)
     fail('Unsupported environment version');
   if (!Number.isInteger(e.seed)) fail('Environment seed must be an integer');
-  if (![0, 1, 2].includes(e.layoutVersion))
+  if (![0, 1, 2, 3].includes(e.layoutVersion))
     fail('Unsupported environment layout version');
   const environment = {
     version: ENVIRONMENT_VERSION,
@@ -448,7 +448,7 @@ export function documentIdentity(doc) {
   let hash = 2166136261;
   for (const character of JSON.stringify(geometry))
     hash = Math.imul(hash ^ character.charCodeAt(0), 16777619) >>> 0;
-  return `custom-${canonical.biome}-v${legacy ? 5 : 6}-${hash.toString(16).padStart(8, '0')}`;
+  return `custom-${canonical.biome}-v${legacy ? 5 : canonical.environment.layoutVersion >= 3 ? 7 : 6}-${hash.toString(16).padStart(8, '0')}`;
 }
 
 /** Environment regeneration is separate from road generation and stays data-only. */

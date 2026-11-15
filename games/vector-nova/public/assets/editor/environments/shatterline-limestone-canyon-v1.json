@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "biome": "shatterline",
+  "preset": "limestone-canyon-v1",
+  "recipe": {
+    "road": {
+      "seed": 42017,
+      "length": 3000,
+      "bendiness": 0.35,
+      "elevation": 0.2,
+      "crossovers": 0,
+      "jumpFrequency": "none",
+      "seedJumps": false,
+      "courseType": "circuit",
+      "width": 40
+    },
+    "environmentSeed": 88103,
+    "scenery": {
+      "sceneryPreset": "limestone-canyon-v1",
+      "density": 0.78,
+      "waterLevel": -50
+    },
+    "layoutVersion": 3,
+    "framing": "selected first road point, then two zoom-out steps"
+  },
+  "documentFingerprint": "4021c8fb2f713b16017761d69f09d2b106f9b4b0f034c28ab98ab558a99fac05",
+  "documentIdentity": "custom-shatterline-v7-9aaa9aea",
+  "roadFingerprint": "2b7294368ecd315c38b6188245c4ec8ba03d673a3412dae8e67b3ddf7e5ee9c2",
+  "camera": {
+    "mode": "orbit",
+    "position": [-511.54708323859484, 266.92958173598237, 618.7480312341468],
+    "quaternion": [
+      -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
+      0.9123067085457927
+    ],
+    "fov": 48,
+    "near": 0.5,
+    "far": 200000
+  },
+  "viewport": [1280, 800],
+  "graphics": "Low / static editor preview",
+  "image": {
+    "file": "assets/editor/environments/shatterline-limestone-canyon-v1.webp",
+    "width": 640,
+    "height": 400,
+    "format": "webp",
+    "quality": 0.86,
+    "sha256": "726d38194623031b579156005736e54bf2e87514d9621098a2ba534be5ddd947"
+  },
+  "source": {
+    "revision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+    "dirty": true
+  }
+}

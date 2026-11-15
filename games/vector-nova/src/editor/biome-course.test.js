@@ -1,5 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import * as T from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { EDITOR_BIOMES } from './biomes.js';
 import { generateDocument, analyzeDocument } from './document.js';
 import { loadEditorCourse } from './course.js';
@@ -27,7 +30,30 @@ test('every whole-course biome drives on its rendered road and full regional col
     ]),
   );
   for (const [index, biome] of EDITOR_BIOMES.entries())
-    await t.test(biome.id, async () => {
+    await t.test(biome.id, async (subtest) => {
+      if (biome.id === 'shatterline') {
+        // Node has no image/HTTP environment. Parse the actual production GLBs
+        // from public so this still checks visual bounds against CPU contacts;
+        // native browser checks cover decoded textures and shader rendering.
+        subtest.mock.method(GLTFLoader.prototype, 'loadAsync', async (url) => {
+          assert.match(url, /^\/assets\/levels\/shatterline\/[a-z-]+\.glb$/);
+          const bytes = await readFile(
+            new URL(`../../public${url}`, import.meta.url),
+          );
+          return new GLTFLoader().parseAsync(
+            bytes.buffer.slice(
+              bytes.byteOffset,
+              bytes.byteOffset + bytes.byteLength,
+            ),
+            '',
+          );
+        });
+        subtest.mock.method(
+          T.TextureLoader.prototype,
+          'loadAsync',
+          async () => new T.Texture(),
+        );
+      }
       const doc = structuredClone(bases[index % 2 ? 'downhill' : 'circuit']);
       doc.biome = biome.id;
       // Cover the deepest bed, transparent deck and two suspended road kits

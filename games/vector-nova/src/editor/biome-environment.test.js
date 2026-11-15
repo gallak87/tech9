@@ -11,6 +11,8 @@ import { createEditorLevel } from './nightweir.js';
 import { EDITOR_BIOMES } from './biomes.js';
 import { createRouteClearance } from '../environment/placement.js';
 const base = generateDocument({ seed: 42, length: 3000 });
+// Historical regional kits remain reproducible when production art evolves.
+base.environment.layoutVersion = 2;
 const catalog = EDITOR_BIOMES.filter((b) => b.id !== 'nightweir');
 function documentFor(biome, source = base) {
   return {

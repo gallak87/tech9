@@ -1,0 +1,915 @@
+{
+  "version": 1,
+  "images": {
+    "nightweir/waterfront": {
+      "file": "assets/editor/environments/nightweir-waterfront.webp",
+      "metadataFile": "assets/editor/environments/nightweir-waterfront.json",
+      "sha256": "3cb18289b9c4c5fa0f14cb14e479304333fa6e0a818d718bed08b8e47fb16080",
+      "provenance": "Captured from the actual applied Vector Nova editor environment; no campaign image or generated illustration.",
+      "sourceRevision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+      "sourceDirty": true,
+      "biome": "nightweir",
+      "preset": "waterfront",
+      "environmentSeed": 88103,
+      "layoutVersion": 3,
+      "documentFingerprint": "2d4b99dad12c6683e4b2a1120e5a8666e2987e3a99431355d06531fbb9e5fd96",
+      "camera": {
+        "mode": "orbit",
+        "position": [
+          -511.54708323859484, 266.92958173598237, 618.7480312341468
+        ],
+        "quaternion": [
+          -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
+          0.9123067085457927
+        ],
+        "fov": 48,
+        "near": 0.5,
+        "far": 200000
+      }
+    },
+    "nightweir/industrial": {
+      "file": "assets/editor/environments/nightweir-industrial.webp",
+      "metadataFile": "assets/editor/environments/nightweir-industrial.json",
+      "sha256": "0aedb968212df4ea4a91de7cf4131594a7e696bc67f4bac5df667accbd168647",
+      "provenance": "Captured from the actual applied Vector Nova editor environment; no campaign image or generated illustration.",
+      "sourceRevision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+      "sourceDirty": true,
+      "biome": "nightweir",
+      "preset": "industrial",
+      "environmentSeed": 88103,
+      "layoutVersion": 3,
+      "documentFingerprint": "10b11bf41f6fc9839fd24cfbafb466e7db5c23fc36c8e5a9568c17b311ba03f8",
+      "camera": {
+        "mode": "orbit",
+        "position": [
+          -511.54708323859484, 266.92958173598237, 618.7480312341468
+        ],
+        "quaternion": [
+          -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
+          0.9123067085457927
+        ],
+        "fov": 48,
+        "near": 0.5,
+        "far": 200000
+      }
+    },
+    "nightweir/reclaimed": {
+      "file": "assets/editor/environments/nightweir-reclaimed.webp",
+      "metadataFile": "assets/editor/environments/nightweir-reclaimed.json",
+      "sha256": "3e736270f95173cdaaef1449fa7d53f7562b5e48bb2ccecf5a954b85e571a360",
+      "provenance": "Captured from the actual applied Vector Nova editor environment; no campaign image or generated illustration.",
+      "sourceRevision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+      "sourceDirty": true,
+      "biome": "nightweir",
+      "preset": "reclaimed",
+      "environmentSeed": 88103,
+      "layoutVersion": 3,
+      "documentFingerprint": "71d275548b3e9d049f0b51a930fff00d6b2c87b80bcab38c18b301bedbee794c",
+      "camera": {
+        "mode": "orbit",
+        "position": [
+          -511.54708323859484, 266.92958173598237, 618.7480312341468
+        ],
+        "quaternion": [
+          -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
+          0.9123067085457927
+        ],
+        "fov": 48,
+        "near": 0.5,
+        "far": 200000
+      }
+    },
+    "halcyon/civic-v1": {
+      "file": "assets/editor/environments/halcyon-civic-v1.webp",
+      "metadataFile": "assets/editor/environments/halcyon-civic-v1.json",
+      "biome": "halcyon",
+      "preset": "civic-v1",
+      "environmentSeed": 88103,
+      "layoutVersion": 3,
+      "documentFingerprint": "ce24cd4cfb169ecd07aaef7d348b43027b4a9ccc4d7bc8c27384006cfa768ac9",
+      "camera": {
+        "mode": "orbit",
+        "position": [
+          -511.54708323859484, 266.92958173598237, 618.7480312341468
+        ],
+        "quaternion": [
+          -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
+          0.9123067085457927
+        ],
+        "fov": 48,
+        "near": 0.5,
+        "far": 200000
+      },
+      "sha256": "f43e053b30e932c2f9eb78baa62da9c47bb1092940cc80a20f5ee861bdaf42e5",
+      "provenance": "Captured from the actual applied Vector Nova editor environment; no campaign image or generated illustration.",
+      "sourceRevision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+      "sourceDirty": true
+    },
+    "halcyon/garden-v1": {
+      "file": "assets/editor/environments/halcyon-garden-v1.webp",
+      "metadataFile": "assets/editor/environments/halcyon-garden-v1.json",
+      "biome": "halcyon",
+      "preset": "garden-v1",
+      "environmentSeed": 88103,
+      "layoutVersion": 3,
+      "documentFingerprint": "a234a19ea9cfd8aad172538396880fcd90056f5012611481f68642bde0083ccf",
+      "camera": {
+        "mode": "orbit",
+        "position": [
+          -511.54708323859484, 266.92958173598237, 618.7480312341468
+        ],
+        "quaternion": [
+          -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
+          0.9123067085457927
+        ],
+        "fov": 48,
+        "near": 0.5,
+        "far": 200000
+      },
+      "sha256": "85e18937f004464a6ddae26323bb837049860825857a3a2cb049168f11d46128",
+      "provenance": "Captured from the actual applied Vector Nova editor environment; no campaign image or generated illustration.",
+      "sourceRevision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+      "sourceDirty": true
+    },
+    "orbital/shipyard-v1": {
+      "file": "assets/editor/environments/orbital-shipyard-v1.webp",
+      "metadataFile": "assets/editor/environments/orbital-shipyard-v1.json",
+      "biome": "orbital",
+      "preset": "shipyard-v1",
+      "environmentSeed": 88103,
+      "layoutVersion": 3,
+      "documentFingerprint": "d85b0430e8256338b7fbc21929037e789eaa68e5815bd7cfe4043c71f76228ed",
+      "camera": {
+        "mode": "orbit",
+        "position": [
+          -511.54708323859484, 266.92958173598237, 618.7480312341468
+        ],
+        "quaternion": [
+          -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
+          0.9123067085457927
+        ],
+        "fov": 48,
+        "near": 0.5,
+        "far": 200000
+      },
+      "sha256": "40e610a5ab9c4af8f7041aa45bd3db2a097cd80d8bba6d38d8fd89aa103625b5",
+      "provenance": "Captured from the actual applied Vector Nova editor environment; no campaign image or generated illustration.",
+      "sourceRevision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+      "sourceDirty": true
+    },
+    "orbital/observatory-v1": {
+      "file": "assets/editor/environments/orbital-observatory-v1.webp",
+      "metadataFile": "assets/editor/environments/orbital-observatory-v1.json",
+      "biome": "orbital",
+      "preset": "observatory-v1",
+      "environmentSeed": 88103,
+      "layoutVersion": 3,
+      "documentFingerprint": "2da11913521713abb7772323eea24f7a6684b899e0760333c4f87228c3eb9633",
+      "camera": {
+        "mode": "orbit",
+        "position": [
+          -511.54708323859484, 266.92958173598237, 618.7480312341468
+        ],
+        "quaternion": [
+          -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
+          0.9123067085457927
+        ],
+        "fov": 48,
+        "near": 0.5,
+        "far": 200000
+      },
+      "sha256": "544d8791b0cf3c3c49187ea326c5549298d0898c8a48e4432074013e96941ce7",
+      "provenance": "Captured from the actual applied Vector Nova editor environment; no campaign image or generated illustration.",
+      "sourceRevision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+      "sourceDirty": true
+    },
+    "nacre/storm-archipelago-v1": {
+      "file": "assets/editor/environments/nacre-storm-archipelago-v1.webp",
+      "metadataFile": "assets/editor/environments/nacre-storm-archipelago-v1.json",
+      "biome": "nacre",
+      "preset": "storm-archipelago-v1",
+      "environmentSeed": 88103,
+      "layoutVersion": 3,
+      "documentFingerprint": "c244611412d4fd1f6ed9dde8a22191b819d3aa93759a044335e6bd5b01e78cca",
+      "camera": {
+        "mode": "orbit",
+        "position": [
+          -511.54708323859484, 266.92958173598237, 618.7480312341468
+        ],
+        "quaternion": [
+          -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
+          0.9123067085457927
+        ],
+        "fov": 48,
+        "near": 0.5,
+        "far": 200000
+      },
+      "sha256": "e59d2ff97049b3042984cf87ed84d589c544c4fe734d7b84ad7d8962fd558fc1",
+      "provenance": "Captured from the actual applied Vector Nova editor environment; no campaign image or generated illustration.",
+      "sourceRevision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+      "sourceDirty": true
+    },
+    "nacre/open-water-v1": {
+      "file": "assets/editor/environments/nacre-open-water-v1.webp",
+      "metadataFile": "assets/editor/environments/nacre-open-water-v1.json",
+      "biome": "nacre",
+      "preset": "open-water-v1",
+      "environmentSeed": 88103,
+      "layoutVersion": 3,
+      "documentFingerprint": "168c131982825d91515fe42d8cf8b0f649fc500b0011a79d6f3f5ad2be67963b",
+      "camera": {
+        "mode": "orbit",
+        "position": [
+          -511.54708323859484, 266.92958173598237, 618.7480312341468
+        ],
+        "quaternion": [
+          -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
+          0.9123067085457927
+        ],
+        "fov": 48,
+        "near": 0.5,
+        "far": 200000
+      },
+      "sha256": "957bb1cdde3e8150fdd55d5c3acaaf0cf0a3956e20c912a12d0a5772014005b1",
+      "provenance": "Captured from the actual applied Vector Nova editor environment; no campaign image or generated illustration.",
+      "sourceRevision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+      "sourceDirty": true
+    },
+    "vesper-forest/old-growth-v1": {
+      "file": "assets/editor/environments/vesper-forest-old-growth-v1.webp",
+      "metadataFile": "assets/editor/environments/vesper-forest-old-growth-v1.json",
+      "biome": "vesper-forest",
+      "preset": "old-growth-v1",
+      "environmentSeed": 88103,
+      "layoutVersion": 3,
+      "documentFingerprint": "f6343fb98cbf6c612769759f9b2d5b3dcf05601711b983e1556e14ced95a6581",
+      "camera": {
+        "mode": "orbit",
+        "position": [
+          -511.54708323859484, 266.92958173598237, 618.7480312341468
+        ],
+        "quaternion": [
+          -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
+          0.9123067085457927
+        ],
+        "fov": 48,
+        "near": 0.5,
+        "far": 200000
+      },
+      "sha256": "1bd8d1c116ee5a2dadc442ba8b8ffdc2782f7b062587257a206bb53c0d6860e7",
+      "provenance": "Captured from the actual applied Vector Nova editor environment; no campaign image or generated illustration.",
+      "sourceRevision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+      "sourceDirty": true
+    },
+    "vesper-forest/river-groves-v1": {
+      "file": "assets/editor/environments/vesper-forest-river-groves-v1.webp",
+      "metadataFile": "assets/editor/environments/vesper-forest-river-groves-v1.json",
+      "biome": "vesper-forest",
+      "preset": "river-groves-v1",
+      "environmentSeed": 88103,
+      "layoutVersion": 3,
+      "documentFingerprint": "531d591c13184f9c8eddb9f03f8e2f7334c20e69cb2906a4d3cdf3406fd84a15",
+      "camera": {
+        "mode": "orbit",
+        "position": [
+          -511.54708323859484, 266.92958173598237, 618.7480312341468
+        ],
+        "quaternion": [
+          -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
+          0.9123067085457927
+        ],
+        "fov": 48,
+        "near": 0.5,
+        "far": 200000
+      },
+      "sha256": "97083e3c0e3e13cb781f57b6a2f67783c1d2a62b2c934ddedb1db2f956ba5624",
+      "provenance": "Captured from the actual applied Vector Nova editor environment; no campaign image or generated illustration.",
+      "sourceRevision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+      "sourceDirty": true
+    },
+    "glasswake/glacier-v1": {
+      "file": "assets/editor/environments/glasswake-glacier-v1.webp",
+      "metadataFile": "assets/editor/environments/glasswake-glacier-v1.json",
+      "biome": "glasswake",
+      "preset": "glacier-v1",
+      "environmentSeed": 88103,
+      "layoutVersion": 3,
+      "documentFingerprint": "191b842367d6121cbd670adbca27123395788221f7b4c2f58dc9edf6dee4aae4",
+      "camera": {
+        "mode": "orbit",
+        "position": [
+          -511.54708323859484, 266.92958173598237, 618.7480312341468
+        ],
+        "quaternion": [
+          -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
+          0.9123067085457927
+        ],
+        "fov": 48,
+        "near": 0.5,
+        "far": 200000
+      },
+      "sha256": "b521f8f4d70def1350268a3ad8afd4fa423a6de85f6de38dd30f828e539a5d2f",
+      "provenance": "Captured from the actual applied Vector Nova editor environment; no campaign image or generated illustration.",
+      "sourceRevision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+      "sourceDirty": true
+    },
+    "glasswake/frozen-shelf-v1": {
+      "file": "assets/editor/environments/glasswake-frozen-shelf-v1.webp",
+      "metadataFile": "assets/editor/environments/glasswake-frozen-shelf-v1.json",
+      "biome": "glasswake",
+      "preset": "frozen-shelf-v1",
+      "environmentSeed": 88103,
+      "layoutVersion": 3,
+      "documentFingerprint": "ffad9c4916eabd62e356b72bcfc775f8d7ff8dbbc4957a80dd488ebfd7bbcb6e",
+      "camera": {
+        "mode": "orbit",
+        "position": [
+          -511.54708323859484, 266.92958173598237, 618.7480312341468
+        ],
+        "quaternion": [
+          -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
+          0.9123067085457927
+        ],
+        "fov": 48,
+        "near": 0.5,
+        "far": 200000
+      },
+      "sha256": "050b0ce0260e7c62a07a8662facec86c0a843a5648bc6d3d86fe2671e3018c0a",
+      "provenance": "Captured from the actual applied Vector Nova editor environment; no campaign image or generated illustration.",
+      "sourceRevision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+      "sourceDirty": true
+    },
+    "cindercoil/ash-caldera-v1": {
+      "file": "assets/editor/environments/cindercoil-ash-caldera-v1.webp",
+      "metadataFile": "assets/editor/environments/cindercoil-ash-caldera-v1.json",
+      "biome": "cindercoil",
+      "preset": "ash-caldera-v1",
+      "environmentSeed": 88103,
+      "layoutVersion": 3,
+      "documentFingerprint": "f1eba347b682fb83b8c1410dd5609a91b387e1ed4cef6a91c54142e4a0715b99",
+      "camera": {
+        "mode": "orbit",
+        "position": [
+          -511.54708323859484, 266.92958173598237, 618.7480312341468
+        ],
+        "quaternion": [
+          -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
+          0.9123067085457927
+        ],
+        "fov": 48,
+        "near": 0.5,
+        "far": 200000
+      },
+      "sha256": "260d21b4fa9497f0fd1e159ecd68722de5cf156e83a3e80d16326d22dd7af891",
+      "provenance": "Captured from the actual applied Vector Nova editor environment; no campaign image or generated illustration.",
+      "sourceRevision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+      "sourceDirty": true
+    },
+    "cindercoil/furnace-district-v1": {
+      "file": "assets/editor/environments/cindercoil-furnace-district-v1.webp",
+      "metadataFile": "assets/editor/environments/cindercoil-furnace-district-v1.json",
+      "biome": "cindercoil",
+      "preset": "furnace-district-v1",
+      "environmentSeed": 88103,
+      "layoutVersion": 3,
+      "documentFingerprint": "b94e8f8ea4eff50aa9f587ca3c21fc1aded6bb5fe1157d68d77accfbc1aad9a7",
+      "camera": {
+        "mode": "orbit",
+        "position": [
+          -511.54708323859484, 266.92958173598237, 618.7480312341468
+        ],
+        "quaternion": [
+          -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
+          0.9123067085457927
+        ],
+        "fov": 48,
+        "near": 0.5,
+        "far": 200000
+      },
+      "sha256": "637f0144437730fe112233422f26b47b5ab2b76933236fbffaf84f9bdeaa73c5",
+      "provenance": "Captured from the actual applied Vector Nova editor environment; no campaign image or generated illustration.",
+      "sourceRevision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+      "sourceDirty": true
+    },
+    "saffron/dune-sea-v1": {
+      "file": "assets/editor/environments/saffron-dune-sea-v1.webp",
+      "metadataFile": "assets/editor/environments/saffron-dune-sea-v1.json",
+      "biome": "saffron",
+      "preset": "dune-sea-v1",
+      "environmentSeed": 88103,
+      "layoutVersion": 3,
+      "documentFingerprint": "37edcb06257bb7daf4cd47cb5dc4965d2c09de344523df1191728383b46edbd7",
+      "camera": {
+        "mode": "orbit",
+        "position": [
+          -511.54708323859484, 266.92958173598237, 618.7480312341468
+        ],
+        "quaternion": [
+          -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
+          0.9123067085457927
+        ],
+        "fov": 48,
+        "near": 0.5,
+        "far": 200000
+      },
+      "sha256": "f755207f75e4d6b731e5202e25aff24c3ecc54605073b1cbe00a27c6d885e0be",
+      "provenance": "Captured from the actual applied Vector Nova editor environment; no campaign image or generated illustration.",
+      "sourceRevision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+      "sourceDirty": true
+    },
+    "saffron/fossil-fields-v1": {
+      "file": "assets/editor/environments/saffron-fossil-fields-v1.webp",
+      "metadataFile": "assets/editor/environments/saffron-fossil-fields-v1.json",
+      "biome": "saffron",
+      "preset": "fossil-fields-v1",
+      "environmentSeed": 88103,
+      "layoutVersion": 3,
+      "documentFingerprint": "89bc7378f76d8fb3a2684df7df949ee09b79b3bb5dcc65dd7277005f98632d66",
+      "camera": {
+        "mode": "orbit",
+        "position": [
+          -511.54708323859484, 266.92958173598237, 618.7480312341468
+        ],
+        "quaternion": [
+          -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
+          0.9123067085457927
+        ],
+        "fov": 48,
+        "near": 0.5,
+        "far": 200000
+      },
+      "sha256": "727ca010d3741d7053edaeaca5a3d41737f2b25673312ce10e58d42d908426ea",
+      "provenance": "Captured from the actual applied Vector Nova editor environment; no campaign image or generated illustration.",
+      "sourceRevision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+      "sourceDirty": true
+    },
+    "zephyr/basilica-isles-v1": {
+      "file": "assets/editor/environments/zephyr-basilica-isles-v1.webp",
+      "metadataFile": "assets/editor/environments/zephyr-basilica-isles-v1.json",
+      "biome": "zephyr",
+      "preset": "basilica-isles-v1",
+      "environmentSeed": 88103,
+      "layoutVersion": 3,
+      "documentFingerprint": "7055b81e09fb44a134a28463b3433bf78b3c8a5872573d02ff016df45c26b960",
+      "camera": {
+        "mode": "orbit",
+        "position": [
+          -511.54708323859484, 266.92958173598237, 618.7480312341468
+        ],
+        "quaternion": [
+          -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
+          0.9123067085457927
+        ],
+        "fov": 48,
+        "near": 0.5,
+        "far": 200000
+      },
+      "sha256": "88ff1afd716336b3ee2754d0c55b78b46614cf31d883df3fe8afda2242191bc6",
+      "provenance": "Captured from the actual applied Vector Nova editor environment; no campaign image or generated illustration.",
+      "sourceRevision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+      "sourceDirty": true
+    },
+    "zephyr/garden-isles-v1": {
+      "file": "assets/editor/environments/zephyr-garden-isles-v1.webp",
+      "metadataFile": "assets/editor/environments/zephyr-garden-isles-v1.json",
+      "biome": "zephyr",
+      "preset": "garden-isles-v1",
+      "environmentSeed": 88103,
+      "layoutVersion": 3,
+      "documentFingerprint": "bbe52e43a03647fb0355fd105e8fd75f06550022e928ff23d5b82c16e3b3e7e6",
+      "camera": {
+        "mode": "orbit",
+        "position": [
+          -511.54708323859484, 266.92958173598237, 618.7480312341468
+        ],
+        "quaternion": [
+          -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
+          0.9123067085457927
+        ],
+        "fov": 48,
+        "near": 0.5,
+        "far": 200000
+      },
+      "sha256": "eb668733ce72363d43640ef8f84638163923b0a5131135b9c9f4c29c70821837",
+      "provenance": "Captured from the actual applied Vector Nova editor environment; no campaign image or generated illustration.",
+      "sourceRevision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+      "sourceDirty": true
+    },
+    "helion/solar-array-v1": {
+      "file": "assets/editor/environments/helion-solar-array-v1.webp",
+      "metadataFile": "assets/editor/environments/helion-solar-array-v1.json",
+      "biome": "helion",
+      "preset": "solar-array-v1",
+      "environmentSeed": 88103,
+      "layoutVersion": 3,
+      "documentFingerprint": "7b7e1ac27b047b87a35b4dafa89cf254d8b615f7543d5a26e2fd7f95af8a7274",
+      "camera": {
+        "mode": "orbit",
+        "position": [
+          -511.54708323859484, 266.92958173598237, 618.7480312341468
+        ],
+        "quaternion": [
+          -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
+          0.9123067085457927
+        ],
+        "fov": 48,
+        "near": 0.5,
+        "far": 200000
+      },
+      "sha256": "b57124e165e6534e75384057997fe55d128dd4b1e696fa0101cf2c80c81c1bdf",
+      "provenance": "Captured from the actual applied Vector Nova editor environment; no campaign image or generated illustration.",
+      "sourceRevision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+      "sourceDirty": true
+    },
+    "helion/observatory-v1": {
+      "file": "assets/editor/environments/helion-observatory-v1.webp",
+      "metadataFile": "assets/editor/environments/helion-observatory-v1.json",
+      "biome": "helion",
+      "preset": "observatory-v1",
+      "environmentSeed": 88103,
+      "layoutVersion": 3,
+      "documentFingerprint": "4a0797d3d1d1e7df1539ce2b5f6b2e4879aee214f4a30a118f42ef4640ef6564",
+      "camera": {
+        "mode": "orbit",
+        "position": [
+          -511.54708323859484, 266.92958173598237, 618.7480312341468
+        ],
+        "quaternion": [
+          -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
+          0.9123067085457927
+        ],
+        "fov": 48,
+        "near": 0.5,
+        "far": 200000
+      },
+      "sha256": "0dfd09339c52940ace2cee0538ca0256ac42c9fc87807011d2cf0b7742077555",
+      "provenance": "Captured from the actual applied Vector Nova editor environment; no campaign image or generated illustration.",
+      "sourceRevision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+      "sourceDirty": true
+    },
+    "umbra/accretion-v1": {
+      "file": "assets/editor/environments/umbra-accretion-v1.webp",
+      "metadataFile": "assets/editor/environments/umbra-accretion-v1.json",
+      "biome": "umbra",
+      "preset": "accretion-v1",
+      "environmentSeed": 88103,
+      "layoutVersion": 3,
+      "documentFingerprint": "5e458da6550c8fdb290abb2df2fe71c1527afd53b40e42a873cea0726d455a53",
+      "camera": {
+        "mode": "orbit",
+        "position": [
+          -511.54708323859484, 266.92958173598237, 618.7480312341468
+        ],
+        "quaternion": [
+          -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
+          0.9123067085457927
+        ],
+        "fov": 48,
+        "near": 0.5,
+        "far": 200000
+      },
+      "sha256": "1d7d8b6dc947fa27ac28217c8386ebed55b43dfc62e074a7bc0def620e72dd86",
+      "provenance": "Captured from the actual applied Vector Nova editor environment; no campaign image or generated illustration.",
+      "sourceRevision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+      "sourceDirty": true
+    },
+    "umbra/quiet-vaults-v1": {
+      "file": "assets/editor/environments/umbra-quiet-vaults-v1.webp",
+      "metadataFile": "assets/editor/environments/umbra-quiet-vaults-v1.json",
+      "biome": "umbra",
+      "preset": "quiet-vaults-v1",
+      "environmentSeed": 88103,
+      "layoutVersion": 3,
+      "documentFingerprint": "a1bb8675dec8b5731be118dfecd655f36d45d5c1ec1af1eee3319fbb9101f123",
+      "camera": {
+        "mode": "orbit",
+        "position": [
+          -511.54708323859484, 266.92958173598237, 618.7480312341468
+        ],
+        "quaternion": [
+          -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
+          0.9123067085457927
+        ],
+        "fov": 48,
+        "near": 0.5,
+        "far": 200000
+      },
+      "sha256": "8af7d02a0012da010d2c9bade52930b9ed3a91bf6f6b5c99a756c551a5be80fe",
+      "provenance": "Captured from the actual applied Vector Nova editor environment; no campaign image or generated illustration.",
+      "sourceRevision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+      "sourceDirty": true
+    },
+    "worldspire/mineral-spires-v1": {
+      "file": "assets/editor/environments/worldspire-mineral-spires-v1.webp",
+      "metadataFile": "assets/editor/environments/worldspire-mineral-spires-v1.json",
+      "biome": "worldspire",
+      "preset": "mineral-spires-v1",
+      "environmentSeed": 88103,
+      "layoutVersion": 3,
+      "documentFingerprint": "af4db8edf87301e727fef96da21fd9cf09dd6b468110f0fa042cb2a54dde945d",
+      "camera": {
+        "mode": "orbit",
+        "position": [
+          -511.54708323859484, 266.92958173598237, 618.7480312341468
+        ],
+        "quaternion": [
+          -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
+          0.9123067085457927
+        ],
+        "fov": 48,
+        "near": 0.5,
+        "far": 200000
+      },
+      "sha256": "ca866f17cc5308b129acd0fe2789852479849c4350daadc0edd772be53c3b33b",
+      "provenance": "Captured from the actual applied Vector Nova editor environment; no campaign image or generated illustration.",
+      "sourceRevision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+      "sourceDirty": true
+    },
+    "worldspire/cloud-ridges-v1": {
+      "file": "assets/editor/environments/worldspire-cloud-ridges-v1.webp",
+      "metadataFile": "assets/editor/environments/worldspire-cloud-ridges-v1.json",
+      "biome": "worldspire",
+      "preset": "cloud-ridges-v1",
+      "environmentSeed": 88103,
+      "layoutVersion": 3,
+      "documentFingerprint": "56a3b952884e61e85183a366139eb1a0f3cbbe617b17cd34701f59a55ba13f73",
+      "camera": {
+        "mode": "orbit",
+        "position": [
+          -511.54708323859484, 266.92958173598237, 618.7480312341468
+        ],
+        "quaternion": [
+          -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
+          0.9123067085457927
+        ],
+        "fov": 48,
+        "near": 0.5,
+        "far": 200000
+      },
+      "sha256": "c0f2109905aeb0131f3fdcde7405aedf7aa64f9261194fce0f1bc9c302066c76",
+      "provenance": "Captured from the actual applied Vector Nova editor environment; no campaign image or generated illustration.",
+      "sourceRevision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+      "sourceDirty": true
+    },
+    "colossus/quarry-v1": {
+      "file": "assets/editor/environments/colossus-quarry-v1.webp",
+      "metadataFile": "assets/editor/environments/colossus-quarry-v1.json",
+      "biome": "colossus",
+      "preset": "quarry-v1",
+      "environmentSeed": 88103,
+      "layoutVersion": 3,
+      "documentFingerprint": "ed86357cbb6a84d741c5e9708180998d76391d1fd7f45afb0b358bb77509808a",
+      "camera": {
+        "mode": "orbit",
+        "position": [
+          -511.54708323859484, 266.92958173598237, 618.7480312341468
+        ],
+        "quaternion": [
+          -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
+          0.9123067085457927
+        ],
+        "fov": 48,
+        "near": 0.5,
+        "far": 200000
+      },
+      "sha256": "554cbf60806bfcc0c1eeb79a1cedb8ccac6fdab63c30f1be2c730a4c5ba78825",
+      "provenance": "Captured from the actual applied Vector Nova editor environment; no campaign image or generated illustration.",
+      "sourceRevision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+      "sourceDirty": true
+    },
+    "colossus/factory-v1": {
+      "file": "assets/editor/environments/colossus-factory-v1.webp",
+      "metadataFile": "assets/editor/environments/colossus-factory-v1.json",
+      "biome": "colossus",
+      "preset": "factory-v1",
+      "environmentSeed": 88103,
+      "layoutVersion": 3,
+      "documentFingerprint": "8476ca29618f8fb74a530d9f82913338b9b24d6347664acbbfd64bc0977be56d",
+      "camera": {
+        "mode": "orbit",
+        "position": [
+          -511.54708323859484, 266.92958173598237, 618.7480312341468
+        ],
+        "quaternion": [
+          -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
+          0.9123067085457927
+        ],
+        "fov": 48,
+        "near": 0.5,
+        "far": 200000
+      },
+      "sha256": "1263b348e601b1ae819bb0fbfb169ae093bf2ae7dbe7f740eccce07a33b58d08",
+      "provenance": "Captured from the actual applied Vector Nova editor environment; no campaign image or generated illustration.",
+      "sourceRevision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+      "sourceDirty": true
+    },
+    "ravel/sail-fields-v1": {
+      "file": "assets/editor/environments/ravel-sail-fields-v1.webp",
+      "metadataFile": "assets/editor/environments/ravel-sail-fields-v1.json",
+      "biome": "ravel",
+      "preset": "sail-fields-v1",
+      "environmentSeed": 88103,
+      "layoutVersion": 3,
+      "documentFingerprint": "170fea4880b2d420dd0c978d2ee5a29b44111394bfe87961bbc6b49715667300",
+      "camera": {
+        "mode": "orbit",
+        "position": [
+          -511.54708323859484, 266.92958173598237, 618.7480312341468
+        ],
+        "quaternion": [
+          -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
+          0.9123067085457927
+        ],
+        "fov": 48,
+        "near": 0.5,
+        "far": 200000
+      },
+      "sha256": "104d6a7b0fbbc807fdb84cc37acb11ed7972a53d8e7537f6937dbea85d976a9a",
+      "provenance": "Captured from the actual applied Vector Nova editor environment; no campaign image or generated illustration.",
+      "sourceRevision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+      "sourceDirty": true
+    },
+    "ravel/folded-canopies-v1": {
+      "file": "assets/editor/environments/ravel-folded-canopies-v1.webp",
+      "metadataFile": "assets/editor/environments/ravel-folded-canopies-v1.json",
+      "biome": "ravel",
+      "preset": "folded-canopies-v1",
+      "environmentSeed": 88103,
+      "layoutVersion": 3,
+      "documentFingerprint": "9bd6133c05f85ff70f3357b02aeeb1116e8119b9d9924e0e044f6f0b8805390e",
+      "camera": {
+        "mode": "orbit",
+        "position": [
+          -511.54708323859484, 266.92958173598237, 618.7480312341468
+        ],
+        "quaternion": [
+          -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
+          0.9123067085457927
+        ],
+        "fov": 48,
+        "near": 0.5,
+        "far": 200000
+      },
+      "sha256": "3c21368e080c1604d70e92b751455888ddeb44963ebae23fafd38ff89b18672d",
+      "provenance": "Captured from the actual applied Vector Nova editor environment; no campaign image or generated illustration.",
+      "sourceRevision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+      "sourceDirty": true
+    },
+    "nomad/salt-works-v1": {
+      "file": "assets/editor/environments/nomad-salt-works-v1.webp",
+      "metadataFile": "assets/editor/environments/nomad-salt-works-v1.json",
+      "biome": "nomad",
+      "preset": "salt-works-v1",
+      "environmentSeed": 88103,
+      "layoutVersion": 3,
+      "documentFingerprint": "cd030fb5e6142d7468c655d1b902a61c67009d47239fee67b342f113be176e3b",
+      "camera": {
+        "mode": "orbit",
+        "position": [
+          -511.54708323859484, 266.92958173598237, 618.7480312341468
+        ],
+        "quaternion": [
+          -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
+          0.9123067085457927
+        ],
+        "fov": 48,
+        "near": 0.5,
+        "far": 200000
+      },
+      "sha256": "21ad41e0ebd15a3cb42f8ae88546eb24ba13e995dfa8975727e33ac687ecd47a",
+      "provenance": "Captured from the actual applied Vector Nova editor environment; no campaign image or generated illustration.",
+      "sourceRevision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+      "sourceDirty": true
+    },
+    "nomad/freight-yards-v1": {
+      "file": "assets/editor/environments/nomad-freight-yards-v1.webp",
+      "metadataFile": "assets/editor/environments/nomad-freight-yards-v1.json",
+      "biome": "nomad",
+      "preset": "freight-yards-v1",
+      "environmentSeed": 88103,
+      "layoutVersion": 3,
+      "documentFingerprint": "1a99d765368b9286618de0afbf97ab4ec77b60ad98af258f685f497f56bc8486",
+      "camera": {
+        "mode": "orbit",
+        "position": [
+          -511.54708323859484, 266.92958173598237, 618.7480312341468
+        ],
+        "quaternion": [
+          -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
+          0.9123067085457927
+        ],
+        "fov": 48,
+        "near": 0.5,
+        "far": 200000
+      },
+      "sha256": "bad4b52472ff46aa0fe8bc7209c169af090c29d873100b6c36d7544f50fa31bc",
+      "provenance": "Captured from the actual applied Vector Nova editor environment; no campaign image or generated illustration.",
+      "sourceRevision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+      "sourceDirty": true
+    },
+    "oriel/civic-gardens-v1": {
+      "file": "assets/editor/environments/oriel-civic-gardens-v1.webp",
+      "metadataFile": "assets/editor/environments/oriel-civic-gardens-v1.json",
+      "biome": "oriel",
+      "preset": "civic-gardens-v1",
+      "environmentSeed": 88103,
+      "layoutVersion": 3,
+      "documentFingerprint": "8750db9fb363f89092bf2427cfcd78de3316373b6d226c42b2d3bc95a5aac239",
+      "camera": {
+        "mode": "orbit",
+        "position": [
+          -511.54708323859484, 266.92958173598237, 618.7480312341468
+        ],
+        "quaternion": [
+          -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
+          0.9123067085457927
+        ],
+        "fov": 48,
+        "near": 0.5,
+        "far": 200000
+      },
+      "sha256": "5fa36569310545e69671fe8d9221d43cafb1bfb44c9a1f68618b22aa0c4275ea",
+      "provenance": "Captured from the actual applied Vector Nova editor environment; no campaign image or generated illustration.",
+      "sourceRevision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+      "sourceDirty": true
+    },
+    "oriel/habitat-districts-v1": {
+      "file": "assets/editor/environments/oriel-habitat-districts-v1.webp",
+      "metadataFile": "assets/editor/environments/oriel-habitat-districts-v1.json",
+      "biome": "oriel",
+      "preset": "habitat-districts-v1",
+      "environmentSeed": 88103,
+      "layoutVersion": 3,
+      "documentFingerprint": "b31cad4d789cfe3a22af176578ec231e1725cac0927eb7a06b00c12ec6f86e52",
+      "camera": {
+        "mode": "orbit",
+        "position": [
+          -511.54708323859484, 266.92958173598237, 618.7480312341468
+        ],
+        "quaternion": [
+          -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
+          0.9123067085457927
+        ],
+        "fov": 48,
+        "near": 0.5,
+        "far": 200000
+      },
+      "sha256": "4e526126d1a784ad7f00b5d7e649b4bbf021d45dd3a00ed366c4e5b16d6a30e3",
+      "provenance": "Captured from the actual applied Vector Nova editor environment; no campaign image or generated illustration.",
+      "sourceRevision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+      "sourceDirty": true
+    },
+    "shatterline/limestone-canyon-v1": {
+      "file": "assets/editor/environments/shatterline-limestone-canyon-v1.webp",
+      "metadataFile": "assets/editor/environments/shatterline-limestone-canyon-v1.json",
+      "biome": "shatterline",
+      "preset": "limestone-canyon-v1",
+      "environmentSeed": 88103,
+      "layoutVersion": 3,
+      "documentFingerprint": "4021c8fb2f713b16017761d69f09d2b106f9b4b0f034c28ab98ab558a99fac05",
+      "camera": {
+        "mode": "orbit",
+        "position": [
+          -511.54708323859484, 266.92958173598237, 618.7480312341468
+        ],
+        "quaternion": [
+          -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
+          0.9123067085457927
+        ],
+        "fov": 48,
+        "near": 0.5,
+        "far": 200000
+      },
+      "sha256": "726d38194623031b579156005736e54bf2e87514d9621098a2ba534be5ddd947",
+      "provenance": "Captured from the actual applied Vector Nova editor environment; no campaign image or generated illustration.",
+      "sourceRevision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+      "sourceDirty": true
+    },
+    "shatterline/receiving-campus-v1": {
+      "file": "assets/editor/environments/shatterline-receiving-campus-v1.webp",
+      "metadataFile": "assets/editor/environments/shatterline-receiving-campus-v1.json",
+      "biome": "shatterline",
+      "preset": "receiving-campus-v1",
+      "environmentSeed": 88103,
+      "layoutVersion": 3,
+      "documentFingerprint": "e0bfa3abba114a0c192813ad4bfe3f209b8e8788819bb83daed0afcf19a9014f",
+      "camera": {
+        "mode": "orbit",
+        "position": [
+          -511.54708323859484, 266.92958173598237, 618.7480312341468
+        ],
+        "quaternion": [
+          -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
+          0.9123067085457927
+        ],
+        "fov": 48,
+        "near": 0.5,
+        "far": 200000
+      },
+      "sha256": "e3482c3d8570c62bf8b2d052e13747fa548e1802ffa4ca9e4818172d147b24fb",
+      "provenance": "Captured from the actual applied Vector Nova editor environment; no campaign image or generated illustration.",
+      "sourceRevision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+      "sourceDirty": true
+    }
+  }
+}

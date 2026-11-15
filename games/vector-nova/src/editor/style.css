@@ -1955,3 +1955,269 @@
 .workshop-test-feedback:empty {
   display: none;
 }
+
+/* The workspaces share a canvas, but expose only the current authoring task. */
+.workshop-strip-editor .workshop-task-action {
+  border-color: #343434;
+  background: #191919;
+  border-radius: 4px;
+}
+.workshop-strip-editor .workshop-task-action[aria-expanded='true'] {
+  background: #332724;
+  border-color: #9c5847;
+  box-shadow: none;
+}
+.workshop-strip-editor .workshop-global-panel {
+  background: #141414;
+  border-right-color: #363636;
+}
+@media (min-width: 761px) {
+  .workshop-strip-editor .workshop-layout[data-global-open='true'] {
+    grid-template-columns: 316px minmax(0, 1fr);
+  }
+}
+.workshop-strip-editor .workshop-panel-heading {
+  padding: 12px 15px;
+  background: #181818;
+}
+.workshop-strip-editor .workshop-options-scroll {
+  padding: 15px;
+}
+.workshop-strip-editor .workshop-authoring-strip {
+  border-radius: 8px;
+  border-color: #4e4b48;
+  background: #171717f7;
+}
+.workshop-strip-editor .workshop-road-card {
+  min-height: 94px;
+  gap: 6px;
+  padding: 11px;
+  border-radius: 5px;
+  border-color: #383838;
+  background: #1b1b1b;
+}
+.workshop-strip-editor .workshop-road-card strong {
+  font-size: 13px;
+}
+.workshop-strip-editor .workshop-road-card span {
+  font-size: 10px;
+  line-height: 1.45;
+  color: #aaa;
+}
+.workshop-strip-editor .workshop-road-card[aria-pressed='true'] {
+  border-color: #bd6b53;
+  box-shadow: inset 0 0 0 1px #bd6b53;
+  background: #352823;
+}
+.workshop-strip-editor .workshop-road-card[aria-pressed='true'] strong {
+  color: #ffd9bd;
+}
+.workshop-strip-editor .workshop-advanced {
+  border-top: 1px solid #343434;
+  margin-top: 10px;
+}
+.workshop-strip-editor .workshop-advanced > summary {
+  padding: 11px 1px;
+  font-size: 11px;
+  color: #c8b7ad;
+  border-radius: 3px;
+}
+.workshop-strip-editor .workshop-advanced > summary:hover {
+  color: #fff;
+}
+.workshop-strip-editor .workshop-advanced[open] > summary {
+  color: #eed3bf;
+}
+.workshop-strip-editor .workshop-advanced > .workshop-section {
+  margin-top: 8px;
+}
+.workshop-environment-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 11px 8px;
+}
+.workshop-environment-strip strong {
+  color: #c7b3a6;
+  font-size: 10px;
+  font-weight: 500;
+}
+.workshop-environment-strip > span {
+  color: #eee;
+  font-size: 12px;
+}
+.workshop-environment-strip button {
+  padding: 7px 4px;
+  min-height: 30px;
+  font-size: 10px;
+}
+[data-context='environment'] .workshop-road-divider {
+  display: none;
+}
+.workshop-world-current {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px;
+  margin-bottom: 15px;
+  border-left: 2px solid #b98c70;
+  border-radius: 0 4px 4px 0;
+  background: #24211e;
+}
+.workshop-world-current span {
+  color: #b8a99e;
+  font-size: 10px;
+}
+.workshop-world-current strong {
+  color: #e9e0d8;
+  font-size: 12px;
+  font-weight: 500;
+}
+.workshop-biome-cards,
+.workshop-world-presets {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 6px 0 15px;
+}
+.track-workshop .workshop-biome-card,
+.track-workshop .workshop-world-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid #3d3b37;
+  border-radius: 5px;
+  background: #1b1b1b;
+  color: #ddd;
+  text-align: left;
+}
+.workshop-biome-card img,
+.workshop-world-card img {
+  display: block;
+  width: 100%;
+  height: 70px;
+  object-fit: cover;
+  background: #242c2c;
+}
+.workshop-biome-card strong,
+.workshop-world-card strong {
+  display: block;
+  padding: 8px 9px 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.workshop-biome-card strong {
+  padding-bottom: 8px;
+}
+.workshop-world-card > span {
+  padding: 0 9px 10px;
+  color: #aaa;
+  font-size: 10px;
+  line-height: 1.45;
+}
+.track-workshop
+  :is(.workshop-biome-card, .workshop-world-card)[aria-pressed='true'] {
+  border-color: #bd6b53;
+  box-shadow: inset 0 0 0 1px #bd6b53;
+  background: #352823;
+}
+.track-workshop :is(.workshop-biome-card, .workshop-world-card):hover {
+  border-color: #cbab91;
+}
+.workshop-strip-editor .workshop-local-test {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #333;
+}
+.workshop-strip-editor .workshop-local-test > .workshop-advanced {
+  border-top: 0;
+  margin: 0;
+}
+.workshop-strip-editor .workshop-local-test > .workshop-advanced > summary {
+  padding: 8px 0;
+  color: #aaa;
+  font-size: 10px;
+}
+.workshop-strip-editor .workshop-group-button:disabled {
+  opacity: 0.45;
+}
+.workshop-strip-editor .workshop-section-span {
+  margin-bottom: 10px;
+}
+.workshop-strip-editor .workshop-generator-actions {
+  position: sticky;
+  bottom: -15px;
+  z-index: 3;
+  display: grid;
+  gap: 6px;
+  margin: 12px -15px 0;
+  padding: 12px 15px;
+  border-top: 1px solid #39332e;
+  background: #141414fa;
+  box-shadow: 0 -8px 12px #141414dc;
+}
+.workshop-strip-editor .workshop-generator-actions .workshop-wide {
+  margin: 0;
+}
+.workshop-world-current .workshop-world-pending {
+  color: #f1b58d;
+  line-height: 1.5;
+  padding-top: 3px;
+}
+.workshop-strip-editor .workshop-options-scroll {
+  scroll-padding-bottom: 120px;
+}
+@media (max-width: 760px) {
+  .workshop-strip-editor .workshop-layout[data-global-open='true'] {
+    grid-template-rows: minmax(120px, 28%) minmax(0, 1fr);
+  }
+  [data-global-open='true'] .workshop-authoring-strip {
+    top: 8px;
+    right: 8px;
+    width: calc(100% - 16px);
+  }
+  [data-global-open='true'] .workshop-palette-buttons {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  [data-global-open='true'] .workshop-tool-palette button {
+    padding-inline: 4px;
+    gap: 4px;
+    font-size: 10px;
+  }
+  [data-global-open='true'] .workshop-tool-palette kbd {
+    display: none;
+  }
+  [data-global-open='true'] .workshop-camera-controls {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+  [data-global-open='true'] .workshop-camera-controls button {
+    min-height: 26px;
+    padding: 4px 2px;
+    font-size: 9px;
+  }
+  [data-global-open='true'] .workshop-strip-groups {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 3px;
+    flex: 0 0 auto;
+  }
+  [data-global-open='true'] .workshop-strip-group + .workshop-strip-group {
+    margin-top: 0;
+  }
+  [data-global-open='true'] .workshop-group-button {
+    min-height: 26px;
+    padding: 4px;
+    font-size: 9px;
+  }
+  [data-global-open='true'] .workshop-environment-strip {
+    flex-direction: row;
+    align-items: center;
+    padding: 7px;
+  }
+  [data-global-open='true'] .workshop-environment-strip button {
+    margin-left: auto;
+  }
+}

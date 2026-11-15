@@ -35,6 +35,7 @@ import { enrichNightweirPlan } from './nightweir-quarters.js';
 import { createEditorFlightRuntime } from './jumps.js';
 import { createEditorDevices, createEditorPickupHardware } from './pickups.js';
 import { EDITOR_CAMERA } from './camera.js';
+import { finishShatterlineMaterial } from '../levels/shatterline/environment/materials.js';
 
 function prepareRegion(doc, track) {
   if (doc.environment.layoutVersion < 1 || !track) return null;
@@ -70,6 +71,9 @@ export function createEditorRoad(
   };
   const asphaltKind = style.kind === 'asphalt';
   const suspended = Boolean(style.suspended);
+  const limestoneKit =
+    biome.id === 'shatterline' &&
+    track.editorEnvironment?.environment.layoutVersion >= 3;
   const part = owner(`Editor / ${biome.label} ${style.kind} road kit`, preview);
   part.group.userData.biome = biome.id;
   part.group.userData.roadKind = style.kind;
@@ -78,6 +82,7 @@ export function createEditorRoad(
       ? createAsphalt(renderer, track.width, {
           label: `${biome.label} editor`,
           moisture: biome.id === 'shatterline' ? 0.02 : 0.28,
+          dryRoughness: limestoneKit ? 0.87 : 0.5,
         })
       : null;
   if (asphalt) part.borrowed.push(asphalt);
@@ -101,16 +106,22 @@ export function createEditorRoad(
     : null;
   if (finish) part.borrowed.push(finish);
   const concrete = part.material(
-    'Editor / rain-dark precast',
+    limestoneKit
+      ? 'Shatterline / ivory ceramic infrastructure'
+      : 'Editor / rain-dark precast',
     { color: style.structure, roughness: style.kind === 'alloy' ? 0.45 : 0.86 },
-    asphaltKind || style.kind === 'masonry' || style.kind === 'promenade'
-      ? finishNightweirConcrete
-      : undefined,
+    limestoneKit
+      ? finishShatterlineMaterial
+      : asphaltKind || style.kind === 'masonry' || style.kind === 'promenade'
+        ? finishNightweirConcrete
+        : undefined,
   );
   const steel = part.material(
-    'Editor / oxide municipal steel',
+    limestoneKit
+      ? 'Shatterline / graphite titanium joints'
+      : 'Editor / oxide municipal steel',
     { color: style.metal, roughness: 0.6, metalness: 0.45 },
-    finishNightweirMetal,
+    limestoneKit ? finishShatterlineMaterial : finishNightweirMetal,
   );
   const paint = part.material('Editor / ivory road markings', {
     color: style.paint,

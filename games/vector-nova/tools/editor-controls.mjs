@@ -9,7 +9,22 @@ export async function openEditorSection(page, name) {
   await continueRecovery(page);
   const section = page.locator(`[data-editor-section="${name}"]`);
   if (!(await section.isVisible())) {
-    await page.locator(`[data-editor-action="tab-${name}"]`).click();
+    if (name !== 'library') {
+      const context = page.locator(
+        `[data-editor-action="context-${name === 'world' ? 'environment' : 'road'}"]`,
+      );
+      if ((await context.getAttribute('aria-pressed')) !== 'true')
+        await context.click();
+    }
+    // Contexts remember their last drawer. An already-selected Environment
+    // context needs Choose scenery, while returning to a context can restore
+    // its desired group without another click (which would close it again).
+    if (!(await section.isVisible()))
+      await page
+        .locator(
+          `[data-editor-action="${name === 'world' ? 'open-environment' : `tab-${name}`}"]`,
+        )
+        .click();
     await section.waitFor({ state: 'visible' });
   }
   return section;
@@ -28,10 +43,11 @@ export async function revealEditorControl(control, label = 'editor control') {
     if (!owner) throw new Error(`${label} is hidden without an editor group.`);
     await openEditorSection(control.page(), owner);
   }
-  const details = control.locator('xpath=ancestor::details[1]');
-  if (await details.count()) {
-    if (!(await details.evaluate((element) => element.open)))
-      await details.locator(':scope > summary').click();
+  const details = control.locator('xpath=ancestor::details');
+  for (let i = 0; i < (await details.count()); i++) {
+    const panel = details.nth(i);
+    if (!(await panel.evaluate((element) => element.open)))
+      await panel.locator(':scope > summary').click();
   }
   await control.scrollIntoViewIfNeeded();
   return control;

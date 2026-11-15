@@ -9,7 +9,12 @@ const REPEAT_METRES = 2.05;
 export function createAsphalt(
   renderer,
   width,
-  { uvLength = 16, label = 'Halcyon', moisture: initialMoisture = 0.8 } = {},
+  {
+    uvLength = 16,
+    label = 'Halcyon',
+    moisture: initialMoisture = 0.8,
+    dryRoughness = 0.5,
+  } = {},
 ) {
   const manager = new THREE.LoadingManager();
   const loader = new SharedKTX2Loader(manager).detectSupport(renderer);
@@ -63,11 +68,11 @@ export function createAsphalt(
       shader.fragmentShader,
       '#include <roughnessmap_fragment>',
       `#include <roughnessmap_fragment>
-      roughnessFactor = clamp(mix(.5,.035,asphaltWet) + (roughnessFactor-.8)*.5,.07,.85);`,
+      roughnessFactor = clamp(mix(${dryRoughness.toFixed(3)},.035,asphaltWet) + (roughnessFactor-.8)*.5,.07,${Math.max(0.85, dryRoughness).toFixed(3)});`,
     );
   };
   material.customProgramCacheKey = () =>
-    `asphalt-metres-v1-${width}-${uvLength}`;
+    `asphalt-metres-v1-${width}-${uvLength}-${dryRoughness}`;
   const ready = Promise.allSettled(
     ['color', 'normal', 'arm'].map(async (name) => {
       const texture = await loader.loadAsync(

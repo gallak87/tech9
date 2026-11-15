@@ -537,7 +537,7 @@ test('legacy environment migration preserves the old scenery seed and historical
 
 test('new constructors choose regional environment data and validate independent seed versions strictly', () => {
   assert.equal(ENVIRONMENT_VERSION, 1);
-  assert.equal(ENVIRONMENT_LAYOUT_VERSION, 2);
+  assert.equal(ENVIRONMENT_LAYOUT_VERSION, 3);
   const blank = createDocument({
     seed: 42,
     blank: true,
@@ -546,7 +546,7 @@ test('new constructors choose regional environment data and validate independent
   assert.deepEqual(blank.environment, {
     version: 1,
     seed: 9001,
-    layoutVersion: 2,
+    layoutVersion: 3,
   });
   assert.equal(blank.generator.seed, 42);
   for (const generatorVersion of [1, 2, 3]) {
@@ -558,7 +558,7 @@ test('new constructors choose regional environment data and validate independent
     assert.deepEqual(generated.environment, {
       version: 1,
       seed: 8,
-      layoutVersion: 2,
+      layoutVersion: 3,
     });
   }
   const source = structuredClone(blank);
@@ -568,7 +568,7 @@ test('new constructors choose regional environment data and validate independent
     null,
     [],
     { version: 2, seed: 1, layoutVersion: 1 },
-    { version: 1, seed: 1, layoutVersion: 3 },
+    { version: 1, seed: 1, layoutVersion: 4 },
     { version: 1, seed: 1, layoutVersion: '1' },
     ...[-1, 4294967296, 1.5, NaN, Infinity, '4'].map((seed) => ({
       version: 1,
@@ -590,7 +590,7 @@ test('new constructors choose regional environment data and validate independent
 test('regional physical identity follows resolved road/environment data rather than pending road preferences', () => {
   const source = generateDocument({ seed: 7 });
   const expected = documentIdentity(source);
-  assert.match(expected, /^custom-nightweir-v6-/);
+  assert.match(expected, /^custom-nightweir-v7-/);
   const preferences = structuredClone(source);
   Object.assign(preferences.generator, {
     seed: 1234,
@@ -692,7 +692,7 @@ test('all whole-course biomes validate their own presets without changing resolv
       assert.deepEqual(changed.generator, original.generator);
       assert.match(
         documentIdentity(changed),
-        new RegExp(`^custom-${biome.id}-v6-`),
+        new RegExp(`^custom-${biome.id}-v7-`),
       );
       assert.deepEqual(
         validateDocument(JSON.parse(JSON.stringify(changed))),
@@ -711,7 +711,7 @@ test('all whole-course biomes validate their own presets without changing resolv
       assert.deepEqual(generated.environment, {
         version: 1,
         seed: 91,
-        layoutVersion: 2,
+        layoutVersion: 3,
       });
       assert.equal(analyzeDocument(generated).valid, true, biome.id);
     }

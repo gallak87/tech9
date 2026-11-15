@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "biome": "nightweir",
+  "preset": "reclaimed",
+  "recipe": {
+    "road": {
+      "seed": 42017,
+      "length": 3000,
+      "bendiness": 0.35,
+      "elevation": 0.2,
+      "crossovers": 0,
+      "jumpFrequency": "none",
+      "seedJumps": false,
+      "courseType": "circuit",
+      "width": 40
+    },
+    "environmentSeed": 88103,
+    "scenery": {
+      "sceneryPreset": "reclaimed",
+      "density": 0.9,
+      "waterLevel": -20
+    },
+    "layoutVersion": 3,
+    "framing": "selected first road point, then two zoom-out steps"
+  },
+  "documentFingerprint": "71d275548b3e9d049f0b51a930fff00d6b2c87b80bcab38c18b301bedbee794c",
+  "documentIdentity": "custom-nightweir-v7-12f9e058",
+  "roadFingerprint": "2b7294368ecd315c38b6188245c4ec8ba03d673a3412dae8e67b3ddf7e5ee9c2",
+  "camera": {
+    "mode": "orbit",
+    "position": [-511.54708323859484, 266.92958173598237, 618.7480312341468],
+    "quaternion": [
+      -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
+      0.9123067085457927
+    ],
+    "fov": 48,
+    "near": 0.5,
+    "far": 200000
+  },
+  "viewport": [1280, 800],
+  "graphics": "Low / static editor preview",
+  "image": {
+    "file": "assets/editor/environments/nightweir-reclaimed.webp",
+    "width": 640,
+    "height": 400,
+    "format": "webp",
+    "quality": 0.86,
+    "sha256": "3e736270f95173cdaaef1449fa7d53f7562b5e48bb2ccecf5a954b85e571a360"
+  },
+  "source": {
+    "revision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+    "dirty": true
+  }
+}

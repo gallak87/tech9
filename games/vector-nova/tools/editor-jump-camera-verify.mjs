@@ -396,6 +396,7 @@ try {
     for (const preset of ['woven', 'big-air']) {
       await openEditorSection(page, 'generate');
       await choose(page, `road-preset-${preset}`);
+      await choose(page, 'generate');
       await ready(page);
       await enterJump(
         page,

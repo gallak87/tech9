@@ -346,10 +346,42 @@ export function createRegionPlan(doc, track = null) {
       );
     return Math.hypot(x - a.x - vx * t, z - a.z - vz * t);
   };
+  const limestone =
+    doc.biome === 'shatterline' && doc.environment.layoutVersion >= 3;
+  const cutSamples = limestone ? samples.filter((_, i) => i % 6 === 0) : [];
   function naturalHeight(x, z) {
     const { u, v } = project(x, z),
       water = waterAt(x, z),
       bank = Math.abs(v - riverV(u)) - channelWidth;
+    if (limestone) {
+      // A connected faulted limestone landscape. Route reservations below
+      // still clip every terrain triangle out of driving and flight space.
+      const axis = v + Math.sin(u / 1800 + phase) * 290;
+      const fold = Math.abs(Math.sin(axis / 740 + phase2));
+      const ridge = fold * fold * (240 + noise(x, z, 1500, seed) * 210);
+      const fault =
+        smooth((noise(x + 900, z, 440, seed ^ 0xa81) - 0.43) * 5) * 85;
+      const raw = datum(x, z) - 65 + ridge + fault;
+      const beds =
+        Math.floor(raw / 42) * 42 + smooth((((raw % 42) + 42) % 42) / 42) * 42;
+      let y =
+        lerp(raw, beds, 0.55) + (noise(x, z, 130, seed ^ 0x18b2) - 0.5) * 15;
+      // Wide uneven cut slopes approach the precise reserved corridor below.
+      // This prevents a road edit from cutting a sheer 125m grid-cell wall.
+      for (const p of cutSamples) {
+        const distance = Math.hypot(x - p.x, z - p.z);
+        if (distance < 820) {
+          y = Math.min(
+            y,
+            p.minY -
+              18 +
+              distance * (0.48 + noise(x, z, 330, seed ^ 0x913) * 0.24),
+          );
+        }
+      }
+      const edge = Math.min(x - minX, maxX - x, z - minZ, maxZ - z);
+      return lerp(sea - 22, y, smooth(edge / 330));
+    }
     let y =
       datum(x, z) +
       10 +
@@ -440,8 +472,9 @@ export function createRegionPlan(doc, track = null) {
     let y = naturalHeight(x, z);
     for (const d of districts) {
       const distance = Math.hypot(x - d.x, z - d.z);
-      if (distance < d.radius + 125)
-        y = lerp(y, d.y, 1 - smooth((distance - d.radius) / 125));
+      const radius = limestone ? d.radius * 0.48 : d.radius;
+      if (distance < radius + 125)
+        y = lerp(y, d.y, 1 - smooth((distance - radius) / 125));
     }
     return y;
   }

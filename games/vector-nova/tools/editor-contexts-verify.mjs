@@ -143,6 +143,7 @@ async function pad(page, button) {
     );
   }, button);
 }
+const contextPanels = new WeakMap();
 async function stableContext(
   page,
   id,
@@ -150,18 +151,30 @@ async function stableContext(
 ) {
   const previous = await state(page),
     owner = await canvas(page).elementHandle();
+  const remembered = contextPanels.get(page) ?? {
+    road: { globalGroup: '', authorGroup: '' },
+    environment: { globalGroup: 'world', authorGroup: '' },
+  };
+  remembered[previous.context] = {
+    globalGroup: previous.globalGroup,
+    authorGroup: previous.authorGroup,
+  };
+  contextPanels.set(page, remembered);
   await activateContext();
   await frames(page);
   const current = await state(page);
   assert.equal(current.context, id);
-  assert.equal(current.globalGroup, id === 'road' ? 'generate' : 'world');
-  for (const key of [
-    'tool',
-    'selectedPoint',
-    'selectedProp',
-    'authorGroup',
-    'selectionRange',
-  ])
+  assert.equal(
+    current.globalGroup,
+    remembered[id].globalGroup,
+    'each context restores its own open or closed drawer',
+  );
+  assert.equal(
+    current.authorGroup,
+    id === 'road' ? remembered.road.authorGroup : '',
+    'road authoring groups restore on Road and stay closed in Environment',
+  );
+  for (const key of ['tool', 'selectedPoint', 'selectedProp', 'selectionRange'])
     assert.deepEqual(
       current[key],
       previous[key],
@@ -189,9 +202,10 @@ async function stableContext(
     'true',
   );
   assert.equal(
-    await action(page, 'tab-world').isVisible(),
+    await action(page, 'open-environment').isVisible(),
     id === 'environment',
   );
+  assert.equal(await action(page, 'draw-mode').isVisible(), id === 'road');
   for (const key of ['tab-generate', 'tab-pickups'])
     assert.equal(await action(page, key).isVisible(), id === 'road');
 }
@@ -231,6 +245,7 @@ async function reviewWorlds(page) {
     await change(page, 'length', fixture.length);
     await change(page, 'seed', fixture.roadSeed);
     await choose(page, `road-preset-${fixture.road}`);
+    await choose(page, 'generate');
     await ready(page);
     await section(page, 'world');
     await choose(page, `preset-${fixture.character}`);
@@ -446,25 +461,38 @@ try {
         .getAttribute('aria-label'),
       'Road seed',
     );
-    assert.equal(await action(page, 'generate').innerText(), 'Generate road');
+    assert.equal(await action(page, 'generate').innerText(), 'Create road');
     assert.equal(
       await action(page, 'new-variation').innerText(),
-      'New road variation',
+      'Try another variation',
     );
     let current = await save(page);
     const initialEnvironment = surroundings(current);
     for (const preset of ROAD_PRESETS) {
       await section(page, 'generate');
       const card = action(page, `road-preset-${preset.id}`);
-      assert.match(
-        await card.innerText(),
-        new RegExp(`Create ${preset.label} road`),
-      );
+      assert.match(await card.innerText(), new RegExp(preset.label));
+      const beforeSelection = await save(page);
       if (!responsive && ['flowing', 'technical'].includes(preset.id)) {
         await card.focus();
         if (preset.id === 'flowing') await page.keyboard.press('Enter');
         else await pad(page, 0);
       } else await choose(page, `road-preset-${preset.id}`);
+      assert.equal(await card.getAttribute('aria-pressed'), 'true');
+      const selected = await save(page);
+      for (const key of ['points', 'jumps', 'pickups', 'props'])
+        assert.deepEqual(
+          selected[key],
+          beforeSelection[key],
+          `${preset.label} selection waits for Create road before replacing ${key}`,
+        );
+      assert.deepEqual(surroundings(selected), surroundings(beforeSelection));
+      const create = await revealEditorAction(page, 'generate');
+      if (!responsive && ['flowing', 'technical'].includes(preset.id)) {
+        await create.focus();
+        if (preset.id === 'flowing') await page.keyboard.press('Enter');
+        else await pad(page, 0);
+      } else await activate(create);
       await ready(page);
       const created = await save(page),
         expected = roadPresetOptions(preset.id, {
@@ -501,15 +529,15 @@ try {
       current = created;
     }
     console.log(
-      'PASS four explicit one-click road starters preserve length, identity, seed and environment',
+      'PASS four road styles wait for explicit Create and preserve length, identity, seed and environment',
     );
 
     await change(page, 'course-type', 'downhill');
     await section(page, 'generate');
     assert(await action(page, 'road-preset-woven').isDisabled());
     assert.match(
-      await action(page, 'road-preset-woven').innerText(),
-      /Circuit only/,
+      await action(page, 'road-preset-woven').getAttribute('title'),
+      /Circuit preset/,
     );
     for (const preset of ROAD_PRESETS.filter((entry) => !entry.circuitOnly))
       assert(await action(page, `road-preset-${preset.id}`).isEnabled());
@@ -583,14 +611,14 @@ try {
       );
       assert(
         await page
-          .getByText('Environment changes pending · Regenerate to apply', {
+          .getByText('New choices ready · Apply to preview', {
             exact: true,
           })
           .isVisible(),
       );
       assert.match(
         await page.locator('[data-editor-status]').innerText(),
-        /environment changes are still pending/i,
+        /environment choices are still pending/i,
       );
     };
     const families = await page
@@ -636,7 +664,7 @@ try {
     assert.equal(applied.settings.density, 0.65);
     assert.equal(
       await page
-        .getByText('Environment changes pending · Regenerate to apply', {
+        .getByText('New choices ready · Apply to preview', {
           exact: true,
         })
         .count(),

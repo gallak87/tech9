@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { EDITOR_BIOMES } from '../src/editor/biomes.js';
 import {
@@ -15,10 +15,12 @@ import {
 import { launchVerificationBrowser } from './verification-browser.mjs';
 
 // Public native picker/apply/Save controls, with a fixed resolved road in every
-// family. --biomes=id,id targets an asset fix; add --legacy to include migration.
+// family. --biomes=id,id targets an asset fix; add --legacy for migration and
+// --drive for exported-file/reload roundtrip plus a real native practice smoke.
 const base = process.env.VN_URL;
 if (!base) throw new Error('Set VN_URL to the isolated Workshop server.');
 const responsive = process.argv.includes('--responsive');
+const drive = process.argv.includes('--drive');
 const subset = process.argv
   .find((arg) => arg.startsWith('--biomes='))
   ?.slice(9)
@@ -215,7 +217,7 @@ async function applyFamily(id, previous, canonicalRoad) {
   );
   assert(
     await page
-      .getByText('Environment changes pending · Regenerate to apply', {
+      .getByText('New choices ready · Apply to preview', {
         exact: true,
       })
       .isVisible(),
@@ -224,7 +226,9 @@ async function applyFamily(id, previous, canonicalRoad) {
     await pad(1);
     assert.equal((await state()).globalGroup, '');
     assert(
-      await action('tab-world').evaluate((el) => el === document.activeElement),
+      await action('context-environment').evaluate(
+        (el) => el === document.activeElement,
+      ),
       'controller Back closes the drawer and returns visible native focus',
     );
     await section('world');
@@ -342,6 +346,111 @@ async function loadAfterReload(expected) {
   );
 }
 
+async function roundtripAndDrive(expected) {
+  await section('library');
+  const downloading = page.waitForEvent('download');
+  await choose('export');
+  const download = await downloading;
+  const exported = JSON.parse(await readFile(await download.path(), 'utf8'));
+  assert.deepEqual(
+    exported,
+    expected,
+    'export keeps the applied production scenery and exact road',
+  );
+  await importTrack(exported);
+  assert.deepEqual(
+    await save(),
+    expected,
+    'file import retains the complete current-layout document',
+  );
+  await loadAfterReload(expected);
+
+  const beforeEditor = await state();
+  const beforeCareer = await page.evaluate(() =>
+    Object.entries(localStorage)
+      .filter(([key]) => key.includes('career'))
+      .sort(),
+  );
+  await choose('test');
+  await Promise.race([
+    page.waitForFunction(
+      () =>
+        document.body.dataset.screen === 'race' &&
+        window.__VN?.ready &&
+        window.__VN.getEditorTestAttempt?.()?.request.kind === 'course',
+      null,
+      { timeout: 90000 },
+    ),
+    fatal,
+  ]);
+  const before = await page.evaluate(() => window.__VN.getSnapshot());
+  await page.keyboard.down('w');
+  try {
+    await Promise.race([
+      page.waitForFunction(
+        (distance) =>
+          window.__VN.getSnapshot().vehicle.distance >= distance + 30,
+        before.vehicle.distance,
+        { timeout: 15000 },
+      ),
+      fatal,
+    ]);
+  } finally {
+    await page.keyboard.up('w');
+  }
+  const after = await page.evaluate(() => window.__VN.getSnapshot());
+  assert(
+    after.vehicle.distance >= before.vehicle.distance + 30,
+    'native acceleration advances through the production scenery',
+  );
+  assert(after.vehicle.speed > 0);
+  assert.equal(
+    after.vehicle.resetCount,
+    before.vehicle.resetCount,
+    'the opening drive has no recovery reset',
+  );
+  assert.equal(after.handling.steeringAssist, 0.3);
+  assert.deepEqual(after.errors, []);
+  await page.keyboard.press('Escape');
+  const back = page.locator('#home');
+  await back.waitFor({ state: 'visible' });
+  await back.focus();
+  await page.keyboard.press('Enter');
+  await ready(expected.biome);
+  const returned = await state();
+  assert.deepEqual(
+    returned.preview.camera,
+    beforeEditor.preview.camera,
+    'practice returns to the retained editor camera',
+  );
+  assert.deepEqual(
+    await save(),
+    expected,
+    'practice return keeps the applied production world and exact authored road',
+  );
+  assert.deepEqual(
+    await page.evaluate(() =>
+      Object.entries(localStorage)
+        .filter(([key]) => key.includes('career'))
+        .sort(),
+    ),
+    beforeCareer,
+    'practice does not alter career progress',
+  );
+  await capture(expected.biome, 'practice-return');
+  console.log(
+    'PASS production scenery export/import/reload and native practice/return',
+    expected.biome,
+    {
+      metres: after.vehicle.distance - before.vehicle.distance,
+      elapsed: after.vehicle.time - before.vehicle.time,
+      steeringAssist: after.handling.steeringAssist,
+      caveat:
+        'A native opening-drive smoke; no full lap or jump-landing claim.',
+    },
+  );
+}
+
 async function responsiveFlow(common, canonicalRoad) {
   let previous = common;
   const fits = async (control, label) => {
@@ -383,7 +492,7 @@ async function responsiveFlow(common, canonicalRoad) {
       );
       await fits(
         await revealEditorAction(page, 'regenerate-environment'),
-        'Regenerate environment',
+        'Apply environment',
       );
       await choose('regenerate-environment');
       await ready(id);
@@ -495,6 +604,7 @@ try {
   await change('length', 3000);
   await change('seed', 42017);
   await choose('road-preset-flowing');
+  await choose('generate');
   await ready('nightweir');
   const common = await save();
   assert(
@@ -521,6 +631,7 @@ try {
     );
     for (const id of ids)
       current = await applyFamily(id, current, canonicalRoad);
+    if (drive) await roundtripAndDrive(current);
     if (current.biome !== 'nightweir') {
       await section('world');
       await change('biome', 'nightweir');

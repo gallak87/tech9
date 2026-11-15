@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "biome": "umbra",
+  "preset": "quiet-vaults-v1",
+  "recipe": {
+    "road": {
+      "seed": 42017,
+      "length": 3000,
+      "bendiness": 0.35,
+      "elevation": 0.2,
+      "crossovers": 0,
+      "jumpFrequency": "none",
+      "seedJumps": false,
+      "courseType": "circuit",
+      "width": 40
+    },
+    "environmentSeed": 88103,
+    "scenery": {
+      "sceneryPreset": "quiet-vaults-v1",
+      "density": 0.62,
+      "waterLevel": -50
+    },
+    "layoutVersion": 3,
+    "framing": "selected first road point, then two zoom-out steps"
+  },
+  "documentFingerprint": "a1bb8675dec8b5731be118dfecd655f36d45d5c1ec1af1eee3319fbb9101f123",
+  "documentIdentity": "custom-umbra-v7-4ddb8772",
+  "roadFingerprint": "2b7294368ecd315c38b6188245c4ec8ba03d673a3412dae8e67b3ddf7e5ee9c2",
+  "camera": {
+    "mode": "orbit",
+    "position": [-511.54708323859484, 266.92958173598237, 618.7480312341468],
+    "quaternion": [
+      -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
+      0.9123067085457927
+    ],
+    "fov": 48,
+    "near": 0.5,
+    "far": 200000
+  },
+  "viewport": [1280, 800],
+  "graphics": "Low / static editor preview",
+  "image": {
+    "file": "assets/editor/environments/umbra-quiet-vaults-v1.webp",
+    "width": 640,
+    "height": 400,
+    "format": "webp",
+    "quality": 0.86,
+    "sha256": "8af7d02a0012da010d2c9bade52930b9ed3a91bf6f6b5c99a756c551a5be80fe"
+  },
+  "source": {
+    "revision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+    "dirty": true
+  }
+}

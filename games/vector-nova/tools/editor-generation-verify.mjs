@@ -3,7 +3,11 @@ import {
   createCareerSlots,
   createMemoryStorage,
 } from '../src/progression/careers.js';
-import { analyzeDocument, generateDocument } from '../src/editor/document.js';
+import {
+  analyzeDocument,
+  generateDocument,
+  GENERATOR_VERSION,
+} from '../src/editor/document.js';
 import {
   revealEditorField,
   revealEditorAction,
@@ -114,11 +118,11 @@ async function generate(page, options) {
     await page.locator('[data-editor-status]').innerText(),
   );
   const doc = await save(page);
-  assert.equal(doc.generator.version, 3);
+  assert.equal(doc.generator.version, GENERATOR_VERSION);
   const expected = generateDocument({
     ...doc.generator,
     ...doc.settings,
-    generatorVersion: 3,
+    generatorVersion: GENERATOR_VERSION,
     courseType: doc.courseType,
     width: doc.width,
   });
@@ -227,7 +231,7 @@ async function crossoverChecks(page) {
   const broad = generateDocument({
     ...first.generator,
     ...first.settings,
-    generatorVersion: 3,
+    generatorVersion: GENERATOR_VERSION,
     courseType: 'circuit',
     width: first.width,
     crossovers: 0,

@@ -34,6 +34,7 @@ import { buildRegionEnvironment } from './region-environment.js';
 import { enrichNightweirPlan } from './nightweir-quarters.js';
 import { createEditorFlightRuntime } from './jumps.js';
 import { createEditorDevices, createEditorPickupHardware } from './pickups.js';
+import { EDITOR_CAMERA } from './camera.js';
 
 function prepareRegion(doc, track) {
   if (doc.environment.layoutVersion < 1 || !track) return null;
@@ -1377,12 +1378,7 @@ export function createEditorLevel(value) {
       reflectionFar: editorBiome(doc.biome).road.suspended ? 200000 : 12000,
       ambientOcclusion: { enabled: false },
     },
-    camera: {
-      chaseHeight: 7.5,
-      chaseDistance: 17,
-      lookAhead: 60,
-      safeFrame: { left: -0.86, right: 0.86, bottom: -0.6, top: 0.8 },
-    },
+    camera: EDITOR_CAMERA,
     createTrack: () => createPreparedTrack(doc),
     createRoad: ({ track, view }) =>
       createEditorRoad(track, { renderer: view?.renderer }),

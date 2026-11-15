@@ -1,7 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ROAD_PRESETS, roadPreset, roadPresetOptions } from './road-presets.js';
-import { generateDocument, analyzeDocument } from './document.js';
+import {
+  generateDocument,
+  analyzeDocument,
+  GENERATOR_VERSION,
+} from './document.js';
 
 test('starter cards expose frozen road-only metadata and independent preference copies', () => {
   assert.deepEqual(
@@ -19,7 +23,7 @@ test('starter cards expose frozen road-only metadata and independent preference 
     });
     assert.equal(options.length, 3000);
     assert.equal(options.courseType, 'circuit');
-    assert.equal(options.generatorVersion, 3);
+    assert.equal(options.generatorVersion, GENERATOR_VERSION);
     for (const key of [
       'seed',
       'environment',

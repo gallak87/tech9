@@ -1,5 +1,6 @@
 // Road-only generation preferences. Applying a card never chooses an environment
 // or a seed; the caller explicitly generates and commits the new resolved road.
+import { GENERATOR_VERSION } from './generation-version.js';
 const preset = (value) =>
   Object.freeze({ ...value, options: Object.freeze(value.options) });
 
@@ -80,7 +81,7 @@ export function roadPresetOptions(id, { courseType = 'circuit', length } = {}) {
   if (length !== undefined && !Number.isFinite(length))
     throw new Error('Road starter length must be a finite number.');
   return {
-    generatorVersion: 3,
+    generatorVersion: GENERATOR_VERSION,
     courseType,
     ...selected.options,
     length: Math.max(3000, Math.min(20000, length ?? selected.options.length)),

@@ -51,9 +51,10 @@ function jumpDefinitions(options, random) {
           : normal;
   const short = length < 2400;
   const launchGrid = length < 2400 ? 80 : 200;
+  const mountain = courseType === 'downhill' && options.version >= 4;
   const reserve =
     courseType === 'downhill'
-      ? 650 + launchGrid + Math.max(60, length * 0.12)
+      ? 650 + launchGrid + Math.max(60, length * (mountain ? 0.25 : 0.12))
       : Math.max(
           500,
           length *
@@ -686,6 +687,7 @@ function createWovenCircuitBuilder(options, random, requestedShapes) {
 
 function createDownhillBuilder(options, random, shapes) {
   const { length, bendiness, elevation } = options;
+  const mountain = options.version >= 4;
   const launchGrid = length < 2400 ? 80 : 200;
   const fixed = shapes.reduce((sum, s) => sum + s.length, 0) + 650 + launchGrid;
   const free = Math.max(30, length - fixed);
@@ -715,11 +717,29 @@ function createDownhillBuilder(options, random, shapes) {
   const angles = targets.map((theta) => clamp(theta * amplitude, -1.05, 1.05));
   const rotation = (random() - 0.5) * 1.3;
   const heightWaves = 2 + Math.floor(length / 6500);
-  const extra = free * (0.005 + 0.02 * elevation),
-    hill = Math.min(120, (free * 0.075) / (TAU * heightWaves + 3)) * elevation;
-  const base = 95 + extra + hill + shapes.reduce((sum, s) => sum - s.delta, 0);
+  const jumpDrop = shapes.reduce((sum, s) => sum - s.delta, 0);
+  // Mountain courses spend their ordinary road budget descending, rather than
+  // relying on the gaps for almost all height loss. Short jump-heavy courses
+  // retain enough connector length to flatten safely into each rigid receiver.
+  const targetDrop = Math.min(2700, (length - 650) * (0.12 + 0.06 * elevation));
+  const radiusBudget = (free * free * Math.min(...weights)) / sum / (6 * 85);
+  const extra = mountain
+    ? Math.max(
+        0,
+        Math.min(
+          Math.max(free * 0.08, targetDrop - jumpDrop),
+          free * (0.16 + 0.03 * elevation),
+          radiusBudget,
+          2700 - jumpDrop,
+        ),
+      )
+    : free * (0.005 + 0.02 * elevation);
+  const hill = mountain
+    ? Math.min(100, (extra * 0.25) / (TAU * heightWaves + Math.PI)) * elevation
+    : Math.min(120, (free * 0.075) / (TAU * heightWaves + 3)) * elevation;
+  const base = 95 + extra + (mountain ? 0 : hill) + jumpDrop;
   const profile = (u) =>
-    -extra * smooth(u) +
+    -extra * (mountain ? u : smooth(u)) +
     hill *
       Math.sin(Math.PI * u) ** 2 *
       Math.sin(heightWaves * TAU * u + phase2);
@@ -730,7 +750,8 @@ function createDownhillBuilder(options, random, shapes) {
   return (scale) => {
     const output = collector();
     let position = new T.Vector3(0, base, 0),
-      drops = 0;
+      drops = 0,
+      travelled = 0;
     const direction = (theta) =>
       new T.Vector3(Math.sin(theta + rotation), 0, Math.cos(theta + rotation));
     output.add(position, true);
@@ -749,10 +770,12 @@ function createDownhillBuilder(options, random, shapes) {
         );
       const start = position.clone(),
         startY = start.y,
+        profileAt = mountain ? (travelled + distance) / scale : (i + 1) / count,
+        gradeLimit = mountain ? 0.28 : 0.16,
         endY = clamp(
-          base + drops + profile((i + 1) / count),
-          startY - distance * 0.16,
-          startY + distance * 0.16,
+          base + drops + profile(profileAt),
+          startY - distance * gradeLimit,
+          startY + distance * gradeLimit,
         );
       // Integrate a smooth heading sweep; zero curvature at each fixed district join.
       let previous = start.clone();
@@ -772,6 +795,7 @@ function createDownhillBuilder(options, random, shapes) {
         output.add(previous);
       }
       position = previous;
+      travelled += distance;
       for (const entry of slots.filter((s) => s.slot === i)) {
         position = appendBlock(
           output,
@@ -877,6 +901,7 @@ function assertLayoutClearance(geometry, options) {
  * deterministic alternate layouts; a rejected route never becomes a hidden oval. */
 export function createSeededLayoutGeometry(options) {
   const normalized = {
+    version: 3,
     seed: 7,
     length: 3000,
     courseType: 'circuit',

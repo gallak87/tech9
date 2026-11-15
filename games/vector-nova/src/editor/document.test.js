@@ -377,14 +377,14 @@ test('Downhill scenery at the open endpoint is distinct from scenery at the star
   );
 });
 
-test('version3 generator preferences have strict canonical enums and blank drafts keep useful generation defaults', () => {
+test('current generator preferences have strict canonical enums and blank drafts keep useful generation defaults', () => {
   const blank = createDocument({
     seed: 19,
     courseType: 'downhill',
     blank: true,
   });
   assert.equal(blank.generator.version, GENERATOR_VERSION);
-  assert.equal(blank.generator.version, 3);
+  assert.equal(blank.generator.version, 4);
   assert.equal(blank.generator.jumpFrequency, 'normal');
   assert.equal(blank.generator.jumpSize, 'mixed');
   assert.equal(blank.generator.crossovers, 0);
@@ -405,7 +405,7 @@ test('version3 generator preferences have strict canonical enums and blank draft
     ['crossovers', '0.5'],
     ['crossovers', NaN],
     ['crossovers', Infinity],
-    ['version', 4],
+    ['version', 5],
   ]) {
     const invalid = structuredClone(blank);
     invalid.generator[field] = value;
@@ -463,7 +463,7 @@ test('explicit legacy generator versions reproduce their original point models',
   assert.deepEqual(generateDocument({ seed: 42, generatorVersion: 2 }), seeded);
 });
 
-test('version3 sync and yielding async generation produce identical validated resolved routes', async () => {
+test('current sync and yielding async generation produce identical validated resolved routes', async () => {
   const options = {
     seed: 7,
     courseType: 'downhill',
@@ -472,7 +472,7 @@ test('version3 sync and yielding async generation produce identical validated re
     jumpSize: 'small',
   };
   const expected = generateDocument(options);
-  assert.equal(expected.generator.version, 3);
+  assert.equal(expected.generator.version, GENERATOR_VERSION);
   assert.equal(expected.generator.jumpFrequency, 'few');
   assert.equal(expected.generator.jumpSize, 'small');
   assert.equal(analyzeDocument(expected).valid, true);
@@ -493,7 +493,7 @@ test('version3 sync and yielding async generation produce identical validated re
   );
   assert.ok(progress.every((p) => p.total === 4));
   const noJumps = generateDocument({ seed: 7, seedJumps: false });
-  assert.equal(noJumps.generator.version, 3);
+  assert.equal(noJumps.generator.version, GENERATOR_VERSION);
   assert.equal(noJumps.generator.jumpFrequency, 'none');
   assert.deepEqual(noJumps.jumps, []);
   assert.equal(analyzeDocument(noJumps).valid, true);

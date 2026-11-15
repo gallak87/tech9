@@ -12,6 +12,7 @@ import {
   setCourseType,
   documentIdentity,
   ENVIRONMENT_LAYOUT_VERSION,
+  GENERATOR_VERSION,
 } from './document.js';
 import { createTrackLibrary } from './library.js';
 import { createDraftRecovery } from './draft-recovery.js';
@@ -1025,7 +1026,7 @@ export function createTrackEditor(
         `class="workshop-road-card" ${preset.circuitOnly && doc.courseType === 'downhill' ? 'disabled' : ''}`,
       ),
     ).join('');
-    return `<section class="workshop-section"><h2>Start with a road</h2><p class="workshop-help">One click creates a road at your chosen length. Your environment stays the same. Undo brings your road back.</p><label class="workshop-label">${doc.courseType === 'downhill' ? 'Length including runout' : 'Length'}<select data-editor-field="length" aria-label="Generated track length">${[3000, 5000, 10000, 15000, 20000].map((length) => option(length, `${(length / 1000).toFixed(1)} km`, length === generator.length)).join('')}${![3000, 5000, 10000, 15000, 20000].includes(generator.length) ? option(generator.length, `${(generator.length / 1000).toFixed(1)} km`, true) : ''}</select></label><div class="workshop-road-cards">${starterCards}</div></section><section class="workshop-section workshop-generator"><h3>${matchingPreset ? escape(matchingPreset.label) : 'Custom'} settings</h3><p class="workshop-help">Choose the feel. The seed chooses the route.</p>${range('bendiness', 'Curviness', generator.bendiness, 0, 1, 0.05, '', true)}${range('crossovers', 'Crossovers', generator.crossovers ?? 0, 0, 1, 0.05, '', true, doc.courseType !== 'circuit')}<div class="workshop-generator-scale"><span>Broad loop</span><span>Intertwined</span></div><p class="workshop-help">${doc.courseType === 'circuit' ? 'Adds overpasses with required height clearance. Longer tracks allow more crossings; dense layouts may fit fewer or smaller jumps. Circuits still return to the start.' : 'Crossovers apply to circuits. Downhill courses keep a start-to-finish descent.'}</p>${range('elevation', 'Vertical variation', generator.elevation, 0, 1, 0.05, '', true)}<div class="workshop-generator-jumps"><label class="workshop-label">Jump frequency<select data-editor-field="jump-frequency" aria-label="Jump frequency">${[
+    return `<section class="workshop-section"><h2>Start with a road</h2><p class="workshop-help">One click creates a road at your chosen length. Your environment stays the same. Undo brings your road back.</p><label class="workshop-label">${doc.courseType === 'downhill' ? 'Length including runout' : 'Length'}<select data-editor-field="length" aria-label="Generated track length">${[3000, 5000, 10000, 15000, 20000].map((length) => option(length, `${(length / 1000).toFixed(1)} km`, length === generator.length)).join('')}${![3000, 5000, 10000, 15000, 20000].includes(generator.length) ? option(generator.length, `${(generator.length / 1000).toFixed(1)} km`, true) : ''}</select></label><div class="workshop-road-cards">${starterCards}</div></section><section class="workshop-section workshop-generator"><h3>${matchingPreset ? escape(matchingPreset.label) : 'Custom'} settings</h3><p class="workshop-help">Choose the feel. The seed chooses the route.</p>${range('bendiness', 'Curviness', generator.bendiness, 0, 1, 0.05, '', true)}${range('crossovers', 'Crossovers', generator.crossovers ?? 0, 0, 1, 0.05, '', true, doc.courseType !== 'circuit')}<div class="workshop-generator-scale"><span>Broad loop</span><span>Intertwined</span></div><p class="workshop-help">${doc.courseType === 'circuit' ? 'Adds overpasses with required height clearance. Longer tracks allow more crossings; dense layouts may fit fewer or smaller jumps. Circuits still return to the start.' : 'Crossovers apply to circuits. Downhill courses keep a start-to-finish descent.'}</p>${range('elevation', doc.courseType === 'downhill' ? 'Descent strength' : 'Vertical variation', generator.elevation, 0, 1, 0.05, '', true)}${doc.courseType === 'downhill' ? '<p class="workshop-help">A sustained descent from high ground. Stronger settings add more fall; the finish keeps a level braking runout.</p>' : ''}<div class="workshop-generator-jumps"><label class="workshop-label">Jump frequency<select data-editor-field="jump-frequency" aria-label="Jump frequency">${[
       ['none', 'None'],
       ['few', 'Few'],
       ['normal', 'Normal'],
@@ -1130,8 +1131,10 @@ export function createTrackEditor(
       doc.courseType;
     root.querySelector('[data-editor-course-label]').textContent =
       `TRACK EDITOR · ${doc.courseType === 'downhill' ? 'DOWNHILL' : 'CIRCUIT'}`;
+    const netDrop =
+      doc.points.length > 1 ? doc.points[0].y - doc.points.at(-1).y : null;
     root.querySelector('[data-editor-facts]').innerHTML =
-      `<span><strong>${(analysis.length / 1000).toFixed(2)}</strong> km</span><span><strong>${doc.width}</strong> m wide</span>${doc.courseType === 'downhill' ? `<span class="workshop-runout-fact">Includes ${DOWNHILL_RUNOUT} m runout</span>` : ''}<span class="workshop-draft-state">${JSON.stringify(doc) === saved ? 'Saved' : 'Unsaved draft'}</span>`;
+      `<span><strong>${(analysis.length / 1000).toFixed(2)}</strong> km</span><span><strong>${doc.width}</strong> m wide</span>${doc.courseType === 'downhill' ? `${netDrop === null ? '' : `<span data-editor-elevation-drop><strong>${Math.round(Math.abs(netDrop)).toLocaleString()}</strong> m ${netDrop >= 0 ? 'drop' : 'rise'}</span>`}<span class="workshop-runout-fact">Includes ${DOWNHILL_RUNOUT} m runout</span>` : ''}<span class="workshop-draft-state">${JSON.stringify(doc) === saved ? 'Saved' : 'Unsaved draft'}</span>`;
     checkpointRecovery();
     syncRecovery();
     const locatedIssue =
@@ -2039,7 +2042,7 @@ export function createTrackEditor(
             biome: doc.biome,
             environment: doc.environment,
             settings: doc.settings,
-            generatorVersion: 3,
+            generatorVersion: GENERATOR_VERSION,
             jumpFrequency: starter
               ? 'normal'
               : (presetOptions.jumpFrequency ??

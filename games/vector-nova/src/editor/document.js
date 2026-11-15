@@ -4,9 +4,14 @@ import { createSeededCourseGeometry } from './seeded-course.js';
 import { createSeededLayoutGeometry } from './seeded-layout.js';
 import { worldPreset, REGIONAL_LAYOUT_VERSION } from './world-presets.js';
 import { editorBiome, isEditorBiome, editorWorldPreset } from './biomes.js';
+import {
+  GENERATOR_VERSION,
+  GENERATOR_VERSIONS,
+  usesSeededLayout,
+} from './generation-version.js';
 
 export const DOCUMENT_FORMAT = 'vector-nova-track';
-export const GENERATOR_VERSION = 3;
+export { GENERATOR_VERSION } from './generation-version.js';
 export const ENVIRONMENT_VERSION = 1;
 export const ENVIRONMENT_LAYOUT_VERSION = REGIONAL_LAYOUT_VERSION;
 export const JUMP_FREQUENCIES = Object.freeze([
@@ -100,7 +105,7 @@ export function validateDocument(value) {
   if (typeof autoCloseRoll !== 'boolean')
     fail('Automatic circuit return must be enabled or disabled');
   const g = value.generator;
-  if (!record(g) || ![1, 2, 3].includes(g.version))
+  if (!record(g) || !GENERATOR_VERSIONS.includes(g.version))
     fail('Unsupported generator version');
   if (!Number.isInteger(g.seed)) fail('Seed must be an integer');
   const generator = {
@@ -115,7 +120,7 @@ export function validateDocument(value) {
     bendiness: number(g.bendiness, 0, 1, 'Bendiness'),
     elevation: number(g.elevation, 0, 1, 'Elevation'),
   };
-  if (g.version === GENERATOR_VERSION) {
+  if (usesSeededLayout(g.version)) {
     const jumpFrequency = g.jumpFrequency ?? 'normal';
     const jumpSize = g.jumpSize ?? 'mixed';
     if (!JUMP_FREQUENCIES.includes(jumpFrequency))
@@ -693,7 +698,7 @@ function generationFailure(reason) {
 /** Generate resolved geometry; saved points never depend on rerunning a seed. */
 export function generateDocument(options = {}) {
   const draft = generationDraft(options);
-  if (draft.generator.version !== GENERATOR_VERSION)
+  if (!usesSeededLayout(draft.generator.version))
     return legacyGeneration(draft);
   let reason;
   for (let attempt = 0; attempt < GENERATION_ATTEMPTS; attempt++) {
@@ -713,13 +718,14 @@ export async function generateDocumentAsync(
   } = {},
 ) {
   const draft = generationDraft(options);
-  const total =
-    draft.generator.version === GENERATOR_VERSION ? GENERATION_ATTEMPTS : 1;
+  const total = usesSeededLayout(draft.generator.version)
+    ? GENERATION_ATTEMPTS
+    : 1;
   let reason;
   for (let attempt = 0; attempt < total; attempt++) {
     onProgress?.({ attempt: attempt + 1, total });
     await yieldControl();
-    if (draft.generator.version !== GENERATOR_VERSION)
+    if (!usesSeededLayout(draft.generator.version))
       return legacyGeneration(draft);
     const candidate = generationCandidate(draft, attempt);
     if (candidate.document) return candidate.document;

@@ -3,10 +3,13 @@ import assert from 'node:assert/strict';
 import {
   createDocument,
   generateDocument,
-  analyzeDocument,
+  editorRoadLimits,
+  analyzeDocument as analyze,
   pointRouteFraction,
   pointRouteFractions,
 } from './document.js';
+
+const analyzeDocument = (doc) => analyze(doc, { strict: true });
 
 function loop(
   coordinates = [
@@ -33,6 +36,47 @@ function assertSpan(issue, length) {
   assert.ok(Math.abs((issue.end - issue.start) * length - 120) < 0.01);
 }
 
+test('wild manually authored bends and climbs are playable advisories; strict generation retains its recommendations', () => {
+  const doc = loop([
+    [-1075, 30],
+    [-1150, 240],
+    [-265, 685],
+    [-590, -790],
+    [-325, -845],
+    [-250, -320],
+    [-340, 135],
+    [-240, 235],
+    [125, 30],
+    [-250, -230],
+  ]);
+  [393, 592, 393, 52, 52, 52, 52, 52, 199, 202].forEach((height, i) => {
+    doc.points[i].y = height;
+  });
+  doc.settings.waterLevel = -50;
+  const report = analyze(doc);
+  assert.equal(report.valid, true);
+  assert.equal(report.primaryIssue, null);
+  assert.deepEqual(
+    report.advisories.map((issue) => issue.kind),
+    ['bend', 'grade'],
+  );
+  assert(report.advisories.every((issue) => issue.severity === 'warning'));
+  assert.equal(report.advisories[0].requiredRadius, 35);
+  assert.equal(report.advisories[0].recommendedRadius, 55);
+  assert.equal(report.advisories[1].allowedGrade, 1.25);
+  assert.equal(analyze(doc, { strict: true }).valid, false);
+  assert.equal(
+    editorRoadLimits(64).radius,
+    36,
+    'wide road retains inside-edge space',
+  );
+  doc.points[1].y = 1000;
+  const broken = analyze(doc);
+  assert.equal(broken.valid, false);
+  assert.equal(broken.primaryIssue.kind, 'grade');
+  assert.equal(broken.primaryIssue.severity, 'error');
+});
+
 test('a pinched four-point road identifies its actual corner before a duplicate twist error', () => {
   const doc = loop(),
     analysis = analyzeDocument(doc),
@@ -48,6 +92,11 @@ test('a pinched four-point road identifies its actual corner before a duplicate 
   assert.equal(issue.label, 'Widen this corner');
   assert.match(issue.message, /Point 3/);
   assertSpan(issue, analysis.length);
+  assert.equal(issue.requiredRadius, 55);
+  assert.equal(issue.radius, analysis.minRadius);
+  assert(issue.position.every(Number.isFinite));
+  assert(doc.points.some((point) => point.id === issue.segmentStartId));
+  assert(doc.points.some((point) => point.id === issue.segmentEndId));
   const corner = pointRouteFraction(doc, 2);
   assert.ok(corner >= issue.start && corner <= issue.end);
   doc.points[2].x = 400;
@@ -55,6 +104,36 @@ test('a pinched four-point road identifies its actual corner before a duplicate 
   const fixed = analyzeDocument(doc);
   assert.equal(fixed.valid, true);
   assert.equal(fixed.primaryIssue, null);
+});
+
+test('a tight corner does not hide an independent steep climb in the diagnostics', () => {
+  const doc = loop([
+    [-1075, 30],
+    [-1150, 240],
+    [-265, 685],
+    [-590, -790],
+    [-325, -845],
+    [-250, -320],
+    [-340, 135],
+    [-240, 235],
+    [125, 30],
+    [-250, -230],
+  ]);
+  [393, 592, 393, 52, 52, 52, 52, 52, 199, 202].forEach((height, i) => {
+    doc.points[i].y = height;
+  });
+  doc.settings.waterLevel = -50;
+  const analysis = analyzeDocument(doc);
+  assert.equal(analysis.primaryIssue.pointIndex, 8);
+  assert(Math.abs(analysis.primaryIssue.radius - 42.56) < 0.1);
+  assert.match(
+    analysis.primaryIssue.message,
+    /42\.6 m radius \(minimum 55 m\)/,
+  );
+  const grade = analysis.issues.find((issue) => issue.kind === 'grade');
+  assert.equal(grade.pointIndex, 1);
+  assert(grade.grade > 1 && grade.allowedGrade === 0.45);
+  assert.match(grade.message, /102% grade/);
 });
 
 test('diagnostic output is detached and incomplete or crowded drafts do not invent a physical span', () => {

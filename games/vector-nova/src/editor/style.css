@@ -1398,6 +1398,23 @@
 .workshop-validation .workshop-issue-message {
   max-width: 290px;
 }
+.workshop-validation .workshop-secondary-issue {
+  color: #dcc7a1;
+  border-color: #685940;
+}
+.workshop-validation[data-severity='warning'] .workshop-issue-link {
+  color: #ffe1a2;
+  border-color: #927238;
+  background: #302717;
+}
+.workshop-validation .workshop-secondary-issue[data-severity='error'] {
+  color: #ffb1a8;
+  border-color: #96443c;
+}
+.workshop-map-point.problem.problem-warning circle {
+  fill: #66512b;
+  stroke: #ffe1a2;
+}
 .workshop-map-point.problem circle {
   fill: #6e2929;
   stroke: #ff9a8b;

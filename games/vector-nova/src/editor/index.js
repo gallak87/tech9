@@ -193,6 +193,26 @@ export function createTrackEditor(
   let activeSection = null;
   let previewDocumentKey = '';
   let latestAnalysis = null;
+  let inspectedIssueKind = null;
+  const visibleIssue = () =>
+    latestAnalysis?.issues?.find(
+      (issue) => issue.kind === inspectedIssueKind,
+    ) ??
+    latestAnalysis?.primaryIssue ??
+    latestAnalysis?.advisories?.[0] ??
+    null;
+  const issueName = (issue) =>
+    issue.kind === 'bend'
+      ? issue.shape === 'vertical'
+        ? 'Sharp crest / dip'
+        : issue.severity === 'warning'
+          ? 'Sharp turn'
+          : issue.severity === 'warning'
+            ? 'Sharp turn'
+            : 'Tight corner'
+      : issue.kind === 'grade'
+        ? 'Steep climb'
+        : issue.label;
   let step = 20;
   let dragBefore;
   let previewMessage = 'Opening your workspace…';
@@ -318,6 +338,7 @@ export function createTrackEditor(
     if (!dragBefore) {
       dragBefore = clone(doc);
       status('Moving point… release to finish, Escape to cancel.');
+      root.querySelector('[data-editor-validation]').dataset.severity = 'none';
       root.querySelector('[data-editor-validation]').innerHTML =
         '<strong>Moving point…</strong>';
     }
@@ -340,6 +361,7 @@ export function createTrackEditor(
     }
     try {
       doc = validateDocument(doc);
+      inspectedIssueKind = null;
       if (JSON.stringify(doc) !== JSON.stringify(previous))
         pushHistory(previous);
       status('Position updated.');
@@ -505,6 +527,7 @@ export function createTrackEditor(
           fractionCache.set(next, fractionCache.get(doc));
       }
       doc = next;
+      inspectedIssueKind = null;
       jumpCandidate = null;
       jumpSuggestion = null;
       jumpManualChosen = false;
@@ -596,6 +619,7 @@ export function createTrackEditor(
     ];
   }
   function syncCanvas({ frame = false } = {}) {
+    const issue = visibleIssue();
     if (!dragBefore) {
       activeSection = null;
       const span = selectedRange();
@@ -626,7 +650,8 @@ export function createTrackEditor(
         section: activeSection,
         trajectories: flightLines(),
         selectedJumpId: showFlightPaths ? selectedJumpId : null,
-        problemPoint: latestAnalysis?.primaryIssue?.pointIndex ?? null,
+        problemPoint: issue?.pointIndex ?? null,
+        problemSeverity: issue?.severity ?? 'error',
         drawMode: tool === 'draw',
         tool,
       });
@@ -634,11 +659,16 @@ export function createTrackEditor(
       frame,
       selectedPoint: selected,
       selectedProp,
-      problemPoint: latestAnalysis?.primaryIssue?.pointIndex ?? null,
-      problemLabel:
-        latestAnalysis?.primaryIssue?.kind === 'bend'
-          ? 'Tight corner'
-          : 'Check this point',
+      problemPoint: issue?.pointIndex ?? null,
+      problemSeverity: issue?.severity ?? 'error',
+      problemPosition: issue?.position ?? null,
+      problemLabel: issue?.radius
+        ? `${issue.radius.toFixed(1)} m radius`
+        : issue?.grade
+          ? `${Math.round(issue.grade * 100)}% grade`
+          : issue
+            ? issueName(issue)
+            : 'Check this point',
       heightDelta:
         dragBefore && selected >= 0
           ? doc.points[selected].y - dragBefore.points[selected].y
@@ -653,6 +683,8 @@ export function createTrackEditor(
       viewport.setGuides({
         document: doc,
         selectedPoint: selected,
+        problemPoint: issue?.pointIndex ?? null,
+        problemSeverity: issue?.severity ?? 'error',
         selectedJumpId,
         candidate: hasJumpCandidate() ? jumpCandidate.ghost : null,
         attempt:
@@ -1104,15 +1136,34 @@ export function createTrackEditor(
     syncRecovery();
     const locatedIssue =
       doc.points.length >= 4 &&
-      analysis.errors.length &&
-      Number.isInteger(analysis.primaryIssue?.pointIndex)
-        ? analysis.primaryIssue
+      (analysis.errors.length || analysis.advisories?.length) &&
+      Number.isInteger(visibleIssue()?.pointIndex)
+        ? visibleIssue()
         : null;
+    const secondaryIssues = (analysis.issues ?? []).filter(
+      (issue, index, all) =>
+        issue.kind !== locatedIssue?.kind &&
+        Number.isInteger(issue.pointIndex) &&
+        all.findIndex((entry) => entry.kind === issue.kind) === index,
+    );
+    root.querySelector('[data-editor-validation]').dataset.severity =
+      locatedIssue?.severity ?? (analysis.valid ? 'none' : 'error');
     root.querySelector('[data-editor-validation]').innerHTML =
       doc.points.length < 4
         ? `<strong>Keep drawing</strong><span>Add ${4 - doc.points.length} more road ${doc.points.length === 3 ? 'point' : 'points'} to form your route.</span>`
         : locatedIssue
-          ? `${button('show-issue', `Point ${locatedIssue.pointIndex + 1} · ${locatedIssue.kind === 'bend' ? 'Tight corner' : escape(locatedIssue.label)} <span aria-hidden="true">↗</span>`, `class="workshop-issue-link" title="Select and zoom to point ${locatedIssue.pointIndex + 1}"`)}<span class="workshop-issue-message">${escape(locatedIssue.message)}</span>${canSmoothCorner(doc, analysis) ? button('smooth-corner', 'Auto fix corner', 'title="Smooth this corner and nearby road. Undo restores your layout."') : ''}${canSpreadRoad(doc) ? button('spread-road', 'Spread road out', 'title="Makes the road longer to give corners more room. Undo restores your layout."') : ''}`
+          ? `${analysis.valid ? '<strong class="workshop-valid">✓ Ready to test drive</strong>' : ''}${button('show-issue', `Point ${locatedIssue.pointIndex + 1} · ${escape(issueName(locatedIssue))} <span aria-hidden="true">↗</span>`, `class="workshop-issue-link" title="${escape(locatedIssue.message)}"`)}<span class="workshop-issue-message">${escape(locatedIssue.message)}</span>${secondaryIssues
+              .slice(0, 2)
+              .map((issue) =>
+                button(
+                  `show-issue-${issue.kind}`,
+                  `Also: Point ${issue.pointIndex + 1} · ${escape(issueName(issue))} ↗`,
+                  `class="workshop-secondary-issue" data-severity="${issue.severity}" title="${escape(issue.message)}"`,
+                ),
+              )
+              .join(
+                '',
+              )}${locatedIssue.kind === 'bend' && canSmoothCorner(doc, analysis) ? button('smooth-corner', 'Auto fix corner', 'title="Open this corner. Other track problems may still need attention. Undo restores your layout."') : ''}${canSpreadRoad(doc) ? button('spread-road', 'Spread road out', 'title="Makes the road longer to give corners more room. Undo restores your layout."') : ''}`
           : analysis.errors.length
             ? `<strong>Before you drive</strong><ul>${analysis.errors
                 .slice(0, 2)
@@ -1558,9 +1609,15 @@ export function createTrackEditor(
         root.querySelector('[data-editor-action="select-mode"]')?.focus();
       return;
     }
-    if (name === 'show-issue') {
-      const issue = analysisFor().primaryIssue;
+    if (name === 'show-issue' || name.startsWith('show-issue-')) {
+      const issue =
+        name === 'show-issue'
+          ? visibleIssue()
+          : analysisFor().issues?.find(
+              (entry) => entry.kind === name.slice('show-issue-'.length),
+            );
       if (!issue || !Number.isInteger(issue.pointIndex)) return;
+      inspectedIssueKind = issue.kind;
       selected = issue.pointIndex;
       selectedProp = -1;
       rangeAnchor = selected;
@@ -1569,12 +1626,21 @@ export function createTrackEditor(
 
       render();
       viewport.setVisible(!suspended);
-      viewport.focusSelection();
-      status(issue.label || issue.message);
+      const point = doc.points[selected];
+      if (issue.position)
+        viewport.focusTrajectories([
+          { points: [issue.position, [point.x, point.y, point.z]] },
+        ]);
+      else viewport.focusSelection();
+      status(issue.message || issue.label);
+      root
+        .querySelector('[data-editor-action="show-issue"]')
+        ?.focus({ preventScroll: true });
       return;
     }
     if (name === 'smooth-corner') {
-      const issue = analysisFor().primaryIssue;
+      const issue = visibleIssue();
+      const selectedId = doc.points[issue.pointIndex]?.id;
       let repaired = false;
       status('Smoothing the corner and checking the road…');
       await run(async () => {
@@ -1584,15 +1650,19 @@ export function createTrackEditor(
           yieldControl: () =>
             new Promise((done) => requestAnimationFrame(done)),
         });
-        selected = issue.pointIndex;
+        selected = Math.max(
+          0,
+          next.points.findIndex((point) => point.id === selectedId),
+        );
         selectedProp = -1;
         rangeAnchor = selected;
         rangeEnd = selected;
 
         tool = 'move';
+        const report = analyzeDocument(next);
         commit(
           next,
-          `Corner near point ${selected + 1} smoothed. Ready to drive; Undo restores your road.`,
+          `Corner near point ${selected + 1} smoothed. ${report.valid ? `Ready to test drive.${report.advisories?.length ? ` Warning: ${report.advisories[0].message}` : ''}` : `Next: ${report.primaryIssue?.message ?? report.errors[0]}`} Undo restores your road.`,
         );
         viewport.focusSelection();
         repaired = true;
@@ -1774,6 +1844,7 @@ export function createTrackEditor(
       destination.push(clone(doc));
       const previousPoints = new Set(doc.points.map((point) => point.id));
       doc = source.pop();
+      inspectedIssueKind = null;
       const replacedRoute = !doc.points.some((point) =>
         previousPoints.has(point.id),
       );
@@ -2626,6 +2697,8 @@ export function createTrackEditor(
           }
         : null,
       primaryIssue: latestAnalysis?.primaryIssue ?? null,
+      focusedIssue: visibleIssue(),
+      advisories: latestAnalysis?.advisories ?? [],
       dirty: JSON.stringify(doc) !== saved,
       view,
       mapOpen,

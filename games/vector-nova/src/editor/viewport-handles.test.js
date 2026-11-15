@@ -98,6 +98,33 @@ test('handle projection clips points behind the camera and keeps the same pixel 
   handles.dispose();
 });
 
+test('problem halo marks the measured curve position while retaining the editable control ID', () => {
+  const scene = new T.Scene(),
+    handles = createEditorHandles(scene),
+    view = camera();
+  const doc = draft();
+  const position = [35, 58, -55];
+  handles.setDocument(doc, {
+    selectedPoint: 1,
+    problemPoint: 1,
+    problemPosition: position,
+  });
+  handles.update(view, 1000, 600);
+  const marker = handles.getState().problemMarker;
+  const expected = projectEditorHandle(
+    new T.Vector3(...position),
+    view,
+    1000,
+    600,
+  );
+  assert.equal(marker.x, expected.x);
+  assert.equal(marker.y, expected.y);
+  assert.equal(marker.index, 1);
+  assert.equal(marker.pointId, doc.points[1].id);
+  assert.notEqual(marker.x, handles.getState().points[1].x);
+  handles.dispose();
+});
+
 test('finishing a drag rebuilds selected-span geometry from the edited route and movement respects authoring bounds', () => {
   const scene = new T.Scene(),
     handles = createEditorHandles(scene),

@@ -147,6 +147,8 @@ export function createEditorHandles(scene) {
       section: null,
       drawMode: false,
       problemPoint: null,
+      problemPosition: null,
+      problemSeverity: 'error',
       ...options,
     };
     drawing.setDocument(doc, selection);
@@ -222,7 +224,9 @@ export function createEditorHandles(scene) {
       dots.setColorAt(
         i,
         i === selection.problemPoint
-          ? red
+          ? selection.problemSeverity === 'warning'
+            ? gold
+            : red
           : i === selection.selectedPoint
             ? gold
             : hover?.kind === 'point' && hover.index === i
@@ -234,16 +238,34 @@ export function createEditorHandles(scene) {
     if (dots.instanceColor) dots.instanceColor.needsUpdate = true;
     dots.computeBoundingSphere();
     const problemIndex = selection.problemPoint;
-    const problem = Number.isInteger(problemIndex)
-      ? doc.points[problemIndex]
+    const problem = Array.isArray(selection.problemPosition)
+      ? {
+          x: selection.problemPosition[0],
+          y: selection.problemPosition[1],
+          z: selection.problemPosition[2],
+        }
+      : Number.isInteger(problemIndex)
+        ? doc.points[problemIndex]
+        : null;
+    const problemProjection = problem
+      ? projectEditorHandle(
+          new T.Vector3(problem.x, problem.y, problem.z),
+          camera,
+          width,
+          height,
+        )
       : null;
-    const problemProjection = projected[problemIndex];
     if (problem && problemProjection) {
       problemScreen = {
         ...problemProjection,
+        index: problemIndex,
         number: problemIndex + 1,
-        pointId: problem.id,
+        pointId: doc.points[problemIndex]?.id ?? null,
+        severity: selection.problemSeverity,
       };
+      problemHalo.material.color.copy(
+        selection.problemSeverity === 'warning' ? gold : red,
+      );
       problemHalo.visible = problemProjection.visible;
       if (problemHalo.visible) {
         problemHalo.position.set(problem.x, problem.y, problem.z);

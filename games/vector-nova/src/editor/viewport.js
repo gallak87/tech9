@@ -343,6 +343,13 @@ export function createEditorViewport(
         state?.problemMarker,
         `Point ${state?.problemMarker?.number} · ${selection.problemLabel ?? 'Check this point'}`,
       );
+      if (issueLabel) {
+        const warning = selection.problemSeverity === 'warning';
+        issueLabel.dataset.severity = warning ? 'warning' : 'error';
+        issueLabel.style.background = warning ? '#352b15ee' : '#3c1215ee';
+        issueLabel.style.color = warning ? '#ffe5aa' : '#ffceca';
+        issueLabel.style.borderColor = warning ? '#b88d37' : '#ff7067';
+      }
       if (issueLabel && state?.problemMarker?.visible)
         issueLabel.style.top = `${Math.min(height - 32, Math.max(4, state.problemMarker.y + 20))}px`;
       const drawing = state?.drawing;
@@ -869,6 +876,8 @@ export function createEditorViewport(
         drawMode = false,
         tool = drawMode ? 'draw' : 'move',
         problemPoint = null,
+        problemPosition = null,
+        problemSeverity = 'error',
         problemLabel = 'Check this point',
         heightDelta = null,
       } = {},
@@ -883,6 +892,8 @@ export function createEditorViewport(
         drawMode,
         tool,
         problemPoint,
+        problemPosition,
+        problemSeverity,
         problemLabel,
         heightDelta,
       };

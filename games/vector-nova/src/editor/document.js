@@ -17,6 +17,12 @@ export const JUMP_FREQUENCIES = Object.freeze([
 ]);
 export const JUMP_SIZES = Object.freeze(['small', 'mixed', 'large']);
 export const DOWNHILL_RUNOUT = 600;
+export const EDITOR_ROAD_GUIDANCE = Object.freeze({ radius: 55, grade: 0.45 });
+export function editorRoadLimits(width, { strict = false } = {}) {
+  return strict
+    ? { radius: EDITOR_ROAD_GUIDANCE.radius, grade: EDITOR_ROAD_GUIDANCE.grade }
+    : { radius: Math.max(35, width / 2 + 4), grade: 1.25 };
+}
 
 function fractionForPoint(points, courseType, index, preparedCurve = null) {
   const curve = preparedCurve ?? routeCurve({ points, courseType }),
@@ -668,7 +674,7 @@ function generationCandidate(draft, attempt) {
       attempt,
     });
     const document = validateDocument({ ...draft, ...geometry });
-    const analysis = analyzeDocument(document);
+    const analysis = analyzeDocument(document, { strict: true });
     return {
       document: analysis.valid ? document : null,
       reason: analysis.errors.join(' '),
@@ -745,7 +751,7 @@ export function createDocument({
 }
 
 /** Draft files may be saved; only a complete, clear driving loop can be tested. */
-export function analyzeDocument(value) {
+export function analyzeDocument(value, { strict = false } = {}) {
   let doc;
   try {
     doc = validateDocument(value);
@@ -766,10 +772,14 @@ export function analyzeDocument(value) {
   }
   const errors = [],
     warnings = [];
+  const issues = [];
+  const limits = editorRoadLimits(doc.width, { strict });
   let primaryIssue = null,
     primaryRank = Infinity;
   const recordIssue = (rank, issue) => {
-    if (rank < primaryRank) {
+    issue = { severity: 'error', ...issue };
+    issues.push({ rank, issue });
+    if (issue.severity === 'error' && rank < primaryRank) {
       primaryRank = rank;
       primaryIssue = issue;
     }
@@ -822,7 +832,7 @@ export function analyzeDocument(value) {
     };
   const curve = documentCurve(doc),
     length = curve.getLength();
-  const issueAt = (rank, kind, label, message, distance) => {
+  const issueAt = (rank, kind, label, message, distance, details = {}) => {
     const station = T.MathUtils.clamp(distance, 0, length),
       parameter = curve.getUtoTmapping(station / length);
     const segments =
@@ -834,6 +844,10 @@ export function analyzeDocument(value) {
         : pointIndex % doc.points.length;
     const start = Math.max(0, Math.min(length - 120, station - 60)),
       end = Math.min(length, start + 120);
+    const segmentIndex =
+      doc.courseType === 'downhill'
+        ? Math.min(segments - 1, Math.floor(parameter * segments))
+        : Math.floor(parameter * segments) % segments;
     recordIssue(rank, {
       kind,
       pointIndex,
@@ -841,6 +855,11 @@ export function analyzeDocument(value) {
       message: typeof message === 'function' ? message(pointIndex) : message,
       start: start / length,
       end: end / length,
+      distance: station,
+      position: curve.getPointAt(station / length).toArray(),
+      segmentStartId: doc.points[segmentIndex].id,
+      segmentEndId: doc.points[(segmentIndex + 1) % doc.points.length].id,
+      ...details,
     });
   };
   if (length < 1000 || length > DOCUMENT_LIMITS.length + 0.01) {
@@ -919,6 +938,7 @@ export function analyzeDocument(value) {
     maxGrade = 0,
     maxBankRate = 0,
     worstBend = 0,
+    worstHorizontalRadius = Infinity,
     worstGrade = 0,
     worstBankPoint = 0;
   for (
@@ -972,32 +992,66 @@ export function analyzeDocument(value) {
       if (radius < minRadius) {
         minRadius = radius;
         worstBend = (i * length) / count;
+        const flatBefore = before.clone().setY(0),
+          flatAfter = after.clone().setY(0);
+        const flatAngle = flatBefore.angleTo(flatAfter);
+        worstHorizontalRadius =
+          flatAngle > 0.00001
+            ? (flatBefore.length() + flatAfter.length()) / 2 / flatAngle
+            : Infinity;
       }
     }
   }
-  if (maxGrade > 0.45) {
-    errors.push(
-      'A climb is too steep. Spread the height change over more road.',
-    );
+  if (maxGrade > EDITOR_ROAD_GUIDANCE.grade) {
+    const blocked = maxGrade > limits.grade;
+    if (blocked)
+      errors.push(
+        'A climb is too steep. Spread the height change over more road.',
+      );
+    else
+      warnings.push(
+        'Steep climbs need a careful approach; test-drive at a controlled speed.',
+      );
     issueAt(
       1,
       'grade',
       'Ease this climb',
-      (i) => `Spread the height change around point ${i + 1} over more road.`,
+      (i) =>
+        `Climb near Point ${i + 1}: ${Math.round(maxGrade * 100)}% grade (${blocked ? `limit ${Math.round(limits.grade * 100)}%` : 'above the 45% recommendation'}). ${blocked ? 'Spread the height change over more road.' : 'Allowed for test driving; approach with care.'}`,
       worstGrade,
+      {
+        grade: maxGrade,
+        allowedGrade: limits.grade,
+        recommendedGrade: EDITOR_ROAD_GUIDANCE.grade,
+        severity: blocked ? 'error' : 'warning',
+      },
     );
   }
-  if (minRadius < 55) {
-    errors.push(
-      'A bend is too tight. Widen the corner or move its road points apart.',
-    );
+  if (minRadius < EDITOR_ROAD_GUIDANCE.radius) {
+    const blocked = minRadius < limits.radius;
+    if (blocked)
+      errors.push(
+        'A bend is too tight. Widen the corner or move its road points apart.',
+      );
+    else
+      warnings.push(
+        'Sharp turns need braking or airbraking; test-drive before sharing.',
+      );
     issueAt(
       0,
       'bend',
       'Widen this corner',
       (i) =>
-        `Point ${i + 1} makes a corner that is too tight. Move this point or its neighbours to open the corner.`,
+        `${worstHorizontalRadius >= 55 ? 'Crest or dip' : 'Corner'} near Point ${i + 1}: ${minRadius.toFixed(1)} m radius (${blocked ? `minimum ${limits.radius} m` : 'below the 55 m recommendation'}). ${blocked ? (worstHorizontalRadius >= 55 ? 'Ease the elevation transition or give it more distance.' : 'Move this point or its neighbours to open the corner.') : 'Allowed for test driving; brake into the turn.'}`,
       worstBend,
+      {
+        radius: minRadius,
+        requiredRadius: limits.radius,
+        recommendedRadius: EDITOR_ROAD_GUIDANCE.radius,
+        severity: blocked ? 'error' : 'warning',
+        horizontalRadius: worstHorizontalRadius,
+        shape: worstHorizontalRadius >= 55 ? 'vertical' : 'turn',
+      },
     );
   }
   let route;
@@ -1222,6 +1276,10 @@ export function analyzeDocument(value) {
     valid: errors.length === 0,
     errors: [...new Set(errors)],
     warnings,
+    issues: issues.sort((a, b) => a.rank - b.rank).map((entry) => entry.issue),
+    advisories: issues
+      .filter((entry) => entry.issue.severity === 'warning')
+      .map((entry) => entry.issue),
     primaryIssue: errors.length
       ? (primaryIssue ?? {
           kind: 'layout',

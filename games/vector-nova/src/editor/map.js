@@ -13,6 +13,7 @@ export function createRouteMap(
   let document;
   let selection = -1;
   let problem = null;
+  let problemSeverity = 'error';
   let selectedSection = null;
   let trajectories = [];
   let inspectedJump = null;
@@ -245,7 +246,7 @@ export function createRouteMap(
             : !closed && i === points.length - 1
               ? 'RUNOUT END'
               : '';
-        return `<g data-map-point="${i}" class="workshop-map-point ${i === selection ? 'selected' : ''} ${i === problem ? 'problem' : ''}" transform="translate(${x} ${y})"><circle r="${i === selection ? 16 : 12}"/><text text-anchor="middle" dominant-baseline="central">${i + 1}</text>${tag ? `<text class="workshop-map-start" x="21" y="-19">${tag}</text>` : ''}${rollLabel}</g>`;
+        return `<g data-map-point="${i}" class="workshop-map-point ${i === selection ? 'selected' : ''} ${i === problem ? (problemSeverity === 'warning' ? 'problem problem-warning' : 'problem') : ''}" transform="translate(${x} ${y})"><circle r="${i === selection ? 16 : 12}"/><text text-anchor="middle" dominant-baseline="central">${i + 1}</text>${tag ? `<text class="workshop-map-start" x="21" y="-19">${tag}</text>` : ''}${rollLabel}</g>`;
       })
       .join(
         '',
@@ -420,6 +421,7 @@ export function createRouteMap(
         trajectories: flights = [],
         selectedJumpId = null,
         problemPoint = null,
+        problemSeverity: severity = 'error',
         drawMode: drawing = false,
         tool: requestedTool,
       } = {},
@@ -427,6 +429,7 @@ export function createRouteMap(
       document = next;
       selection = selected;
       problem = problemPoint;
+      problemSeverity = severity;
       selectedSection = section;
       trajectories = flights;
       inspectedJump = selectedJumpId;

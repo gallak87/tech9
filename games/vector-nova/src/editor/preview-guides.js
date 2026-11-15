@@ -95,6 +95,7 @@ export function createPreviewGuides(scene, host) {
         selectedJumpId,
         attempt,
         selectedPoint,
+        problemPoint,
       } = data;
       const selected = doc?.points[selectedPoint];
       const currentJump = doc?.jumps?.find(
@@ -133,7 +134,12 @@ export function createPreviewGuides(scene, host) {
           );
         }
       }
-      if (selected && !candidate && !selectedAnchor) {
+      if (
+        selected &&
+        !candidate &&
+        !selectedAnchor &&
+        selectedPoint !== problemPoint
+      ) {
         const point = doc.points[selectedPoint];
         label(
           `Point ${selectedPoint + 1} · ${Math.round(point.y)} m`,

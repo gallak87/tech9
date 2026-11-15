@@ -3,6 +3,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { createEditorOwner } from './world-owner.js';
 import { createRegionPlan } from './region-plan.js';
 import { buildRegionEnvironment } from './region-environment.js';
+import { createFarGroundGeometry } from './far-ground.js';
 import { editorBiome } from './biomes.js';
 import { createRouteClearance } from '../environment/placement.js';
 import { finishIceMaterial } from '../levels/glasswake/environment/materials.js';
@@ -840,15 +841,7 @@ export function createBiomeEnvironment(
     mesh.castShadow = false;
   }
   if (!profile.waterEnabled && !suspended) {
-    const b = plan.bounds,
-      geometry = new T.PlaneGeometry(200000, 200000),
-      groundY = plan.seaLevel - 28;
-    geometry.rotateX(-Math.PI / 2);
-    geometry.translate(
-      (b.min.x + b.max.x) / 2,
-      groundY,
-      (b.min.z + b.max.z) / 2,
-    );
+    const geometry = createFarGroundGeometry(plan);
     const mesh = owner.solid(
       biome.label + ' / distant land',
       geometry,
@@ -858,7 +851,7 @@ export function createBiomeEnvironment(
     );
     mesh.castShadow = false;
     mesh.userData.regionFarGround = true;
-    owner.group.userData.region.farGroundY = groundY;
+    owner.group.userData.region.farGroundY = plan.seaLevel - 28;
   }
   void renderer;
   return owner;

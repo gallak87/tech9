@@ -38,15 +38,9 @@ import { createEditorDevices, createEditorPickupHardware } from './pickups.js';
 function prepareRegion(doc, track) {
   if (doc.environment.layoutVersion < 1 || !track) return null;
   track.editorRegionPlan ??= createRegionPlan(doc, track);
-  const profile = editorBiome(doc.biome);
-  track.groundHeightAt =
-    !profile.environment.waterEnabled && !profile.road.suspended
-      ? (x, z) =>
-          Math.max(
-            track.editorRegionPlan.surfaceHeight(x, z),
-            track.editorRegionPlan.seaLevel - 28,
-          )
-      : track.editorRegionPlan.surfaceHeight;
+  // The horizon surrounds the survey; it must not replace local depressions
+  // with a flat floor or leave automatic foundations above the visible land.
+  track.groundHeightAt = track.editorRegionPlan.surfaceHeight;
   return track.editorRegionPlan;
 }
 

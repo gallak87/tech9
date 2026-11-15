@@ -2,10 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { Buffer } from 'node:buffer';
+import * as T from 'three';
 import { generateDocument } from './document.js';
 import { createEditorTrack } from './track.js';
 import { createRegionPlan } from './region-plan.js';
 import { createBiomeEnvironment } from './biome-environment.js';
+import { createEditorLevel } from './nightweir.js';
 import { EDITOR_BIOMES } from './biomes.js';
 import { createRouteClearance } from '../environment/placement.js';
 const base = generateDocument({ seed: 42, length: 3000 });
@@ -181,7 +183,7 @@ test('long whole-course biome builds remain deterministic with collision collect
   }
 });
 
-test('grounded dry worlds extend an exact two-triangle collision horizon beneath their tapered survey', () => {
+test('grounded dry worlds share a collision horizon outside the local terrain', () => {
   for (const biome of catalog.filter(
     (b) => !b.environment.waterEnabled && !b.road.suspended,
   )) {
@@ -195,18 +197,89 @@ test('grounded dry worlds extend an exact two-triangle collision horizon beneath
       });
     const mesh = part.group.children.find((m) => m.userData.regionFarGround);
     assert(mesh, biome.id);
-    assert.equal(mesh.geometry.index.count, 6);
     assert(
       solids.some((s) => s.geometry === mesh.geometry && s.kind === 'terrain'),
     );
     const positions = mesh.geometry.getAttribute('position');
-    for (let i = 0; i < positions.count; i++)
-      assert(Math.abs(positions.getY(i) - (plan.seaLevel - 28)) < 0.001);
-    assert(
-      Math.min(...plan.terrain.heights.slice(0, plan.terrain.nx + 1)) >
-        plan.seaLevel - 28,
-      'the horizon stays below the tapered outer edge',
-    );
+    const { minX, minZ, nx, nz, dx, dz } = plan.terrain;
+    const maxX = minX + nx * dx,
+      maxZ = minZ + nz * dz;
+    let outerVertices = 0;
+    for (let i = 0; i < positions.count; i++) {
+      const x = positions.getX(i),
+        z = positions.getZ(i);
+      assert(!(x > minX && x < maxX && z > minZ && z < maxZ));
+      if (x < minX || x > maxX || z < minZ || z > maxZ) {
+        outerVertices++;
+        assert(Math.abs(positions.getY(i) - (plan.seaLevel - 28)) < 0.001);
+      } else {
+        assert(Math.abs(positions.getY(i) - plan.surfaceHeight(x, z)) < 0.001);
+      }
+    }
+    assert(outerVertices > 0);
     part.dispose();
+  }
+});
+
+test('a dry-world depression stays visible and automatic supports reach its actual ground', () => {
+  const biome = catalog.find((b) => b.id === 'shatterline');
+  const doc = documentFor(biome),
+    before = structuredClone(doc);
+  const definition = createEditorLevel(doc),
+    track = definition.createTrack();
+  const plan = track.editorRegionPlan,
+    terrain = plan.terrain;
+  const frame = track.sample(36);
+  const foot = frame.position
+    .clone()
+    .addScaledVector(frame.right, -9)
+    .addScaledVector(frame.up, -5);
+  const gx = Math.floor((foot.x - terrain.minX) / terrain.dx);
+  const gz = Math.floor((foot.z - terrain.minZ) / terrain.dz);
+  const floorY = plan.seaLevel - 28,
+    expected = floorY - 24;
+  for (const z of [gz, gz + 1])
+    for (const x of [gx, gx + 1])
+      terrain.heights[z * (terrain.nx + 1) + x] = expected;
+  assert.equal(track.groundHeightAt(foot.x, foot.z), expected);
+  const road = definition.createRoad({ track });
+  const environment = definition.createEnvironment({ track });
+  try {
+    environment.group.updateMatrixWorld(true);
+    const local = environment.group.children.filter(
+      (mesh) => mesh.userData.regionChunk,
+    );
+    const horizon = environment.group.children.find(
+      (mesh) => mesh.userData.regionFarGround,
+    );
+    const ray = new T.Raycaster(
+      new T.Vector3(foot.x, 1000, foot.z),
+      new T.Vector3(0, -1, 0),
+    );
+    assert.equal(
+      ray.intersectObject(horizon).length,
+      0,
+      'the distant filler cannot cover local land',
+    );
+    const hit = ray.intersectObjects(local)[0];
+    assert(hit, 'surveyed terrain remains beneath the road');
+    assert(Math.abs(hit.point.y - expected) < 0.001);
+    const pier = track.supportFootprints.find(
+      (p) => Math.hypot(p.x - foot.x, p.z - foot.z) < 0.001,
+    );
+    assert(pier, 'the ordinary automatic pier is retained');
+    assert.equal(
+      pier.minY,
+      expected,
+      'its foundation follows the exposed depression',
+    );
+    assert.deepEqual(
+      doc,
+      before,
+      'scenery construction does not change authored road data',
+    );
+  } finally {
+    road.dispose();
+    environment.dispose();
   }
 });

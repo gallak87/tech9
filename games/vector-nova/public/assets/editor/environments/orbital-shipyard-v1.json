@@ -20,11 +20,11 @@
       "density": 0.72,
       "waterLevel": -50
     },
-    "layoutVersion": 3,
+    "layoutVersion": 4,
     "framing": "selected first road point, then two zoom-out steps"
   },
-  "documentFingerprint": "d85b0430e8256338b7fbc21929037e789eaa68e5815bd7cfe4043c71f76228ed",
-  "documentIdentity": "custom-orbital-v7-92b6b819",
+  "documentFingerprint": "b6609a3fafd63a2cb57e9f1909c2d3b07bbcd3f0285274472339e152498ba9fe",
+  "documentIdentity": "custom-orbital-v8-8b8e5a60",
   "roadFingerprint": "2b7294368ecd315c38b6188245c4ec8ba03d673a3412dae8e67b3ddf7e5ee9c2",
   "camera": {
     "mode": "orbit",
@@ -45,10 +45,10 @@
     "height": 400,
     "format": "webp",
     "quality": 0.86,
-    "sha256": "40e610a5ab9c4af8f7041aa45bd3db2a097cd80d8bba6d38d8fd89aa103625b5"
+    "sha256": "ca130b0770090d10959c199075c742c03250d77e17339c38d5ca5cb870a018a4"
   },
   "source": {
-    "revision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+    "revision": "ad455bfec8f354619e197ca0b47e71e1d0fb6c6d",
     "dirty": true
   }
 }

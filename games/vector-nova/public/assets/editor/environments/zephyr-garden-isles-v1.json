@@ -20,11 +20,11 @@
       "density": 0.78,
       "waterLevel": -28
     },
-    "layoutVersion": 3,
+    "layoutVersion": 4,
     "framing": "selected first road point, then two zoom-out steps"
   },
-  "documentFingerprint": "bbe52e43a03647fb0355fd105e8fd75f06550022e928ff23d5b82c16e3b3e7e6",
-  "documentIdentity": "custom-zephyr-v7-bc41afa1",
+  "documentFingerprint": "30bbd2e60152ee20cfe1ce4cf25eb0d9087715d5be5b4414ff39cfe7670b1fbb",
+  "documentIdentity": "custom-zephyr-v8-7444e83c",
   "roadFingerprint": "2b7294368ecd315c38b6188245c4ec8ba03d673a3412dae8e67b3ddf7e5ee9c2",
   "camera": {
     "mode": "orbit",
@@ -45,10 +45,10 @@
     "height": 400,
     "format": "webp",
     "quality": 0.86,
-    "sha256": "eb668733ce72363d43640ef8f84638163923b0a5131135b9c9f4c29c70821837"
+    "sha256": "82e1f7d859daa8c318a57cb70014692c6fd3a0e127707789db6ac410e4637444"
   },
   "source": {
-    "revision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+    "revision": "ad455bfec8f354619e197ca0b47e71e1d0fb6c6d",
     "dirty": true
   }
 }

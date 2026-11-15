@@ -20,11 +20,11 @@
       "density": 0.9,
       "waterLevel": -50
     },
-    "layoutVersion": 3,
+    "layoutVersion": 4,
     "framing": "selected first road point, then two zoom-out steps"
   },
-  "documentFingerprint": "1a99d765368b9286618de0afbf97ab4ec77b60ad98af258f685f497f56bc8486",
-  "documentIdentity": "custom-nomad-v7-09f2cb02",
+  "documentFingerprint": "f47fd8a736374787b11780c62704e86954bef14d59dd0c3bdb8ed2c325667afc",
+  "documentIdentity": "custom-nomad-v8-d57c2163",
   "roadFingerprint": "2b7294368ecd315c38b6188245c4ec8ba03d673a3412dae8e67b3ddf7e5ee9c2",
   "camera": {
     "mode": "orbit",
@@ -45,10 +45,10 @@
     "height": 400,
     "format": "webp",
     "quality": 0.86,
-    "sha256": "bad4b52472ff46aa0fe8bc7209c169af090c29d873100b6c36d7544f50fa31bc"
+    "sha256": "19d76df2f82ab5a15f7d045d72b5befffc022f4ab7b09cedc394ca248c648d6f"
   },
   "source": {
-    "revision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+    "revision": "ad455bfec8f354619e197ca0b47e71e1d0fb6c6d",
     "dirty": true
   }
 }

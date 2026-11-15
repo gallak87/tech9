@@ -20,11 +20,11 @@
       "density": 0.84,
       "waterLevel": -36
     },
-    "layoutVersion": 3,
+    "layoutVersion": 4,
     "framing": "selected first road point, then two zoom-out steps"
   },
-  "documentFingerprint": "191b842367d6121cbd670adbca27123395788221f7b4c2f58dc9edf6dee4aae4",
-  "documentIdentity": "custom-glasswake-v7-4e14589c",
+  "documentFingerprint": "7c3e04f122fb0248aac6a788374c733302b8152c4bf4696b0e46627e4537af65",
+  "documentIdentity": "custom-glasswake-v8-1f6dbdf7",
   "roadFingerprint": "2b7294368ecd315c38b6188245c4ec8ba03d673a3412dae8e67b3ddf7e5ee9c2",
   "camera": {
     "mode": "orbit",
@@ -45,10 +45,10 @@
     "height": 400,
     "format": "webp",
     "quality": 0.86,
-    "sha256": "b521f8f4d70def1350268a3ad8afd4fa423a6de85f6de38dd30f828e539a5d2f"
+    "sha256": "e8cade046ae7b5b953a7e3a2877cca0c76f15ae8dad050decbcf5aafadaf7393"
   },
   "source": {
-    "revision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+    "revision": "ad455bfec8f354619e197ca0b47e71e1d0fb6c6d",
     "dirty": true
   }
 }

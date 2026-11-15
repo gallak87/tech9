@@ -20,11 +20,11 @@
       "density": 0.88,
       "waterLevel": -36
     },
-    "layoutVersion": 3,
+    "layoutVersion": 4,
     "framing": "selected first road point, then two zoom-out steps"
   },
-  "documentFingerprint": "10b11bf41f6fc9839fd24cfbafb466e7db5c23fc36c8e5a9568c17b311ba03f8",
-  "documentIdentity": "custom-nightweir-v7-f8e2edc9",
+  "documentFingerprint": "8f471443319a25a84b4c7d149a968eb11901c892539aae3f0cbe9dc7fbed0fa3",
+  "documentIdentity": "custom-nightweir-v8-af78ba76",
   "roadFingerprint": "2b7294368ecd315c38b6188245c4ec8ba03d673a3412dae8e67b3ddf7e5ee9c2",
   "camera": {
     "mode": "orbit",
@@ -45,10 +45,10 @@
     "height": 400,
     "format": "webp",
     "quality": 0.86,
-    "sha256": "0aedb968212df4ea4a91de7cf4131594a7e696bc67f4bac5df667accbd168647"
+    "sha256": "dc7794a92b922f0026a2ba482c46c4785a23b137b8292885ffd774e92eaaea5e"
   },
   "source": {
-    "revision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+    "revision": "ad455bfec8f354619e197ca0b47e71e1d0fb6c6d",
     "dirty": true
   }
 }

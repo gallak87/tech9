@@ -97,6 +97,7 @@ if (args.includes('--missing')) {
     try {
       if (
         !saved ||
+        saved.layoutVersion !== ENVIRONMENT_LAYOUT_VERSION ||
         digest(await readFile(resolve(root, 'public', saved.file))) !==
           saved.sha256
       )
@@ -264,6 +265,26 @@ try {
       await action('focus-selection');
       await action('zoom-out');
       await action('zoom-out');
+      if (biome.id === 'worldspire') {
+        // Its one complete monolith lives beyond the road, behind the ordinary
+        // first-point camera. Use real preview gestures to include that asset.
+        await action('fit');
+        for (let i = 0; i < 8; i++) await action('zoom-out');
+        const bounds = await canvas.boundingBox();
+        const x = bounds.x + bounds.width * 0.65,
+          y = bounds.y + bounds.height * 0.6;
+        await page.mouse.move(x, y);
+        await page.mouse.down({ button: 'right' });
+        await page.mouse.move(x - Math.PI / 0.006, y - 102.5, { steps: 12 });
+        await page.mouse.up({ button: 'right' });
+        const panY = bounds.y + bounds.height * 0.35;
+        await page.mouse.move(x, panY);
+        await page.keyboard.down('Shift');
+        await page.mouse.down({ button: 'right' });
+        await page.mouse.move(x - 360, panY + 350, { steps: 12 });
+        await page.mouse.up({ button: 'right' });
+        await page.keyboard.up('Shift');
+      }
       await action('context-environment');
       await ready();
       const editor = await page.evaluate(
@@ -313,7 +334,10 @@ try {
           environmentSeed,
           scenery: applied.settings,
           layoutVersion: applied.environment.layoutVersion,
-          framing: 'selected first road point, then two zoom-out steps',
+          framing:
+            biome.id === 'worldspire'
+              ? 'road overview, eight zoom-out steps, native orbit/pan framing the complete distant monolith'
+              : 'selected first road point, then two zoom-out steps',
         },
         documentFingerprint: digest(JSON.stringify(applied)),
         documentIdentity: documentIdentity(applied),

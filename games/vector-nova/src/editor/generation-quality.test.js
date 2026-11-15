@@ -1,4 +1,5 @@
 import test from 'node:test';
+import { mockBundledEditorAssets } from './test-assets.js';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import {
@@ -825,7 +826,8 @@ test('every stock hull lands each default and extreme-size generated gap at crui
   }
 });
 
-test('varied generated roads remain consumable by the existing road and world builders', async () => {
+test('varied generated roads remain consumable by the existing road and world builders', async (t) => {
+  mockBundledEditorAssets(t);
   for (const courseType of types) {
     const document = make({
       seed: 42,
@@ -841,11 +843,7 @@ test('varied generated roads remain consumable by the existing road and world bu
     try {
       await environment.ready;
       assert(road.group.children.some((mesh) => mesh.userData.roadSurface));
-      assert(
-        Object.values(environment.group.userData.assemblyCounts).some(
-          (count) => count > 0,
-        ),
-      );
+      assert(environment.group.userData.region.assemblies > 0);
       assert(track.supportFootprints.length > 0);
     } finally {
       road.dispose();

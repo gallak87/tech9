@@ -3,6 +3,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
+import { gunzipSync } from 'node:zlib';
 import * as T from 'three';
 import { ConvexHull } from 'three/addons/math/ConvexHull.js';
 
@@ -28,8 +29,13 @@ if (!biome || !/^[a-z0-9-]+$/.test(biome))
     'Usage: node tools/editor-asset-metadata.mjs <biome> [asset names] [--output=path] [--convex=name,...] [--check]',
   );
 const names = args.slice(1).filter((arg) => !arg.startsWith('--'));
+const specPath = args.find((arg) => arg.startsWith('--spec='))?.slice(7);
+const spec = specPath
+  ? JSON.parse(await readFile(resolve(root, specPath), 'utf8'))
+  : null;
+if (spec) names.push(...Object.keys(spec));
 if (!names.length && biome === 'shatterline') names.push(...defaults);
-if (!names.length || names.some((name) => !/^[a-z0-9-]+$/.test(name)))
+if (!names.length || names.some((name) => !/^[a-z0-9_-]+$/.test(name)))
   throw new Error('Supply registered static asset names');
 const output = resolve(
   root,
@@ -57,7 +63,8 @@ try {
   proxies = {};
 }
 
-function verticesFromGLB(buffer) {
+function verticesFromGLB(buffer, selector = null) {
+  if (buffer[0] === 0x1f && buffer[1] === 0x8b) buffer = gunzipSync(buffer);
   if (buffer.readUInt32LE(0) !== 0x46546c67 || buffer.readUInt32LE(4) !== 2)
     throw new Error('Expected a binary glTF2 asset');
   let json, binary;
@@ -74,8 +81,24 @@ function verticesFromGLB(buffer) {
   }
   if (!json || !binary)
     throw new Error('Expected embedded JSON and binary geometry');
-  const points = [];
-  function walk(index, parent) {
+  const points = [],
+    positions = [],
+    indices = [],
+    unique = new Map();
+  let visualTriangles = 0;
+  let matches = 0;
+  const vertex = (point) => {
+    const key = point
+      .toArray()
+      .map((n) => n.toFixed(6))
+      .join(',');
+    if (!unique.has(key)) {
+      unique.set(key, positions.length / 3);
+      positions.push(...point.toArray());
+    }
+    return unique.get(key);
+  };
+  function walk(index, parent, inherited = false) {
     const node = json.nodes[index],
       local = new T.Matrix4();
     if (node.matrix) local.fromArray(node.matrix);
@@ -86,7 +109,13 @@ function verticesFromGLB(buffer) {
         new T.Vector3(...(node.scale ?? [1, 1, 1])),
       );
     const matrix = parent.clone().multiply(local);
-    for (const primitive of json.meshes?.[node.mesh]?.primitives ?? []) {
+    if (selector && node.name === selector) matches++;
+    const selected = !selector || inherited || node.name === selector;
+    for (const primitive of selected
+      ? (json.meshes?.[node.mesh]?.primitives ?? [])
+      : []) {
+      if (node.skin !== undefined || primitive.targets?.length)
+        throw new Error('Editor kit must use static geometry');
       const accessor = json.accessors[primitive.attributes.POSITION];
       if (
         accessor.type !== 'VEC3' ||
@@ -98,23 +127,64 @@ function verticesFromGLB(buffer) {
       if (view.buffer !== 0) throw new Error('Expected embedded buffer0');
       const offset = (view.byteOffset ?? 0) + (accessor.byteOffset ?? 0),
         stride = view.byteStride ?? 12;
+      const mapped = [];
       for (let i = 0; i < accessor.count; i++) {
         const at = offset + i * stride;
-        points.push(
-          new T.Vector3(
-            binary.readFloatLE(at),
-            binary.readFloatLE(at + 4),
-            binary.readFloatLE(at + 8),
-          ).applyMatrix4(matrix),
-        );
+        const point = new T.Vector3(
+          binary.readFloatLE(at),
+          binary.readFloatLE(at + 4),
+          binary.readFloatLE(at + 8),
+        ).applyMatrix4(matrix);
+        if (
+          !Number.isFinite(point.x) ||
+          !Number.isFinite(point.y) ||
+          !Number.isFinite(point.z)
+        )
+          throw new Error('Asset positions must be finite');
+        points.push(point);
+        mapped.push(vertex(point));
+      }
+      if ((primitive.mode ?? 4) !== 4)
+        throw new Error('Editor exact collision expects triangle primitives');
+      const source = [];
+      if (primitive.indices !== undefined) {
+        const index = json.accessors[primitive.indices],
+          view = json.bufferViews[index.bufferView];
+        const bytes = { 5121: 1, 5123: 2, 5125: 4 }[index.componentType];
+        if (!bytes || index.sparse || view.buffer !== 0)
+          throw new Error('Unsupported primitive index accessor');
+        const start = (view.byteOffset ?? 0) + (index.byteOffset ?? 0);
+        for (let i = 0; i < index.count; i++) {
+          const at = start + i * (view.byteStride ?? bytes);
+          source.push(
+            bytes === 1
+              ? binary.readUInt8(at)
+              : bytes === 2
+                ? binary.readUInt16LE(at)
+                : binary.readUInt32LE(at),
+          );
+        }
+      } else for (let i = 0; i < accessor.count; i++) source.push(i);
+      if (source.length % 3) throw new Error('Incomplete triangle primitive');
+      visualTriangles += source.length / 3;
+      for (let i = 0; i < source.length; i += 3) {
+        const triangle = source.slice(i, i + 3).map((index) => mapped[index]);
+        if (triangle.some((index) => index === undefined))
+          throw new Error('Primitive index exceeds vertex accessor');
+        if (new Set(triangle).size < 3) continue;
+        if (matrix.determinant() < 0)
+          [triangle[1], triangle[2]] = [triangle[2], triangle[1]];
+        indices.push(...triangle);
       }
     }
-    for (const child of node.children ?? []) walk(child, matrix);
+    for (const child of node.children ?? []) walk(child, matrix, selected);
   }
   for (const index of json.scenes[json.scene ?? 0].nodes)
     walk(index, new T.Matrix4());
   if (!points.length) throw new Error('The asset has no static mesh positions');
-  return points;
+  if (selector && matches !== 1)
+    throw new Error('Prototype must have one exact named match: ' + selector);
+  return { points, visualTriangles, collision: { positions, indices } };
 }
 
 function enclosingGeology(points) {
@@ -171,30 +241,73 @@ function enclosingGeology(points) {
 
 const result = {};
 for (const name of names) {
-  const url = `assets/levels/${biome}/${name}.glb`,
-    bytes = await readFile(resolve(root, 'public', url));
-  const points = verticesFromGLB(bytes),
+  const entry = spec?.[name] ?? {};
+  const file = entry.file ?? `${name}.glb`;
+  const url = file.startsWith('assets/')
+    ? file
+    : `assets/levels/${biome}/${file}`;
+  if (
+    !/^assets\/(levels|editor)\/[a-z0-9_./ -]+\.(glb|glb\.gz)$/i.test(url) ||
+    url.split('/').includes('..')
+  )
+    throw new Error('Expected a registered public GLB path');
+  const bytes = await readFile(resolve(root, 'public', url));
+  const { points, collision, visualTriangles } = verticesFromGLB(
+      bytes,
+      entry.node,
+    ),
     visual = new T.Box3().setFromPoints(points);
-  const convex = hullNames.has(name);
-  const triangles = convex ? enclosingGeology(points) : (proxies[name] ?? []);
+  const convex =
+    entry.proxy === 'convex' || (!entry.proxy && hullNames.has(name));
+  const exact = entry.proxy === 'exact';
+  const triangles = convex
+    ? enclosingGeology(points)
+    : entry.proxy === 'none' || exact
+      ? []
+      : (proxies[entry.proxyKey ?? name] ?? []);
   const bounds = visual.clone();
   for (const face of triangles)
     for (const point of face) bounds.expandByPoint(new T.Vector3(...point));
+  let encodedCollision;
+  if (exact) {
+    const positions = new Float32Array(collision.positions);
+    const indices =
+      collision.positions.length / 3 > 65535
+        ? new Uint32Array(collision.indices)
+        : new Uint16Array(collision.indices);
+    for (let i = 0; i < positions.length; i += 3)
+      bounds.expandByPoint(
+        new T.Vector3(positions[i], positions[i + 1], positions[i + 2]),
+      );
+    encodedCollision = {
+      format: 'indexed-f32-v1',
+      positions: Buffer.from(positions.buffer).toString('base64'),
+      indices: Buffer.from(indices.buffer).toString('base64'),
+      indexType: indices instanceof Uint16Array ? 'u16' : 'u32',
+    };
+  }
   result[name] = {
     url,
     bounds: [bounds.min.toArray(), bounds.max.toArray()],
     visualBounds: [visual.min.toArray(), visual.max.toArray()],
     triangles,
-    proxy: convex
-      ? 'conservative-solid-geology-26planes'
-      : triangles.length
-        ? 'authored-collision-kit'
-        : 'none',
+    ...(entry.node ? { node: entry.node } : {}),
+    ...(exact ? { collision: encodedCollision } : {}),
+    ...(spec ? { visualTriangles } : {}),
+    proxy: exact
+      ? 'exact-rendered-indexed'
+      : convex
+        ? 'conservative-solid-geology-26planes'
+        : triangles.length
+          ? 'authored-collision-kit'
+          : 'none',
     sourceHash: createHash('sha256').update(bytes).digest('hex'),
-    ...(name.includes('distant') ? { castShadow: false } : {}),
+    ...(entry.castShadow === false || name.includes('distant')
+      ? { castShadow: false }
+      : {}),
   };
   console.log(
-    `${name}: ${points.length} visual vertices, ${triangles.length} proxy faces`,
+    `${name}: ${points.length} visual vertices, ${exact ? collision.indices.length / 3 : triangles.length} proxy faces`,
   );
 }
 const encoded =

@@ -1798,6 +1798,104 @@
         "halcyon-asphalt"
       ],
       "provenanceRecord": "assets/levels/shatterline/model-provenance.json"
+    },
+    {
+      "id": "editor-nightweir-civic-kit",
+      "source": "assets/editor/nightweir/build-kit.py and assets/levels/nightweir/build_assets.py",
+      "creator": "VECTOR//NOVA project contributors; original canonical Nightweir Blender builders",
+      "provenance": "Five portable complete assemblies exported from the project-owned Nightweir geometry/material definitions: residential court, brick pressureworks, generating house, municipal wing and public gallery. The editor exporter evaluates only named builder definitions and material declarations, never the campaign route, terrain or placement statements. Editable Blender source, source/exporter/runtime hashes and named prototype triangle counts are retained. Seeded editor composition reuses the registered occupied-window, brick, zinc, concrete and sheltered-basin finishes; no new imagery or third-party model.",
+      "rights": "Project-owned geometry and adapter; borrowed Nightweir imagery, Helion CC0 concrete and Shatterline limestone retain their existing provenance.",
+      "runtimeDependencies": ["three"],
+      "sourceAssets": [
+        "assets/editor/nightweir/build-kit.py",
+        "assets/editor/nightweir/nightweir-editor-kit.blend",
+        "assets/levels/nightweir/build_assets.py",
+        "assets/editor/kits/nightweir.json",
+        "src/editor/kits/nightweir-assets.json"
+      ],
+      "runtimeAssets": [
+        "public/assets/editor/nightweir/nightweir-editor-kit.glb"
+      ],
+      "borrowedAssets": [
+        "nightweir-sprint",
+        "helion-heat-ceramic",
+        "shatterline-limestone"
+      ],
+      "provenanceRecord": "assets/editor/nightweir/provenance.json"
+    },
+    {
+      "id": "editor-worldkit-surface-packaging",
+      "source": "assets/editor/shared-surfaces.json and assets/editor/industrial-surfaces.json",
+      "creator": "Worldkit project contributors; original generated surfaces and registered CC0 mineral scans",
+      "provenance": "Byte-identical editor runtime copies of the existing Living Forest silver bark and transparent leaf spray, registered CC0 granite color and cracked-boulder normal, and generated industrial rolled steel and worn enamel. The two packaging manifests retain original source paths, runtime paths and SHA-256 hashes. No source image, package dependency or original licence is changed. Owner-local decoded textures and independent linear bark relief serve production editor finishes.",
+      "rights": "Original Living Forest and industrial generated-asset provenance and registered CC0 landscape licences retained; Worldkit grants no additional licence.",
+      "runtimeDependencies": ["three"],
+      "sourceAssets": [
+        "assets/editor/shared-surfaces.json",
+        "assets/editor/industrial-surfaces.json"
+      ],
+      "runtimeAssets": [
+        "public/assets/editor/surfaces/silver-bark-color-v1.png",
+        "public/assets/editor/surfaces/leaf-spray-v1.png",
+        "public/assets/editor/surfaces/forest-granite-diff.jpg",
+        "public/assets/editor/surfaces/rock-boulder-normal-1k.jpg",
+        "public/assets/editor/surfaces/rolled-steel-v1.png",
+        "public/assets/editor/surfaces/worn-enamel-v1.png"
+      ],
+      "borrowedAssets": [
+        "worldkit-forest-art",
+        "vesper-forest",
+        "ravel-solar-loom",
+        "nomad-moving-convoy"
+      ],
+      "provenanceRecords": [
+        "assets/editor/shared-surfaces.json",
+        "assets/editor/industrial-surfaces.json",
+        "../../worldkit/modules/living-forest/assets/provenance.json",
+        "../../worldkit/modules/landscape/assets/runtime/ASSETS.md",
+        "../../worldkit/modules/industrial/assets/provenance.json",
+        "../../worldkit/modules/industrial/assets/enamel-provenance.json"
+      ]
+    },
+    {
+      "id": "editor-production-biome-adapters",
+      "source": "src/editor/production-biomes.js, src/editor/production-environment.js and src/editor/procedural-assemblies.js",
+      "creator": "VECTOR//NOVA project contributors",
+      "provenance": "Layout-4 seeded adaptation of the separately registered Nightweir, Halcyon, Orbital, Nacre, Vesper, Glasswake, Cindercoil, Saffron, Zephyr, Helion, Umbra, Worldspire, Colossus, Ravel, Nomad and Oriel art. Static families select complete existing GLBs or exact original named nodes with retained source transforms; source-native families compile canonical local geometry/material builders. Trusted metadata records source hashes, visual bounds and compact exact indexed contact geometry without filling architectural openings. Small structural subsets keep exact contact, forest trunks use the canonical wood recipe at bounded resolution, and remaining scenery is explicitly decorative; complete visible bounds still reserve road, flight and camera space. Nacre adds an editor-only ocean seabed survey with the existing basalt, reef, observatory, mineral and animated-water finishes. Roads, campaign placement and active campaign hazards are not imported or changed. Earlier editor layouts retain their builders; Shatterline keeps its separately registered layout-3 adapter.",
+      "rights": "Project-authored adapters, seeded composition and derived metadata; all borrowed models, images and material recipes retain their separately registered provenance.",
+      "runtimeDependencies": ["three", "@worldkit/environment"],
+      "sourceAssets": [
+        "tools/editor-asset-metadata.mjs",
+        "assets/editor/kits/",
+        "src/editor/kits/cindercoil-spec.json",
+        "src/editor/kits/",
+        "src/editor/static-biomes.js",
+        "src/editor/static-biome-plans.js",
+        "src/editor/static-biome-finishes.js",
+        "src/editor/procedural-biomes.js",
+        "src/editor/nightweir-biome.js",
+        "src/editor/vesper-biome.js",
+        "src/editor/nacre-biome.js"
+      ],
+      "borrowedAssets": [
+        "editor-nightweir-civic-kit",
+        "editor-worldkit-surface-packaging",
+        "halcyon-metropolitan-architecture",
+        "asterion-shipyard",
+        "nacre-tempest",
+        "vesper-forest",
+        "glasswake-comet",
+        "cindercoil-caldera",
+        "saffron-leviathan",
+        "zephyr-basilica",
+        "helion-observatory",
+        "umbra-observatory",
+        "worldspire-sprint",
+        "colossus-industrial",
+        "ravel-solar-loom",
+        "nomad-moving-convoy",
+        "oriel-inward-world"
+      ]
     }
   ],
   "thirdParty": [

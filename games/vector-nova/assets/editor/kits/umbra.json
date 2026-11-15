@@ -1,0 +1,37 @@
+{
+  "terrace": {
+    "file": "umbra-observatory.glb",
+    "node": "terrace",
+    "proxy": "exact"
+  },
+  "pier": {
+    "file": "umbra-observatory.glb",
+    "node": "pier",
+    "proxy": "exact"
+  },
+  "wall-breach": {
+    "file": "umbra-observatory.glb",
+    "node": "wall_breach",
+    "proxy": "exact"
+  },
+  "vault": {
+    "file": "umbra-observatory.glb",
+    "node": "vault",
+    "proxy": "exact"
+  },
+  "rib": {
+    "file": "umbra-observatory.glb",
+    "node": "rib",
+    "proxy": "exact"
+  },
+  "lens": {
+    "file": "umbra-observatory.glb",
+    "node": "lens",
+    "proxy": "none"
+  },
+  "instrument": {
+    "file": "umbra-observatory.glb",
+    "node": "instrument",
+    "proxy": "none"
+  }
+}

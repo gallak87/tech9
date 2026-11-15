@@ -20,11 +20,11 @@
       "density": 0.92,
       "waterLevel": -28
     },
-    "layoutVersion": 3,
+    "layoutVersion": 4,
     "framing": "selected first road point, then two zoom-out steps"
   },
-  "documentFingerprint": "f6343fb98cbf6c612769759f9b2d5b3dcf05601711b983e1556e14ced95a6581",
-  "documentIdentity": "custom-vesper-forest-v7-48023ca9",
+  "documentFingerprint": "20a7d4012fc3d221bad077a212ba6d5e193a948e876b04865ff88696c1c2a4c4",
+  "documentIdentity": "custom-vesper-forest-v8-4bf7aed8",
   "roadFingerprint": "2b7294368ecd315c38b6188245c4ec8ba03d673a3412dae8e67b3ddf7e5ee9c2",
   "camera": {
     "mode": "orbit",
@@ -45,10 +45,10 @@
     "height": 400,
     "format": "webp",
     "quality": 0.86,
-    "sha256": "1bd8d1c116ee5a2dadc442ba8b8ffdc2782f7b062587257a206bb53c0d6860e7"
+    "sha256": "05a90054c200df525258cc4427f2fd0af2de480bf670a7de2cc073457a3f80af"
   },
   "source": {
-    "revision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+    "revision": "ad455bfec8f354619e197ca0b47e71e1d0fb6c6d",
     "dirty": true
   }
 }

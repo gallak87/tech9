@@ -20,11 +20,11 @@
       "density": 0.74,
       "waterLevel": -50
     },
-    "layoutVersion": 3,
+    "layoutVersion": 4,
     "framing": "selected first road point, then two zoom-out steps"
   },
-  "documentFingerprint": "5e458da6550c8fdb290abb2df2fe71c1527afd53b40e42a873cea0726d455a53",
-  "documentIdentity": "custom-umbra-v7-4b2f73a9",
+  "documentFingerprint": "274446463fa5de93d2922ba3d5ffb5e28c55e2cbf09541ec4656cdb14bb30f2d",
+  "documentIdentity": "custom-umbra-v8-9bcecf62",
   "roadFingerprint": "2b7294368ecd315c38b6188245c4ec8ba03d673a3412dae8e67b3ddf7e5ee9c2",
   "camera": {
     "mode": "orbit",
@@ -45,10 +45,10 @@
     "height": 400,
     "format": "webp",
     "quality": 0.86,
-    "sha256": "1d7d8b6dc947fa27ac28217c8386ebed55b43dfc62e074a7bc0def620e72dd86"
+    "sha256": "b9562f8bb4360cb55b1f09a05c6062ece8b23d836b3df5c83ac537f99e2b5dd7"
   },
   "source": {
-    "revision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+    "revision": "ad455bfec8f354619e197ca0b47e71e1d0fb6c6d",
     "dirty": true
   }
 }

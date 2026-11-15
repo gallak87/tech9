@@ -11,6 +11,8 @@ import { finishThermalMaterial } from '../levels/helion/environment/materials.js
 import { finishZephyrMaterial } from '../levels/zephyr/environment/materials.js';
 import { finishShatterlineMaterial } from '../levels/shatterline/environment/materials.js';
 import { createShatterlineEditorEnvironment } from './shatterline-environment.js';
+import { createProductionEnvironment } from './production-environment.js';
+import { productionBiomeDescriptor } from './production-biomes.js';
 
 const UP = new T.Vector3(0, 1, 0);
 const TAU = Math.PI * 2;
@@ -85,6 +87,15 @@ export function createBiomeEnvironment(
 ) {
   if (doc.biome === 'shatterline' && doc.environment.layoutVersion >= 3)
     return createShatterlineEditorEnvironment(doc, track, {
+      collectSolid,
+      preview,
+      plan,
+      previous,
+    });
+  if (doc.environment.layoutVersion >= 4)
+    return createProductionEnvironment(doc, track, {
+      descriptor: productionBiomeDescriptor(doc.biome),
+      renderer,
       collectSolid,
       preview,
       plan,

@@ -1,0 +1,26 @@
+{
+  "method": "Byte-identical runtime packaging of existing registered Worldkit surfaces; source assets and dependencies unchanged.",
+  "rights": "Living Forest generated surfaces and registered CC0 cracked-boulder/mineral maps retain their existing source provenance and licences.",
+  "assets": [
+    {
+      "source": "worldkit/modules/living-forest/assets/silver-bark-color-v1.png",
+      "runtime": "assets/editor/surfaces/silver-bark-color-v1.png",
+      "sha256": "41f424e1fc6afcc2341e5b9b4b897f13468f53ccb0b0a2d9a8531dddc236abde"
+    },
+    {
+      "source": "worldkit/modules/living-forest/assets/leaf-spray-v1.png",
+      "runtime": "assets/editor/surfaces/leaf-spray-v1.png",
+      "sha256": "5b1ff70d33bf70a29caff888651085902112caa148ffb69d8eabbd1890614595"
+    },
+    {
+      "source": "worldkit/modules/landscape/assets/art/textures/forest-granite-diff.jpg",
+      "runtime": "assets/editor/surfaces/forest-granite-diff.jpg",
+      "sha256": "ff40a03843e0bae5cb4f055cd3db7dd41c2369543ebdf24ca2d92bb2464881f6"
+    },
+    {
+      "source": "worldkit/modules/landscape/assets/art/textures/rock_boulder_cracked_nor_gl_1k.jpg",
+      "runtime": "assets/editor/surfaces/rock-boulder-normal-1k.jpg",
+      "sha256": "022000a37cb91457de2e0c738baebbc1b0b8eb864ba99321d07c248d5c0741bc"
+    }
+  ]
+}

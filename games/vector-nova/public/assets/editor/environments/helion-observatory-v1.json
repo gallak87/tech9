@@ -20,11 +20,11 @@
       "density": 0.66,
       "waterLevel": -50
     },
-    "layoutVersion": 3,
+    "layoutVersion": 4,
     "framing": "selected first road point, then two zoom-out steps"
   },
-  "documentFingerprint": "4a0797d3d1d1e7df1539ce2b5f6b2e4879aee214f4a30a118f42ef4640ef6564",
-  "documentIdentity": "custom-helion-v7-02b8784e",
+  "documentFingerprint": "f1fd6c0995e7058e5bf0721cc6c808bce07aabd7506c1b852f09ccfb81424aae",
+  "documentIdentity": "custom-helion-v8-8b657665",
   "roadFingerprint": "2b7294368ecd315c38b6188245c4ec8ba03d673a3412dae8e67b3ddf7e5ee9c2",
   "camera": {
     "mode": "orbit",
@@ -45,10 +45,10 @@
     "height": 400,
     "format": "webp",
     "quality": 0.86,
-    "sha256": "0dfd09339c52940ace2cee0538ca0256ac42c9fc87807011d2cf0b7742077555"
+    "sha256": "9b2fdf51316ff297a1890dfc8f37c366e7dc155c29f4181003d92f8394c3e221"
   },
   "source": {
-    "revision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+    "revision": "ad455bfec8f354619e197ca0b47e71e1d0fb6c6d",
     "dirty": true
   }
 }

@@ -1,0 +1,33 @@
+{
+  "carrier": {
+    "file": "carrier-kit.glb",
+    "node": "nomad_carrier_mid",
+    "proxy": "none"
+  },
+  "freight": {
+    "file": "carrier-kit.glb",
+    "node": "nomad_freight",
+    "proxy": "exact"
+  },
+  "receiver": {
+    "file": "receiver-crown.glb",
+    "proxy": "exact"
+  },
+  "interior": {
+    "file": "interior-freight.glb",
+    "proxy": "exact"
+  },
+  "armour": {
+    "file": "companion-armour.glb",
+    "proxy": "exact"
+  },
+  "service": {
+    "file": "wallride-service.glb",
+    "proxy": "exact"
+  },
+  "wheel": {
+    "file": "carrier-kit.glb",
+    "node": "nomad_wheel_mid",
+    "proxy": "none"
+  }
+}

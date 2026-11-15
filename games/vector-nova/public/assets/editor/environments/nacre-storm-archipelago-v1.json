@@ -20,11 +20,11 @@
       "density": 0.84,
       "waterLevel": -8
     },
-    "layoutVersion": 3,
+    "layoutVersion": 4,
     "framing": "selected first road point, then two zoom-out steps"
   },
-  "documentFingerprint": "c244611412d4fd1f6ed9dde8a22191b819d3aa93759a044335e6bd5b01e78cca",
-  "documentIdentity": "custom-nacre-v7-11e02e78",
+  "documentFingerprint": "a915a1e2be8965b13d23b4313975ddbb495f343ec476167505a5d941193fbea6",
+  "documentIdentity": "custom-nacre-v8-c7cc3915",
   "roadFingerprint": "2b7294368ecd315c38b6188245c4ec8ba03d673a3412dae8e67b3ddf7e5ee9c2",
   "camera": {
     "mode": "orbit",
@@ -45,10 +45,10 @@
     "height": 400,
     "format": "webp",
     "quality": 0.86,
-    "sha256": "e59d2ff97049b3042984cf87ed84d589c544c4fe734d7b84ad7d8962fd558fc1"
+    "sha256": "17f689ee7f5b50ffb4c428d305066f9da1fc0848682fbd21d3c2aa52c2d10f0f"
   },
   "source": {
-    "revision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+    "revision": "ad455bfec8f354619e197ca0b47e71e1d0fb6c6d",
     "dirty": true
   }
 }

@@ -20,21 +20,21 @@
       "density": 0.66,
       "waterLevel": -50
     },
-    "layoutVersion": 3,
-    "framing": "selected first road point, then two zoom-out steps"
+    "layoutVersion": 4,
+    "framing": "road overview, eight zoom-out steps, native orbit/pan framing the complete distant monolith"
   },
-  "documentFingerprint": "56a3b952884e61e85183a366139eb1a0f3cbbe617b17cd34701f59a55ba13f73",
-  "documentIdentity": "custom-worldspire-v7-ef545a76",
+  "documentFingerprint": "95c1ab40a492f682e4841190b6b64bebdc807bae2c3b01075ab5844b6cb61c22",
+  "documentIdentity": "custom-worldspire-v8-8619ec2f",
   "roadFingerprint": "2b7294368ecd315c38b6188245c4ec8ba03d673a3412dae8e67b3ddf7e5ee9c2",
   "camera": {
     "mode": "orbit",
-    "position": [-511.54708323859484, 266.92958173598237, 618.7480312341468],
+    "position": [1795.6548054799764, 5915.175451886449, -7218.271697264429],
     "quaternion": [
-      -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
-      0.9123067085457927
+      -0.06133380588606609, 0.9216024501533474, 0.16294725475392619,
+      0.3468937593774733
     ],
     "fov": 48,
-    "near": 0.5,
+    "near": 4.104909027691528,
     "far": 200000
   },
   "viewport": [1280, 800],
@@ -45,10 +45,10 @@
     "height": 400,
     "format": "webp",
     "quality": 0.86,
-    "sha256": "c0f2109905aeb0131f3fdcde7405aedf7aa64f9261194fce0f1bc9c302066c76"
+    "sha256": "f1ee8f509b6aecd63755410b022519cdc8219422ad16fe5918c8798de24270a0"
   },
   "source": {
-    "revision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+    "revision": "ad455bfec8f354619e197ca0b47e71e1d0fb6c6d",
     "dirty": true
   }
 }

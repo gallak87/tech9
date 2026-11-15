@@ -1,8 +1,9 @@
 // Seeded Nightweir regional profiles. Environment layout version 0 retains
 // the historical roadside builder; 1 retains the original regional survey and
 // 2 stabilizes regional buffers for bounded nearby editing. 3 introduces
-// production scenery kits; saved earlier layouts keep their exact scenery.
-export const REGIONAL_LAYOUT_VERSION = 3;
+// production Shatterline scenery; 4 adapts the other production biome kits.
+// Saved earlier layouts keep their exact scenery until explicit Apply.
+export const REGIONAL_LAYOUT_VERSION = 4;
 export const WORLD_PRESETS = Object.freeze([
   Object.freeze({
     id: 'waterfront',

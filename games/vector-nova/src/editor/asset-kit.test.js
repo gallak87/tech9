@@ -1,10 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { Buffer } from 'node:buffer';
+import { gzipSync } from 'node:zlib';
 import * as T from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import {
   assetKitBounds,
   createAssetKit,
   createAssetSourceCache,
+  loadEditorStaticAsset,
 } from './asset-kit.js';
 import { createTextureBudget } from '../renderer/texture-budget.js';
 import metadata from './kits/shatterline-assets.json' with { type: 'json' };
@@ -56,6 +60,256 @@ const make = (options) =>
     cache: createAssetSourceCache(),
     ...options,
   });
+
+test('named prototypes share one source load and retain parent transforms without including library siblings', async () => {
+  const source = fixture(),
+    scene = source.value.scene;
+  const root = new T.Group();
+  root.name = 'Library root';
+  root.position.set(17, 3, -9);
+  scene.remove(source.mesh);
+  root.add(source.mesh);
+  scene.add(root);
+  source.mesh.name = 'Complete prototype';
+  const sibling = new T.Mesh(
+    new T.BoxGeometry(40, 40, 40),
+    new T.MeshStandardMaterial(),
+  );
+  sibling.position.x = 1000;
+  scene.add(sibling);
+  scene.updateMatrixWorld(true);
+  const box = new T.Box3().setFromObject(source.mesh);
+  let loads = 0;
+  const selected = {
+    ...descriptor,
+    node: 'Complete prototype',
+    bounds: [box.min.toArray(), box.max.toArray()],
+  };
+  const kit = createAssetKit({
+    assets: { first: selected, second: selected },
+    placements: [
+      { id: 'a', asset: 'first', matrix: matrix(100) },
+      { id: 'b', asset: 'second', matrix: matrix(200) },
+    ],
+    cache: createAssetSourceCache(),
+    loadAsset: async () => {
+      loads++;
+      return source.value;
+    },
+  });
+  await kit.ready;
+  assert.equal(loads, 1);
+  assert.equal(kit.group.children.length, 2);
+  const actual = new T.Matrix4();
+  kit.group.children[0].getMatrixAt(0, actual);
+  assert.deepEqual(
+    actual.toArray(),
+    matrix(100).multiply(source.mesh.matrixWorld).toArray(),
+  );
+  kit.dispose();
+});
+
+test('prototype selection uses authored glTF names when the loader sanitizes runtime names', async () => {
+  const source = fixture();
+  source.mesh.name = 'Complete_prototype';
+  source.value.parser = {
+    json: { nodes: [{ name: 'Complete / prototype' }] },
+    associations: new Map([[source.mesh, { nodes: 0 }]]),
+  };
+  const kit = make({
+    assets: { rock: { ...descriptor, node: 'Complete / prototype' } },
+    loadAsset: async () => source.value,
+  });
+  await kit.ready;
+  assert.equal(kit.group.children.length, 1);
+  kit.dispose();
+});
+
+test('rotated prototype bounds compare real vertices rather than invented local-box corners', async () => {
+  const scene = new T.Group();
+  const geometry = new T.BufferGeometry();
+  geometry.setAttribute(
+    'position',
+    new T.Float32BufferAttribute([-1, 0, 0, 1, 0, 0, 0, 2, 0], 3),
+  );
+  const mesh = new T.Mesh(geometry, new T.MeshStandardMaterial());
+  mesh.rotation.z = Math.PI / 4;
+  scene.add(mesh);
+  scene.updateMatrixWorld(true);
+  const exact = new T.Box3().setFromObject(scene, true),
+    approximate = new T.Box3().setFromObject(scene);
+  assert(!exact.containsBox(approximate));
+  const kit = make({
+    assets: {
+      rock: {
+        ...descriptor,
+        bounds: [exact.min.toArray(), exact.max.toArray()],
+      },
+    },
+    loadAsset: async () => ({ scene }),
+  });
+  await kit.ready;
+  assert.equal(kit.group.children.length, 1);
+  kit.dispose();
+});
+
+test('compressed production exports load once with both raw gzip and host-decoded response bodies', async (t) => {
+  const bytes = Buffer.from('glTF fixture body');
+  let parsed = 0;
+  t.mock.method(GLTFLoader.prototype, 'parseAsync', async (buffer, path) => {
+    assert.equal(Buffer.from(buffer).toString(), bytes.toString());
+    assert.equal(path, '/registered/');
+    parsed++;
+    return { scene: new T.Group() };
+  });
+  for (const body of [gzipSync(bytes), bytes]) {
+    t.mock.method(globalThis, 'fetch', async () => new Response(body));
+    await loadEditorStaticAsset('/registered/district.glb.gz');
+  }
+  assert.equal(parsed, 2);
+});
+
+test('mirrored authored nodes bake into owned geometry with outward winding and unchanged source resources', async () => {
+  const source = fixture();
+  source.mesh.scale.x = -1;
+  source.mesh.position.x = 3;
+  source.value.scene.updateMatrixWorld(true);
+  const bounds = new T.Box3().setFromObject(source.value.scene);
+  const originalPosition = source.geometry
+    .getAttribute('position')
+    .array.slice();
+  const kit = make({
+    assets: {
+      rock: {
+        ...descriptor,
+        bounds: [bounds.min.toArray(), bounds.max.toArray()],
+      },
+    },
+    loadAsset: async () => source.value,
+  });
+  await kit.ready;
+  const mesh = kit.group.children[0],
+    transform = new T.Matrix4();
+  mesh.getMatrixAt(0, transform);
+  assert.equal(transform.determinant(), 1);
+  assert.notEqual(mesh.geometry, source.geometry);
+  const actual = new T.Vector3().fromBufferAttribute(
+    mesh.geometry.getAttribute('position'),
+    0,
+  );
+  const expected = new T.Vector3()
+    .fromBufferAttribute(source.geometry.getAttribute('position'), 0)
+    .applyMatrix4(source.mesh.matrixWorld);
+  assert(actual.distanceTo(expected) < 1e-6);
+  const sourceFace = Array.from(source.geometry.index.array).slice(0, 3);
+  assert.deepEqual(Array.from(mesh.geometry.index.array).slice(0, 3), [
+    sourceFace[0],
+    sourceFace[2],
+    sourceFace[1],
+  ]);
+  assert.deepEqual(
+    source.geometry.getAttribute('position').array,
+    originalPosition,
+  );
+  let disposals = 0;
+  mesh.geometry.addEventListener('dispose', () => disposals++);
+  kit.dispose();
+  kit.dispose();
+  assert.equal(disposals, 1);
+});
+
+test('geometry finish attributes use owned clones and cannot invalidate physical shape', async () => {
+  const source = fixture();
+  const kit = make({
+    loadAsset: async () => source.value,
+    prepareGeometry(geometry) {
+      geometry.setAttribute(
+        'industrialCoord',
+        geometry.getAttribute('position').clone(),
+      );
+    },
+  });
+  await kit.ready;
+  assert(kit.group.children[0].geometry.getAttribute('industrialCoord'));
+  assert.equal(source.geometry.getAttribute('industrialCoord'), undefined);
+  kit.dispose();
+  const failureSource = fixture();
+  const failed = make({
+    loadAsset: async () => failureSource.value,
+    prepareGeometry(geometry) {
+      geometry.translate(10, 0, 0);
+    },
+  });
+  await assert.rejects(failed.ready, /physical positions/);
+  assert(failed.isDisposed());
+});
+
+test('compact indexed collision keeps authored apertures and decodes without loading graphics', () => {
+  // Four separate bars form a square aperture; a solid AABB would wrongly hit
+  // the centre ray, while these exact indexed bars leave the passage open.
+  const group = new T.Group();
+  for (const [x, y, w, h] of [
+    [-2, 0, 1, 5],
+    [2, 0, 1, 5],
+    [0, -2, 3, 1],
+    [0, 2, 3, 1],
+  ]) {
+    const geometry = new T.BoxGeometry(w, h, 1);
+    geometry.translate(x, y, 0);
+    group.add(new T.Mesh(geometry, new T.MeshBasicMaterial()));
+  }
+  const positions = [],
+    indices = [];
+  for (const mesh of group.children) {
+    const offset = positions.length / 3;
+    positions.push(...mesh.geometry.getAttribute('position').array);
+    indices.push(
+      ...Array.from(mesh.geometry.index.array, (index) => index + offset),
+    );
+  }
+  const encoded = {
+    format: 'indexed-f32-v1',
+    positions: Buffer.from(new Float32Array(positions).buffer).toString(
+      'base64',
+    ),
+    indices: Buffer.from(new Uint16Array(indices).buffer).toString('base64'),
+    indexType: 'u16',
+  };
+  let captured;
+  const kit = make({
+    assets: { rock: { ...descriptor, collision: encoded } },
+    collectSolid(solid) {
+      captured = solid.geometry;
+    },
+    loadAsset() {
+      throw new Error('CPU must not fetch');
+    },
+  });
+  const mesh = new T.Mesh(
+    captured,
+    new T.MeshBasicMaterial({ side: T.DoubleSide }),
+  );
+  const ray = new T.Raycaster(new T.Vector3(0, 0, 10), new T.Vector3(0, 0, -1));
+  assert.equal(ray.intersectObject(mesh).length, 0);
+  ray.ray.origin.x = 2;
+  assert(ray.intersectObject(mesh).length > 0);
+  kit.dispose();
+  mesh.material.dispose();
+  group.children.forEach((node) => {
+    node.geometry.dispose();
+    node.material.dispose();
+  });
+  assert.throws(
+    () =>
+      make({
+        assets: {
+          rock: { ...descriptor, collision: { ...encoded, indices: 'a' } },
+        },
+        collectSolid() {},
+      }),
+    /encoding|length/,
+  );
+});
 
 test('CPU collision is synchronous, transformed and limited to explicit authored faces', async () => {
   let calls = 0;

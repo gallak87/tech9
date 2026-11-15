@@ -82,7 +82,7 @@ capture.load = async (options) => {
   const rig = createCameraRig(view.camera,definition.camera,bounds);
   Object.assign(capture,{view,track,document,settings,road,environment,ship,rig});
   capture.dispose=()=>{road.dispose();environment.dispose();ship.dispose();view.dispose();};
-  capture.quality = async (quality) => {settings.quality=quality;view.apply();await view.warm();};
+  capture.quality = async (quality) => {settings.quality=quality;view.apply();environment.update?.({time:12,settings});await view.warm();};
   capture.pose = (kind) => {
     let station = 0;
     if(kind==='overview') {

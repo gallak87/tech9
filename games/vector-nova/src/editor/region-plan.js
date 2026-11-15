@@ -1,3 +1,5 @@
+import nacreOceanProfile from '../levels/nacre/environment/ocean-profile.json' with { type: 'json' };
+
 // A saved environment seed surveys one complete occupied watershed. Road inputs
 // reserve space; they never become scenery placements or change during planning.
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
@@ -196,6 +198,16 @@ export function createRegionPlan(doc, track = null) {
     samples = routeSurvey(track, stable),
     reserve = reservations(samples),
     basis = projection(samples);
+  const nacreOcean =
+    doc.biome === 'nacre' && doc.environment?.layoutVersion >= 4;
+  const waveBound = nacreOceanProfile.waves.reduce(
+    (height, wave) => height + wave.amplitude * (1 + wave.sharpness),
+    0,
+  );
+  // One datum for visible waves, seabed, terrain contacts and road foundations.
+  const oceanWaterY = nacreOcean
+    ? Math.min(sea, ...samples.map((p) => p.minY - waveBound - 12))
+    : null;
   if (stable) {
     const angle =
       Math.round(Math.atan2(basis.sin, basis.cos) / (Math.PI / 12)) *
@@ -289,8 +301,9 @@ export function createRegionPlan(doc, track = null) {
     Math.sin(u / 1100 + phase) * 240 +
     Math.sin(u / 2700 + phase2) * 310;
   const basins = [];
-  const baseWaterAt = (x, z) => Math.max(sea, datum(x, z) - 24);
+  const baseWaterAt = (x, z) => oceanWaterY ?? Math.max(sea, datum(x, z) - 24);
   const waterAt = (x, z) => {
+    if (nacreOcean) return oceanWaterY;
     let y = baseWaterAt(x, z);
     for (const basin of basins) {
       const distance = Math.hypot(
@@ -353,6 +366,22 @@ export function createRegionPlan(doc, track = null) {
     const { u, v } = project(x, z),
       water = waterAt(x, z),
       bank = Math.abs(v - riverV(u)) - channelWidth;
+    if (nacreOcean) {
+      // Ocean shelves, not the occupied watershed used by earlier layouts.
+      // This survey also owns road foundations and the exact collision floor.
+      const seabed =
+        oceanWaterY - waveBound - 78 + (noise(x, z, 690, seed) - 0.5) * 32;
+      const ridge = Math.max(
+        0,
+        (noise(x, z, 1100, seed ^ 0x4e414352) - 0.53) / 0.47,
+      );
+      const y =
+        seabed +
+        ridge * ridge * 190 +
+        (noise(x, z, 170, seed ^ 0x18b2) - 0.5) * 12;
+      const edge = Math.min(x - minX, maxX - x, z - minZ, maxZ - z);
+      return lerp(oceanWaterY - waveBound - 40, y, smooth(edge / 330));
+    }
     if (limestone) {
       // A connected faulted limestone landscape. Route reservations below
       // still clip every terrain triangle out of driving and flight space.
@@ -685,12 +714,14 @@ export function createRegionPlan(doc, track = null) {
         landCells++;
     }
   bounds.max.y = Math.max(...heights) + 130;
+  if (nacreOcean) bounds.min.y = Math.min(...heights);
   return {
     version: stable ? 2 : 1,
     seed,
     preset,
     bounds,
     seaLevel: sea,
+    ...(nacreOcean ? { oceanWaterY } : {}),
     terrain: { nx, nz, dx, dz, minX, minZ, heights, waterHeights },
     basins,
     canals,

@@ -1,0 +1,18 @@
+{
+  "monolith": {
+    "url": "assets/levels/worldspire/worldspire-environment.glb",
+    "bounds": [
+      [-1543.801758, -610, -1430.356812],
+      [1915.829834, 8042.21582, 2407.765625]
+    ],
+    "visualBounds": [
+      [-1543.801758, -610, -1430.356812],
+      [1915.829834, 8042.21582, 2407.765625]
+    ],
+    "triangles": [],
+    "visualTriangles": 219533,
+    "proxy": "none",
+    "sourceHash": "611c3d3fa59d3147b1d1e75d7371a02c44533450b7fa54e6ea4acfa7b09562ad",
+    "castShadow": false
+  }
+}

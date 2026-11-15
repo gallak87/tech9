@@ -688,7 +688,7 @@ export function createEditorEnvironment(
     previous = null,
   } = {},
 ) {
-  if (doc.biome !== 'nightweir')
+  if (doc.biome !== 'nightweir' || doc.environment.layoutVersion >= 4)
     return createBiomeEnvironment(doc, track, {
       renderer,
       collectSolid,
@@ -1325,6 +1325,9 @@ export function createEditorWorld(
       track?.bounds ??
       new T.Box3(new T.Vector3(-800, -60, -800), new T.Vector3(800, 100, 800)),
     ready: Promise.all([road?.ready, environment.ready]),
+    update(frame) {
+      environment.update?.(frame);
+    },
     setReflection(texture) {
       road?.setReflection(texture);
       environment.setReflection(texture);

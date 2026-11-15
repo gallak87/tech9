@@ -1,0 +1,16 @@
+{
+  "method": "Byte-identical runtime packaging of registered Worldkit industrial surfaces. The editor borrows the production shader binder; source assets and dependencies are unchanged.",
+  "rights": "Original generated steel/enamel surfaces retain their Worldkit industrial provenance.",
+  "assets": [
+    {
+      "source": "worldkit/modules/industrial/assets/rolled-steel-v1.png",
+      "runtime": "assets/editor/surfaces/rolled-steel-v1.png",
+      "sha256": "988d5de473535f8efbb4ff16aa088e1b7ac45645217a6c81c89ff493feb90bd1"
+    },
+    {
+      "source": "worldkit/modules/industrial/assets/worn-enamel-v1.png",
+      "runtime": "assets/editor/surfaces/worn-enamel-v1.png",
+      "sha256": "19b36d302779b2041ee8780b376f1e82214d2f7f537612ff8a1e7af3b6567a63"
+    }
+  ]
+}

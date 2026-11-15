@@ -1,4 +1,5 @@
 import test from 'node:test';
+import { mockBundledEditorAssets } from './test-assets.js';
 import assert from 'node:assert/strict';
 import * as T from 'three';
 import { generateDocument, applySectionShape, addJump } from './document.js';
@@ -45,7 +46,8 @@ test('compiled custom circuits preserve physical metres, bank continuity and sea
   }
 });
 
-test('rendered deck normals, exact pier triangles and collision owner share the compiled geometry', async () => {
+test('rendered deck normals, exact pier triangles and collision owner share the compiled geometry', async (t) => {
+  mockBundledEditorAssets(t);
   const doc = plainDocument({ density: 0 }),
     track = createEditorTrack(doc);
   const collected = [];

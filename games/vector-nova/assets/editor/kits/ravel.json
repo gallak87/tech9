@@ -1,0 +1,27 @@
+{
+  "cutter": {
+    "file": "anchor-fleet.glb",
+    "node": "anchor_cutter",
+    "proxy": "exact"
+  },
+  "carrier": {
+    "file": "anchor-fleet.glb",
+    "node": "loom_carrier",
+    "proxy": "none"
+  },
+  "spindle": {
+    "file": "anchor-fleet.glb",
+    "node": "tension_spindle",
+    "proxy": "none"
+  },
+  "gallery": {
+    "file": "tension-gallery.glb",
+    "node": "tension_gallery_segment",
+    "proxy": "exact"
+  },
+  "crown": {
+    "file": "tension-gallery.glb",
+    "node": "sail_load_crown",
+    "proxy": "exact"
+  }
+}

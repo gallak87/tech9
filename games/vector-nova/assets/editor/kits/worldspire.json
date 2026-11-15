@@ -1,0 +1,7 @@
+{
+  "monolith": {
+    "file": "worldspire-environment.glb",
+    "proxy": "none",
+    "castShadow": false
+  }
+}

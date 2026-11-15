@@ -1,0 +1,34 @@
+{
+  "creator": "VECTOR//NOVA original canonical Nightweir builders, exported in Blender",
+  "source": "assets/levels/nightweir/build_assets.py",
+  "sourceHash": "9cdca0e1dfbf855f9cfcfb01288673e229aa6e12385cb6b17db9eec869bd0a7d",
+  "exporter": "assets/editor/nightweir/build-kit.py",
+  "exporterHash": "e298f773484127207a9d55ca872033a2b5c4cee9dc3881b061b2e1d49eb45d3c",
+  "editable": "assets/editor/nightweir/nightweir-editor-kit.blend",
+  "editableHash": "3ec16369eb866b17320ada6ac4b353f1027bbab2dfbef915b9e6c784aeb4d82b",
+  "runtime": "assets/editor/nightweir/nightweir-editor-kit.glb",
+  "runtimeHash": "6e6124e7c2e63dcdc47636aa6707ad81cf1db643f3bc07762d4e284ce82d2875",
+  "rights": "Project-owned geometry; registered Nightweir finish images retain their original provenance.",
+  "prototypes": {
+    "residential-court": {
+      "triangles": 2832,
+      "builder": "inhabited_bays"
+    },
+    "brick-pressureworks": {
+      "triangles": 1700,
+      "builder": "pressure_gallery"
+    },
+    "generating-house": {
+      "triangles": 3364,
+      "builder": "generating_hall"
+    },
+    "municipal-wing": {
+      "triangles": 3576,
+      "builder": "urban_wing"
+    },
+    "public-gallery": {
+      "triangles": 940,
+      "builder": "occupied_gallery"
+    }
+  }
+}

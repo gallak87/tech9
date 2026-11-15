@@ -1,7 +1,25 @@
 import * as T from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-const defaultLoadAsset = (url) => new GLTFLoader().loadAsync(url);
+export async function loadEditorStaticAsset(url) {
+  // Sniff compressed exports rather than relying on the host's MIME/encoding
+  // headers; several project-owned city kits intentionally ship as .glb.gz.
+  if (!url.endsWith('.gz')) return new GLTFLoader().loadAsync(url);
+  const response = await fetch(url);
+  if (!response.ok) throw new Error('Editor asset could not load: ' + url);
+  let bytes = new Uint8Array(await response.arrayBuffer());
+  if (bytes[0] === 0x1f && bytes[1] === 0x8b) {
+    const stream = new Blob([bytes])
+      .stream()
+      .pipeThrough(new DecompressionStream('gzip'));
+    bytes = new Uint8Array(await new Response(stream).arrayBuffer());
+  }
+  return new GLTFLoader().parseAsync(
+    bytes.buffer,
+    url.slice(0, url.lastIndexOf('/') + 1),
+  );
+}
+const defaultLoadAsset = loadEditorStaticAsset;
 const defaultLoadTexture = (url) => new T.TextureLoader().loadAsync(url);
 const canceled = () =>
   new DOMException('Editor asset kit canceled', 'AbortError');
@@ -114,6 +132,112 @@ export function assetKitBounds(asset, matrix = new T.Matrix4()) {
   return localBounds(asset).applyMatrix4(matrix);
 }
 
+function selectedSource(scene, asset, parsed) {
+  if (!asset.node) return scene;
+  const matches = [];
+  scene.traverse((node) => {
+    // GLTFLoader sanitizes punctuation/whitespace for animation bindings. The
+    // trusted recipe names the authored glTF node, not that runtime alias.
+    const index = parsed.parser?.associations?.get(node)?.nodes;
+    const original =
+      index === undefined ? null : parsed.parser.json.nodes[index]?.name;
+    if ((original ?? node.name) === asset.node) matches.push(node);
+  });
+  if (matches.length !== 1)
+    throw new Error(
+      'Editor asset prototype must have one exact match: ' + asset.node,
+    );
+  return matches[0];
+}
+
+const decodedCollision = new WeakMap();
+function decodedIndexed(proxy) {
+  if (!proxy.format) return proxy;
+  if (
+    proxy.format !== 'indexed-f32-v1' ||
+    !['u16', 'u32'].includes(proxy.indexType) ||
+    typeof proxy.positions !== 'string' ||
+    typeof proxy.indices !== 'string'
+  )
+    throw new TypeError('Unknown editor collision encoding');
+  if (decodedCollision.has(proxy)) return decodedCollision.get(proxy);
+  const decode = (encoded, bytes) => {
+    let text;
+    try {
+      text = atob(encoded);
+    } catch {
+      throw new TypeError('Invalid editor collision encoding');
+    }
+    if (text.length % bytes)
+      throw new TypeError('Invalid editor collision byte length');
+    const data = new Uint8Array(text.length);
+    for (let i = 0; i < text.length; i++) data[i] = text.charCodeAt(i);
+    return data.buffer;
+  };
+  const positionBytes = decode(proxy.positions, 12),
+    indexBytes = decode(proxy.indices, proxy.indexType === 'u16' ? 2 : 4);
+  const positions = new Float32Array(positionBytes),
+    indices =
+      proxy.indexType === 'u16'
+        ? new Uint16Array(indexBytes)
+        : new Uint32Array(indexBytes);
+  // Bundled runtimes are little-endian, matching the baked glTF representation.
+  const value = { positions, indices };
+  decodedCollision.set(proxy, value);
+  return value;
+}
+function collisionGeometry(asset) {
+  const proxy = asset.collision;
+  if (proxy) {
+    const { positions, indices } = decodedIndexed(proxy);
+    const array = (value) => Array.isArray(value) || ArrayBuffer.isView(value);
+    if (
+      !array(positions) ||
+      positions.length % 3 ||
+      positions.some((n) => !Number.isFinite(n)) ||
+      !array(indices) ||
+      indices.length % 3 ||
+      indices.some(
+        (n) => !Number.isInteger(n) || n < 0 || n >= positions.length / 3,
+      )
+    )
+      throw new TypeError('Editor indexed collision proxy is invalid');
+    if (!indices.length) return null;
+    const geometry = new T.BufferGeometry();
+    geometry.setAttribute(
+      'position',
+      new T.Float32BufferAttribute(positions, 3),
+    );
+    geometry.setIndex(
+      new T.BufferAttribute(
+        indices instanceof Uint16Array || indices instanceof Uint32Array
+          ? indices.slice()
+          : positions.length / 3 > 65535
+            ? new Uint32Array(indices)
+            : new Uint16Array(indices),
+        1,
+      ),
+    );
+    return geometry;
+  }
+  const faces = asset.triangles;
+  if (!faces?.length) return null;
+  if (
+    faces.some(
+      (face) =>
+        face.length !== 3 ||
+        face.some((p) => p.length !== 3 || p.some((n) => !Number.isFinite(n))),
+    )
+  )
+    throw new TypeError('Editor collision proxy needs finite triangle faces');
+  const geometry = new T.BufferGeometry();
+  geometry.setAttribute(
+    'position',
+    new T.Float32BufferAttribute(faces.flat(2), 3),
+  );
+  return geometry;
+}
+
 function cloneTexture(source) {
   const texture = source.clone();
   // Texture.clone shares Source, whose mutable data is changed by Low quality.
@@ -133,6 +257,8 @@ export function createAssetKit({
   textures: textureURLs = {},
   configureTexture = null,
   finishMaterial = null,
+  prepareGeometry = null,
+  preparationReady = null,
   collectSolid = null,
   loadAsset = defaultLoadAsset,
   loadTexture = defaultLoadTexture,
@@ -158,7 +284,8 @@ export function createAssetKit({
     throw new TypeError('Invalid editor asset tile size');
   const materials = new Set(),
     ownedTextures = new Set(),
-    proxyGeometries = new Set();
+    proxyGeometries = new Set(),
+    transformedGeometries = new Map();
   const textureCopies = new Map(),
     leases = [],
     textures = {};
@@ -182,10 +309,12 @@ export function createAssetKit({
     materials.forEach((material) => material.dispose());
     ownedTextures.forEach((texture) => texture.dispose());
     proxyGeometries.forEach((geometry) => geometry.dispose());
+    transformedGeometries.forEach((geometry) => geometry.dispose());
     leases.splice(0).forEach((lease) => lease.release());
     materials.clear();
     ownedTextures.clear();
     proxyGeometries.clear();
+    transformedGeometries.clear();
     textureCopies.clear();
     for (const key of Object.keys(textures)) delete textures[key];
     group.clear();
@@ -216,29 +345,12 @@ export function createAssetKit({
     try {
       for (const record of records) {
         if (record.solid === false) continue;
-        const faces = assets[record.asset].triangles;
-        if (!faces?.length) continue;
         if (!proxies.has(record.asset)) {
-          if (
-            faces.some(
-              (face) =>
-                face.length !== 3 ||
-                face.some(
-                  (p) => p.length !== 3 || p.some((n) => !Number.isFinite(n)),
-                ),
-            )
-          )
-            throw new TypeError(
-              'Editor collision proxy needs finite triangle faces',
-            );
-          const geometry = new T.BufferGeometry();
-          geometry.setAttribute(
-            'position',
-            new T.Float32BufferAttribute(faces.flat(2), 3),
-          );
-          proxyGeometries.add(geometry);
+          const geometry = collisionGeometry(assets[record.asset]);
+          if (geometry) proxyGeometries.add(geometry);
           proxies.set(record.asset, geometry);
         }
+        if (!proxies.get(record.asset)) continue;
         collectSolid({
           name: `${name} / ${record.id}`,
           geometry: proxies.get(record.asset),
@@ -275,6 +387,10 @@ export function createAssetKit({
       ...Object.values(textureURLs).map((url) =>
         acquire('texture:' + url, () => loadTexture(url)),
       ),
+      // Finish maps belong to this owner, while parsed source loads can be
+      // shared with a replacement owner. Never put this gate in a cache
+      // factory: canceling the first owner would then cancel its successors.
+      Promise.resolve(preparationReady),
     ];
     const loaded = await Promise.allSettled(jobs);
     const failure = loaded.find((result) => result.status === 'rejected');
@@ -288,12 +404,16 @@ export function createAssetKit({
         configureTexture?.(textures[key], key);
       });
       for (const [index, id] of ids.entries()) {
-        const source = loaded[index].value.scene;
-        if (!source?.isObject3D)
+        const scene = loaded[index].value.scene;
+        if (!scene?.isObject3D)
           throw new TypeError('Editor asset has no scene: ' + id);
-        source.updateMatrixWorld(true);
+        scene.updateMatrixWorld(true);
+        const source = selectedSource(scene, assets[id], loaded[index].value);
         const expected = localBounds(assets[id]).expandByScalar(0.02);
-        const actual = new T.Box3().setFromObject(source);
+        // Rotating each child's local AABB can invent empty extreme corners.
+        // The bake reserves actual transformed vertices, so validate the same
+        // geometry here rather than an unrelated expanded box approximation.
+        const actual = new T.Box3().setFromObject(source, true);
         if (!expected.containsBox(actual))
           throw new Error('Editor asset exceeds its baked bounds: ' + id);
         const copies = new Map(),
@@ -326,12 +446,59 @@ export function createAssetKit({
           const material = Array.isArray(node.material)
             ? node.material.map(copyMaterial)
             : copyMaterial(node.material);
+          let geometry = node.geometry,
+            sourceMatrix = node.matrixWorld;
+          if (sourceMatrix.determinant() < 0 || prepareGeometry) {
+            // InstancedMesh cannot reliably render a reflected source matrix.
+            // Bake only that node into an owned geometry and retain front-face
+            // winding, normals, UVs and custom attributes. Cached art stays raw.
+            const key = id + ':' + node.uuid;
+            const reflected = sourceMatrix.determinant() < 0;
+            if (!transformedGeometries.has(key)) {
+              const baked = geometry.clone();
+              transformedGeometries.set(key, baked);
+              if (reflected) {
+                baked.applyMatrix4(sourceMatrix);
+                const indices = baked.index
+                  ? Array.from(baked.index.array)
+                  : Array.from(
+                      { length: baked.getAttribute('position').count },
+                      (_, i) => i,
+                    );
+                for (let i = 0; i < indices.length; i += 3)
+                  [indices[i + 1], indices[i + 2]] = [
+                    indices[i + 2],
+                    indices[i + 1],
+                  ];
+                baked.setIndex(indices);
+              }
+              if (prepareGeometry) {
+                const positions = baked.getAttribute('position').array.slice(),
+                  indices = baked.index?.array.slice();
+                prepareGeometry(baked, id, node);
+                const next = baked.getAttribute('position')?.array,
+                  nextIndex = baked.index?.array;
+                if (
+                  !next ||
+                  positions.length !== next.length ||
+                  positions.some((value, i) => value !== next[i]) ||
+                  Boolean(indices) !== Boolean(nextIndex) ||
+                  (indices &&
+                    (indices.length !== nextIndex.length ||
+                      indices.some((value, i) => value !== nextIndex[i])))
+                )
+                  throw new Error(
+                    'Editor geometry finish cannot change physical positions or topology',
+                  );
+              }
+              baked.computeBoundingBox();
+              baked.computeBoundingSphere();
+            }
+            geometry = transformedGeometries.get(key);
+            if (reflected) sourceMatrix = new T.Matrix4();
+          }
           for (const [tile, batch] of batches) {
-            const mesh = new T.InstancedMesh(
-              node.geometry,
-              material,
-              batch.length,
-            );
+            const mesh = new T.InstancedMesh(geometry, material, batch.length);
             mesh.name = `${name} / ${id} / ${node.name} / ${tile}`;
             mesh.castShadow = assets[id].castShadow !== false;
             mesh.receiveShadow = true;
@@ -340,10 +507,7 @@ export function createAssetKit({
             batch.forEach((record, i) =>
               mesh.setMatrixAt(
                 i,
-                new T.Matrix4().multiplyMatrices(
-                  record.matrix,
-                  node.matrixWorld,
-                ),
+                new T.Matrix4().multiplyMatrices(record.matrix, sourceMatrix),
               ),
             );
             mesh.computeBoundingBox();

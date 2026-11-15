@@ -140,6 +140,7 @@ test('terrain-free biomes use founded floating geometry and atomic actual-kit co
 });
 test('long whole-course biome builds remain deterministic with collision collected from the same visible geometry', () => {
   const long = generateDocument({ seed: 7, length: 20000, crossovers: 1 });
+  long.environment.layoutVersion = 2;
   for (const id of [
     'vesper-forest',
     'glasswake',

@@ -8,21 +8,21 @@ The editor includes direct road editing, seeded Circuit/Downhill courses through
 - **Focused authoring UI:** one compact preview strip; camera controls stay visible, Road tools stay out of Environment, and common point/jump actions precede precision controls. Creation starts with a style and length; File contains track management.
 - **Independent seeds:** road generation preserves the applied environment; environment regeneration preserves authored road points, roll/bank, jump anchors and pickups. Pending world controls remain separate from the applied saved course.
 - **Nightweir regions:** seeded terrain, connected shore/basins/canals, neighborhoods, near-road wards, industrial yards, parks and founded landmarks. Automatic infrastructure reserves road, camera and flight corridors.
-- **Whole-course biomes:** all 17 base world families have curated characters, distinct generated scenery/road kits and registered backdrop/lighting. Campaign routes and active hazards remain separate. Mode variants reuse their base biome.
-- **Compatibility:** legacy missing environment data inherits its old seed and roadside layout; new courses use scenery layout 3, while saved layouts 0/1/2 remain supported until explicit Environment Apply. Loading never regenerates authored road points.
+- **Whole-course biomes:** all 17 base world families have curated characters, production scenery/road kits and registered backdrop/lighting. Static GLBs, canonical procedural assemblies and owned material finishes adapt to seeded custom roads; campaign routes and active hazards remain separate. Mode variants reuse their base biome.
+- **Compatibility:** legacy missing environment data inherits its old seed and roadside layout; new courses use production scenery layout 4, while saved layouts 0/1/2/3 remain supported until explicit Environment Apply. Loading never regenerates authored road points.
 - **Jump editing and local testing:** sampled size proposals, reversible resize, stock point/jump starts, immediate retry and retained actual landing/miss feedback.
 - **Draft recovery:** separate applied-draft checkpoints, native Continue/Start fresh, unchanged explicit library saves.
 - **Stable regional editing:** layout 2 preserves earlier layouts, clips Nightweir courts to terrain/shore contours and reuses unchanged distant buffers after full CPU clearance checks.
 - **Road-finish pilot:** anchored Nightweir/Vesper sections, passive join bands, continuous physical decks and shared Undo/save behavior. Environment mixing remains below.
 
-## Production scenery rollout
+## Production scenery foundation and next polish
 
-- Shatterline is the first production-asset pilot: original fractured limestone and accelerator/service GLBs, connected terrain, owned production materials and synchronous baked contact proxies. Judge representative racing views before extending this composition approach to other biomes.
-- Replace prominent near-road planar cuts with coherent authored geological assemblies; further heightfield slope/noise tuning alone has not resolved those forms. Give Shatterline road edges and supports a stronger mass-driver construction language. Keep this art-direction gate before adapting the other 16 families.
-- Add distance/quality-specific simplification for production scenery, especially long Downhill courses; current Low reduces texture/postprocessing budgets while retaining the same static kit geometry.
-- Reuse each biome’s existing art as coherent assemblies. Route-specific campaign placement factories cannot be copied onto arbitrary editor roads. Water, suspended worlds, large habitat sectors and moving hazards need separate adapters.
-- Keep curated visual presets as the primary environment workflow; retain the road/environment split and independent seeds. Avoid exposing individual plants/buildings as the default authoring task.
-- Capture actual generated preset thumbnails and refresh them when their scenery changes.
+- Production kits now cover all 17 families. Shatterline retains its layout-3 adapter; layout 4 introduces the other 16 without changing saved layouts 0–3 or campaign placement. Nightweir has a retained original-builder Blender editor kit; Nacre has ocean seabed, reef and observatory composition; forest and industrial maps retain their existing provenance.
+- Keep curated visual presets and independent environment seeds as the primary workflow. Coherent complete assemblies are a useful starting point; further terrain and construction polish can be incremental without blocking the other families.
+- Refine prominent terrain cuts with authored geological assemblies and richer road-edge/support treatments where they improve racing views. Regional terrain is still a generated foundation, not a replacement for authored campaign composition.
+- Add distance/quality-specific simplification and culling for production scenery, especially long Downhill courses. Low currently reduces texture/postprocessing budgets while retaining static kit geometry. Contact is already bounded separately: selected structures use exact open geometry, forests use trunk proxies, and remaining art is explicitly decorative with complete visual clearance.
+- Extend connected water, suspended districts and large habitat sectors through family adapters; active/moving hazards still need their own simulation contracts.
+- Refresh actual generated preset thumbnails when their scenery changes. Keep representative racing views alongside overviews when judging scale, density and material readability.
 
 The simple-first approach is consistent with [Nadeo's Trackmania design discussion](https://news.ubisoft.com/en-ca/article/2TT6868Gzx9cZpbqOVXCJn/trackmania-nations-remake-revealed), which describes recovering simplicity as map-making gained depth. Our adaptation is a small useful starting choice with optional precision, rather than copying its block model or artwork.
 
@@ -94,4 +94,4 @@ Each step is complete when its course can be edited in the shared preview, saved
 - Additional road pieces, branches, tubes and moving road, each with its own collision and race-progress contract.
 - Custom Quick Race/Time Trial competition and separate custom-course records.
 - Sharing, Steam Workshop and Steam Cloud, including version compatibility and asset availability checks.
-- Update the Electron IPC document validator for the expanded whole-course biome/environment schema, scenery layout 3 and generator version 4, then complete native Save/Import/Export and Steam release validation after browser authoring and gameplay are stable.
+- Update the Electron IPC document validator for the expanded whole-course biome/environment schema, scenery layout 4 and generator version 4, then complete native Save/Import/Export and Steam release validation after browser authoring and gameplay are stable.

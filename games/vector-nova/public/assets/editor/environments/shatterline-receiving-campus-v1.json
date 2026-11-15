@@ -20,11 +20,11 @@
       "density": 0.88,
       "waterLevel": -50
     },
-    "layoutVersion": 3,
+    "layoutVersion": 4,
     "framing": "selected first road point, then two zoom-out steps"
   },
-  "documentFingerprint": "e0bfa3abba114a0c192813ad4bfe3f209b8e8788819bb83daed0afcf19a9014f",
-  "documentIdentity": "custom-shatterline-v7-591c50da",
+  "documentFingerprint": "5942efd0fc7682fb94df56e17126993135926e142c4cc9e42c7d2f3df7ac9f86",
+  "documentIdentity": "custom-shatterline-v8-82868d1b",
   "roadFingerprint": "2b7294368ecd315c38b6188245c4ec8ba03d673a3412dae8e67b3ddf7e5ee9c2",
   "camera": {
     "mode": "orbit",
@@ -48,7 +48,7 @@
     "sha256": "e3482c3d8570c62bf8b2d052e13747fa548e1802ffa4ca9e4818172d147b24fb"
   },
   "source": {
-    "revision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+    "revision": "ad455bfec8f354619e197ca0b47e71e1d0fb6c6d",
     "dirty": true
   }
 }

@@ -20,11 +20,11 @@
       "density": 0.8,
       "waterLevel": -50
     },
-    "layoutVersion": 3,
+    "layoutVersion": 4,
     "framing": "selected first road point, then two zoom-out steps"
   },
-  "documentFingerprint": "f1eba347b682fb83b8c1410dd5609a91b387e1ed4cef6a91c54142e4a0715b99",
-  "documentIdentity": "custom-cindercoil-v7-1dc323b6",
+  "documentFingerprint": "6ce77d93c56fb806d25788dab0051f0e1732dc812c508d75daebb49c44a55caf",
+  "documentIdentity": "custom-cindercoil-v8-09635fe3",
   "roadFingerprint": "2b7294368ecd315c38b6188245c4ec8ba03d673a3412dae8e67b3ddf7e5ee9c2",
   "camera": {
     "mode": "orbit",
@@ -45,10 +45,10 @@
     "height": 400,
     "format": "webp",
     "quality": 0.86,
-    "sha256": "260d21b4fa9497f0fd1e159ecd68722de5cf156e83a3e80d16326d22dd7af891"
+    "sha256": "5efe05fe9d619cd39ae43311bcac0fbbebad3daf9fbbb5970ae29d9350154954"
   },
   "source": {
-    "revision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+    "revision": "ad455bfec8f354619e197ca0b47e71e1d0fb6c6d",
     "dirty": true
   }
 }

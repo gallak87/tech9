@@ -1,0 +1,22 @@
+{
+  "sunshield": {
+    "file": "thermal-observatory.glb",
+    "node": "Sunshield",
+    "proxy": "exact"
+  },
+  "radiatorfan": {
+    "file": "thermal-observatory.glb",
+    "node": "RadiatorFan",
+    "proxy": "exact"
+  },
+  "instrumenttower": {
+    "file": "thermal-observatory.glb",
+    "node": "InstrumentTower",
+    "proxy": "exact"
+  },
+  "servicegantry": {
+    "file": "thermal-observatory.glb",
+    "node": "ServiceGantry",
+    "proxy": "exact"
+  }
+}

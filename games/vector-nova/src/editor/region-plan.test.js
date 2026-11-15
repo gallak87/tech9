@@ -6,10 +6,50 @@ import { createEditorTrack } from './track.js';
 import { createRegionPlan, REGION_LIMITS } from './region-plan.js';
 import { buildRegionEnvironment } from './region-environment.js';
 import { createRouteClearance } from '../environment/placement.js';
+import { NACRE_WAVE_HEIGHT_BOUND } from '../levels/nacre/environment/ocean-waves.js';
 const fixture = generateDocument({ seed: 42, length: 20000, crossovers: 1 });
 fixture.environment = { version: 1, seed: 42, layoutVersion: 1 };
 const track = createEditorTrack(fixture);
 const plan = createRegionPlan(fixture, track);
+
+test('Nacre ocean and seabed share a safe datum without exposing rectangular survey edges', () => {
+  const doc = generateDocument({
+    biome: 'nacre',
+    seed: 42017,
+    length: 4000,
+    environmentSeed: 90210,
+  });
+  const ocean = createRegionPlan(doc, createEditorTrack(doc));
+  const { nx, nz, heights, waterHeights } = ocean.terrain;
+  assert(Number.isFinite(ocean.oceanWaterY));
+  assert(
+    ocean.oceanWaterY + NACRE_WAVE_HEIGHT_BOUND <=
+      Math.min(...ocean.roadSamples.map((p) => p.minY)) - 11.99,
+  );
+  for (let z = 0; z <= nz; z++)
+    for (let x = 0; x <= nx; x++) {
+      const i = z * (nx + 1) + x;
+      assert(Math.abs(waterHeights[i] - ocean.oceanWaterY) < 1e-4);
+      if (x === 0 || z === 0 || x === nx || z === nz)
+        assert(
+          heights[i] <= ocean.oceanWaterY - NACRE_WAVE_HEIGHT_BOUND - 39.99,
+          'the survey edge stays below every wave trough',
+        );
+    }
+  assert(
+    Math.max(...heights) - Math.min(...heights) > 60,
+    'sparse underwater ridges retain relief',
+  );
+  const historical = createRegionPlan(
+    { ...doc, environment: { ...doc.environment, layoutVersion: 3 } },
+    createEditorTrack(doc),
+  );
+  assert.equal(
+    historical.oceanWaterY,
+    undefined,
+    'earlier saved Nacre worlds retain their watershed survey',
+  );
+});
 
 test('regional seed resolves a deterministic whole-course plan without editing road data', () => {
   const before = JSON.stringify(fixture),

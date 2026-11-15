@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { EDITOR_BIOMES } from './biomes.js';
 import { environmentThumbnail } from './environment-thumbnails.js';
+import { ENVIRONMENT_LAYOUT_VERSION } from './document.js';
 
 test('every visual style links its own reproducible generated-editor image', async () => {
   const root = new URL('../../', import.meta.url);
@@ -16,6 +17,11 @@ test('every visual style links its own reproducible generated-editor image', asy
       const key = `${biome.id}/${preset.id}`;
       const record = manifest.images[key];
       assert(record, key);
+      assert.equal(
+        record.layoutVersion,
+        ENVIRONMENT_LAYOUT_VERSION,
+        key + ' matches the current applied scenery',
+      );
       const url = environmentThumbnail(biome.id, preset.id);
       assert.equal(url, '/' + record.file);
       const bytes = await readFile(new URL('public/' + record.file, root));
@@ -24,6 +30,12 @@ test('every visual style links its own reproducible generated-editor image', asy
         createHash('sha256').update(bytes).digest('hex'),
         record.sha256,
       );
+      const metadata = JSON.parse(
+        await readFile(new URL('public/' + record.metadataFile, root)),
+      );
+      assert.equal(metadata.recipe.layoutVersion, ENVIRONMENT_LAYOUT_VERSION);
+      assert.equal(metadata.image.sha256, record.sha256);
+      assert.equal(metadata.documentFingerprint, record.documentFingerprint);
       assert(!images.has(record.sha256), key + ' reuses another style image');
       images.add(record.sha256);
       assert(

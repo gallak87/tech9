@@ -1,0 +1,27 @@
+{
+  "pavilion": {
+    "file": "oriel-civic-kit.glb",
+    "node": "pavilion",
+    "proxy": "exact"
+  },
+  "tower": {
+    "file": "oriel-civic-kit.glb",
+    "node": "tower",
+    "proxy": "exact"
+  },
+  "gardencourtfar": {
+    "file": "oriel-civic-kit.glb",
+    "node": "gardenCourtFar",
+    "proxy": "exact"
+  },
+  "waterfrontfar": {
+    "file": "oriel-civic-kit.glb",
+    "node": "waterfrontFar",
+    "proxy": "exact"
+  },
+  "sunbracket": {
+    "file": "oriel-civic-kit.glb",
+    "node": "sunBracket",
+    "proxy": "exact"
+  }
+}

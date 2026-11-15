@@ -1,0 +1,42 @@
+{
+  "dune": {
+    "file": "leviathan-kit.glb",
+    "node": "dune",
+    "proxy": "exact"
+  },
+  "dune-1": {
+    "file": "leviathan-kit.glb",
+    "node": "dune_1",
+    "proxy": "exact"
+  },
+  "outcrop": {
+    "file": "leviathan-kit.glb",
+    "node": "outcrop",
+    "proxy": "exact"
+  },
+  "outcrop-1": {
+    "file": "leviathan-kit.glb",
+    "node": "outcrop_1",
+    "proxy": "exact"
+  },
+  "rib": {
+    "file": "leviathan-kit.glb",
+    "node": "rib",
+    "proxy": "exact"
+  },
+  "vertebra-1": {
+    "file": "leviathan-kit.glb",
+    "node": "vertebra_1",
+    "proxy": "exact"
+  },
+  "skull": {
+    "file": "leviathan-kit.glb",
+    "node": "skull",
+    "proxy": "none"
+  },
+  "scapula": {
+    "file": "leviathan-kit.glb",
+    "node": "scapula",
+    "proxy": "none"
+  }
+}

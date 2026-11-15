@@ -115,7 +115,7 @@ test('old scenery stays at its saved layout until an explicit environment upgrad
   const loaded = validateDocument(JSON.parse(JSON.stringify(old)));
   assert.deepEqual(loaded, old);
   assert.match(documentIdentity(loaded), /^custom-shatterline-v6-/);
-  assert.match(documentIdentity(current), /^custom-shatterline-v7-/);
+  assert.match(documentIdentity(current), /^custom-shatterline-v8-/);
   assert.deepEqual(loaded.points, current.points);
   const track = createEditorTrack(current);
   assert.notDeepEqual(

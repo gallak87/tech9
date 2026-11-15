@@ -1,0 +1,22 @@
+{
+  "terrace": {
+    "file": "island-terrace.glb",
+    "proxy": "exact"
+  },
+  "shard": {
+    "file": "island-shard.glb",
+    "proxy": "exact"
+  },
+  "abbey": {
+    "file": "abbey-quarter.glb",
+    "proxy": "none"
+  },
+  "needle": {
+    "file": "cloudspire-needle.glb",
+    "proxy": "none"
+  },
+  "halo": {
+    "file": "broken-halo.glb",
+    "proxy": "exact"
+  }
+}

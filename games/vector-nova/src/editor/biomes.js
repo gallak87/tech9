@@ -464,14 +464,14 @@ export const EDITOR_BIOMES = freeze([
     [
       preset(
         'mineral-spires-v1',
-        'Mineral spires',
-        'Rooted mineral towers, folded ridges and high pale terraces.',
+        'Mineral spire',
+        'One immense mineral spire beyond folded ridges and pale terraces.',
         0.8,
       ),
       preset(
         'cloud-ridges-v1',
         'Cloud ridges',
-        'Widely spaced spires and quiet elevated mineral plateaus.',
+        'A distant mineral spire beyond quiet elevated plateaus.',
         0.66,
       ),
     ],

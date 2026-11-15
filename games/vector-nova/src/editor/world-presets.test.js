@@ -4,7 +4,7 @@ import { generateDocument, createDocument } from './document.js';
 import { createEditorTrack } from './track.js';
 import { createEditorEnvironment, createEditorRoad } from './nightweir.js';
 
-test('world presets resolve deterministic, distinct coherent assembly mixes, including a populated blank draft', () => {
+test('saved legacy Nightweir presets retain their deterministic assembly mixes, including a populated blank draft', () => {
   const results = {};
   for (const sceneryPreset of ['waterfront', 'industrial', 'reclaimed']) {
     const doc = generateDocument({
@@ -13,6 +13,7 @@ test('world presets resolve deterministic, distinct coherent assembly mixes, inc
       seedJumps: false,
       sceneryPreset,
       density: 0.85,
+      environment: { version: 1, seed: 7, layoutVersion: 3 },
     });
     const track = createEditorTrack(doc),
       a = createEditorEnvironment(doc, track),
@@ -37,7 +38,10 @@ test('world presets resolve deterministic, distinct coherent assembly mixes, inc
       results.reclaimed.building + results.reclaimed.pump,
   );
   assert.ok(results.waterfront.building > results.waterfront.pump);
-  const blank = createDocument({ blank: true }),
+  const blank = createDocument({
+      blank: true,
+      environment: { version: 1, seed: 7, layoutVersion: 3 },
+    }),
     environment = createEditorEnvironment(blank, null);
   try {
     assert.ok(

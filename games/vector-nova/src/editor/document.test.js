@@ -537,7 +537,7 @@ test('legacy environment migration preserves the old scenery seed and historical
 
 test('new constructors choose regional environment data and validate independent seed versions strictly', () => {
   assert.equal(ENVIRONMENT_VERSION, 1);
-  assert.equal(ENVIRONMENT_LAYOUT_VERSION, 3);
+  assert.equal(ENVIRONMENT_LAYOUT_VERSION, 4);
   const blank = createDocument({
     seed: 42,
     blank: true,
@@ -546,7 +546,7 @@ test('new constructors choose regional environment data and validate independent
   assert.deepEqual(blank.environment, {
     version: 1,
     seed: 9001,
-    layoutVersion: 3,
+    layoutVersion: 4,
   });
   assert.equal(blank.generator.seed, 42);
   for (const generatorVersion of [1, 2, 3]) {
@@ -558,7 +558,7 @@ test('new constructors choose regional environment data and validate independent
     assert.deepEqual(generated.environment, {
       version: 1,
       seed: 8,
-      layoutVersion: 3,
+      layoutVersion: 4,
     });
   }
   const source = structuredClone(blank);
@@ -568,7 +568,7 @@ test('new constructors choose regional environment data and validate independent
     null,
     [],
     { version: 2, seed: 1, layoutVersion: 1 },
-    { version: 1, seed: 1, layoutVersion: 4 },
+    { version: 1, seed: 1, layoutVersion: 5 },
     { version: 1, seed: 1, layoutVersion: '1' },
     ...[-1, 4294967296, 1.5, NaN, Infinity, '4'].map((seed) => ({
       version: 1,
@@ -590,7 +590,7 @@ test('new constructors choose regional environment data and validate independent
 test('regional physical identity follows resolved road/environment data rather than pending road preferences', () => {
   const source = generateDocument({ seed: 7 });
   const expected = documentIdentity(source);
-  assert.match(expected, /^custom-nightweir-v7-/);
+  assert.match(expected, /^custom-nightweir-v8-/);
   const preferences = structuredClone(source);
   Object.assign(preferences.generator, {
     seed: 1234,
@@ -619,6 +619,23 @@ test('regional physical identity follows resolved road/environment data rather t
     const edited = structuredClone(source);
     change(edited);
     assert.notEqual(documentIdentity(edited), expected);
+  }
+});
+
+test('saved layout3 records retain exact pre-rollout identities until explicit environment Apply', () => {
+  for (const [biome, identity] of [
+    ['nightweir', 'custom-nightweir-v7-dc3c0ff7'],
+    ['shatterline', 'custom-shatterline-v7-123ccb88'],
+    ['glasswake', 'custom-glasswake-v7-43f4568e'],
+  ]) {
+    const saved = generateDocument({
+      biome,
+      seed: 7,
+      environment: { version: 1, seed: 7, layoutVersion: 3 },
+    });
+    const loaded = validateDocument(JSON.parse(JSON.stringify(saved)));
+    assert.deepEqual(loaded, saved);
+    assert.equal(documentIdentity(loaded), identity);
   }
 });
 
@@ -692,7 +709,7 @@ test('all whole-course biomes validate their own presets without changing resolv
       assert.deepEqual(changed.generator, original.generator);
       assert.match(
         documentIdentity(changed),
-        new RegExp(`^custom-${biome.id}-v7-`),
+        new RegExp(`^custom-${biome.id}-v8-`),
       );
       assert.deepEqual(
         validateDocument(JSON.parse(JSON.stringify(changed))),
@@ -711,7 +728,7 @@ test('all whole-course biomes validate their own presets without changing resolv
       assert.deepEqual(generated.environment, {
         version: 1,
         seed: 91,
-        layoutVersion: 3,
+        layoutVersion: 4,
       });
       assert.equal(analyzeDocument(generated).valid, true, biome.id);
     }

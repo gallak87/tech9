@@ -20,11 +20,11 @@
       "density": 0.82,
       "waterLevel": -50
     },
-    "layoutVersion": 3,
+    "layoutVersion": 4,
     "framing": "selected first road point, then two zoom-out steps"
   },
-  "documentFingerprint": "89bc7378f76d8fb3a2684df7df949ee09b79b3bb5dcc65dd7277005f98632d66",
-  "documentIdentity": "custom-saffron-v7-ed3f08f4",
+  "documentFingerprint": "89a0391a61381c5a7ad4d81a1683cbaa3d81b8d0e5ac09c9b8ac344ba729f3ec",
+  "documentIdentity": "custom-saffron-v8-4ae0b1bf",
   "roadFingerprint": "2b7294368ecd315c38b6188245c4ec8ba03d673a3412dae8e67b3ddf7e5ee9c2",
   "camera": {
     "mode": "orbit",
@@ -45,10 +45,10 @@
     "height": 400,
     "format": "webp",
     "quality": 0.86,
-    "sha256": "727ca010d3741d7053edaeaca5a3d41737f2b25673312ce10e58d42d908426ea"
+    "sha256": "3e8215d018178901cb1a735c5994dfab8967f675c7bca08b380b279ff420c188"
   },
   "source": {
-    "revision": "4375dc4daa9abdeafdc35d379b67c75a13922557",
+    "revision": "ad455bfec8f354619e197ca0b47e71e1d0fb6c6d",
     "dirty": true
   }
 }

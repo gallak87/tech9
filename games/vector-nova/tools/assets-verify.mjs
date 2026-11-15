@@ -30,6 +30,30 @@ if (manifest.assets.some((asset) => asset.id === 'circuit-menu-previews')) {
     listed.add(`public/assets/menu/${record.file}`);
   }
 }
+// Editor style images have their own bounded, reproducible capture manifest.
+if (listed.delete('public/assets/editor/environments/')) {
+  const previews = JSON.parse(
+    await readFile(
+      resolve(root, 'assets/editor/presets-manifest.json'),
+      'utf8',
+    ),
+  );
+  for (const [id, record] of Object.entries(previews.images)) {
+    const stem = id.replace('/', '-');
+    assert.equal(
+      record.file,
+      `assets/editor/environments/${stem}.webp`,
+      `editor filename: ${id}`,
+    );
+    assert.equal(
+      record.metadataFile,
+      `assets/editor/environments/${stem}.json`,
+      `editor metadata: ${id}`,
+    );
+    listed.add('public/' + record.file);
+    listed.add('public/' + record.metadataFile);
+  }
+}
 assert.equal(
   new Set(manifest.assets.map((asset) => asset.id)).size,
   manifest.assets.length,
@@ -52,7 +76,7 @@ for (const file of runtime) {
   const path = relative(root, file);
   assert.match(
     path,
-    /^public\/assets\/(levels\/[a-z][a-z0-9-]*\/|ships\/(?:rivals\/)?[a-z][a-z0-9-]*\/|rewards\/icons-v2\/|completion\/[a-z][a-z0-9-]*-v[1-9][0-9]*\/|menu\/)/,
+    /^public\/assets\/(levels\/[a-z][a-z0-9-]*\/|editor\/(?:environments|surfaces|nightweir)\/|ships\/(?:rivals\/)?[a-z][a-z0-9-]*\/|rewards\/icons-v2\/|completion\/[a-z][a-z0-9-]*-v[1-9][0-9]*\/|menu\/)/,
     `canonical ownership: ${path}`,
   );
   assert.ok(listed.has(path), `unindexed or obsolete runtime export: ${path}`);

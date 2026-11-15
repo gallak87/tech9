@@ -1,0 +1,27 @@
+{
+  "residential-court": {
+    "file": "assets/editor/nightweir/nightweir-editor-kit.glb",
+    "node": "residential-court",
+    "proxy": "exact"
+  },
+  "brick-pressureworks": {
+    "file": "assets/editor/nightweir/nightweir-editor-kit.glb",
+    "node": "brick-pressureworks",
+    "proxy": "exact"
+  },
+  "generating-house": {
+    "file": "assets/editor/nightweir/nightweir-editor-kit.glb",
+    "node": "generating-house",
+    "proxy": "exact"
+  },
+  "municipal-wing": {
+    "file": "assets/editor/nightweir/nightweir-editor-kit.glb",
+    "node": "municipal-wing",
+    "proxy": "exact"
+  },
+  "public-gallery": {
+    "file": "assets/editor/nightweir/nightweir-editor-kit.glb",
+    "node": "public-gallery",
+    "proxy": "exact"
+  }
+}

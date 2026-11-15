@@ -1,0 +1,32 @@
+{
+  "basalt-cluster": {
+    "file": "cindercoil-hero-kit-v7.glb",
+    "node": "basalt_cluster",
+    "proxy": "exact"
+  },
+  "talus-apron": {
+    "file": "cindercoil-hero-kit-v7.glb",
+    "node": "talus_apron",
+    "proxy": "exact"
+  },
+  "fractured-ridge": {
+    "file": "cindercoil-hero-kit-v7.glb",
+    "node": "fractured_ridge",
+    "proxy": "exact"
+  },
+  "hollow-tower": {
+    "file": "cindercoil-hero-kit-v7.glb",
+    "node": "hollow_tower",
+    "proxy": "exact"
+  },
+  "broken-lava-tube": {
+    "file": "cindercoil-hero-kit-v7.glb",
+    "node": "broken_lava_tube",
+    "proxy": "exact"
+  },
+  "ash-pocket": {
+    "file": "cindercoil-hero-kit-v7.glb",
+    "node": "ash_pocket",
+    "proxy": "exact"
+  }
+}

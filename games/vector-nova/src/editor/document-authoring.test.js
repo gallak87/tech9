@@ -6,6 +6,8 @@ import {
   validateDocument,
   analyzeDocument,
   addJump,
+  setEnvironmentSeed,
+  documentIdentity,
 } from './document.js';
 import { createEditorTrack } from './track.js';
 import { predictEditorJumpTrajectory } from './jumps.js';
@@ -119,4 +121,46 @@ test('authored courses beyond 25 km remain physically gated with a clear length 
   assert.equal(analysis.valid, false);
   assert.match(analysis.errors.join(' '), /25,000 m/);
   assert.equal(analysis.primaryIssue.kind, 'length');
+});
+
+test('environment seed regeneration upgrades only environment data and preserves authored road features', () => {
+  const source = generateDocument({ seed: 7, length: 5000 });
+  source.pickups.devices.push({
+    id: 'pickup-preserved',
+    type: 'vector',
+    at: 0.1,
+    lane: 0,
+  });
+  source.props.push({
+    id: 'legacy-pump',
+    type: 'pump',
+    distance: 0.2,
+    lateral: 300,
+    scale: 1,
+    rotation: 0,
+  });
+  source.environment.layoutVersion = 0;
+  const before = structuredClone(source);
+  const regenerated = setEnvironmentSeed(source, 9001);
+  assert.deepEqual(source, before);
+  assert.deepEqual(regenerated.environment, {
+    version: 1,
+    seed: 9001,
+    layoutVersion: 1,
+  });
+  const oldRoad = { ...before };
+  const newRoad = { ...regenerated };
+  delete oldRoad.environment;
+  delete newRoad.environment;
+  assert.deepEqual(newRoad, oldRoad);
+  assert.notEqual(documentIdentity(regenerated), documentIdentity(source));
+  assert.equal(regenerated.generator.seed, source.generator.seed);
+  regenerated.points[0].x += 1;
+  assert.deepEqual(
+    source,
+    before,
+    'regeneration result does not borrow mutable road arrays',
+  );
+  assert.throws(() => setEnvironmentSeed(source, -1), /Environment seed/);
+  assert.throws(() => setEnvironmentSeed(source, 2.5), /integer/);
 });

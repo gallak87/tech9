@@ -24,6 +24,8 @@ import { createEditorTrack } from './track.js';
 import { predictEditorJumpTrajectory } from './jumps.js';
 import { getShip } from '../ships/catalog.js';
 import { WORLD_PRESETS } from './world-presets.js';
+import { ROAD_PRESETS, roadPresetOptions } from './road-presets.js';
+import { EDITOR_BIOMES, editorBiome } from './biomes.js';
 import { findNextSuitableJump } from './jump-placement.js';
 import { canSpreadRoad, spreadRoad } from './road-room.js';
 import { EDITOR_TOOLS } from './tools.js';
@@ -52,7 +54,7 @@ const AUTHOR_GROUPS = [
   ['jumps', 'Jumps'],
 ];
 const GLOBAL_GROUPS = [
-  ['generate', 'Generate track'],
+  ['generate', 'Generate road'],
   ['world', 'World'],
   ['pickups', 'Pickups'],
   ['library', 'My tracks'],
@@ -109,6 +111,20 @@ export function createTrackEditor(
   let tab = 'route';
   let authorGroup = '';
   let globalGroup = '';
+  let context = 'road';
+  let environmentKey = '';
+  let environmentDraft;
+  function syncEnvironmentDraft() {
+    const key = JSON.stringify([doc.biome, doc.environment, doc.settings]);
+    if (key === environmentKey) return;
+    environmentKey = key;
+    environmentDraft = {
+      biome: doc.biome,
+      seed: doc.environment?.seed ?? doc.generator.seed,
+      ...clone(doc.settings),
+    };
+  }
+  syncEnvironmentDraft();
   const groupScroll = new Map();
   let layoutKey = '';
   const view = 'world';
@@ -157,7 +173,7 @@ export function createTrackEditor(
       <div class="workshop-header-course">${courseTypeControl()}</div>
       <div class="workshop-header-actions">${button('undo', 'Undo', 'aria-label="Undo edit"')}${button('redo', 'Redo', 'aria-label="Redo edit"')}${button('reset-track', 'Reset track')}${button('save', 'Save')}${typeof onTunes === 'function' ? button('tunes', 'Tunes') : ''}${button('test', 'Test drive', 'class="workshop-primary"')}${button('exit', 'Back', 'aria-label="Back to Race setup"')}</div>
     </header>
-    <nav class="workshop-global-nav" aria-label="Track settings">${GLOBAL_GROUPS.map(([id, label]) => button(`tab-${id}`, label, 'aria-expanded="false"')).join('')}<div class="workshop-facts" data-editor-facts></div></nav>
+    <nav class="workshop-global-nav" aria-label="Track settings"><div class="workshop-context-switch" role="group" aria-label="Authoring context">${button('context-road', 'Road', 'aria-pressed="true"')}${button('context-environment', 'Environment', 'aria-pressed="false"')}</div>${GLOBAL_GROUPS.map(([id, label]) => button(`tab-${id}`, label, 'aria-expanded="false"')).join('')}<div class="workshop-facts" data-editor-facts></div></nav>
     <div class="workshop-layout" data-editor-layout>
       <aside class="workshop-global-panel" data-editor-global-panel hidden aria-label="Track settings">
         <div class="workshop-panel-heading"><h2 data-editor-global-title>Track settings</h2>${button('global-close', '×', 'aria-label="Close track settings"')}</div>
@@ -398,6 +414,22 @@ export function createTrackEditor(
         return;
       }
       pushHistory(clone(doc));
+      const roadKey = (value) =>
+        JSON.stringify([
+          value.points,
+          value.width,
+          value.courseType,
+          value.rolls,
+          value.jumps,
+          value.autoCloseRoll,
+          value.settings.waterLevel,
+        ]);
+      if (roadKey(doc) === roadKey(next)) {
+        if (analysisCache.has(doc))
+          analysisCache.set(next, analysisCache.get(doc));
+        if (fractionCache.has(doc))
+          fractionCache.set(next, fractionCache.get(doc));
+      }
       doc = next;
       jumpSuggestion = null;
       jumpManualChosen = false;
@@ -789,7 +821,19 @@ export function createTrackEditor(
     const generator = doc.generator;
     const frequency =
       generator.jumpFrequency ?? (generator.version === 1 ? 'none' : 'normal');
-    return `<section class="workshop-section workshop-generator"><h2>Generate a track</h2><p class="workshop-help">Choose the feel. The seed chooses the route.</p><label class="workshop-label">${doc.courseType === 'downhill' ? 'Length including runout' : 'Length'}<select data-editor-field="length" aria-label="Generated track length">${[3000, 5000, 10000, 15000, 20000].map((length) => option(length, `${(length / 1000).toFixed(1)} km`, length === generator.length)).join('')}${![3000, 5000, 10000, 15000, 20000].includes(generator.length) ? option(generator.length, `${(generator.length / 1000).toFixed(1)} km`, true) : ''}</select></label>${range('bendiness', 'Curviness', generator.bendiness, 0, 1, 0.05, '', true)}${range('crossovers', 'Crossovers', generator.crossovers ?? 0, 0, 1, 0.05, '', true, doc.courseType !== 'circuit')}<div class="workshop-generator-scale"><span>Broad loop</span><span>Intertwined</span></div><p class="workshop-help">${doc.courseType === 'circuit' ? 'Adds overpasses with required height clearance. Longer tracks allow more crossings; dense layouts may fit fewer or smaller jumps. Circuits still return to the start.' : 'Crossovers apply to circuits. Downhill courses keep a start-to-finish descent.'}</p>${range('elevation', 'Vertical variation', generator.elevation, 0, 1, 0.05, '', true)}<div class="workshop-generator-jumps"><label class="workshop-label">Jump frequency<select data-editor-field="jump-frequency" aria-label="Jump frequency">${[
+    const matchingPreset = ROAD_PRESETS.find((preset) =>
+      Object.entries(preset.options).every(
+        ([key, value]) => key === 'length' || generator[key] === value,
+      ),
+    );
+    const starterCards = ROAD_PRESETS.map((preset) =>
+      button(
+        `road-preset-${preset.id}`,
+        `<strong>${escape(preset.label)}</strong><span>${escape(preset.description)}</span><b>${preset.circuitOnly && doc.courseType === 'downhill' ? 'Circuit only' : `Create ${escape(preset.label)} road`}</b>`,
+        `class="workshop-road-card" ${preset.circuitOnly && doc.courseType === 'downhill' ? 'disabled' : ''}`,
+      ),
+    ).join('');
+    return `<section class="workshop-section"><h2>Start with a road</h2><p class="workshop-help">One click creates a road at your chosen length. Your environment stays the same. Undo brings your road back.</p><label class="workshop-label">${doc.courseType === 'downhill' ? 'Length including runout' : 'Length'}<select data-editor-field="length" aria-label="Generated track length">${[3000, 5000, 10000, 15000, 20000].map((length) => option(length, `${(length / 1000).toFixed(1)} km`, length === generator.length)).join('')}${![3000, 5000, 10000, 15000, 20000].includes(generator.length) ? option(generator.length, `${(generator.length / 1000).toFixed(1)} km`, true) : ''}</select></label><div class="workshop-road-cards">${starterCards}</div></section><section class="workshop-section workshop-generator"><h3>${matchingPreset ? escape(matchingPreset.label) : 'Custom'} settings</h3><p class="workshop-help">Choose the feel. The seed chooses the route.</p>${range('bendiness', 'Curviness', generator.bendiness, 0, 1, 0.05, '', true)}${range('crossovers', 'Crossovers', generator.crossovers ?? 0, 0, 1, 0.05, '', true, doc.courseType !== 'circuit')}<div class="workshop-generator-scale"><span>Broad loop</span><span>Intertwined</span></div><p class="workshop-help">${doc.courseType === 'circuit' ? 'Adds overpasses with required height clearance. Longer tracks allow more crossings; dense layouts may fit fewer or smaller jumps. Circuits still return to the start.' : 'Crossovers apply to circuits. Downhill courses keep a start-to-finish descent.'}</p>${range('elevation', 'Vertical variation', generator.elevation, 0, 1, 0.05, '', true)}<div class="workshop-generator-jumps"><label class="workshop-label">Jump frequency<select data-editor-field="jump-frequency" aria-label="Jump frequency">${[
       ['none', 'None'],
       ['few', 'Few'],
       ['normal', 'Normal'],
@@ -808,13 +852,22 @@ export function createTrackEditor(
       )
       .join(
         '',
-      )}</select></label></div><label class="workshop-checkbox"><input type="checkbox" data-editor-field="seed-pickups" ${seedPickups ? 'checked' : ''}><span>Fill with pickups</span></label><div class="workshop-generator-actions">${button('generate', 'Generate track', 'class="workshop-primary workshop-wide"')}${button('new-variation', 'New variation', 'class="workshop-wide" title="Choose a new seed and generate with these settings"')}</div><p class="workshop-help">Jumps fit safe approaches and landings. Undo restores your previous road.</p><div class="workshop-generator-seed"><label class="workshop-label">Seed<input type="number" data-editor-field="seed" aria-label="Generator seed" min="0" max="4294967295" step="1" value="${generator.seed}"></label><p class="workshop-help">The same seed and options give the same track. New variation chooses another seed.</p></div></section><section class="workshop-section"><h3>Start from nothing</h3>${button('quick-start', 'Generate a drivable starter', 'class="workshop-wide"')}${button('blank', 'New blank track', 'class="workshop-wide"')}</section>`;
+      )}</select></label></div><label class="workshop-checkbox"><input type="checkbox" data-editor-field="seed-pickups" ${seedPickups ? 'checked' : ''}><span>Fill with pickups</span></label><div class="workshop-generator-actions">${button('generate', 'Generate road', 'class="workshop-primary workshop-wide"')}${button('new-variation', 'New road variation', 'class="workshop-wide" title="Choose a new seed and generate with these settings"')}</div><p class="workshop-help">Jumps fit safe approaches and landings. Undo restores your previous road.</p><div class="workshop-generator-seed"><label class="workshop-label">Road seed<input type="number" data-editor-field="seed" aria-label="Road seed" min="0" max="4294967295" step="1" value="${generator.seed}"></label><p class="workshop-help">Changes apply when you generate. The same road seed and options repeat the route.</p></div></section><section class="workshop-section"><h3>Start from nothing</h3>${button('quick-start', 'Generate a drivable starter', 'class="workshop-wide"')}${button('blank', 'New blank track', 'class="workshop-wide"')}</section>`;
   }
   function renderLibrary() {
     return `<section class="workshop-section"><h2>My tracks</h2><p class="workshop-help">Save a draft, return later, or share a track file.</p><label class="workshop-label">Saved track<select data-editor-field="saved" aria-label="Saved track" ${records.length ? '' : 'disabled'}>${records.length ? records.map((record) => `<option value="${escape(record.id)}" ${record.id === savedId ? 'selected' : ''}>${escape(record.name)}</option>`).join('') : '<option>No saved tracks</option>'}</select></label><div class="workshop-button-row">${button('load', 'Load track', records.length ? '' : 'disabled')}${button('remove', 'Delete saved', records.length ? '' : 'disabled')}</div>${button('save-copy', 'Save a copy', 'class="workshop-wide"')}<div class="workshop-section-divider"></div>${button('import', 'Import track file', 'class="workshop-wide"')}${button('export', 'Export track file', 'class="workshop-wide"')}<p class="workshop-help">Track files include your road and settings.</p></section>`;
   }
   function renderWorld() {
-    return `<section class="workshop-section"><p class="workshop-eyebrow">ONE WORLD. YOUR VERSION.</p><h2>Choose a setting.</h2><p class="workshop-help">Choose the architecture and greenery around your road. The seed makes the arrangement yours.</p><div class="workshop-preset-cards">${WORLD_PRESETS.map((preset, i) => `<button type="button" class="workshop-preset-card preset-${preset.id}" data-editor-action="preset-${preset.id}" aria-pressed="${doc.settings.sceneryPreset === preset.id}"><span class="workshop-preset-number">0${i + 1} / NIGHTWEIR</span><strong>${escape(preset.label)}</strong><span>${escape(preset.description)}</span><i class="workshop-preset-swatches" aria-hidden="true"><b></b><b></b><b></b></i></button>`).join('')}</div></section><section class="workshop-section"><label class="workshop-label">World seed<input type="number" data-editor-field="world-seed" aria-label="World seed" min="0" max="4294967295" step="1" value="${doc.generator.seed}"></label>${button('new-world-seed', 'Try another world seed', 'class="workshop-wide"')}<p class="workshop-help">The world rearranges around your road. Road points and jump gaps stay where you put them.</p></section>`;
+    const pending = environmentDraft;
+    const family = editorBiome(pending.biome);
+    const presets = family.presets ?? WORLD_PRESETS;
+    const changed =
+      pending.biome !== doc.biome ||
+      pending.seed !== doc.environment.seed ||
+      ['sceneryPreset', 'density', 'waterLevel'].some(
+        (key) => pending[key] !== doc.settings[key],
+      );
+    return `<section class="workshop-section"><p class="workshop-eyebrow">ENVIRONMENT</p><h2>A world around your road.</h2><p class="workshop-help">Now showing ${escape(editorBiome(doc.biome).label)} · ${escape((editorBiome(doc.biome).presets ?? WORLD_PRESETS).find((entry) => entry.id === doc.settings.sceneryPreset)?.label ?? doc.settings.sceneryPreset)}. Changes below apply when you regenerate.</p><label class="workshop-label">World family<select data-editor-field="biome" aria-label="World family">${EDITOR_BIOMES.map((entry) => option(entry.id, entry.label, entry.id === pending.biome)).join('')}</select></label><div class="workshop-environment-characters" role="group" aria-label="Environment character">${presets.map((preset) => button(`preset-${preset.id}`, `<strong>${escape(preset.label)}</strong><span>${escape(preset.description)}</span>`, `class="workshop-character" aria-pressed="${pending.sceneryPreset === preset.id}"`)).join('')}</div>${range('environment-density', 'Scenery fullness', pending.density, 0.25, 1, 0.01, '', true)}<label class="workshop-label">Environment seed<input type="number" data-editor-field="world-seed" aria-label="Environment seed" min="0" max="4294967295" step="1" value="${pending.seed}"></label>${changed ? '<p class="workshop-pending" role="status">Environment changes pending · Regenerate to apply</p>' : ''}<div class="workshop-generator-actions">${button('regenerate-environment', 'Regenerate environment', 'class="workshop-primary workshop-wide"')}${button('new-world-seed', 'New environment variation', 'class="workshop-wide"')}</div><p class="workshop-help">Rebuilds terrain, districts and scenery. Road points, angles, jumps and pickups stay exactly as you made them.</p></section>`;
   }
   function syncSections() {
     if (!globalTools.children.length)
@@ -869,7 +922,15 @@ export function createTrackEditor(
     const analysis = analysisFor();
     latestAnalysis = analysis;
     scheduleFlightPreview();
+    syncEnvironmentDraft();
     syncSections();
+    for (const name of ['road', 'environment'])
+      root
+        .querySelector(`[data-editor-action="context-${name}"]`)
+        .setAttribute('aria-pressed', String(context === name));
+    for (const name of ['generate', 'pickups', 'world'])
+      root.querySelector(`[data-editor-action="tab-${name}"]`).hidden =
+        (name === 'world') !== (context === 'environment');
     root.querySelector('[data-editor-selection]').innerHTML = renderSelection();
     const nameControl = root.querySelector('[data-editor-field="name"]');
     if (document.activeElement !== nameControl) nameControl.value = doc.name;
@@ -1043,8 +1104,17 @@ export function createTrackEditor(
   }
   async function action(name) {
     if (disposed || busy) return;
+    if (name === 'context-road' || name === 'context-environment') {
+      rememberGroupScroll();
+      context = name === 'context-road' ? 'road' : 'environment';
+      globalGroup = context === 'road' ? 'generate' : 'world';
+      render();
+      return;
+    }
     if (name.startsWith('tab-')) {
       const next = name.slice(4);
+      if (next === 'world') context = 'environment';
+      if (['generate', 'pickups'].includes(next)) context = 'road';
       if (!PANEL_SECTIONS.some(([id]) => id === next)) return;
       rememberGroupScroll();
       const isAuthor = AUTHOR_GROUPS.some(([id]) => id === next);
@@ -1073,20 +1143,43 @@ export function createTrackEditor(
       return;
     }
     if (name.startsWith('preset-')) {
-      const preset = WORLD_PRESETS.find((entry) => entry.id === name.slice(7));
-      if (preset)
-        edit((next) => {
-          next.settings.sceneryPreset = preset.id;
-          next.settings.density = preset.density;
-          next.settings.waterLevel = preset.waterLevel;
-          next.props = [];
-        }, `${preset.label} world applied. Your road is unchanged.`);
+      const preset = (
+        editorBiome(environmentDraft.biome).presets ?? WORLD_PRESETS
+      ).find((entry) => entry.id === name.slice(7));
+      if (preset) {
+        Object.assign(environmentDraft, {
+          sceneryPreset: preset.id,
+          density: preset.density,
+          waterLevel: preset.waterLevel,
+        });
+        render();
+      }
       return;
     }
-    if (name === 'new-world-seed') {
-      edit((next) => {
-        next.generator.seed = Math.floor(Math.random() * 4294967296);
-      }, 'A new world around the same road.');
+    if (name === 'regenerate-environment' || name === 'new-world-seed') {
+      if (name === 'new-world-seed') {
+        let seed = Math.floor(Math.random() * 4294967296);
+        if (seed === doc.environment.seed) seed = (seed + 1) >>> 0;
+        environmentDraft.seed = seed;
+      }
+      const pending = clone(environmentDraft);
+      edit(
+        (next) => {
+          next.biome = pending.biome;
+          next.environment = {
+            version: 1,
+            seed: pending.seed,
+            layoutVersion: 1,
+          };
+          next.settings = {
+            sceneryPreset: pending.sceneryPreset,
+            density: pending.density,
+            waterLevel: pending.waterLevel,
+          };
+          next.props = [];
+        },
+        `${editorBiome(pending.biome).label} environment regenerated. Your road, jumps and pickups are unchanged.`,
+      );
       return;
     }
     if (name === 'tunes') {
@@ -1498,7 +1591,8 @@ export function createTrackEditor(
       return;
     }
     if (
-      ['generate', 'quick-start', 'new-seed', 'new-variation'].includes(name)
+      ['generate', 'quick-start', 'new-seed', 'new-variation'].includes(name) ||
+      name.startsWith('road-preset-')
     ) {
       status('Generating a drivable route…');
       let generated = false;
@@ -1507,6 +1601,15 @@ export function createTrackEditor(
           requestAnimationFrame(() => requestAnimationFrame(resolve)),
         );
         const starter = name === 'quick-start';
+        const presetId = name.startsWith('road-preset-')
+          ? name.slice(12)
+          : null;
+        const presetOptions = presetId
+          ? roadPresetOptions(presetId, {
+              courseType: doc.courseType,
+              length: doc.generator.length,
+            })
+          : {};
         let seed = doc.generator.seed;
         if (name === 'new-seed' || name === 'new-variation') {
           seed = Math.floor(Math.random() * 4294967296);
@@ -1517,12 +1620,19 @@ export function createTrackEditor(
             ...(starter
               ? { seed: 42017, length: 3000, bendiness: 0.45, elevation: 0.35 }
               : { ...doc.generator, seed }),
+            ...presetOptions,
+            biome: doc.biome,
+            environment: doc.environment,
+            settings: doc.settings,
             generatorVersion: 3,
             jumpFrequency: starter
               ? 'normal'
-              : (doc.generator.jumpFrequency ??
+              : (presetOptions.jumpFrequency ??
+                doc.generator.jumpFrequency ??
                 (doc.generator.version === 1 ? 'none' : 'normal')),
-            jumpSize: starter ? 'mixed' : (doc.generator.jumpSize ?? 'mixed'),
+            jumpSize: starter
+              ? 'mixed'
+              : (presetOptions.jumpSize ?? doc.generator.jumpSize ?? 'mixed'),
             courseType: doc.courseType,
             width: starter ? 40 : doc.width,
             ...doc.settings,
@@ -1582,6 +1692,9 @@ export function createTrackEditor(
       rangeEnd = -1;
 
       const next = createDocument({
+        biome: doc.biome,
+        environment: doc.environment,
+        settings: doc.settings,
         seed: doc.generator.seed,
         blank: true,
         courseType: doc.courseType,
@@ -1592,6 +1705,8 @@ export function createTrackEditor(
         next.width = doc.width;
         next.generator = clone(doc.generator);
         next.settings = clone(doc.settings);
+        next.environment = clone(doc.environment);
+        next.biome = doc.biome;
       }
       commit(
         next,
@@ -1650,7 +1765,17 @@ export function createTrackEditor(
         saved = JSON.stringify(doc);
         savedId = doc.id;
         await refreshLibrary();
-        status('Track saved to My tracks.');
+        const pending =
+          environmentDraft.biome !== doc.biome ||
+          environmentDraft.seed !== doc.environment.seed ||
+          ['sceneryPreset', 'density', 'waterLevel'].some(
+            (key) => environmentDraft[key] !== doc.settings[key],
+          );
+        status(
+          pending
+            ? 'Track saved to My tracks; environment changes are still pending. Regenerate environment to apply them.'
+            : 'Track saved to My tracks.',
+        );
       });
       return;
     }
@@ -1781,6 +1906,25 @@ export function createTrackEditor(
         }, 'Selected gap landing runout updated.');
       return;
     }
+    if (['world-seed', 'environment-density', 'biome'].includes(field)) {
+      if (field === 'world-seed')
+        environmentDraft.seed = Math.max(
+          0,
+          Math.min(4294967295, Math.round(number || 0)),
+        );
+      if (field === 'environment-density') environmentDraft.density = number;
+      if (field === 'biome') {
+        environmentDraft.biome = value;
+        const preset = (editorBiome(value).presets ?? WORLD_PRESETS)[0];
+        Object.assign(environmentDraft, {
+          sceneryPreset: preset.id,
+          density: preset.density,
+          waterLevel: preset.waterLevel,
+        });
+      }
+      render();
+      return;
+    }
     if (field === 'point') {
       selectPoint(number);
       return;
@@ -1828,7 +1972,6 @@ export function createTrackEditor(
     edit(
       (next) => {
         if (field === 'name') next.name = value;
-        else if (field === 'world-seed') next.generator.seed = number;
         else if (field === 'width') next.width = number;
         else if (field === 'pickup-preset') next.pickups.preset = value;
         else if (field === 'pickup-density') next.pickups.density = number;
@@ -2054,6 +2197,7 @@ export function createTrackEditor(
       panelOpen: Boolean(authorGroup || globalGroup),
       authorGroup,
       globalGroup,
+      context,
       selectionRange: selectedRange(),
       shapeStart,
       shapeEnd,

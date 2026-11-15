@@ -1,19 +1,21 @@
+import { createEditorOwner as owner, instanceFinish } from './world-owner.js';
 import * as T from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { framePoint } from '../track/frames.js';
 import { sweepGeometry, boxProfile, beamTransform } from '../track/geometry.js';
 import { groundFrame, createRouteClearance } from '../environment/placement.js';
 import { createAsphalt } from '../levels/halcyon/track/asphalt.js';
 import { assetURL } from '../assets/url.js';
-import { replaceShader } from '../renderer/shader-patch.js';
 import {
   finishNightweirConcrete,
   finishNightweirMetal,
   finishNightweirBrick,
   finishNightweirRoof,
+  finishNightweirRock,
 } from '../levels/nightweir/environment/materials.js';
-import { createNightweirBackdrop } from '../levels/nightweir/backdrop/index.js';
+import { createEditorBackdrop } from './biome-backdrop.js';
+import { attachRoadFinish } from './road-finishes.js';
+import { createBiomeEnvironment } from './biome-environment.js';
 import {
   createCollisionWorld,
   indexedTriangles,
@@ -25,184 +27,108 @@ import {
   editorRandom,
 } from './document.js';
 import { createEditorTrack } from './track.js';
+import { editorBiome } from './biomes.js';
 import { worldPreset } from './world-presets.js';
+import { createRegionPlan } from './region-plan.js';
+import { buildRegionEnvironment } from './region-environment.js';
+import { enrichNightweirPlan } from './nightweir-quarters.js';
 import { createEditorFlightRuntime } from './jumps.js';
 import { createEditorDevices, createEditorPickupHardware } from './pickups.js';
 
-// Campaign finish helpers are authored against static meshes. Supply physical
-// instance coordinates and metre UVs without changing the campaign materials.
-function instanceFinish(material, repeat = null) {
-  const finish = material.onBeforeCompile,
-    cacheKey = material.customProgramCacheKey();
-  material.onBeforeCompile = (shader, renderer) => {
-    finish(shader, renderer);
-    shader.vertexShader =
-      `
-vec3 editorWorldPoint(vec3 p){vec4 w=vec4(p,1.);
-#ifdef USE_INSTANCING
-w=instanceMatrix*w;
-#endif
-return (modelMatrix*w).xyz;}
-vec2 editorMetreUV(vec3 p,vec3 n){
-#ifdef USE_INSTANCING
-p*=vec3(length(instanceMatrix[0].xyz),length(instanceMatrix[1].xyz),length(instanceMatrix[2].xyz));
-#endif
-return abs(n.y)>.5?p.xz:(abs(n.x)>.5?p.zy:p.xy);}
-` +
-      shader.vertexShader
-        .replaceAll(
-          '(modelMatrix*vec4(position,1.)).xyz',
-          'editorWorldPoint(position)',
-        )
-        .replace('castUV=uv;', 'castUV=editorMetreUV(position,normal);');
-    if (repeat !== null)
-      shader.vertexShader = replaceShader(
-        shader.vertexShader,
-        '#include <uv_vertex>',
-        `#include <uv_vertex>
-#ifdef USE_MAP
-vMapUv=editorMetreUV(position,normal)*${repeat.toFixed(6)};
-#endif`,
-      );
-  };
-  material.customProgramCacheKey = () => cacheKey + '-editor-instances-v1';
-  material.needsUpdate = true;
+function prepareRegion(doc, track) {
+  if (doc.environment.layoutVersion !== 1 || !track) return null;
+  track.editorRegionPlan ??= createRegionPlan(doc, track);
+  const profile = editorBiome(doc.biome);
+  track.groundHeightAt =
+    !profile.environment.waterEnabled && !profile.road.suspended
+      ? (x, z) =>
+          Math.max(
+            track.editorRegionPlan.surfaceHeight(x, z),
+            track.editorRegionPlan.seaLevel - 28,
+          )
+      : track.editorRegionPlan.surfaceHeight;
+  return track.editorRegionPlan;
 }
 
-function owner(name, preview = false) {
-  const group = new T.Group();
-  group.name = name;
-  const geometries = new Set(),
-    materials = new Set(),
-    borrowed = [];
-  const batches = new Map();
-  const box = new T.BoxGeometry(1, 1, 1);
-  const formed = preview ? box : new RoundedBoxGeometry(1, 1, 1, 1, 0.04);
-  geometries.add(box);
-  geometries.add(formed);
-  function material(name, values, finish) {
-    const result = new T.MeshStandardMaterial({ name, ...values });
-    finish?.(result);
-    if (finish) instanceFinish(result);
-    materials.add(result);
-    return result;
-  }
-  function solid(name, geometry, material, info, collectSolid) {
-    geometries.add(geometry);
-    const mesh = new T.Mesh(geometry, material);
-    mesh.name = name;
-    mesh.castShadow = mesh.receiveShadow = true;
-    if (info?.kind === 'deck')
-      mesh.userData.roadSurface = mesh.userData.drivingSurface = true;
-    group.add(mesh);
-    if (collectSolid && info) collectSolid({ name, geometry, ...info });
-    return mesh;
-  }
-  function block(
-    name,
-    material,
-    position,
-    scale,
-    quaternion = new T.Quaternion(),
-    collectSolid,
-    rounded = false,
-  ) {
-    const geometry = rounded ? formed : box;
-    const key = material.uuid + ':' + geometry.uuid;
-    let batch = batches.get(key);
-    if (!batch) {
-      batch = { material, geometry, list: [] };
-      batches.set(key, batch);
-    }
-    const matrix = new T.Matrix4().compose(position, quaternion, scale);
-    batch.list.push(matrix);
-    if (collectSolid)
-      collectSolid({ name, geometry, matrix, kind: 'structure' });
-  }
-  function finish() {
-    for (const { material, geometry, list } of batches.values()) {
-      const mesh = new T.InstancedMesh(geometry, material, list.length);
-      mesh.name = material.name;
-      list.forEach((matrix, i) => mesh.setMatrixAt(i, matrix));
-      mesh.castShadow = mesh.receiveShadow = true;
-      group.add(mesh);
-    }
-  }
-  let disposed = false;
-  return {
-    group,
-    material,
-    solid,
-    block,
-    finish,
-    geometries,
-    materials,
-    borrowed,
-    isDisposed: () => disposed,
-    setReflection(texture) {
-      for (const m of materials) {
-        m.envMap = texture;
-        m.envMapIntensity = 0.7;
-        m.needsUpdate = true;
-      }
-      for (const part of borrowed) part.setReflection?.(texture);
-    },
-    dispose() {
-      if (disposed) return;
-      disposed = true;
-      group.traverse((o) => {
-        if (o.isInstancedMesh) o.dispose();
-      });
-      borrowed.forEach((part) => part.dispose());
-      geometries.forEach((g) => g.dispose());
-      materials.forEach((m) => m.dispose());
-      group.clear();
-    },
-  };
+function createPreparedTrack(doc) {
+  const track = createEditorTrack(doc);
+  prepareRegion(doc, track);
+  return track;
 }
 
 export function createEditorRoad(
   track,
   { renderer = null, collectSolid = null, preview = false } = {},
 ) {
-  const part = owner('Editor / Nightweir municipal viaduct', preview);
+  if (track.editorEnvironment) prepareRegion(track.editorEnvironment, track);
+  const biome = editorBiome(track.editorBiome ?? 'nightweir');
+  const style = biome.road ?? {
+    kind: 'asphalt',
+    deck: '#4d5a60',
+    structure: '#8f9997',
+    metal: '#735142',
+    paint: '#d5d8c4',
+    edge: '#293b42',
+    glow: '#f6ae63',
+    roughness: 0.72,
+    metalness: 0.02,
+  };
+  const asphaltKind = style.kind === 'asphalt';
+  const suspended = Boolean(style.suspended);
+  const part = owner(`Editor / ${biome.label} ${style.kind} road kit`, preview);
+  part.group.userData.biome = biome.id;
+  part.group.userData.roadKind = style.kind;
   const asphalt =
-    renderer && !collectSolid
+    asphaltKind && renderer && !collectSolid
       ? createAsphalt(renderer, track.width, {
-          label: 'Nightweir editor',
-          moisture: 0.28,
+          label: `${biome.label} editor`,
+          moisture: biome.id === 'shatterline' ? 0.02 : 0.28,
         })
       : null;
   if (asphalt) part.borrowed.push(asphalt);
   const deck =
     asphalt?.material ??
     part.material('Editor / damp asphalt', {
-      color: '#4d5a60',
-      roughness: 0.72,
-      metalness: 0.02,
+      color: style.deck,
+      roughness: style.roughness,
+      metalness: style.metalness,
+      ...(style.kind === 'crystal'
+        ? { transparent: true, opacity: 0.72, depthWrite: false }
+        : {}),
     });
+  const finish = !asphaltKind
+    ? attachRoadFinish(deck, {
+        id: biome.id,
+        renderer: collectSolid ? null : renderer,
+        width: track.width,
+        uvLength: 16,
+      })
+    : null;
+  if (finish) part.borrowed.push(finish);
   const concrete = part.material(
     'Editor / rain-dark precast',
-    { color: '#8f9997', roughness: 0.86 },
-    finishNightweirConcrete,
+    { color: style.structure, roughness: style.kind === 'alloy' ? 0.45 : 0.86 },
+    asphaltKind || style.kind === 'masonry' || style.kind === 'promenade'
+      ? finishNightweirConcrete
+      : undefined,
   );
   const steel = part.material(
     'Editor / oxide municipal steel',
-    { color: '#735142', roughness: 0.6, metalness: 0.45 },
+    { color: style.metal, roughness: 0.6, metalness: 0.45 },
     finishNightweirMetal,
   );
   const paint = part.material('Editor / ivory road markings', {
-    color: '#d5d8c4',
+    color: style.paint,
     roughness: 0.8,
   });
   const iron = part.material(
     'Editor / cast-iron gutters',
-    { color: '#293b42', roughness: 0.53, metalness: 0.45 },
+    { color: style.edge, roughness: 0.53, metalness: 0.45 },
     finishNightweirMetal,
   );
   const glow = part.material('Editor / shielded amber lanterns', {
-    color: '#ffd6a0',
-    emissive: '#f6ae63',
+    color: style.glow,
+    emissive: style.glow,
     emissiveIntensity: 0.7,
     roughness: 0.4,
   });
@@ -278,20 +204,63 @@ export function createEditorRoad(
     { kind: 'deck', start: 0, end: track.length },
     collectSolid,
   );
+  const soffit =
+    style.kind === 'alloy' ||
+    style.kind === 'membrane' ||
+    style.kind === 'weave'
+      ? [
+          [half, 0],
+          [half + 1, -0.8],
+          [half - 3, -1.8],
+          [-half + 3, -1.8],
+          [-half - 1, -0.8],
+          [-half, 0],
+        ]
+      : style.kind === 'steel'
+        ? [
+            [half, 0],
+            [half + 4, -2],
+            [half + 4, -12],
+            [half - 7, -17],
+            [-half + 7, -17],
+            [-half - 4, -12],
+            [-half - 4, -2],
+            [-half, 0],
+          ]
+        : style.kind === 'resin' || style.kind === 'crystal'
+          ? [
+              [half, 0],
+              [half + 3, -3],
+              [half - 5, -9],
+              [0, -12],
+              [-half + 5, -9],
+              [-half - 3, -3],
+              [-half, 0],
+            ]
+          : style.kind === 'promenade' || style.kind === 'masonry'
+            ? [
+                [half, 0],
+                [half + 3, -1],
+                [half + 3, -4],
+                [half, -4],
+                [half - 4, -9],
+                [-half + 4, -9],
+                [-half, -4],
+                [-half - 3, -4],
+                [-half - 3, -1],
+                [-half, 0],
+              ]
+            : [
+                [half, 0],
+                [half + 0.5, -1.6],
+                [half - 2, -5],
+                [-half + 2, -5],
+                [-half - 0.5, -1.6],
+                [-half, 0],
+              ];
   part.solid(
     'Formed bridge soffit',
-    sweepRoad(
-      track,
-      [
-        [half, 0],
-        [half + 0.5, -1.6],
-        [half - 2, -5],
-        [-half + 2, -5],
-        [-half - 0.5, -1.6],
-        [-half, 0],
-      ],
-      range,
-    ),
+    sweepRoad(track, soffit, range),
     steel,
     { kind: 'structure' },
     collectSolid,
@@ -317,15 +286,40 @@ export function createEditorRoad(
       paint,
     );
     part.solid(
-      'Open cast drainage channel',
+      asphaltKind
+        ? 'Open cast drainage channel'
+        : `${style.kind} formed edge carrier`,
       sweepRoad(
         track,
-        [
-          [side * (half + 1.2), -0.4],
-          [side * (half + 1.4), -1.5],
-          [side * (half + 3.3), -1.5],
-          [side * (half + 3.7), -0.4],
-        ],
+        asphaltKind
+          ? [
+              [side * (half + 1.2), -0.4],
+              [side * (half + 1.4), -1.5],
+              [side * (half + 3.3), -1.5],
+              [side * (half + 3.7), -0.4],
+            ]
+          : style.kind === 'pearl' || style.kind === 'resin'
+            ? [
+                [side * (half + 1.2), -1],
+                [side * (half + 4), -3],
+                [side * (half + 10), -1],
+                [side * (half + 7), 2.5],
+              ]
+            : style.kind === 'ceramic' ||
+                style.kind === 'alloy' ||
+                style.kind === 'membrane'
+              ? [
+                  [side * (half + 1.2), -0.5],
+                  [side * (half + 2), -3],
+                  [side * (half + 7), -4],
+                  [side * (half + 8), -1],
+                ]
+              : [
+                  [side * (half + 1.2), -0.5],
+                  [side * (half + 4), -4],
+                  [side * (half + 5), -2],
+                  [side * (half + 4), 0],
+                ],
         range,
       ),
       iron,
@@ -384,9 +378,9 @@ export function createEditorRoad(
   for (let s = 36; s < track.length; s += 90) {
     if (track.isJumpProtected?.(s)) continue;
     const frame = track.sample(s);
-    for (const side of [-1, 1]) {
+    for (const side of suspended ? [] : [-1, 1]) {
       const top = framePoint(frame, side * 9, -5),
-        base = track.groundY;
+        base = track.groundHeightAt?.(top.x, top.z) ?? track.groundY;
       const obstructed = samples.some(({ distance, frame: other }) => {
         const delta = Math.abs(distance - s),
           separation = Math.min(delta, track.length - delta);
@@ -433,7 +427,7 @@ export function createEditorRoad(
         halfZ: 5,
       });
     }
-    if (frame.up.y < 0.7) {
+    if (!suspended && frame.up.y < 0.7) {
       const upright = groundFrame(track, s),
         span = half + 42,
         crownY = frame.position.y + half + 38;
@@ -444,7 +438,12 @@ export function createEditorRoad(
           .setY(crownY),
       );
       const feet = heads.map(
-        (head) => new T.Vector3(head.x, track.groundY, head.z),
+        (head) =>
+          new T.Vector3(
+            head.x,
+            track.groundHeightAt?.(head.x, head.z) ?? track.groundY,
+            head.z,
+          ),
       );
       const anchors = [-1, 1].map((side) =>
         framePoint(frame, side * (half + 9), -6),
@@ -468,7 +467,7 @@ export function createEditorRoad(
           footprints.push({
             x: feet[i].x,
             z: feet[i].z,
-            minY: track.groundY,
+            minY: feet[i].y,
             maxY: crownY,
             halfX: 3,
             halfZ: 3,
@@ -483,6 +482,40 @@ export function createEditorRoad(
           anchors[1],
           3,
           4,
+        );
+      }
+    }
+    if (!asphaltKind) {
+      const keelDepth =
+        style.kind === 'steel'
+          ? 20
+          : style.kind === 'resin' || style.kind === 'crystal'
+            ? 14
+            : 7;
+      for (const side of [-1, 1]) {
+        const a = framePoint(frame, side * (half + 4), -4);
+        const b = framePoint(frame, side * (half - 5), -keelDepth);
+        if (clearsBeam(a, b, 1.5))
+          beam(
+            `${style.kind} outboard keel rib`,
+            style.kind === 'resin' ? concrete : steel,
+            a,
+            b,
+            style.kind === 'steel' ? 3 : 1.2,
+            2,
+          );
+      }
+      if (
+        style.kind === 'ceramic' ||
+        style.kind === 'alloy' ||
+        style.kind === 'promenade'
+      ) {
+        part.block(
+          `${style.kind} fitted transverse panel joint`,
+          iron,
+          framePoint(frame, 0, 0.035),
+          new T.Vector3(track.width - 4, 0.04, 0.15),
+          frame.quaternion,
         );
       }
     }
@@ -529,7 +562,7 @@ export function createEditorRoad(
   );
   track.supportFootprints = footprints;
   part.finish();
-  part.ready = asphalt?.ready ?? Promise.resolve();
+  part.ready = Promise.all([asphalt?.ready, finish?.ready]);
   const reflect = part.setReflection;
   part.setReflection = (texture) => {
     reflect(texture);
@@ -557,6 +590,13 @@ export function createEditorEnvironment(
   track,
   { collectSolid = null, renderer = null, preview = false } = {},
 ) {
+  if (doc.biome !== 'nightweir')
+    return createBiomeEnvironment(doc, track, {
+      renderer,
+      collectSolid,
+      preview,
+      plan: prepareRegion(doc, track),
+    });
   const preset = worldPreset(doc.settings.sceneryPreset);
   const styles = {
     waterfront: {
@@ -602,6 +642,10 @@ export function createEditorEnvironment(
   };
   const style = styles[preset.id];
   const blank = !track;
+  const region =
+    doc.environment.layoutVersion === 1
+      ? (prepareRegion(doc, track) ?? createRegionPlan(doc, null))
+      : null;
   if (!track) {
     const radius = 620,
       length = Math.PI * 2 * radius;
@@ -682,8 +726,8 @@ export function createEditorEnvironment(
     roughness: 0.28,
     metalness: 0.24,
   });
-  const textures = new Set();
-  part.borrowed.push({ dispose: () => textures.forEach((t) => t.dispose()) });
+  const textures = part.textures;
+  let terrainReady = Promise.resolve();
   const surfaceReady =
     renderer && !collectSolid
       ? Promise.allSettled(
@@ -725,21 +769,31 @@ export function createEditorEnvironment(
   );
   basin.rotateX(-Math.PI / 2);
   basin.translate(center.x, doc.settings.waterLevel, center.z);
-  const mesh = part.solid('Retained harbor basin', basin, water);
-  mesh.castShadow = false;
+  const horizonWater = part.solid('Retained harbor basin', basin, water);
+  horizonWater.castShadow = false;
   const { clears } = createRouteClearance(track, {
     spacing: 8,
     sidePadding: 18,
     localVertical: [-9, 25],
   });
-  const random = editorRandom(doc.generator.seed ^ style.salt);
+  const random = editorRandom(
+    (doc.environment?.seed ?? doc.generator.seed) ^ style.salt,
+  );
   const plots = [];
+  const canopyGeometry = new T.IcosahedronGeometry(1, 1);
+  part.geometries.add(canopyGeometry);
   const drawProp = (prop, automatic = false) => {
-    const f = groundFrame(track, prop.distance * track.length),
-      position = f.position.clone().addScaledVector(f.right, prop.lateral);
+    const f = prop.absolute
+      ? null
+      : groundFrame(track, prop.distance * track.length);
+    const position = prop.absolute
+      ? new T.Vector3(prop.x, prop.y, prop.z)
+      : f.position.clone().addScaledVector(f.right, prop.lateral);
     const [width, height, depth] = propDimensions(prop.type, prop.scale),
-      bottom = doc.settings.waterLevel + 5;
-    const yaw = Math.atan2(f.tangent.x, f.tangent.z) + prop.rotation;
+      bottom = prop.absolute ? prop.y : doc.settings.waterLevel + 5;
+    const yaw = prop.absolute
+      ? prop.yaw
+      : Math.atan2(f.tangent.x, f.tangent.z) + prop.rotation;
     if (
       automatic &&
       !clears(
@@ -747,7 +801,7 @@ export function createEditorEnvironment(
         position.z,
         width + 8,
         depth + 8,
-        bottom + height,
+        bottom + height + 8,
         yaw,
         bottom - 8,
       )
@@ -818,16 +872,50 @@ export function createEditorEnvironment(
           1.6 * prop.scale,
           true,
         );
-        block(
-          'Unequal tree crown',
-          foliage,
-          x,
-          height * 0.65 * k,
-          z,
-          width * 0.48 * k,
-          height * 0.5 * k,
-          depth * 0.52 * k,
-        );
+        for (const [dx, dy, dz, size] of [
+          [0, 0, 0, 1],
+          [-0.2, 0.13, 0.15, 0.7],
+          [0.19, 0.02, -0.16, 0.78],
+        ]) {
+          const crown = local(
+            x + dx * width,
+            height * (0.64 + dy) * k,
+            z + dz * depth,
+          );
+          part.instance(
+            'Unequal branching park canopy',
+            canopyGeometry,
+            foliage,
+            crown,
+            new T.Vector3(
+              width * 0.28 * size * k,
+              height * 0.31 * size * k,
+              depth * 0.3 * size * k,
+            ),
+            quaternion,
+          );
+        }
+        for (const direction of [-1, 1]) {
+          const from = local(x, height * 0.3 * k, z),
+            to = local(
+              x + direction * width * 0.18,
+              height * 0.65 * k,
+              z + direction * depth * 0.13,
+            );
+          const branch = beamTransform(
+            from,
+            to,
+            1.2 * prop.scale,
+            1.1 * prop.scale,
+          );
+          part.block(
+            'Forked park branch',
+            wood,
+            branch.position,
+            branch.scale,
+            branch.quaternion,
+          );
+        }
       }
       return;
     }
@@ -870,9 +958,14 @@ export function createEditorEnvironment(
     );
     for (const side of [-1, 1]) {
       for (
-        let y = prop.type === 'warehouse' ? height * 0.6 : 5;
+        let y =
+          prop.lod === 'far'
+            ? height
+            : prop.type === 'warehouse'
+              ? height * 0.6
+              : 5;
         y < height - 3;
-        y += 7 * prop.scale
+        y += (prop.lod === 'mid' ? 14 : 7) * prop.scale
       ) {
         for (let x = -width / 2 + 4; x < width / 2 - 2; x += 6 * prop.scale) {
           block(
@@ -926,74 +1019,141 @@ export function createEditorEnvironment(
       }
     }
   };
-  // Curated large assemblies fill only clear parcels; the seed never changes
-  // road geometry and scenery density remains bounded independently of length.
-  for (let s = 45, slot = 0; s < track.length; s += style.spacing, slot++) {
-    if (track.isJumpProtected?.(s)) continue;
-    for (const side of [-1, 1]) {
-      if (random() > doc.settings.density) continue;
-      const district = Math.floor(s / 620);
-      const role = (slot + district + (side > 0 ? 2 : 0)) % style.roles.length;
-      const type = style.roles[role];
-      drawProp(
-        {
-          type,
-          distance: s / track.length,
-          lateral:
-            side * (track.width / 2 + style.setback + (random() - 0.5) * 16),
-          scale: (preset.id === 'industrial' ? 0.9 : 0.82) + random() * 0.32,
-          rotation: 0,
-        },
-        true,
-      );
+  if (region) {
+    const soil = part.material('Editor / surveyed gorge rock', {
+      color: '#59645b',
+      roughness: 0.96,
+    });
+    if (renderer && !collectSolid) {
+      terrainReady = Promise.all(
+        [
+          'assets/levels/shatterline/limestone-v1.png',
+          'assets/levels/nightweir/gorge-strata-v1.png',
+          'assets/levels/nightweir/damp-scree-v1.png',
+        ].map(async (path) => {
+          const texture = await new T.TextureLoader().loadAsync(assetURL(path));
+          if (part.isDisposed()) {
+            texture.dispose();
+            return null;
+          }
+          textures.add(texture);
+          texture.wrapS = texture.wrapT = T.RepeatWrapping;
+          texture.colorSpace = T.SRGBColorSpace;
+          texture.anisotropy = Math.min(
+            8,
+            renderer.capabilities.getMaxAnisotropy(),
+          );
+          return texture;
+        }),
+      ).then((maps) => {
+        if (!part.isDisposed()) {
+          finishNightweirRock(soil, ...maps);
+          soil.needsUpdate = true;
+        }
+      });
     }
-  }
-  for (const prop of doc.props) drawProp(prop);
-  // Adjacent occupied parcels share broad retaining terraces and civic walks.
-  // Keep the viaduct channel and its piers clear instead of connecting across it.
-  for (const side of [-1, 1]) {
-    const row = plots
-      .filter((p) => p.side === side)
-      .sort((a, b) => a.distance - b.distance);
-    for (let i = 0; i < row.length; i++) {
-      const a = row[i],
-        b = row[(i + 1) % row.length];
-      const routeSpan = ((b.distance - a.distance + 1) % 1) * track.length;
-      const span = Math.hypot(b.x - a.x, b.z - a.z);
-      if (row.length < 2 || routeSpan > 260 || span < 1 || span > 250) continue;
-      const width = Math.max(64, a.width + 20, b.width + 20),
-        depth = span + Math.min(a.radius, b.radius) * 1.3;
-      const x = (a.x + b.x) / 2,
-        z = (a.z + b.z) / 2,
-        top = doc.settings.waterLevel + 5;
-      const yaw = Math.atan2(b.x - a.x, b.z - a.z);
-      if (!clears(x, z, width, depth, top + 1, yaw, top - 20)) continue;
-      const quaternion = new T.Quaternion().setFromAxisAngle(
-        new T.Vector3(0, 1, 0),
-        yaw,
-      );
-      part.block(
-        'Connected retaining terrace',
-        concrete,
-        new T.Vector3(x, top - 9, z),
-        new T.Vector3(width, 18, depth),
-        quaternion,
+    const regional = buildRegionEnvironment(
+      enrichNightweirPlan(doc, blank ? null : track, region),
+      {
+        owner: part,
+        districtCourts: true,
+        materials: {
+          soil,
+          park: part.material('Editor / connected reclaimed parkland', {
+            color: '#526347',
+            roughness: 0.97,
+          }),
+          concrete,
+          paving,
+          brick,
+          plaster,
+          roof,
+          windows,
+          occupied,
+          foliage,
+          wood,
+          water,
+        },
         collectSolid,
-        true,
-      );
-      part.block(
-        'Continuous civic quay walk',
-        paving,
-        new T.Vector3(x, top + 0.12, z),
-        new T.Vector3(width - 6, 0.24, depth - 4),
-        quaternion,
-        collectSolid,
-        true,
-      );
+        clears,
+        placeAssembly: (placement) =>
+          drawProp({ ...placement, absolute: true }, true),
+      },
+    );
+    part.group.userData.region = regional.stats;
+    part.group.userData.regionBounds = region.bounds;
+  } else {
+    // Curated large assemblies fill only clear parcels; the seed never changes
+    // road geometry and scenery density remains bounded independently of length.
+    for (let s = 45, slot = 0; s < track.length; s += style.spacing, slot++) {
+      if (track.isJumpProtected?.(s)) continue;
+      for (const side of [-1, 1]) {
+        if (random() > doc.settings.density) continue;
+        const district = Math.floor(s / 620);
+        const role =
+          (slot + district + (side > 0 ? 2 : 0)) % style.roles.length;
+        const type = style.roles[role];
+        drawProp(
+          {
+            type,
+            distance: s / track.length,
+            lateral:
+              side * (track.width / 2 + style.setback + (random() - 0.5) * 16),
+            scale: (preset.id === 'industrial' ? 0.9 : 0.82) + random() * 0.32,
+            rotation: 0,
+          },
+          true,
+        );
+      }
+    }
+    for (const prop of doc.props) drawProp(prop);
+    // Adjacent occupied parcels share broad retaining terraces and civic walks.
+    // Keep the viaduct channel and its piers clear instead of connecting across it.
+    for (const side of [-1, 1]) {
+      const row = plots
+        .filter((p) => p.side === side)
+        .sort((a, b) => a.distance - b.distance);
+      for (let i = 0; i < row.length; i++) {
+        const a = row[i],
+          b = row[(i + 1) % row.length];
+        const routeSpan = ((b.distance - a.distance + 1) % 1) * track.length;
+        const span = Math.hypot(b.x - a.x, b.z - a.z);
+        if (row.length < 2 || routeSpan > 260 || span < 1 || span > 250)
+          continue;
+        const width = Math.max(64, a.width + 20, b.width + 20),
+          depth = span + Math.min(a.radius, b.radius) * 1.3;
+        const x = (a.x + b.x) / 2,
+          z = (a.z + b.z) / 2,
+          top = doc.settings.waterLevel + 5;
+        const yaw = Math.atan2(b.x - a.x, b.z - a.z);
+        if (!clears(x, z, width, depth, top + 1, yaw, top - 20)) continue;
+        const quaternion = new T.Quaternion().setFromAxisAngle(
+          new T.Vector3(0, 1, 0),
+          yaw,
+        );
+        part.block(
+          'Connected retaining terrace',
+          concrete,
+          new T.Vector3(x, top - 9, z),
+          new T.Vector3(width, 18, depth),
+          quaternion,
+          collectSolid,
+          true,
+        );
+        part.block(
+          'Continuous civic quay walk',
+          paving,
+          new T.Vector3(x, top + 0.12, z),
+          new T.Vector3(width - 6, 0.24, depth - 4),
+          quaternion,
+          collectSolid,
+          true,
+        );
+      }
     }
   }
   part.finish();
-  part.ready = surfaceReady;
+  part.ready = Promise.all([surfaceReady, terrainReady]);
   return part;
 }
 
@@ -1003,8 +1163,8 @@ export function createEditorWorld(
 ) {
   const doc = validateDocument(value),
     group = new T.Group();
-  group.name = 'Nightweir track editor preview';
-  const track = doc.points.length >= 4 ? createEditorTrack(doc) : null;
+  group.name = `${editorBiome(doc.biome).label} track editor preview`;
+  const track = doc.points.length >= 4 ? createPreparedTrack(doc) : null;
   const road = track ? createEditorRoad(track, { renderer, preview }) : null;
   const environment = createEditorEnvironment(doc, track, {
     renderer,
@@ -1014,10 +1174,21 @@ export function createEditorWorld(
   if (pickups) group.add(pickups.group);
   if (road) group.add(road.group);
   group.add(environment.group);
+  group.userData.editorBiome = doc.biome;
+  group.userData.environment =
+    environment.group.userData.region ??
+    environment.group.userData.assemblyCounts ??
+    null;
   let disposed = false;
   return {
     group,
     track,
+    get ownedTextures() {
+      return new Set([
+        ...(road?.ownedTextures ?? []),
+        ...environment.ownedTextures,
+      ]);
+    },
     bounds:
       track?.bounds ??
       new T.Box3(new T.Vector3(-800, -60, -800), new T.Vector3(800, 100, 800)),
@@ -1038,6 +1209,7 @@ export function createEditorWorld(
 }
 
 export function createEditorCollisionWorld(doc, track) {
+  prepareRegion(doc, track);
   const triangles = [];
   const collectSolid = ({ name, geometry, matrix, ...info }) => {
     const attribute = geometry.getAttribute('position');
@@ -1075,15 +1247,14 @@ export function createEditorLevel(value) {
     analysis = analyzeDocument(doc);
   if (!analysis.valid) throw new Error(analysis.errors.join(' '));
   return {
-    version: 'editor-nightweir-v3',
+    version: `editor-${doc.biome}-regional-v1`,
     renderer: {
-      world: 'nightweir-editor',
-      background: '#243a4a',
-      fog: { color: '#657682', density: 0.00038 },
+      ...editorBiome(doc.biome).renderer,
+      world: `${doc.biome}-editor`,
       bloomStrength: 0.07,
       bloomThreshold: 1.15,
       fillHeight: 70,
-      reflectionFar: 6500,
+      reflectionFar: editorBiome(doc.biome).road.suspended ? 200000 : 12000,
       ambientOcclusion: { enabled: false },
     },
     camera: {
@@ -1092,12 +1263,12 @@ export function createEditorLevel(value) {
       lookAhead: 60,
       safeFrame: { left: -0.86, right: 0.86, bottom: -0.6, top: 0.8 },
     },
-    createTrack: () => createEditorTrack(doc),
+    createTrack: () => createPreparedTrack(doc),
     createRoad: ({ track, view }) =>
       createEditorRoad(track, { renderer: view?.renderer }),
     createEnvironment: ({ track, view }) =>
       createEditorEnvironment(doc, track, { renderer: view?.renderer }),
-    createBackdrop: () => createNightweirBackdrop(),
+    createBackdrop: ({ track } = {}) => createEditorBackdrop(doc, { track }),
     createCollisionWorld: ({ track }) => createEditorCollisionWorld(doc, track),
     createRuntime: createEditorFlightRuntime,
     racing: {

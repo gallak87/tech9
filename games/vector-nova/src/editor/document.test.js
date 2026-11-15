@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { EDITOR_BIOMES } from './biomes.js';
 import {
   createDocument,
   generateDocument,
@@ -11,6 +12,8 @@ import {
   addJump,
   setCourseType,
   GENERATOR_VERSION,
+  ENVIRONMENT_VERSION,
+  ENVIRONMENT_LAYOUT_VERSION,
   JUMP_FREQUENCIES,
   JUMP_SIZES,
   generateDocumentAsync,
@@ -494,4 +497,242 @@ test('version3 sync and yielding async generation produce identical validated re
   assert.equal(noJumps.generator.jumpFrequency, 'none');
   assert.deepEqual(noJumps.jumps, []);
   assert.equal(analyzeDocument(noJumps).valid, true);
+});
+
+test('legacy environment migration preserves the old scenery seed and historical physical identity', () => {
+  for (const [options, expected] of [
+    [
+      { generatorVersion: 1, seed: 42, seedJumps: false },
+      'custom-nightweir-v5-ea56e468',
+    ],
+    [
+      { generatorVersion: 3, seed: 7, seedJumps: false },
+      'custom-nightweir-v5-468038a7',
+    ],
+  ]) {
+    const legacy = generateDocument(options);
+    delete legacy.environment;
+    const before = structuredClone(legacy);
+    const migrated = validateDocument(legacy);
+    assert.deepEqual(migrated.environment, {
+      version: 1,
+      seed: options.seed,
+      layoutVersion: 0,
+    });
+    assert.deepEqual(migrated.points, before.points);
+    assert.deepEqual(migrated.jumps, before.jumps);
+    assert.deepEqual(migrated.settings, before.settings);
+    assert.equal(documentIdentity(migrated), expected);
+    assert.deepEqual(
+      legacy,
+      before,
+      'migration does not edit the imported object',
+    );
+    assert.deepEqual(
+      validateDocument(JSON.parse(JSON.stringify(migrated))),
+      migrated,
+    );
+  }
+});
+
+test('new constructors choose regional environment data and validate independent seed versions strictly', () => {
+  assert.equal(ENVIRONMENT_VERSION, 1);
+  assert.equal(ENVIRONMENT_LAYOUT_VERSION, 1);
+  const blank = createDocument({
+    seed: 42,
+    blank: true,
+    environmentSeed: 9001,
+  });
+  assert.deepEqual(blank.environment, {
+    version: 1,
+    seed: 9001,
+    layoutVersion: 1,
+  });
+  assert.equal(blank.generator.seed, 42);
+  for (const generatorVersion of [1, 2, 3]) {
+    const generated = generateDocument({
+      generatorVersion,
+      seed: 42,
+      environmentSeed: 8,
+    });
+    assert.deepEqual(generated.environment, {
+      version: 1,
+      seed: 8,
+      layoutVersion: 1,
+    });
+  }
+  const source = structuredClone(blank);
+  source.environment.untrusted = 'discard';
+  assert.deepEqual(validateDocument(source), blank);
+  const invalidEnvironments = [
+    null,
+    [],
+    { version: 2, seed: 1, layoutVersion: 1 },
+    { version: 1, seed: 1, layoutVersion: 2 },
+    { version: 1, seed: 1, layoutVersion: '1' },
+    ...[-1, 4294967296, 1.5, NaN, Infinity, '4'].map((seed) => ({
+      version: 1,
+      seed,
+      layoutVersion: 1,
+    })),
+  ];
+  for (const environment of invalidEnvironments) {
+    assert.throws(() => validateDocument({ ...blank, environment }));
+    assert.throws(() => createDocument({ blank: true, environment }));
+  }
+  const maximum = validateDocument({
+    ...blank,
+    environment: { version: 1, seed: 4294967295, layoutVersion: 0 },
+  });
+  assert.equal(maximum.environment.seed, 4294967295);
+});
+
+test('regional physical identity follows resolved road/environment data rather than pending road preferences', () => {
+  const source = generateDocument({ seed: 7 });
+  const expected = documentIdentity(source);
+  assert.match(expected, /^custom-nightweir-v6-/);
+  const preferences = structuredClone(source);
+  Object.assign(preferences.generator, {
+    seed: 1234,
+    length: 20000,
+    bendiness: 1,
+    elevation: 0,
+    crossovers: 1,
+    jumpFrequency: 'many',
+    jumpSize: 'large',
+  });
+  assert.equal(documentIdentity(preferences), expected);
+  for (const change of [
+    (doc) => {
+      doc.environment.seed++;
+    },
+    (doc) => {
+      doc.settings.density = 0.2;
+    },
+    (doc) => {
+      doc.points[0].x += 5;
+    },
+    (doc) => {
+      doc.environment.layoutVersion = 0;
+    },
+  ]) {
+    const edited = structuredClone(source);
+    change(edited);
+    assert.notEqual(documentIdentity(edited), expected);
+  }
+});
+
+test('road regeneration preserves supplied environment settings and seed in sync and yielding paths', async () => {
+  const original = generateDocument({
+    seed: 7,
+    environmentSeed: 4294967295,
+    sceneryPreset: 'industrial',
+  });
+  const before = structuredClone(original);
+  const options = {
+    ...original.generator,
+    seed: 42,
+    environment: original.environment,
+    settings: original.settings,
+    density: 0.01,
+    waterLevel: -8,
+    sceneryPreset: 'reclaimed',
+  };
+  const generated = generateDocument(options);
+  const asynchronous = await generateDocumentAsync(options, {
+    yieldControl: async () => {},
+  });
+  assert.deepEqual(generated, asynchronous);
+  assert.deepEqual(generated.environment, original.environment);
+  assert.deepEqual(generated.settings, original.settings);
+  assert.equal(generated.generator.seed, 42);
+  assert.notDeepEqual(generated.points, original.points);
+  assert.deepEqual(original, before);
+  generated.environment.seed = 4;
+  generated.settings.density = 0.1;
+  assert.deepEqual(
+    original,
+    before,
+    'new road owns its environment/settings copies',
+  );
+  const legacyLayout = { version: 1, seed: 81, layoutVersion: 0 };
+  for (const generatorVersion of [1, 2, 3]) {
+    assert.deepEqual(
+      generateDocument({ generatorVersion, environment: legacyLayout })
+        .environment,
+      legacyLayout,
+    );
+  }
+});
+
+test('all whole-course biomes validate their own presets without changing resolved road features', () => {
+  const original = generateDocument({ seed: 7, length: 3000 });
+  for (const biome of EDITOR_BIOMES) {
+    const blank = createDocument({
+      biome: biome.id,
+      blank: true,
+      environmentSeed: 91,
+    });
+    assert.equal(blank.biome, biome.id);
+    assert.equal(blank.settings.sceneryPreset, biome.presets[0].id);
+    assert.equal(blank.environment.seed, 91);
+    for (const preset of biome.presets) {
+      const changed = validateDocument({
+        ...original,
+        biome: biome.id,
+        settings: {
+          sceneryPreset: preset.id,
+          density: preset.density,
+          waterLevel: preset.waterLevel,
+        },
+      });
+      assert.deepEqual(changed.points, original.points);
+      assert.deepEqual(changed.jumps, original.jumps);
+      assert.deepEqual(changed.pickups, original.pickups);
+      assert.deepEqual(changed.generator, original.generator);
+      assert.match(
+        documentIdentity(changed),
+        new RegExp(`^custom-${biome.id}-v6-`),
+      );
+      assert.deepEqual(
+        validateDocument(JSON.parse(JSON.stringify(changed))),
+        changed,
+      );
+    }
+    for (const courseType of ['circuit', 'downhill']) {
+      const generated = generateDocument({
+        biome: biome.id,
+        courseType,
+        seed: 7,
+        length: 3000,
+        environmentSeed: 91,
+      });
+      assert.equal(generated.biome, biome.id);
+      assert.deepEqual(generated.environment, {
+        version: 1,
+        seed: 91,
+        layoutVersion: 1,
+      });
+      assert.equal(analyzeDocument(generated).valid, true, biome.id);
+    }
+  }
+  const foreign = structuredClone(original);
+  foreign.biome = 'orbital';
+  assert.throws(() => validateDocument(foreign), /preset/);
+  foreign.settings = {
+    sceneryPreset: 'shipyard-v1',
+    density: 0.72,
+    waterLevel: -50,
+  };
+  foreign.environment.layoutVersion = 0;
+  assert.throws(() => validateDocument(foreign), /legacy Nightweir/);
+  for (const generatorVersion of [1, 2]) {
+    const oldBuilder = generateDocument({
+      biome: 'halcyon',
+      generatorVersion,
+      seed: 42,
+    });
+    assert.equal(oldBuilder.biome, 'halcyon');
+    assert.equal(oldBuilder.settings.sceneryPreset, 'civic-v1');
+  }
 });

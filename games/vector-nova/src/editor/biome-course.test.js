@@ -1,0 +1,114 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { EDITOR_BIOMES } from './biomes.js';
+import { generateDocument, analyzeDocument } from './document.js';
+import { loadEditorCourse } from './course.js';
+import { createMagneticRuntime } from '../core/session-runtime.js';
+import { createVehicleState } from '../physics/index.js';
+import { createRapierWorld } from '../physics/rapier-world.js';
+import { withMagneticBoundaries } from '../physics/magnetic-boundaries.js';
+import { getRacerControl } from '../race/racers.js';
+
+// Exercise complete generated collision in the real dynamics backend, rather
+// than assuming a differently shaped road kit still seats magnetic vehicles.
+test('every whole-course biome drives on its rendered road and full regional collision', async (t) => {
+  const bases = Object.fromEntries(
+    ['circuit', 'downhill'].map((courseType) => [
+      courseType,
+      generateDocument({
+        generatorVersion: 3,
+        seed: 42017,
+        length: 3000,
+        courseType,
+        jumpFrequency: 'none',
+        bendiness: 0.45,
+        elevation: 0.35,
+      }),
+    ]),
+  );
+  for (const [index, biome] of EDITOR_BIOMES.entries())
+    await t.test(biome.id, async () => {
+      const doc = structuredClone(bases[index % 2 ? 'downhill' : 'circuit']);
+      doc.biome = biome.id;
+      // Cover the deepest bed, transparent deck and two suspended road kits
+      // through a complete authored road rotation as well as ordinary routes.
+      if (['colossus', 'glasswake', 'ravel', 'zephyr'].includes(biome.id))
+        doc.points.forEach((point, i) => {
+          point.roll = (i / doc.points.length) * Math.PI * 2;
+        });
+      const preset = biome.presets[0];
+      doc.settings = {
+        sceneryPreset: preset.id,
+        density: preset.density,
+        waterLevel: preset.waterLevel,
+      };
+      assert.equal(analyzeDocument(doc).valid, true);
+      const { definition, metadata } = loadEditorCourse(doc);
+      assert(metadata.ui.subtitle.includes(biome.label));
+      const track = definition.createTrack();
+      const road = definition.createRoad({ track });
+      const environment = definition.createEnvironment({ track });
+      let collision, dynamics, runtime;
+      try {
+        await Promise.all([road.ready, environment.ready]);
+        assert.equal(road.group.userData.biome, biome.id);
+        assert(road.group.children.some((mesh) => mesh.userData.roadSurface));
+        assert(
+          environment.group.userData.region.assemblies > 15,
+          `${biome.id} has a populated full-course world`,
+        );
+        collision = definition.createCollisionWorld({ track });
+        assert(collision.triangles.some((face) => face.kind === 'deck'));
+        assert(collision.triangles.some((face) => face.kind === 'structure'));
+        dynamics = await createRapierWorld({
+          collisionWorld: withMagneticBoundaries(track, collision),
+        });
+        runtime = createMagneticRuntime({
+          track,
+          dynamics,
+          collisionWorld: collision,
+          settings: { steeringAssist: 0.3 },
+        });
+        for (const fraction of [0.03, 0.47, 0.83]) {
+          dynamics.reset();
+          const state = {
+            ...createVehicleState(),
+            distance: track.length * fraction,
+            speed: 95,
+          };
+          const initial = state.distance;
+          runtime.reset({ state });
+          for (let tick = 0; tick < 120; tick++)
+            runtime.advance(
+              state,
+              getRacerControl(state, track, {
+                runtime,
+                difficulty: 'hard',
+                lane: 0,
+              }),
+              1 / 120,
+            );
+          assert(
+            state.distance > initial + 60,
+            `${biome.id} advances at ${fraction}`,
+          );
+          assert(
+            state.speed > 70,
+            `${biome.id} stays clear of generated structures`,
+          );
+          assert(Math.abs(state.lateral) < track.width / 2);
+          assert.equal(
+            runtime.pose(1).grounded,
+            true,
+            `${biome.id} stays seated at ${fraction}`,
+          );
+        }
+      } finally {
+        runtime?.dispose();
+        dynamics?.dispose();
+        collision?.dispose();
+        road.dispose();
+        environment.dispose();
+      }
+    });
+});

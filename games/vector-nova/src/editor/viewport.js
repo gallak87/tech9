@@ -1,20 +1,21 @@
 import * as T from 'three';
 
 import { createEditorWorld } from './nightweir.js';
-import { createNightweirBackdrop } from '../levels/nightweir/backdrop/index.js';
+import { editorBiome } from './biomes.js';
+import { createEditorBackdrop } from './biome-backdrop.js';
 import { textureMemory } from '../renderer/texture-memory.js';
 import { routeCurve } from './route.js';
 import { readGamepad, steeringAxis } from '../input/gamepad.js';
 import { createEditorHandles } from './viewport-handles.js';
 import { bindEditorViewportInput } from './viewport-input.js';
 
-// Generation knobs describe the next route; only the seed affects current scenery.
+// Road generation preferences do not rebuild resolved geometry or scenery.
 export function editorWorldFingerprint(value) {
   return JSON.stringify({
     ...value,
     id: undefined,
     name: undefined,
-    generator: { seed: value.generator.seed },
+    generator: undefined,
   });
 }
 
@@ -50,6 +51,9 @@ export function createEditorViewport(
   let metrics = null;
   let backdrop;
   let backdropPromise;
+  let backdropKey;
+  let backdropAbort;
+  let skyLight, sunLight;
   let environment;
   let frames = 0;
   let gpuRenderer = null;
@@ -133,10 +137,11 @@ export function createEditorViewport(
     scene = new T.Scene();
     scene.background = new T.Color('#111b20');
     scene.fog = new T.FogExp2('#657682', 0.00011);
-    scene.add(new T.HemisphereLight('#a7c2d0', '#52666d', 1.4));
-    const sun = new T.DirectionalLight('#c9d8e1', 2.2);
-    sun.position.set(-650, 420, -600);
-    scene.add(sun);
+    skyLight = new T.HemisphereLight('#a7c2d0', '#52666d', 1.4);
+    scene.add(skyLight);
+    sunLight = new T.DirectionalLight('#c9d8e1', 2.2);
+    sunLight.position.set(-650, 420, -600);
+    scene.add(sunLight);
     camera = new T.PerspectiveCamera(48, 1, 0.5, 30000);
     rebuildTrajectories();
     handles = createEditorHandles(scene);
@@ -299,9 +304,10 @@ export function createEditorViewport(
       }
       camera.updateProjectionMatrix();
       camera.updateMatrixWorld();
-      scene.fog.density = flying
-        ? 0.000045
-        : Math.min(0.00011, 0.5 / Math.max(1, distance));
+      if (scene.fog)
+        scene.fog.density = flying
+          ? 0.000045
+          : Math.min(0.00011, 0.5 / Math.max(1, distance));
       handles?.setVisible(!flying);
       handles?.update(camera, width, height);
       const state = handles?.getState();
@@ -349,6 +355,8 @@ export function createEditorViewport(
       renderer.render(scene, camera);
       metrics = {
         preset: 'Low / static editor preview',
+        biome: world?.group.userData.editorBiome ?? null,
+        environment: world?.group.userData.environment ?? null,
         frames: ++frames,
         timing: 'CPU render submission only',
         estimatedGpuBytes: world ? estimatedGpuBytes : 0,
@@ -647,6 +655,8 @@ export function createEditorViewport(
           attribute.array?.byteLength ?? attribute.data?.array?.byteLength ?? 0;
       bytes += geometry.index?.array.byteLength ?? 0;
     }
+    world?.ownedTextures?.forEach(addTexture);
+    backdrop?.ownedTextures?.forEach(addTexture);
     addTexture(scene.environment);
     for (const texture of textures) bytes += textureMemory(texture).bytes;
     return Math.round(bytes);
@@ -659,28 +669,82 @@ export function createEditorViewport(
       init();
       const buildingScene = scene;
       const buildingRenderer = renderer;
-      backdropPromise ??= createNightweirBackdrop().then((nextBackdrop) => {
-        if (disposed || buildingScene !== scene) {
-          nextBackdrop.dispose();
-          return;
-        }
-        backdrop = nextBackdrop;
-        scene.add(backdrop.group);
-        const generator = new T.PMREMGenerator(buildingRenderer);
-        try {
-          const environmentScene = new T.Scene();
-          environmentScene.add(backdrop.group.clone(true));
-          environment = generator.fromScene(environmentScene, 0.04, 0.1, 26000);
-          scene.environment = environment.texture;
-          scene.environmentIntensity = 0.8;
-        } finally {
-          generator.dispose();
-        }
-      });
-      await backdropPromise;
-      if (disposed || revision !== build) return;
       const buildingDocument = latest,
         buildingFingerprint = fingerprint;
+      const skyKey = JSON.stringify([
+        buildingDocument.biome,
+        buildingDocument.settings.waterLevel,
+      ]);
+      if (backdropKey !== skyKey || !backdropPromise) {
+        backdropAbort?.abort();
+        backdropAbort = new AbortController();
+        const signal = backdropAbort.signal;
+        backdropKey = skyKey;
+        backdropPromise = (async () => {
+          const nextBackdrop = await createEditorBackdrop(buildingDocument, {
+            signal,
+            preview: true,
+          });
+          if (disposed || buildingScene !== scene || signal.aborted) {
+            nextBackdrop.dispose();
+            return;
+          }
+          const generator = new T.PMREMGenerator(buildingRenderer);
+          let nextEnvironment;
+          try {
+            const environmentScene = new T.Scene();
+            environmentScene.add(nextBackdrop.group.clone(true));
+            nextEnvironment = generator.fromScene(
+              environmentScene,
+              0.04,
+              0.1,
+              80000,
+            );
+          } catch (error) {
+            nextBackdrop.dispose();
+            throw error;
+          } finally {
+            generator.dispose();
+          }
+          if (disposed || buildingScene !== scene || signal.aborted) {
+            nextBackdrop.dispose();
+            nextEnvironment.dispose();
+            return;
+          }
+          if (backdrop) scene.remove(backdrop.group);
+          backdrop?.dispose();
+          environment?.dispose();
+          backdrop = nextBackdrop;
+          environment = nextEnvironment;
+          scene.add(backdrop.group);
+          scene.environment = environment.texture;
+          scene.environmentIntensity = backdrop.environmentIntensity ?? 0.8;
+          world?.setReflection?.(environment.texture);
+          const family = editorBiome(buildingDocument.biome);
+          scene.background = new T.Color(
+            family.renderer?.background ?? '#111b20',
+          );
+          scene.fog = family.renderer?.fog
+            ? new T.FogExp2(family.renderer.fog.color, 0.00011)
+            : null;
+          skyLight.color.set(backdrop.ambientSky ?? '#a7c2d0');
+          skyLight.groundColor.set(backdrop.ambientGround ?? '#52666d');
+          skyLight.intensity = backdrop.ambientIntensity ?? 1.4;
+          sunLight.color.set(backdrop.sunColor ?? '#c9d8e1');
+          sunLight.intensity = backdrop.sunIntensity ?? 2.2;
+          if (backdrop.sunDirection)
+            sunLight.position.copy(backdrop.sunDirection).multiplyScalar(1000);
+          camera.far = Math.max(30000, backdrop.far ?? 0);
+        })().catch((error) => {
+          if (!signal.aborted && backdropKey === skyKey) {
+            backdropKey = null;
+            backdropPromise = null;
+          }
+          throw error;
+        });
+      }
+      await backdropPromise;
+      if (disposed || revision !== build) return;
       next = await createEditorWorld(buildingDocument, {
         renderer,
         preview: true,
@@ -744,6 +808,10 @@ export function createEditorViewport(
     backdrop?.dispose();
     backdrop = undefined;
     backdropPromise = undefined;
+    backdropKey = undefined;
+    backdropAbort?.abort();
+    backdropAbort = undefined;
+    skyLight = sunLight = undefined;
     environment?.dispose();
     environment = undefined;
     renderer?.dispose();

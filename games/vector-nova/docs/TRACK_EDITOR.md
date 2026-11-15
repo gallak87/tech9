@@ -1,6 +1,6 @@
 # Track Workshop
 
-Open the top-level **Editor** tab in the full game or browser build. A new draft starts with an empty Nightweir basin. **Generate track** creates a complete 3 km starter with jumps and pickups using the default settings. Choose **Draw road** to place your own points on the 100 m grid, or open **Generate** outside the preview for a different length and feel. Choose Circuit for a closed loop or Downhill for a descent with a supported 600 m braking runout after the finish. Browser development also accepts `?editor=1` after career selection.
+Open the top-level **Editor** tab in the full game or browser build. A new draft starts with an empty Nightweir basin. **Road → Generate road** offers four one-click starters: **Flowing**, **Technical**, **Woven** and **Big Air**. Each card explicitly creates a road at the chosen length; Undo restores the previous one. Woven requires Circuit. Choose **Draw road** to place your own points on the 100 m grid, or open **Generate road** outside the preview for a different length and feel. Choose Circuit for a closed loop or Downhill for a descent with a supported 600 m braking runout after the finish. Browser development also accepts `?editor=1` after career selection.
 
 ## Click, shape, drive
 
@@ -16,19 +16,25 @@ The **Jumps** authoring group provides existing jump inspection, section search 
 
 Jump lips stay anchored to road points while other sections change. Removing a gap restores the road but retains its ramp/landing point edits. Undo restores the complete previous edit. Generating replaces the route and its jumps; changing course type clears incompatible features. Both operations remain undoable.
 
-Generate track offers **3, 5, 10, 15 and 20 km** presets with visible **Curviness**, **Crossovers**, **Vertical variation**, **Jump frequency** and **Jump size** controls. Seeds choose different route layouts. Curviness makes ordinary turns broader at 0 and tighter at 100. Circuit seeds remain closed loops; Downhill seeds follow winding descents with a supported braking runout.
+Generate road offers **3, 5, 10, 15 and 20 km** presets with visible **Curviness**, **Crossovers**, **Vertical variation**, **Jump frequency** and **Jump size** controls. Seeds choose different route layouts. Curviness makes ordinary turns broader at 0 and tighter at 100. Circuit seeds remain closed loops; Downhill seeds follow winding descents with a supported braking runout.
 
 For Circuit, **Crossovers** runs from **Broad loop** at 0 to **Intertwined** at 100. Zero preserves the existing broad-loop generation. Positive values create figure-eight or multi-crossing layouts with grade-separated overpasses; longer courses have room for more weaves. Required overpass height is automatic, even with Vertical variation at 0. Crossovers is disabled and ignored for Downhill. Changing these settings affects the next generation; saved road geometry is not silently rebuilt.
 
-Jumps reserve actual approach, flight and receiving road. Broad-loop Normal frequency starts with one Circuit jump through 3 km and two beyond, or three Downhill jumps below 10 km and four above. Shorter or denser woven layouts may fit fewer weaves, fewer jumps or smaller jumps than requested; frequency and size always fit the available road and clearance. None creates a route without gaps. Pickup fill is enabled by default. **Generate track** repeats the chosen seed and settings; **New variation** chooses a new seed and generates in one undoable action. New variation keeps keyboard/controller focus for repeated rerolls. Requested downhill length includes its braking runout. Saved geometry remains authoritative when loaded, including older generator versions.
+Jumps reserve actual approach, flight and receiving road. Broad-loop Normal frequency starts with one Circuit jump through 3 km and two beyond, or three Downhill jumps below 10 km and four above. Shorter or denser woven layouts may fit fewer weaves, fewer jumps or smaller jumps than requested; frequency and size always fit the available road and clearance. None creates a route without gaps. Pickup fill is enabled by default. **Generate road** repeats the chosen Road seed and settings; **New road variation** chooses a new Road seed and generates in one undoable action. New road variation keeps keyboard/controller focus for repeated rerolls. Requested downhill length includes its braking runout. Saved geometry remains authoritative when loaded, including older generator versions.
 
 ## Around your road
 
-World offers three curated Nightweir presets: **Waterfront**, **Industrial basin** and **Reclaimed waterfront**. Each fills clear parcels with coordinated buildings, working infrastructure or greenery using the track seed. The editor places and supports the scenery automatically. The current authoring flow does not require placing individual buildings or plants. Road edges, gutters, lanterns, piers, foundations and waterfront terraces are automatic too.
+**Road** and **Environment** are settings contexts sharing the same preview, course file and Undo/Redo history. Switching contexts preserves the pointer tool, selection and camera. Road exposes generation and pickup fill; Environment opens the world settings. Save, Test drive and My tracks remain global.
+
+Environment offers all 17 base world families: **Nightweir, Halcyon, Asterion Orbital, Nacre Tempest, Vesper Forest, Glasswake Comet, Cindercoil, Saffron Leviathan, Zephyr Basilica, Helion Flare, Umbra Fold, Shatterline, Worldspire, Colossus Works, Ravel, Nomad Procession and Oriel**. Mode variants share their base family. Each family has curated character presets, a corresponding road kit and its registered sky/lighting. These are generated whole-course environments; route-specific campaign set pieces and active campaign hazards are not copied into custom courses.
+
+Nightweir retains **Waterfront**, **Industrial basin** and **Reclaimed waterfront**. Its regional plan fills the course and surrounding space with connected terrain, rivers, basins, founded districts, quays, working yards and parks. Other families use their own generated forms: forest groves, glacial shelves, suspended Gothic islands, shipyards, radiator fields, mineral ridges, machine halls, sails, carriers and civic arcades. Required road edges, supports and foundations stay automatic. The editor does not require arranging individual buildings or plants.
+
+**Road seed** determines the next route. **Environment seed** determines scenery independently. World family, character, fullness and environment seed changes remain pending until **Regenerate environment**; the preview keeps showing the applied world. **New environment variation** picks another environment seed and applies it in one undoable action. Both preserve road points/IDs, angles, jump anchors and pickup layout. Road generation preserves the applied environment family, seed and settings, adapting its clearance around the new road. Save stores the applied world; pending controls explicitly report that regeneration is still required.
 
 Pickups fills the course with real Vector boosts, Aegis shields, Repulsors, Arc bursts and Ion wakes. Balanced/Boost heavy and spacing options offer a few useful variations. Clear and Undo restore the expected layouts. Devices follow the actual banked/inverted road surface and avoid jump corridors. Refill after substantial road changes to update safe placement.
 
-The global header keeps track name, course type, Save, Test drive, Undo/Redo, Reset, Tunes and Back outside the preview. **Generate**, **World**, **Pickups** and **Files** open a left drawer that gives the preview the remaining space. The compact authoring strip stays over the preview; its Point, Bank and Jumps groups expand within the strip. Tunes stays clear of the strip and header controls; Tunes and Map close each other when opened.
+The global header keeps track name, course type, Save, Test drive, Undo/Redo, Reset, Tunes and Back outside the preview. **Generate road**, **World**, **Pickups** and **My tracks** open a left drawer that gives the preview the remaining space. The compact authoring strip stays over the preview; its Point, Bank and Jumps groups expand within the strip. Tunes stays clear of the strip and header controls; Tunes and Map close each other when opened.
 
 ## Camera, controls and testing
 
@@ -40,14 +46,40 @@ Track checks explain incomplete routes, tight bends, steep grades, abrupt rotati
 
 ## Saves and limits
 
-Save track stores the draft in Files, including empty drafts. Save a copy creates a new library ID. Files also offers Load, Delete saved, Import and Export. Leaving/reopening the editor in the same frontend retains the draft; save before reloading or quitting. Import changes the draft and requires an explicit Save before changing the library. Failed writes and malformed files preserve the current document.
+Save stores the draft in My tracks, including empty drafts. Save a copy creates a new library ID. My tracks also offers Load, Delete saved, Import and Export. Leaving/reopening the editor in the same frontend retains the draft; save before reloading or quitting. Import changes the draft and requires an explicit Save before changing the library. Failed writes and malformed files preserve the current document.
 
 **Reset track** clears the road, jumps and pickups and returns to Draw. It retains the track name, identity and world settings. Undo restores the complete previous draft; Reset does not overwrite a saved track until you Save.
 
-Browser builds use independent localStorage and file import/download. The existing Electron bridge uses atomic files in the full edition's `userData/tracks` directory and native `.vntrack.json` dialogs, separate from careers. Electron/Steam release validation is deferred. Libraries support 256 tracks and a 1 MB file limit. Steam Cloud/Workshop sharing is not configured.
+Browser builds use independent localStorage and file import/download. The existing Electron bridge uses atomic files in the full edition's `userData/tracks` directory and native `.vntrack.json` dialogs, separate from careers. Electron/Steam release validation is deferred; its IPC validator still needs to accept the expanded biome/environment schema before native release. Libraries support 256 tracks and a 1 MB file limit. Steam Cloud/Workshop sharing is not configured.
 
-Version-1 files store stable ID/name, Nightweir biome, seed/options, actual route points and unwrapped roll, world preset/settings, anchored gaps and a resolved pickup layout. Older files retain their explicit scenery data for compatibility. Loading never regenerates saved road geometry. Unknown fields are dropped; unsupported versions/biomes/objects are rejected. Files contain no scripts, arbitrary asset URLs or filesystem paths.
+Version-1 files store stable ID/name, a registered whole-course biome, road seed/options, independent versioned environment seed/layout, actual route points and unwrapped roll, world character/settings, anchored gaps and a resolved pickup layout. Legacy files without an environment block inherit their old seed and keep the previous roadside layout until explicit environment regeneration. New files use regional layout version 1. Older files retain their explicit scenery data for compatibility. Loading never regenerates saved road geometry. Unknown fields are dropped; unsupported versions/biomes/objects are rejected. Files contain no scripts, arbitrary asset URLs or filesystem paths.
 
 One Circuit or Downhill course per file; up to 256 route points and 25 km of authored road. Generated lengths remain 1.8–20 km; the extra authoring room lets users reshape a 20 km starter without immediately invalidating it. Width is 32–64 m, elevation 0–3000 m, and bank trim about ±20°. Rotation chunks allow full inversions independently of trim. Branches, tubes, moving machinery, freeform wave curves and optional Freestyle trick scoring remain future work.
 
-See [the editor roadmap](../track-editor-roadmap.md) for planned Road/Environment authoring contexts, complete regional world generation, mixed biomes, skies, props and hazards. The context split is planned work; current controls remain as described above.
+See [the editor roadmap](../track-editor-roadmap.md) for per-span mixed biomes, independent sky choices, optional props/hazards and later simulation features. Current biome selection applies to the whole course.
+
+## Verification and resource measurements
+
+Run `node --test --test-concurrency=2 src/editor/*.test.js`, `npm run test:fast`, `npm run lint` and `npm run build -- --configLoader native`. Browser tools require an isolated `VN_URL` and launch muted by default. `editor-contexts-verify.mjs` checks independent seeds/history/save behavior; its `--water-clearance` branch checks water-preset validation and Undo. `editor-biomes-verify.mjs` checks every family and legacy roundtrips, with a short `--responsive` branch for final touch coverage. `editor-tools-verify.mjs` and `editor-toolbar-verify.mjs` cover authoring, camera, Map and focus behavior.
+
+`editor-world-budget.mjs` compares the same Nightweir road/seed using legacy roadside and regional environments. A warm Low static-preview sample on Apple M1 Pro / Chrome ANGLE Metal, 1440×900 browser / 1440×703 canvas, measured 72 frames per case. Road seed 42, environment 7001, Waterfront fullness .82; the 20 km fixture uses Crossovers 1. Texture estimates include shader-only owned maps.
+
+| Course | Environment     | CPU submission median / p95 | Draw calls | Triangles | Estimated GPU MiB |
+| ------ | --------------- | --------------------------- | ---------- | --------- | ----------------- |
+| 3 km   | Legacy roadside | .4 / .5 ms                  | 29         | 89,402    | 40.73             |
+| 3 km   | Regional        | .4 / .5 ms                  | 38         | 196,156   | 65.69             |
+| 20 km  | Legacy roadside | .3 / .4 ms                  | 29         | 499,112   | 45.91             |
+| 20 km  | Regional        | .4 / .5 ms                  | 44         | 517,616   | 71.05             |
+
+These are matched static authoring measurements, not foreground race FPS or measured GPU duration. The preview uses a fixed reduced-detail rendering path. `VN_QUALITY=low|high node tools/editor-world-budget.mjs --practice` separately checks warm Practice geometry/resource costs at both quality presets; headless frame cadence is diagnostic only. Sustained foreground 60 FPS, GPU timings and physical Steam/controller hardware remain release checks.
+
+A matching stationary Practice check used the same road/environment inputs, 1440×900 / DPR 1, 80 warm-up frames followed by 120 sampled frames. These totals include the stock ship, HUD and quality-dependent rendering; the preview totals above exclude the gameplay pipeline.
+
+| Quality / course | Draw calls: legacy → regional | Triangles: legacy → regional | Estimated GPU MiB: legacy → regional |
+| ---------------- | ----------------------------- | ---------------------------- | ------------------------------------ |
+| Low / 3 km       | 77 → 87                       | 943,962 → 2,355,360          | 145.13 → 169.68                      |
+| High / 3 km      | 94 → 104                      | 943,979 → 2,355,377          | 448.70 → 473.25                      |
+| Low / 20 km      | 77 → 87                       | 6,591,138 → 5,816,184        | 170.37 → 195.71                      |
+| High / 20 km     | 94 → 104                      | 6,591,155 → 5,816,201        | 473.94 → 499.28                      |
+
+The bounded near/middle detail keeps long regions from inheriting the old roadside instance growth. Headless warm frame cadence stayed near the display cap in these stationary cases; it does not replace a foreground driving/GPU-timing pass.

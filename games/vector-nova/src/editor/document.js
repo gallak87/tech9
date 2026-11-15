@@ -2,10 +2,13 @@ import * as T from 'three';
 import { routeCurve, createRouteSampler } from './route.js';
 import { createSeededCourseGeometry } from './seeded-course.js';
 import { createSeededLayoutGeometry } from './seeded-layout.js';
-import { worldPreset } from './world-presets.js';
+import { worldPreset, REGIONAL_LAYOUT_VERSION } from './world-presets.js';
+import { editorBiome, isEditorBiome, editorWorldPreset } from './biomes.js';
 
 export const DOCUMENT_FORMAT = 'vector-nova-track';
 export const GENERATOR_VERSION = 3;
+export const ENVIRONMENT_VERSION = 1;
+export const ENVIRONMENT_LAYOUT_VERSION = REGIONAL_LAYOUT_VERSION;
 export const JUMP_FREQUENCIES = Object.freeze([
   'none',
   'few',
@@ -75,8 +78,8 @@ export function editorRandom(seed) {
 export function validateDocument(value) {
   if (!record(value) || value.format !== DOCUMENT_FORMAT || value.version !== 1)
     fail('This is not a supported Vector Nova track file (version 1)');
-  if (value.biome !== 'nightweir')
-    fail('Only the Nightweir biome is supported');
+  if (!isEditorBiome(value.biome)) fail('Choose a supported editor biome');
+  const biome = value.biome;
   if (
     typeof value.name !== 'string' ||
     !value.name.trim() ||
@@ -117,10 +120,26 @@ export function validateDocument(value) {
     generator.jumpSize = jumpSize;
     generator.crossovers = number(g.crossovers ?? 0, 0, 1, 'Crossovers');
   }
+  const e =
+    value.environment === undefined
+      ? { version: ENVIRONMENT_VERSION, seed: generator.seed, layoutVersion: 0 }
+      : value.environment;
+  if (!record(e) || e.version !== ENVIRONMENT_VERSION)
+    fail('Unsupported environment version');
+  if (!Number.isInteger(e.seed)) fail('Environment seed must be an integer');
+  if (![0, ENVIRONMENT_LAYOUT_VERSION].includes(e.layoutVersion))
+    fail('Unsupported environment layout version');
+  const environment = {
+    version: ENVIRONMENT_VERSION,
+    seed: number(e.seed, 0, 4294967295, 'Environment seed'),
+    layoutVersion: e.layoutVersion,
+  };
   if (!record(value.settings)) fail('Biome settings are missing');
-  const sceneryPreset = value.settings.sceneryPreset ?? 'waterfront';
-  if (!['waterfront', 'industrial', 'reclaimed'].includes(sceneryPreset))
-    fail('Choose a supported scenery preset');
+  if (environment.layoutVersion === 0 && biome !== 'nightweir')
+    fail('Only legacy Nightweir files use the roadside environment layout');
+  const sceneryPreset =
+    value.settings.sceneryPreset ?? editorBiome(biome).presets[0].id;
+  editorWorldPreset(biome, sceneryPreset);
   const settings = {
     sceneryPreset,
     density: number(value.settings.density, 0, 1, 'Scenery density'),
@@ -153,7 +172,7 @@ export function validateDocument(value) {
   });
   const props = value.props.map((p) => {
     if (!record(p) || !PROP_TYPES.includes(p.type))
-      fail('Unknown Nightweir scenery object');
+      fail('Unknown scenery object');
     return {
       id: unique(p.id, 'Object ID'),
       type: p.type,
@@ -257,10 +276,11 @@ export function validateDocument(value) {
     version: 1,
     id: identifier(value.id, 'Track ID'),
     name: value.name.trim(),
-    biome: 'nightweir',
+    biome,
     courseType,
     autoCloseRoll,
     generator,
+    environment,
     width: number(value.width, 32, 64, 'Road width'),
     points,
     settings,
@@ -273,14 +293,36 @@ export function validateDocument(value) {
 
 export function documentIdentity(doc) {
   const canonical = validateDocument(doc);
-  // Name and library ID do not change physics; every editable geometry input does.
+  // Resolved road geometry and environment inputs own physics. Generator
+  // preferences remain saved without changing regional-course identity.
   const geometry = { ...canonical };
   delete geometry.id;
   delete geometry.name;
+  const legacy = canonical.environment.layoutVersion === 0;
+  if (legacy) {
+    // Reproduce the historical record shape for migrated files. The old seed
+    // drove scenery too; use its independent successor after migration.
+    delete geometry.environment;
+    geometry.generator = {
+      ...canonical.generator,
+      seed: canonical.environment.seed,
+    };
+  } else delete geometry.generator;
   let hash = 2166136261;
   for (const character of JSON.stringify(geometry))
     hash = Math.imul(hash ^ character.charCodeAt(0), 16777619) >>> 0;
-  return `custom-nightweir-v5-${hash.toString(16).padStart(8, '0')}`;
+  return `custom-${canonical.biome}-v${legacy ? 5 : 6}-${hash.toString(16).padStart(8, '0')}`;
+}
+
+/** Environment regeneration is separate from road generation and stays data-only. */
+export function setEnvironmentSeed(value, seed) {
+  const document = validateDocument(value);
+  document.environment = {
+    version: ENVIRONMENT_VERSION,
+    seed,
+    layoutVersion: ENVIRONMENT_LAYOUT_VERSION,
+  };
+  return validateDocument(document);
 }
 
 export const documentCurve = routeCurve;
@@ -409,23 +451,35 @@ function generationDraft({
   waterLevel,
   courseType = 'circuit',
   seedJumps = true,
-  sceneryPreset = 'waterfront',
+  sceneryPreset,
+  biome = 'nightweir',
   generatorVersion = GENERATOR_VERSION,
   jumpFrequency = 'normal',
   jumpSize = 'mixed',
+  environment,
+  environmentSeed = seed,
+  settings: preservedSettings,
 } = {}) {
   if (typeof seedJumps !== 'boolean')
     fail('Seeded jumps must be enabled or disabled');
-  const preset = worldPreset(sceneryPreset);
+  sceneryPreset = preservedSettings?.sceneryPreset ?? sceneryPreset;
+  density = preservedSettings?.density ?? density;
+  waterLevel = preservedSettings?.waterLevel ?? waterLevel;
+  const selectedBiome = editorBiome(biome);
+  const preset = editorWorldPreset(
+    biome,
+    sceneryPreset ?? selectedBiome.presets[0].id,
+  );
+  sceneryPreset = preset.id;
   return validateDocument({
     format: DOCUMENT_FORMAT,
     version: 1,
     id: `track-${seed}`,
     name:
       courseType === 'downhill'
-        ? 'Untitled Nightweir Descent'
-        : 'Untitled Nightweir',
-    biome: 'nightweir',
+        ? `Untitled ${selectedBiome.label} Descent`
+        : `Untitled ${selectedBiome.label}`,
+    biome,
     courseType,
     generator: {
       version: generatorVersion,
@@ -437,6 +491,14 @@ function generationDraft({
       jumpFrequency: seedJumps ? jumpFrequency : 'none',
       jumpSize,
     },
+    environment:
+      environment === undefined
+        ? {
+            version: ENVIRONMENT_VERSION,
+            seed: environmentSeed,
+            layoutVersion: ENVIRONMENT_LAYOUT_VERSION,
+          }
+        : environment,
     width,
     points: [],
     jumps: [],
@@ -452,12 +514,21 @@ function generationDraft({
 function legacyGeneration(draft) {
   // Selecting an old version explicitly reproduces that historical builder;
   // loading or changing preferences never calls any generator implicitly.
-  return generateLegacyDocument({
+  const generated = generateLegacyDocument({
     ...draft.generator,
     ...draft.settings,
     generatorVersion: draft.generator.version,
+    sceneryPreset:
+      draft.biome === 'nightweir' ? draft.settings.sceneryPreset : 'waterfront',
     courseType: draft.courseType,
     width: draft.width,
+  });
+  return validateDocument({
+    ...generated,
+    biome: draft.biome,
+    name: draft.name,
+    environment: draft.environment,
+    settings: draft.settings,
   });
 }
 
@@ -529,40 +600,20 @@ export function createDocument({
   seed = 7,
   blank = false,
   courseType = 'circuit',
+  biome = 'nightweir',
+  environment,
+  environmentSeed = seed,
+  settings,
 } = {}) {
-  const preset = worldPreset('waterfront');
-  const doc = blank
-    ? validateDocument({
-        format: DOCUMENT_FORMAT,
-        version: 1,
-        id: `track-${seed}`,
-        name:
-          courseType === 'downhill'
-            ? 'Untitled Nightweir Descent'
-            : 'Untitled Nightweir',
-        biome: 'nightweir',
-        courseType,
-        generator: {
-          version: GENERATOR_VERSION,
-          seed,
-          length: 3000,
-          bendiness: 0.45,
-          elevation: 0.35,
-          crossovers: 0,
-          jumpFrequency: 'normal',
-          jumpSize: 'mixed',
-        },
-        width: 40,
-        points: [],
-        jumps: [],
-        props: [],
-        settings: {
-          sceneryPreset: preset.id,
-          density: preset.density,
-          waterLevel: preset.waterLevel,
-        },
-      })
-    : generateDocument({ seed, courseType });
+  const options = {
+    seed,
+    courseType,
+    biome,
+    environment,
+    environmentSeed,
+    settings,
+  };
+  const doc = blank ? generationDraft(options) : generateDocument(options);
   doc.id = `track-${globalThis.crypto.randomUUID()}`;
   return doc;
 }

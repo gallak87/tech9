@@ -139,7 +139,9 @@ test('compiled test-drive descriptors run a real native magnetic actor through b
 });
 
 test('Nightweir parcels join into retained terraces with exact visible collision and a horizon-sized basin', async () => {
-  const doc = plainDocument(),
+  const doc = plainDocument({
+      environment: { version: 1, seed: 7, layoutVersion: 0 },
+    }),
     track = createEditorTrack(doc),
     collected = [];
   const road = createEditorRoad(track);

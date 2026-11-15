@@ -1,24 +1,28 @@
-// Seeded Nightweir roadside assemblies. The seed resolves their placement;
-// choosing a world never requires arranging individual buildings or plants.
+// Seeded Nightweir regional profiles. Environment layout version 0 retains
+// the historical roadside builder; version 1 owns a complete regional plan.
+export const REGIONAL_LAYOUT_VERSION = 1;
 export const WORLD_PRESETS = Object.freeze([
   Object.freeze({
     id: 'waterfront',
     label: 'Waterfront',
-    description: 'Brick districts, harbor warehouses and tree-lined quays.',
+    description:
+      'Harbor neighborhoods, canals, connected quays and civic landmarks.',
     density: 0.82,
     waterLevel: -28,
   }),
   Object.freeze({
     id: 'industrial',
     label: 'Industrial basin',
-    description: 'Working dockyards, pump stations and zinc-roofed halls.',
+    description:
+      'Working basins, dockyard districts, pump stations and zinc-roofed halls.',
     density: 0.88,
     waterLevel: -36,
   }),
   Object.freeze({
     id: 'reclaimed',
     label: 'Reclaimed waterfront',
-    description: 'Dense waterside greenery around old basin buildings.',
+    description:
+      'Reclaimed islands, wooded parkland and old basin neighborhoods.',
     density: 0.9,
     waterLevel: -20,
   }),

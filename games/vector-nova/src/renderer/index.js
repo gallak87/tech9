@@ -520,6 +520,8 @@ export async function createRenderer(
         for (const texture of backdrop?.ownedTextures ?? [])
           countTexture(texture);
         scene.traverse((o) => {
+          for (const texture of o.userData.getOwnedTextures?.() ?? [])
+            countTexture(texture);
           if (o.geometry && !gs.has(o.geometry)) {
             gs.add(o.geometry);
             for (const a of Object.values(o.geometry.attributes))

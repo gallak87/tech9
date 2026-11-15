@@ -28,6 +28,13 @@ export function createEditorTrack(value) {
   const track = {
     id,
     name: doc.name,
+    editorBiome: doc.biome,
+    editorEnvironment: {
+      biome: doc.biome,
+      environment: doc.environment,
+      settings: doc.settings,
+      generator: { seed: doc.generator.seed },
+    },
     version: 1,
     geometryVersion: id,
     length,

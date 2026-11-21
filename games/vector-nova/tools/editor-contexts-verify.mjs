@@ -12,6 +12,7 @@ import {
   openEditorSection,
   revealEditorAction,
   revealEditorField,
+  enterRecoveredWorkspace,
 } from './editor-controls.mjs';
 import {
   collectPageErrors,
@@ -742,9 +743,7 @@ try {
     );
 
     await page.reload();
-    await page
-      .locator('[data-editor-field="name"]')
-      .waitFor({ timeout: 90000 });
+    await enterRecoveredWorkspace(page);
     await section(page, 'library');
     await change(page, 'saved', roadVariation.id);
     await choose(page, 'load');

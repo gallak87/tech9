@@ -4,6 +4,7 @@ import {
   revealEditorField,
   revealEditorAction,
   openEditorSection,
+  enterRecoveredWorkspace,
 } from './editor-controls.mjs';
 import {
   createDocument,
@@ -820,7 +821,7 @@ try {
     );
   }
   await page.reload();
-  await action(page, 'tab-library').waitFor({ timeout: 90000 });
+  await enterRecoveredWorkspace(page);
   await openEditorSection(page, 'library');
   await page.waitForFunction(
     (id) =>

@@ -5,6 +5,11 @@ async function continueRecovery(page) {
   const control = page.locator('[data-editor-action="recover-draft"]');
   if (await control.isVisible()) await control.click();
 }
+// The editor header keeps Back available on both the draft decision and the canvas.
+export async function enterRecoveredWorkspace(page) {
+  await page.locator('[data-editor-action="exit"]').waitFor({ timeout: 90000 });
+  await continueRecovery(page);
+}
 const authorSections = new Set(['route', 'shape', 'jumps']);
 
 async function revealDock(page, name) {

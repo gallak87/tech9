@@ -13,6 +13,7 @@ import {
   revealEditorAction,
   revealEditorControl,
   openEditorSection,
+  enterRecoveredWorkspace,
 } from './editor-controls.mjs';
 import {
   launchVerificationBrowser,
@@ -310,7 +311,7 @@ async function crossoverChecks(page) {
   );
 
   await page.reload();
-  await page.locator('[data-editor-field="name"]').waitFor({ timeout: 90000 });
+  await enterRecoveredWorkspace(page);
   await click(action(page, 'tab-library'));
   await page.locator('[data-editor-field="saved"]').selectOption(first.id);
   await click(action(page, 'load'));
@@ -600,9 +601,7 @@ try {
     });
     const expected = await save(page);
     await page.reload();
-    await page
-      .locator('[data-editor-field="name"]')
-      .waitFor({ timeout: 90000 });
+    await enterRecoveredWorkspace(page);
     await click(action(page, 'tab-library'));
     await page.locator('[data-editor-field="saved"]').selectOption(expected.id);
     await click(action(page, 'load'));

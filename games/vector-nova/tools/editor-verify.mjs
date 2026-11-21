@@ -4,6 +4,7 @@ import {
   revealEditorField,
   revealEditorAction,
   openEditorSection,
+  enterRecoveredWorkspace,
 } from './editor-controls.mjs';
 import { readFile } from 'node:fs/promises';
 import {
@@ -648,7 +649,7 @@ try {
   await page.reload();
   await entry.waitFor({ timeout: 90000 });
   await entry.click();
-  await action(page, 'test').waitFor({ timeout: 90000 });
+  await enterRecoveredWorkspace(page);
   await openEditorSection(page, 'library');
   await page.waitForFunction(
     () =>

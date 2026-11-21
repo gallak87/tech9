@@ -13,8 +13,12 @@ const presets = Object.freeze(
   ),
 );
 
-export function environmentThumbnail(biomeId, presetId) {
+export function environmentThumbnailPath(biomeId, presetId) {
   const biome = editorBiome(biomeId);
   const preset = editorWorldPreset(biome.id, presetId ?? biome.presets[0].id);
-  return assetURL(presets[`${biome.id}/${preset.id}`]);
+  return presets[`${biome.id}/${preset.id}`];
+}
+
+export function environmentThumbnail(biomeId, presetId) {
+  return assetURL(environmentThumbnailPath(biomeId, presetId));
 }

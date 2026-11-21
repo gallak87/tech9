@@ -8,7 +8,7 @@ export const pointWorkspaceMarkup = `<fieldset class="workshop-point-workspace" 
   <div class="workshop-point-ruler">
     <button type="button" data-editor-action="context-prev" aria-label="Previous route point">‹</button>
     <label class="workshop-point-address">Point <input type="number" min="1" step="1" data-point-address aria-label="Go to point"><small data-point-total></small></label>
-    <div class="workshop-point-track"><svg viewBox="0 0 1000 20" preserveAspectRatio="none" aria-hidden="true"></svg><input type="range" aria-label="Route point navigator" title="Drag or scroll through points · Shift to extend the selection" data-point-ruler></div>
+    <div class="workshop-point-track"><svg viewBox="0 0 1000 32" preserveAspectRatio="none" aria-hidden="true"><path class="workshop-point-terrain"/><g data-point-ticks></g></svg><i class="workshop-point-cursor" aria-hidden="true" hidden></i><input type="range" aria-label="Route point navigator" title="Drag or scroll through points · Shift to extend the selection" data-point-ruler></div>
     <button type="button" data-editor-action="context-next" aria-label="Next route point">›</button>
   </div>
   <div class="workshop-point-transforms">
@@ -33,7 +33,9 @@ export function bindPointWorkspace(
 ) {
   const find = (selector) => el.querySelector(selector);
   const ruler = find('[data-point-ruler]'),
-    ticks = find('svg'),
+    ticks = find('[data-point-ticks]'),
+    terrain = find('.workshop-point-terrain'),
+    cursor = find('.workshop-point-cursor'),
     address = find('[data-point-address]');
   const countLabel = find('[data-point-count]'),
     arm = find('[data-editor-action="select-section"]');
@@ -42,6 +44,7 @@ export function bindPointWorkspace(
     values = {},
     locked = true,
     tickKey = '',
+    profileKey = '',
     gesture = null;
   let wheelDelta = 0,
     wheelTime = 0;
@@ -256,15 +259,37 @@ export function bindPointWorkspace(
       'aria-valuetext',
       index < 0 ? 'No point selected' : `Point ${index + 1} of ${count}`,
     );
+    const heights = points.map((p) => p.y);
+    const heightKey = heights.join(',');
+    const notchX = (i) => (count <= 1 ? 500 : 4 + (992 * i) / (count - 1));
+    if (profileKey !== heightKey) {
+      profileKey = heightKey;
+      const low = Math.min(...heights);
+      const spread = Math.max(1, Math.max(...heights) - low);
+      terrain.setAttribute(
+        'd',
+        'M' +
+          heights
+            .map(
+              (h, i) =>
+                notchX(i).toFixed(1) +
+                ',' +
+                (17 - (12 * (h - low)) / spread).toFixed(1),
+            )
+            .join(' L'),
+      );
+    }
     const signature = count + ':' + index + ':' + selected.join(',');
     if (signature !== tickKey) {
       tickKey = signature;
+      cursor.hidden = index < 0;
+      cursor.style.left = notchX(Math.max(0, index)) / 10 + '%';
       const marks = new Set(selected);
       ticks.innerHTML = points
         .map((_, i) => {
-          const x = count <= 1 ? 500 : 3 + (994 * i) / (count - 1);
+          const x = notchX(i);
           const active = i === index;
-          return `<line x1="${x}" x2="${x}" y1="${active ? 1 : marks.has(i) || i % 5 === 0 ? 5 : 10}" y2="18" vector-effect="non-scaling-stroke" class="${active ? 'current' : marks.has(i) ? 'chosen' : ''}"/>`;
+          return `<line x1="${x}" x2="${x}" y1="${active ? 5 : marks.has(i) || i % 5 === 0 ? 18 : 24}" y2="31" vector-effect="non-scaling-stroke" class="${active ? 'current' : marks.has(i) ? 'chosen' : ''}"/>`;
         })
         .join('');
     }

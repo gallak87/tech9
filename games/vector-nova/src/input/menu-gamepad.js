@@ -51,8 +51,6 @@ export function bindMenuGamepad(
     if (visible(music)) return music;
     const front = document.querySelector('#front-shell');
     if (visible(front)) return front;
-    const editorLoading = document.querySelector('[data-editor-loading]');
-    if (visible(editorLoading)) return editorLoading;
     const editor = document.querySelector('#track-editor-host');
     if (visible(editor)) return editor;
     const inspector = document.querySelector('#inspector-host');

@@ -274,7 +274,7 @@ if (!process.versions.electron) {
         (entry) => entry.name === 'Native UI draft',
       );
       assert.equal((await call('read', uiEntry.id)).points.length, 0);
-      await click('[data-editor-action="starter-canvas-canyon"]');
+      await click('[data-editor-action="starter-palette-canyon"]');
       await click('[data-editor-action="save"]');
       await wait(
         '(async () => (await window.vectorNovaDesktop.tracks.list()).some(entry => entry.biome === "shatterline"))()',

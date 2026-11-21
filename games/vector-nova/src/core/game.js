@@ -104,6 +104,7 @@ export async function createGame({
   onCircuit,
   contentAccess = { complete: false },
   customCourse = null,
+  customMode = 'test-drive',
 } = {}) {
   if (import.meta.env?.VN_DESKTOP)
     parameters = new URLSearchParams({
@@ -175,8 +176,11 @@ export async function createGame({
     if (customCourse) {
       if (import.meta.env?.VN_EDITION !== 'demo') {
         const { loadEditorCourse } = await import('../editor/course.js');
-        loadedCourse = loadEditorCourse(customCourse);
-        editorTestTools = await import('../editor/test-drive.js');
+        loadedCourse = loadEditorCourse(customCourse, {
+          testDrive: customMode === 'test-drive',
+        });
+        if (customMode === 'test-drive')
+          editorTestTools = await import('../editor/test-drive.js');
       } else throw new Error('Track Workshop requires the full edition.');
     } else {
       if (!levelAvailable(requestedLevel, access))
@@ -529,54 +533,57 @@ export async function createGame({
     const { createDeviceRuntime } = interceptor
       ? await import('../pickups/runtime.js')
       : {};
-    // Workshop sessions are solo. Keep normal devices/contact physics, while
-    // avoiding nine unused rival runtimes and their presentation resources.
-    const racers = customCourse
-      ? null
-      : await simulationActors.createField({
-          continuous: !!eliminator || !!interceptor,
-          field: raceField,
-          ...(interceptor
-            ? {
-                createRuntime(specification, { context, combat, devices }) {
-                  const motion =
-                    specification.id === missionBoss.id
-                      ? createInterceptorMotion(context, {
-                          createMotion:
+    // Solo Workshop drives and library sessions keep the ordinary road devices
+    // without allocating a rival field. Library Quick Race uses the full roster.
+    const racers =
+      customCourse && customMode !== 'race'
+        ? null
+        : await simulationActors.createField({
+            continuous: !!eliminator || !!interceptor,
+            field: raceField,
+            ...(interceptor
+              ? {
+                  createRuntime(specification, { context, combat, devices }) {
+                    const motion =
+                      specification.id === missionBoss.id
+                        ? createInterceptorMotion(context, {
+                            createMotion:
+                              definition.racing.createMotion ??
+                              createMagneticRuntime,
+                            getYaw: () =>
+                              interceptor.snapshot().counterattack.yaw,
+                          })
+                        : (
                             definition.racing.createMotion ??
-                            createMagneticRuntime,
-                          getYaw: () =>
-                            interceptor.snapshot().counterattack.yaw,
-                        })
-                      : (
-                          definition.racing.createMotion ??
-                          createMagneticRuntime
-                        )(context);
-                  try {
-                    return createDeviceRuntime({
-                      combat,
-                      combatId: specification.id,
-                      team: specification.team,
-                      hitBounds: specification.hitBounds,
-                      ...(specification.id === missionBoss.id
-                        ? { combatResistance: 0.9, damageDuringGrace: true }
-                        : {}),
-                      track,
-                      devices:
-                        specification.id === missionBoss.id
-                          ? devices.filter((device) => device.type === 'aegis')
-                          : devices,
-                      identity: definition.racing.identity,
-                      motion,
-                    });
-                  } catch (error) {
-                    motion.dispose();
-                    throw error;
-                  }
-                },
-              }
-            : {}),
-        });
+                            createMagneticRuntime
+                          )(context);
+                    try {
+                      return createDeviceRuntime({
+                        combat,
+                        combatId: specification.id,
+                        team: specification.team,
+                        hitBounds: specification.hitBounds,
+                        ...(specification.id === missionBoss.id
+                          ? { combatResistance: 0.9, damageDuringGrace: true }
+                          : {}),
+                        track,
+                        devices:
+                          specification.id === missionBoss.id
+                            ? devices.filter(
+                                (device) => device.type === 'aegis',
+                              )
+                            : devices,
+                        identity: definition.racing.identity,
+                        motion,
+                      });
+                    } catch (error) {
+                      motion.dispose();
+                      throw error;
+                    }
+                  },
+                }
+              : {}),
+          });
     const racerModule = racers ? await import('../race/racers.js') : null;
     const racerPresentation = racers
       ? lifetime.own(

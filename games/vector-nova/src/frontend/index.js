@@ -61,6 +61,11 @@ import {
   updateCupWaitingView,
   cupLaunch,
 } from './cup.js';
+import {
+  courseSources,
+  customLevelPanel,
+  supportsCustomLevels,
+} from './custom-levels.js';
 import { recordsView } from './records.js';
 import {
   difficultyBonusDescription,
@@ -162,12 +167,40 @@ export async function createFrontend(
         entry.id !== 'crucible' && previewSelectable(entry.id, contentAccess()),
     );
   const cups = () => availableCups(contentAccess());
+  let customCourses = new Map();
+  let customSource = false;
+  let libraryError = '';
+  let libraryLoading = false;
+  let libraryGeneration = 0;
+  let raceLibraryPromise;
+  let workshopReturn = null;
+  let lastCustom = null;
+  let loadedCustom = null;
+  let loadedWorldKey = null;
+  const libraryEnabled = () =>
+    import.meta.env?.VN_EDITION !== 'demo' &&
+    !tool &&
+    !special &&
+    supportsCustomLevels(intent);
+  const raceLibrary = () => {
+    if (import.meta.env?.VN_EDITION === 'demo')
+      throw new Error('Track Workshop requires the full edition.');
+    return (raceLibraryPromise ??= import('../editor/race-library.js')
+      .then(({ createRaceLibrary }) => createRaceLibrary())
+      .catch((error) => {
+        raceLibraryPromise = null;
+        throw error;
+      }));
+  };
   const circuitAvailable = (id) =>
-    catalog.some((level) => level.id === id) &&
-    levelAvailable(id, contentAccess());
+    customCourses.has(id)
+      ? !customCourses.get(id).reason && customCourses.get(id).checked
+      : catalog.some((level) => level.id === id) &&
+        levelAvailable(id, contentAccess());
   const circuitSelectable = (id) =>
-    catalog.some((level) => level.id === id) &&
-    previewSelectable(id, contentAccess());
+    customCourses.has(id) ||
+    (catalog.some((level) => level.id === id) &&
+      previewSelectable(id, contentAccess()));
   const cupAvailable = (id) => cups().some((cup) => cup.id === id);
   const cupStore = createCupStore(careerStorage);
   const cupCollection = createCupCollection(careerStorage);
@@ -269,10 +302,12 @@ export async function createFrontend(
     cupId: intent === 'cup' ? (cupId ?? currentCup().id) : null,
   });
   const goalBadges = (trackId = selected, cupId) =>
-    rewardBadgesView(
-      rewardGoals(profile(), goalContext(trackId, cupId)),
-      profile(),
-    );
+    customCourses.has(trackId)
+      ? ''
+      : rewardBadgesView(
+          rewardGoals(profile(), goalContext(trackId, cupId)),
+          profile(),
+        );
   function beginRewardAttempt() {
     pendingCupCelebration = null;
     sessionRewardId = crypto.randomUUID();
@@ -319,6 +354,7 @@ export async function createFrontend(
     inspectorPending = null;
   let workshop = null,
     workshopPending = null,
+    workshopLoad = null,
     workshopGeneration = 0,
     workshopDraft = null,
     workshopClosing = null;
@@ -392,6 +428,7 @@ export async function createFrontend(
     artPass || inspectShip || parameters.get('music') === '0'
       ? null
       : (sharedMusic ?? createMusicPlayer(host, musicNavigation));
+  workshopHost.toggleAttribute('data-has-tunes', !!music);
   music?.configureNavigation?.(musicNavigation);
   configureMusicNavigation(musicNavigation);
   let sounds = null;
@@ -466,8 +503,22 @@ export async function createFrontend(
       void showCompletion();
     },
   });
-  const level = () => catalog.find((l) => l.id === selected);
-  const route = (id = selected) => routes.find((r) => r.id === id);
+  const level = () =>
+    customCourses.get(selected) ?? catalog.find((l) => l.id === selected);
+  const route = (id = selected) =>
+    (customCourses.get(id) ?? (loadedCustom?.id === id ? loadedCustom : null))
+      ?.route ?? routes.find((r) => r.id === id);
+  const hasCustomSelection = () =>
+    customSource &&
+    customCourses.has(selected) &&
+    !libraryLoading &&
+    !libraryError;
+  const courseFocus = () =>
+    customSource && !hasCustomSelection()
+      ? shell.querySelector('[data-action="create-level"]')
+        ? '[data-action="create-level"]'
+        : '[data-action="custom-levels"]'
+      : `[data-level="${selected}"]`;
   const transferCount = (id = selected) => route(id)?.transfers ?? 0;
   const selectedShip = () => SHIPS.find((s) => s.id === shipId);
   const ship = () => SHIPS.find((s) => s.id === (previewShipId ?? shipId));
@@ -494,12 +545,15 @@ export async function createFrontend(
                 : practice
                   ? 'Practice'
                   : 'Quick Race';
-  const loadedLevel = () => catalog.find((l) => l.id === loadedId) ?? level();
+  const loadedLevel = () =>
+    loadedCustom ?? catalog.find((l) => l.id === loadedId) ?? level();
   const difficultyControls = () =>
     `<fieldset class="race-difficulty"${intent === 'interceptor' ? '' : ' aria-describedby="race-difficulty-description"'}><legend>${intent === 'interceptor' ? 'Encounter difficulty' : 'Opponent difficulty'}</legend>${['easy', 'medium', 'hard'].map((d) => `<button data-difficulty="${d}" aria-pressed="${settings.difficulty === d}" tabindex="${settings.difficulty === d ? 0 : -1}">${d}</button>`).join('')}</fieldset>${intent === 'interceptor' ? '' : difficultyDescriptionView(settings.difficulty, 'race-difficulty-description')}`;
   const facts = () =>
     `<span>${route() ? (route().length / 1000).toFixed(2) + ' KM' : 'CIRCUIT'}</span> <span>${intent === 'freestyle' ? `${transferCount()} TRANSFERS` : intent === 'eliminator' ? 'SURVIVE THE CUT' : intent === 'interceptor' ? '2-LAP PURSUIT' : route()?.closed === false ? 'POINT TO POINT' : intent === 'practice' ? 'OPEN PRACTICE' : intent === 'time-trial' ? 'UNLIMITED LAPS' : '2 LAPS'}</span> <span>${intent === 'interceptor' ? '4 HUNTERS · 1 TARGET' : ['race', 'cup', 'eliminator'].includes(intent) ? `${RACE_FIELD_SIZE} PILOTS` : 'SOLO'}</span>`;
   function remember() {
+    // A device-local file is never a campaign deep link.
+    if (customCourses.has(selected)) return;
     try {
       careerStorage().setItem('vector-nova.circuit', selected);
     } catch {
@@ -588,7 +642,7 @@ export async function createFrontend(
             ? (shell.querySelector('.cup-picker [aria-pressed="true"]') ??
               shell.querySelector('.cup-scores > summary') ??
               shell.querySelector('.race-actions > .primary'))
-            : `[data-level="${selected}"]`,
+            : courseFocus(),
     );
   }
   function focusPageStart() {
@@ -621,7 +675,8 @@ export async function createFrontend(
   }
   function focusPickerHeader() {
     focusMenu(
-      shell.querySelector('.picker-header button:last-child') ??
+      shell.querySelector('.course-sources [aria-pressed="true"]') ??
+        shell.querySelector('.picker-header button:last-child') ??
         shell.querySelector('[data-action="race-tab"]'),
     );
   }
@@ -630,9 +685,10 @@ export async function createFrontend(
     if (['home', 'cup', 'circuits', 'setup', 'loading'].includes(next))
       clearCompletedCup();
     const navigating = screen !== next;
-    if (workshop && next !== 'editor') workshop.suspend();
+    const loadingWorkshop = next === 'loading' && workshopLoad;
+    if (workshop && next !== 'editor' && !loadingWorkshop) workshop.suspend();
     workshopHost.hidden = next !== 'editor';
-    if (next === 'editor') gameHost.remove();
+    if (next === 'editor' || loadingWorkshop) gameHost.remove();
     else if (!gameHost.isConnected) host.prepend(gameHost);
     if (!shell.hidden)
       menuHistory.remember(screen, {
@@ -660,7 +716,6 @@ export async function createFrontend(
     gameHost.inert = !shell.hidden || !!inspector || next === 'editor';
     sessionNavigation.sync(next, { inspector: !!inspector });
     document.body.dataset.screen = next;
-    music?.setLauncherOnly?.(next === 'editor');
     music?.setDriving(next === 'race');
     render();
     desktopControls?.mount(
@@ -677,7 +732,7 @@ export async function createFrontend(
       next === 'records'
         ? '[data-record-filter="track"]'
         : next === 'circuits'
-          ? `[data-level="${selected}"]`
+          ? courseFocus()
           : next === 'setup'
             ? `button[data-ship="${shipId}"]`
             : next === 'home' || next === 'cup'
@@ -845,6 +900,10 @@ export async function createFrontend(
     return `<span class="track-type-badge" data-type="${type}">${label}</span>`;
   };
   const trackCard = (l) => {
+    if (l.fileId) {
+      const active = selected === l.id;
+      return `<button class="circuit-card ${active ? 'selected' : ''}" data-level="${l.id}" tabindex="${active ? 0 : -1}" aria-pressed="${active}"><span class="track-icon">${picture(l)}${routeArt(l.route)}</span><span class="card-name"><span class="card-title">${escape(l.name)}</span><small>${l.reason ? 'Draft' : l.closed ? 'Circuit' : 'Downhill'}</small></span></button>`;
+    }
     const available = circuitAvailable(l.id);
     const completed = profile().finishedCourses?.includes(l.id);
     const requirement = courseRequirementText(l.id, contentAccess(), catalog);
@@ -953,9 +1012,13 @@ export async function createFrontend(
       );
       return `<div class="race-actions"><button class="primary" data-action="${next.action}" ${cupConfirm ? 'disabled' : ''}><strong>${next.label}</strong><small>${next.detail}</small></button>${state ? '' : difficultyControls()}</div>`;
     }
+    if (customSource && !hasCustomSelection()) return '';
     const locked = !circuitAvailable(selected);
+    const custom = customCourses.get(selected);
     const requirement = locked
-      ? courseRequirementText(selected, contentAccess(), catalog)
+      ? custom
+        ? custom.reason || 'Checking this level…'
+        : courseRequirementText(selected, contentAccess(), catalog)
       : '';
     return `<div class="race-actions"><button class="primary" data-action="launch"${locked ? ' disabled aria-describedby="course-start-requirement"' : ''}><strong>${launchLabel()}</strong><small>${intent === 'freestyle' ? `${transferCount()} transfers · solo` : intent === 'interceptor' ? '3 allies · one target' : intent === 'eliminator' ? (isSprint() ? '10 racers · moving convoy' : '10 racers · last survivor') : intent === 'race' ? `${isSprint() ? '1 descent' : '2 laps'} · ${RACE_OPPONENTS.length} rivals` : isSprint() ? '1 descent' : intent === 'practice' ? 'Open laps' : 'Unlimited laps'}</small></button>${requirement ? `<p id="course-start-requirement" class="course-requirement" role="status">${escape(requirement)}</p>` : ''}${['race', 'eliminator', 'interceptor'].includes(intent) ? difficultyControls() : ''}</div>`;
   };
@@ -987,7 +1050,20 @@ export async function createFrontend(
     const selectedCraft = lockedCup()
       ? SHIPS.find((entry) => entry.id === savedCup.shipId)
       : selectedShip();
-    return `<section class="race-menu" aria-label="Session setup">${import.meta.env?.VN_EDITION === 'demo' ? '<p class="demo-edition">DEMO · Kestrel · 2 courses · Unlimited play</p>' : ''}${toolMenu()}${modePicker()}<button class="menu-selection" data-action="circuits"><span>${cup ? 'Cup' : 'Track'}</span><div><strong>${escape(cup ? cup.name : level().name)}</strong><small>${cup ? `${cup.tracks.length} races · ${savedCup ? `${savedCup.results.length} scored` : 'Championship'}` : `${trackChallenge(selected)} · ${modeUnlockRequirement(intent)?.label ?? (isSprint() ? 'Downhill sprint' : 'Circuit')}`}</small></div><b aria-hidden="true">›</b></button><button class="menu-selection" data-action="ship-step"><span>Ship</span><div><strong>${selectedCraft.name}</strong><small>${lockedCup() ? 'Locked for this cup' : selectedCraft.role}</small></div><b aria-hidden="true">${lockedCup() ? '—' : '›'}</b></button>${raceActions()}<div class="menu-extras"><button data-action="records" aria-pressed="${screen === 'records'}">Time Trial records</button>${developer ? button('inspect', 'Ship inspector') : ''}</div>${careerProgressView(profile())}${cupCabinet(cupCollection.snapshot(), cups())}${import.meta.env?.VN_DESKTOP === true ? `<nav class="menu-links" aria-label="Application">${button('desktop-quit', 'Quit game')}</nav>` : ''}<div class="transfer-slot menu-transfer"></div>${savedCup && !cup ? `<aside class="saved-cup">${button('saved-cup', `${cupDefinition(savedCup.cupId).name} · ${savedCup.results.length}/${cupDefinition(savedCup.cupId).tracks.length} scored →`)}</aside>` : ''}</section>`;
+    const custom = customSource && !cup;
+    const selectionName = cup
+      ? cup.name
+      : custom && !hasCustomSelection()
+        ? 'Custom levels'
+        : level().name;
+    const selectionDetail = cup
+      ? `${cup.tracks.length} races · ${savedCup ? `${savedCup.results.length} scored` : 'Championship'}`
+      : custom
+        ? hasCustomSelection()
+          ? `${customCourses.get(selected).biome} · ${isSprint() ? 'Downhill' : 'Custom circuit'}`
+          : 'Track library'
+        : `${trackChallenge(selected)} · ${modeUnlockRequirement(intent)?.label ?? (isSprint() ? 'Downhill sprint' : 'Circuit')}`;
+    return `<section class="race-menu" aria-label="Session setup">${import.meta.env?.VN_EDITION === 'demo' ? '<p class="demo-edition">DEMO · Kestrel · 2 courses · Unlimited play</p>' : ''}${toolMenu()}${modePicker()}<button class="menu-selection" data-action="circuits"><span>${cup ? 'Cup' : 'Track'}</span><div><strong>${escape(selectionName)}</strong><small>${escape(selectionDetail)}</small></div><b aria-hidden="true">›</b></button><button class="menu-selection" data-action="ship-step"><span>Ship</span><div><strong>${selectedCraft.name}</strong><small>${lockedCup() ? 'Locked for this cup' : selectedCraft.role}</small></div><b aria-hidden="true">${lockedCup() ? '—' : '›'}</b></button>${raceActions()}<div class="menu-extras"><button data-action="records" aria-pressed="${screen === 'records'}">Time Trial records</button>${developer ? button('inspect', 'Ship inspector') : ''}</div>${careerProgressView(profile())}${cupCabinet(cupCollection.snapshot(), cups())}${import.meta.env?.VN_DESKTOP === true ? `<nav class="menu-links" aria-label="Application">${button('desktop-quit', 'Quit game')}</nav>` : ''}<div class="transfer-slot menu-transfer"></div>${savedCup && !cup ? `<aside class="saved-cup">${button('saved-cup', `${cupDefinition(savedCup.cupId).name} · ${savedCup.results.length}/${cupDefinition(savedCup.cupId).tracks.length} scored →`)}</aside>` : ''}</section>`;
   };
   function cupPanel(withActions) {
     const cup = currentCup();
@@ -1086,8 +1162,16 @@ export async function createFrontend(
       : records
         ? recordsView({
             records: readTrialRecords(careerStorage()),
-            catalog: circuits().filter((entry) => !eventTypeFor(entry.id)),
-            routes,
+            catalog: [
+              ...circuits().filter((entry) => !eventTypeFor(entry.id)),
+              ...customCourses.values(),
+            ].filter((course) => !course.fileId || course.route),
+            routes: [
+              ...routes,
+              ...[...customCourses.values()]
+                .map((course) => course.route)
+                .filter(Boolean),
+            ],
             shipId: recordShip,
             trackId: recordTrack,
             heading: !wide,
@@ -1095,12 +1179,22 @@ export async function createFrontend(
           })
         : cup
           ? cupPanel(!wide)
-          : circuitPanel();
+          : (libraryEnabled() ? courseSources(customSource) : '') +
+            (customSource
+              ? customLevelPanel({
+                  courses: customCourses,
+                  selected,
+                  loading: libraryLoading,
+                  error: libraryError,
+                  trackCard,
+                })
+              : circuitPanel());
     shell.className = 'cinematic-menu';
     shell.innerHTML = `${topNavigation()}<main class="front-content menu-layout ${wide ? 'menu-wide' : 'menu-narrow'}" data-page="${screen}">${wide || !picking ? homeMenu() : ''}${picking ? `<section class="menu-picker ${records ? 'menu-records-picker' : cup ? 'menu-cup-picker' : 'menu-track-picker'}" aria-label="${records ? 'Time Trial records' : cup ? 'Championship selection' : 'Track selection'}">${pickerHeader}${pickerContent}</section>` : ''}</main>`;
     menuBackdrop.mount(shell);
     mountMenuHeader();
-    if (!cup && !records && picking) showDetail(selected);
+    if (!cup && !records && picking && (!customSource || hasCustomSelection()))
+      showDetail(selected);
     shell
       .querySelector('.menu-transfer, .track-transfer, .records-transfer')
       ?.append(transfer);
@@ -1141,8 +1235,11 @@ export async function createFrontend(
     const title = {
       circuits: wideMenu.matches ? 'RACE SETUP' : 'SELECT CIRCUIT',
       setup: wideMenu.matches ? 'RACE SETUP' : 'CHOOSE SHIP',
-      loading:
-        launchTarget === 'inspection' ? 'SHIP INSPECTOR' : 'PREPARING SESSION',
+      loading: workshopLoad
+        ? 'TRACK WORKSHOP'
+        : launchTarget === 'inspection'
+          ? 'SHIP INSPECTOR'
+          : 'PREPARING SESSION',
       settings: 'SETTINGS',
       results: 'SESSION COMPLETE',
       cup: 'CHAMPIONSHIP',
@@ -1159,8 +1256,9 @@ export async function createFrontend(
         ? `<h1 class="header-label">${title}</h1>`
         : `<span class="header-label">${title}</span>`;
     shell.innerHTML = `<header class="front-header"><button class="front-brand" data-action="home" aria-label="Vector Nova setup">VECTOR<span>//</span>NOVA</button>${headerLabel}${headerAction}</header><main class="front-content" data-page="${screen}"></main><footer class="front-footer"><span>${screen === 'circuits' ? 'ARROWS · BROWSE <i>/</i> ENTER · SELECT <i>/</i> TAB · CONTROLS' : `${sessionName(screen === 'results' ? loadedId : selected, screen !== 'results' && intent === 'practice').toUpperCase()} <i>/</i> ${escape((screen === 'results' ? loadedLevel() : level()).name.toUpperCase())}`}</span></footer>`;
-    if (screen === 'loading' && launchTarget === 'inspection')
-      shell.querySelector('.front-footer span').textContent = 'SHIP INSPECTOR';
+    if (screen === 'loading' && (workshopLoad || launchTarget === 'inspection'))
+      shell.querySelector('.front-footer span').textContent =
+        workshopLoad?.kicker ?? 'SHIP INSPECTOR';
     if (screen === 'loading') menuBackdrop.mount(shell);
     if (screen === 'settings') {
       shell.innerHTML = `${topNavigation()}<main class="front-content utility-page" data-page="settings"><header class="utility-heading"><div><span class="kicker">PREFERENCES</span><h1>Settings</h1></div>${button('settings-back', '← Back')}</header><section class="utility-content"></section></main>`;
@@ -1172,7 +1270,14 @@ export async function createFrontend(
       screen === 'settings' ? main.querySelector('.utility-content') : main;
     if (screen === 'loading') {
       const inspecting = launchTarget === 'inspection';
-      content.innerHTML = `<section class="loading-copy">${inspecting ? '' : `<div class="loading-card">${picture(route())}${routeArt(route())}</div>`}<div class="transfer-slot loading-transfer"></div>${heading(inspecting ? 'PREPARING STUDIO' : 'LOADING CIRCUIT', inspecting ? 'Ship inspector' : escape(level().name))}${inspecting ? '' : `<div class="session-facts">${facts()}</div><div class="loading-rewards">${goalBadges()}</div>`}<div class="front-actions">${button('cancel', 'Cancel')}${button('retry', 'Try again', true)}</div></section>`;
+      const circuit = !inspecting && !workshopLoad;
+      const loadingRoute = circuit ? route() : workshopLoad?.route;
+      const kicker =
+        workshopLoad?.kicker ??
+        (inspecting ? 'PREPARING STUDIO' : 'LOADING CIRCUIT');
+      const title =
+        workshopLoad?.title ?? (inspecting ? 'Ship inspector' : level().name);
+      content.innerHTML = `<section class="loading-copy">${loadingRoute ? `<div class="loading-card">${picture(loadingRoute)}${routeArt(loadingRoute)}</div>` : ''}<div class="transfer-slot loading-transfer"></div>${heading(kicker, escape(title))}${circuit ? `<div class="session-facts">${facts()}</div><div class="loading-rewards">${goalBadges()}</div>` : ''}<div class="front-actions">${button('cancel', 'Cancel')}${button('retry', 'Try again', true)}</div></section>`;
     } else if (screen === 'settings') {
       content.innerHTML = `${settingsView(settings, {
         developer: parameters.get('dev') === '1',
@@ -1257,6 +1362,7 @@ export async function createFrontend(
     }
     if (
       screen === 'results' &&
+      !loadedCustom &&
       (lastResults?.mode !== 'cup' || lastResults.final)
     ) {
       const panel = content.querySelector('.result-panel, .cup-results-panel');
@@ -1361,12 +1467,12 @@ export async function createFrontend(
   }
   function showDetail(id) {
     if (!circuitSelectable(id)) return;
-    const l = catalog.find((l) => l.id === id),
+    const l = customCourses.get(id) ?? catalog.find((l) => l.id === id),
       r = route(id),
       node = shell.querySelector('.circuit-hero');
     if (!node) return;
     previewLevelId = id;
-    node.innerHTML = `<div class="detail-image">${picture(r)}${routeArt(r)}${goalBadges(id)}${trackBadge(id)}<div class="track-caption"><h2>${escape(l.name)}</h2><p>${trackChallenge(id)} · ${r ? (r.length / 1000).toFixed(2) + ' km' : '—'}</p></div></div>`;
+    node.innerHTML = `<div class="detail-image">${picture(l.fileId ? l : r)}${routeArt(r)}${goalBadges(id)}${trackBadge(id)}<div class="track-caption"><h2>${escape(l.name)}</h2><p>${l.fileId ? escape(l.biome) : trackChallenge(id)}${r ? ' · ' + (r.length / 1000).toFixed(2) + ' km' : ''}</p></div></div>`;
     const bossName = shell.querySelector('.event-boss-name');
     if (bossName) bossName.textContent = encounterBoss(id).name;
     const finishRule = shell.querySelector('.eliminator-finish-rule');
@@ -1386,10 +1492,90 @@ export async function createFrontend(
       goalBadges(selected, cup.id),
     );
   }
+  async function checkSelection(course) {
+    if (course.checked) return;
+    const library = await raceLibrary();
+    await library.check(course);
+    if (
+      !disposed &&
+      selected === course.id &&
+      customSource &&
+      choosingSession()
+    ) {
+      const focus = focusSelector();
+      render();
+      focusMenu(focus);
+    }
+  }
+  async function refreshCustomCourses({ preferred = lastCustom, focus } = {}) {
+    const token = ++libraryGeneration;
+    libraryLoading = true;
+    libraryError = '';
+    if (customSource) {
+      render();
+      focusMenu(focus);
+    }
+    try {
+      const library = await raceLibrary();
+      const entries = await library.list();
+      if (disposed || token !== libraryGeneration) return;
+      customCourses = entries;
+      if (customSource) {
+        const course =
+          entries.get(preferred) ??
+          [...entries.values()].find((entry) => !entry.reason) ??
+          entries.values().next().value;
+        if (course) {
+          selected = lastCustom = course.id;
+          await library.check(course);
+        } else selected = racingTrack;
+      }
+    } catch (failure) {
+      if (disposed || token !== libraryGeneration) return;
+      libraryError = failure.message;
+    } finally {
+      if (!disposed && token === libraryGeneration) {
+        libraryLoading = false;
+        if (choosingSession()) {
+          const restore = focusSelector() ?? focus;
+          render();
+          focusMenu(restore);
+        }
+      }
+    }
+  }
+  function useGameTracks() {
+    if (!customSource) return;
+    ++libraryGeneration;
+    libraryLoading = false;
+    customSource = false;
+    selected = racingTrack;
+  }
+  function returnFromWorkshop() {
+    const destination = workshopReturn;
+    workshopReturn = null;
+    if (destination) {
+      customSource = true;
+      setScreen(destination);
+      void refreshCustomCourses({
+        preferred: workshopDraft ? 'custom-' + workshopDraft.id : lastCustom,
+        focus: '[data-action="custom-levels"]',
+      });
+    } else {
+      setScreen('home');
+      focusMenu('[data-action="track-editor"]');
+      if (customSource) void refreshCustomCourses();
+    }
+  }
   function selectCircuit(id) {
     if (!circuitSelectable(id)) return;
     invalidLevel = false;
     selected = id;
+    const custom = customCourses.get(id);
+    if (custom) {
+      lastCustom = id;
+      void checkSelection(custom);
+    } else if (!eventTypeFor(id)) racingTrack = id;
     remember();
     render();
     shell
@@ -1409,21 +1595,26 @@ export async function createFrontend(
     const loading = screen === 'loading';
     const label = loading
       ? error ||
-        `${launchTarget === 'inspection' ? 'Ship inspector' : level().name} · ${progress || 'Preparing session'}`
+        (workshopLoad
+          ? progress
+          : `${launchTarget === 'inspection' ? 'Ship inspector' : level().name} · ${progress || 'Preparing session'}`)
       : preload.loading
         ? 'Preparing ships'
         : preload.failed?.length
           ? 'Ship preload incomplete'
           : preload.label;
     const fraction = loading
-      ? launchTarget === 'inspection'
-        ? [
-            'Preparing studio',
-            'Preparing ships',
-            'Warming studio',
-            'Ready',
-          ].indexOf(progress) / 3
-        : loadStep / (loadStages.length - 1)
+      ? workshopLoad
+        ? workshopLoad.stages.indexOf(progress) /
+          (workshopLoad.stages.length - 1)
+        : launchTarget === 'inspection'
+          ? [
+              'Preparing studio',
+              'Preparing ships',
+              'Warming studio',
+              'Ready',
+            ].indexOf(progress) / 3
+          : loadStep / (loadStages.length - 1)
       : preload.fraction;
     transfer.hidden = !(
       loading ||
@@ -1516,8 +1707,18 @@ export async function createFrontend(
     if (disposed) throw new DOMException('Disposed', 'AbortError');
     if (!circuitAvailable(selected))
       throw new Error(lockedLevelMessage(selected, contentAccess()));
-    if (game && loadedId === selected) return game;
-    if (pending?.id === selected && !pending.signal.aborted)
+    const custom = customCourses.get(selected);
+    const worldKey = custom
+      ? JSON.stringify([
+          selected,
+          custom.updatedAt,
+          custom.route?.trackId,
+          intent === 'race' ? 'field' : 'solo',
+        ])
+      : selected;
+    if (game && loadedWorldKey === worldKey && loadedId === selected)
+      return game;
+    if (pending?.worldKey === worldKey && !pending.signal.aborted)
       return pending.promise;
     const token = ++generation,
       id = selected,
@@ -1538,6 +1739,7 @@ export async function createFrontend(
       sessionCup = false;
       loadedId = null;
       gameHost.replaceChildren();
+      loadedCustom = null;
       if (special && artPass) readArtView(parameters);
       const { createGame } = await import('../core/game.js');
       signal.throwIfAborted();
@@ -1557,12 +1759,19 @@ export async function createFrontend(
         contentAccess: contentAccess(),
         parameters: params,
         trialStorage: careerStorage(),
+        ...(custom
+          ? {
+              customCourse: await (await raceLibrary()).read(custom),
+              customMode: intent,
+            }
+          : {}),
         onAttempt() {
           if (disposed || signal.aborted || token !== generation) return;
           beginRewardAttempt();
         },
         onTrialRecord(data) {
-          if (disposed || signal.aborted || token !== generation) return;
+          if (custom || disposed || signal.aborted || token !== generation)
+            return;
           const outcome = settleTrialRecord(profileStore, data, {
             trackId: id,
             getShipId: () => game?.getSnapshot().vehicle?.shipId ?? shipId,
@@ -1592,7 +1801,10 @@ export async function createFrontend(
           } else {
             if (['race', 'review'].includes(screen) && game?.hasSession()) {
               intent = sessionIntent;
-              selected = loadedId;
+              customSource = Boolean(custom);
+              selected =
+                custom && !customCourses.has(loadedId) ? racingTrack : loadedId;
+              if (custom && selected !== loadedId) customSource = false;
               shipId = game.getSnapshot().ship.id;
             }
             const destination =
@@ -1666,13 +1878,15 @@ export async function createFrontend(
         },
         onResults(data, { present = true } = {}) {
           if (disposed || signal.aborted || token !== generation) return;
-          const outcome = settleRaceResult(resultStores, data, {
-            sessionIntent,
-            sessionCup,
-            attemptId: sessionRewardId,
-            courseId: id,
-            getShipId: () => game?.getSnapshot().vehicle?.shipId ?? shipId,
-          });
+          const outcome = custom
+            ? { rewards: [] }
+            : settleRaceResult(resultStores, data, {
+                sessionIntent,
+                sessionCup,
+                attemptId: sessionRewardId,
+                courseId: id,
+                getShipId: () => game?.getSnapshot().vehicle?.shipId ?? shipId,
+              });
           earnedRewards.push(...outcome.rewards);
           if (outcome.celebration) pendingCupCelebration = outcome.celebration;
           lastResults = data;
@@ -1728,6 +1942,8 @@ export async function createFrontend(
         throw new DOMException('Cancelled', 'AbortError');
       }
       game = created;
+      loadedCustom = custom;
+      loadedWorldKey = worldKey;
       loadedId = id;
       sessionNavigation.sync(screen, { inspector: !!inspector });
       updateStatus();
@@ -1743,7 +1959,7 @@ export async function createFrontend(
       .finally(() => {
         if (pending?.token === token) pending = null;
       });
-    pending = { id, promise, signal, token };
+    pending = { worldKey, promise, signal, token };
     return promise;
   }
   async function loadView(target, enter) {
@@ -1786,63 +2002,111 @@ export async function createFrontend(
       if (attempt === launchGeneration) launching = false;
     }
   }
-  function closeWorkshop() {
+  function showWorkshopLoad(load) {
+    workshopLoad = load;
+    error = '';
+    progress = load.stages[0];
+    setScreen('loading');
+  }
+  function failWorkshopLoad(failure) {
+    if (!workshopLoad) return;
+    const reason = failure?.message || 'Loading could not finish.';
+    error = /webgl|graphics context/i.test(reason)
+      ? 'The 3D renderer could not start. Check graphics acceleration, then try again.'
+      : /failed to fetch|networkerror|load failed/i.test(reason)
+        ? 'The game assets could not load. Check your connection and try again.'
+        : reason;
+    updateStatus();
+    focusMenu('[data-action="retry"]');
+  }
+  function finishWorkshopLoad() {
+    if (!workshopLoad) return;
+    workshopLoad = null;
+    error = '';
+    setScreen('editor');
+  }
+  function releaseWorkshop() {
     workshopGeneration++;
-    workshopDraft = workshop?.getDocument() ?? workshopDraft;
+    workshopPending = null;
+    // Returning from the recovery prompt must preserve the choice at next entry.
+    if (workshop && !workshop.getState().recoveryAvailable)
+      workshopDraft = workshop.getDocument();
     const closing = workshop?.dispose();
-    if (closing)
-      workshopClosing = Promise.resolve(closing).finally(() => {
+    if (closing) {
+      const settled = Promise.resolve(closing).finally(() => {
         if (workshopClosing === settled) workshopClosing = null;
       });
-    const settled = workshopClosing;
+      workshopClosing = settled;
+    }
     workshop = null;
     workshopHost.remove();
-    host.prepend(gameHost);
-    setScreen('home');
-    focusMenu('[data-action="track-editor"]');
+  }
+  function closeWorkshop() {
+    releaseWorkshop();
+    workshopLoad = null;
+    error = '';
+    returnFromWorkshop();
   }
   async function openWorkshop() {
     if (import.meta.env?.VN_EDITION === 'demo' || workshopPending) return;
     game?.setSuspended(true);
-    gameHost.remove();
     host.prepend(workshopHost);
-    workshopHost.hidden = false;
-    setScreen('editor');
     if (workshop) {
+      setScreen('editor');
       workshop.resume();
       return;
     }
     const token = ++workshopGeneration;
-    workshopHost.innerHTML =
-      '<section data-editor-loading role="status" style="position:fixed;inset:0;z-index:25;background:#090909;color:#eee;padding:8vw"><h1>Opening Track Workshop</h1><button type="button">Back to setup</button></section>';
-    workshopHost.querySelector('button').onclick = closeWorkshop;
+    showWorkshopLoad({
+      title: 'Track Workshop',
+      kicker: 'OPENING WORKSHOP',
+      stages: ['Opening editor', 'Building world', 'Ready'],
+      cancel: closeWorkshop,
+      retry() {
+        releaseWorkshop();
+        void openWorkshop();
+      },
+    });
     const promise = (async () => {
       const { createWorkshop } = await import('../editor/workshop.js');
       await workshopClosing;
       if (disposed || token !== workshopGeneration) return;
       workshopHost.replaceChildren();
-      const created = await createWorkshop(workshopHost, {
+      progress = 'Building world';
+      updateStatus();
+      workshop = createWorkshop(workshopHost, {
         document: workshopDraft,
         shipId,
         onExit: closeWorkshop,
         onDriving: (driving) => music?.setDriving(driving),
         onTunes: music ? (opener) => music.open(opener) : null,
+        onTestLoading(options) {
+          showWorkshopLoad({
+            ...options,
+            kicker: 'TEST DRIVE',
+            stages: loadStages,
+          });
+        },
+        onTestProgress(stage) {
+          progress = stage;
+          updateStatus();
+        },
+        onTestLoaded: finishWorkshopLoad,
+        onTestFailure: failWorkshopLoad,
         onSettings() {
           settingsBack = 'editor';
           settingsFocus = null;
           setScreen('settings');
         },
       });
-      if (disposed || token !== workshopGeneration) await created.dispose();
-      else workshop = created;
+      await workshop.ready;
+      if (disposed || token !== workshopGeneration) return;
+      finishWorkshopLoad();
+      workshop.focusWorkspace();
     })()
       .catch((failure) => {
         if (disposed || token !== workshopGeneration) return;
-        workshopHost.innerHTML =
-          '<section data-editor-loading role="status" style="position:fixed;inset:0;z-index:25;background:#090909;color:#eee;padding:8vw"><h1>Workshop could not open</h1><p></p><button type="button">Back to setup</button></section>';
-        workshopHost.querySelector('p').textContent = failure.message;
-        workshopHost.querySelector('button').onclick = closeWorkshop;
-        workshopHost.querySelector('button').focus();
+        failWorkshopLoad(failure);
       })
       .finally(() => {
         if (workshopPending === promise) workshopPending = null;
@@ -1979,6 +2243,7 @@ export async function createFrontend(
     });
   }
   function cancel(destination = invalidLevel ? 'home' : launchBack) {
+    if (workshopLoad) return workshopLoad.cancel();
     if (launchTarget === 'inspection') setInspectorURL(false);
     generation++;
     launchGeneration++;
@@ -2062,6 +2327,7 @@ export async function createFrontend(
       );
   }
   function openCup() {
+    useGameTracks();
     intent = 'cup';
     if (game?.hasSession()) game.returnToSetup();
     cupConfirm = null;
@@ -2094,6 +2360,8 @@ export async function createFrontend(
     cupConfirm = null;
   }
   function chooseMode(mode) {
+    if (!supportsCustomLevels(mode)) useGameTracks();
+    else if (customCourses.has(selected)) customSource = true;
     if (eventTypeFor(selected))
       eventSelections.set(eventTypeFor(selected), selected);
     if (['freestyle', 'eliminator', 'interceptor'].includes(mode)) {
@@ -2133,6 +2401,46 @@ export async function createFrontend(
     setScreen(next);
   }
   const actions = {
+    'game-levels'() {
+      useGameTracks();
+      render();
+      focusMenu('[data-action="game-levels"]');
+    },
+    'custom-levels'() {
+      if (!libraryEnabled()) return;
+      if (!customSource && !eventTypeFor(selected)) racingTrack = selected;
+      customSource = true;
+      void refreshCustomCourses({ focus: '[data-action="custom-levels"]' });
+    },
+    'create-level'() {
+      workshopReturn = screen;
+      workshopDraft = null;
+      void openWorkshop();
+    },
+    async 'edit-level'() {
+      const course = customCourses.get(selected);
+      if (!course) return;
+      const currentScreen = screen;
+      try {
+        const document = await (await raceLibrary()).read(course);
+        if (
+          disposed ||
+          selected !== course.id ||
+          screen !== currentScreen ||
+          !customSource
+        )
+          return;
+        workshopReturn = screen;
+        workshopDraft = document;
+        void openWorkshop();
+      } catch (error) {
+        if (disposed || screen !== currentScreen || selected !== course.id)
+          return;
+        libraryError = error.message;
+        render();
+        focusMenu('[data-action="custom-levels"]');
+      }
+    },
     'track-editor'() {
       void openWorkshop();
     },
@@ -2192,15 +2500,27 @@ export async function createFrontend(
       recordsBack = screen;
       recordsFocus = focusSelector();
       setScreen('records');
+      if (
+        import.meta.env?.VN_EDITION !== 'demo' &&
+        readTrialRecords(careerStorage()).some((record) =>
+          record.identity.track.startsWith('custom-'),
+        )
+      )
+        void refreshCustomCourses({ focus: '[data-record-filter="track"]' });
     },
     'record-trial'() {
-      if (recordTrack !== 'all' && circuitAvailable(recordTrack))
+      if (
+        recordTrack !== 'all' &&
+        (customCourses.has(recordTrack) || circuitAvailable(recordTrack))
+      )
         selected = recordTrack;
+      customSource = customCourses.has(selected);
       if (recordShip !== 'all' && shipUnlocked(profile(), recordShip))
         shipId = recordShip;
       saveShipSelection(shipId, careerStorage());
       remember();
       chooseMode('time-trial');
+      if (customSource) void checkSelection(customCourses.get(selected));
       focusMenu('[data-action="launch"]');
     },
     'records-back'() {
@@ -2330,6 +2650,7 @@ export async function createFrontend(
     },
     cancel,
     retry() {
+      if (workshopLoad) return workshopLoad.retry();
       if (special) void launchSpecial();
       else if (launchTarget === 'inspection') void openInspector();
       else void launch();
@@ -2357,14 +2678,20 @@ export async function createFrontend(
       if (!el || el.disabled || el.getAttribute('aria-disabled') === 'true')
         return;
       if (el.dataset.recordTrack) {
-        if (!circuitAvailable(el.dataset.recordTrack)) return;
+        if (
+          !customCourses.has(el.dataset.recordTrack) &&
+          !circuitAvailable(el.dataset.recordTrack)
+        )
+          return;
         selected = el.dataset.recordTrack;
         shipId = shipUnlocked(profile(), el.dataset.recordShip)
           ? el.dataset.recordShip
           : starterShip();
         saveShipSelection(shipId, careerStorage());
         remember();
+        customSource = customCourses.has(selected);
         chooseMode('time-trial');
+        if (customSource) void checkSelection(customCourses.get(selected));
         focusMenu('[data-action="launch"]');
       } else if (el.dataset.cup) {
         if (cupStore.snapshot().state || !cupAvailable(el.dataset.cup)) return;
@@ -2549,7 +2876,7 @@ export async function createFrontend(
           ...control.closest('.reward-badges').querySelectorAll('button'),
         ];
         if (e.code === 'ArrowDown') focusPicker();
-        else if (e.code === 'ArrowUp') focusMenu('[data-action="race-tab"]');
+        else if (e.code === 'ArrowUp') focusPickerHeader();
         else
           focusMenu(
             chips[
@@ -2656,6 +2983,43 @@ export async function createFrontend(
           e.preventDefault();
           if (e.code === 'ArrowDown') focusPicker();
           else focusMenu('.race-menu [data-action="records"]');
+        }
+        return;
+      }
+      if (control.closest('.custom-library-empty, .custom-library-actions')) {
+        e.preventDefault();
+        if (e.code === 'ArrowUp') {
+          focusMenu(
+            shell.querySelector('[data-level][aria-pressed="true"]') ??
+              shell.querySelector('.course-sources [aria-pressed="true"]'),
+          );
+        } else if (horizontal) {
+          const adjacent =
+            e.code === 'ArrowRight'
+              ? control.nextElementSibling
+              : control.previousElementSibling;
+          focusMenu(
+            adjacent?.matches('button')
+              ? adjacent
+              : '.menu-selection[data-action="circuits"]',
+          );
+        }
+        return;
+      }
+      if (control.closest('.course-sources')) {
+        if (['ArrowLeft', 'ArrowRight'].includes(e.code)) {
+          e.preventDefault();
+          focusMenu(
+            `[data-action="${e.code === 'ArrowLeft' ? 'game-levels' : 'custom-levels'}"]`,
+          );
+        } else if (vertical) {
+          e.preventDefault();
+          if (e.code === 'ArrowUp') focusMenu('[data-action="race-tab"]');
+          else
+            focusMenu(
+              shell.querySelector('[data-level][aria-pressed="true"]') ??
+                shell.querySelector('[data-action="create-level"]'),
+            );
         }
         return;
       }
@@ -2768,6 +3132,10 @@ export async function createFrontend(
                 Math.abs(b.bounds.left - current.left),
           );
         next = candidates[0]?.item ?? card;
+        if (next === card && e.code === 'ArrowDown' && customSource) {
+          focusMenu('[data-action="edit-level"]');
+          return;
+        }
         if (next === card && e.code === 'ArrowUp') {
           const reward = shell.querySelector('.detail-image .reward-chip');
           if (reward) focusMenu(reward);
@@ -2956,7 +3324,8 @@ export async function createFrontend(
         selected,
         previewLevelId,
         loadedId,
-        loading: !!pending || !!inspectorPending,
+        loading:
+          !!pending || !!inspectorPending || Boolean(workshopLoad && !error),
         inspector: inspector?.getSnapshot() ?? null,
         editor: workshop?.getState() ?? null,
         error,

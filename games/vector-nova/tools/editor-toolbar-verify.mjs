@@ -35,7 +35,7 @@ const cameraActions = [
   'view-profile',
 ];
 const cameraOnly = process.argv.includes('--map-camera');
-const primary = ['undo', 'redo', 'save', 'tunes', 'test', 'exit'];
+const primary = ['undo', 'redo', 'save', 'test', 'exit'];
 const storage = createMemoryStorage();
 createCareerSlots({ storage: () => storage, now: () => 1 }).create(1);
 const entries = Array.from({ length: storage.length }, (_, i) => {
@@ -57,6 +57,13 @@ const toolbar = (page) => page.getByRole('group', { name: 'Viewport tools' });
 const state = (page) =>
   page.evaluate(() => window.__VN_FRONTEND.getState().editor);
 const tapOrClick = (control) => (responsive ? control.tap() : control.click());
+const openTunes = (page) =>
+  tapOrClick(
+    page
+      .locator('[data-music-player]')
+      .getByRole('button', { name: /^Expand (music player|Tunes)$/ })
+      .first(),
+  );
 const choose = async (page, key) =>
   tapOrClick(await revealEditorAction(page, key));
 const watchdog = setTimeout(() => {
@@ -240,7 +247,8 @@ async function structure(page) {
     await action(page, 'draw-mode').evaluate((el) =>
       parseFloat(getComputedStyle(el).borderTopLeftRadius),
     ),
-    3,
+    0,
+    'viewport tools match the game’s square menu controls',
   );
 }
 
@@ -412,24 +420,27 @@ async function mapCameraChecks(page) {
   await page.evaluate(() => window.dispatchEvent(new Event('blur')));
   assert.equal((await state(page)).mapOpen, false, 'window blur dismisses Map');
 
-  await choose(page, 'tunes');
+  await openTunes(page);
   const player = page.locator('[data-music-player]');
   await player.waitFor({ state: 'visible' });
   await action(page, 'view-map').focus();
   assert(
-    await player.isVisible(),
-    'keyboard Map activation begins while Tunes is still open',
+    await player.evaluate((el) => el.classList.contains('is-collapsed')),
+    'moving keyboard focus to the Workshop collapses Tunes',
   );
   await page.keyboard.press('Enter');
   await map.waitFor({ state: 'visible' });
-  assert.equal(await player.isVisible(), false, 'opening Map closes Tunes');
+  assert(
+    await player.isVisible(),
+    'transport remains in its normal position with Map open',
+  );
   assert(
     await action(page, 'map-close').evaluate(
       (el) => el === document.activeElement,
     ),
     'Tunes focus return cannot dismiss the newly opened Map',
   );
-  await choose(page, 'tunes');
+  await openTunes(page);
   assert.equal((await state(page)).mapOpen, false, 'opening Tunes closes Map');
   await player
     .getByRole('button', { name: /^Collapse (music player|Tunes)$/ })
@@ -755,7 +766,7 @@ try {
     );
     await closeGroups(page);
 
-    await choose(page, 'tunes');
+    await openTunes(page);
     const player = page.locator('[data-music-player]');
     await player.waitFor({ state: 'visible' });
     const musicBox = await player.boundingBox();
@@ -773,11 +784,23 @@ try {
         .getByRole('button', { name: /^Collapse (music player|Tunes)$/ })
         .first(),
     );
-    await player.waitFor({ state: 'hidden' });
     assert(
-      await action(page, 'tunes').evaluate(
-        (el) => el === document.activeElement,
-      ),
+      await player.evaluate((el) => el.classList.contains('is-collapsed')),
+    );
+    const expand = player
+      .getByRole('button', { name: /^Expand (music player|Tunes)$/ })
+      .first();
+    await expand.focus();
+    await page.keyboard.press('Enter');
+    await page.keyboard.press('Escape');
+    assert(
+      await expand.evaluate((el) => el === document.activeElement),
+      'Escape returns to the shared Tunes opener',
+    );
+    assert.equal(
+      await player.getAttribute('data-menu-active'),
+      null,
+      'collapsed controls release menu navigation',
     );
     console.log('PASS preview input isolation and independent global Tunes');
 

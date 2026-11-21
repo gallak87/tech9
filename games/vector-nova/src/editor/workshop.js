@@ -1,9 +1,11 @@
 import { createTrackEditor } from './index.js';
 import { resolveEditorTestStart } from './test-drive.js';
+import { editorRouteOutline } from './route-outline.js';
+import { environmentThumbnailPath } from './environment-thumbnails.js';
 import './workshop.css';
 
 // The workshop owns a separate practice session. Career races stay suspended.
-export async function createWorkshop(
+export function createWorkshop(
   host,
   {
     document: initialDocument = null,
@@ -12,6 +14,10 @@ export async function createWorkshop(
     onSettings,
     onTunes,
     onDriving = () => {},
+    onTestLoading,
+    onTestProgress,
+    onTestLoaded,
+    onTestFailure,
   } = {},
 ) {
   const editorHost = document.createElement('div');
@@ -67,6 +73,7 @@ export async function createWorkshop(
     sessionHost.hidden = true;
     restoreDiagnostics();
     editorHost.hidden = false;
+    onTestLoaded?.();
     document.body.dataset.screen = 'editor';
     onDriving(false);
     editor?.resume();
@@ -102,16 +109,22 @@ export async function createWorkshop(
       }
     }
     discardGame();
-    await previous?.catch(() => {});
-    if (disposed || signal.aborted || token !== generation) return;
-    sessionHost.replaceChildren();
-    sessionHost.innerHTML =
-      '<section class="editor-session-loading" data-editor-loading><p>TRACK WORKSHOP / TEST DRIVE</p><h1>Preparing your circuit</h1><p role="status">Reading track</p><button type="button">Back to editor</button></section>';
-    const loading = sessionHost.firstElementChild;
-    loading.querySelector('button').onclick = returnToEditor;
-    loading.querySelector('button').focus();
+    onTestLoading?.({
+      title: documentData.name,
+      route: {
+        ...editorRouteOutline(documentData),
+        preview: environmentThumbnailPath(
+          documentData.biome,
+          documentData.settings.sceneryPreset,
+        ),
+      },
+      cancel: returnToEditor,
+      retry: () => testDrive(documentData, request),
+    });
     const task = (async () => {
+      await previous?.catch(() => {});
       signal.throwIfAborted();
+      sessionHost.replaceChildren();
       const { createGame } = await import('../core/game.js');
       signal.throwIfAborted();
       const created = await createGame({
@@ -120,8 +133,7 @@ export async function createWorkshop(
         parameters: new URLSearchParams(),
         signal,
         onProgress(stage) {
-          if (!signal.aborted && activeTest)
-            loading.querySelector('[role="status"]').textContent = stage;
+          if (!signal.aborted && activeTest) onTestProgress?.(stage);
         },
         onHome: returnToEditor,
         onSettings() {
@@ -149,10 +161,11 @@ export async function createWorkshop(
       )
         throw new Error('The selected ship could not be loaded.');
       signal.throwIfAborted();
-      loading.remove();
-      document.body.dataset.screen = 'race';
       if (!game.startEditorTest(plan.request))
         throw new Error('The selected test could not be started.');
+      onTestLoaded?.();
+      document.body.dataset.screen = 'race';
+      onDriving(['racing', 'countdown'].includes(game.getSnapshot().mode));
     })();
     pending = task;
     try {
@@ -160,22 +173,31 @@ export async function createWorkshop(
     } catch (error) {
       if (token === generation && !disposed) {
         discardGame();
-        returnToEditor();
+        if (error.name !== 'AbortError' && onTestFailure) onTestFailure(error);
+        else returnToEditor();
       }
-      if (error.name !== 'AbortError') throw error;
     } finally {
       if (pending === task) pending = null;
       if (!activeTest) restoreDiagnostics();
     }
   }
-  editor = await createTrackEditor(editorHost, {
+  let resolvePreview, rejectPreview;
+  const ready = new Promise((resolve, reject) => {
+    resolvePreview = resolve;
+    rejectPreview = reject;
+  });
+  editor = createTrackEditor(editorHost, {
     shipId,
     ...(initialDocument ? { document: initialDocument } : {}),
     onExit,
     onTestDrive: testDrive,
-    onTunes,
+    onPreviewReady: resolvePreview,
+    onPreviewError: rejectPreview,
   });
+  if (editor.getState().recoveryAvailable) resolvePreview();
   return {
+    ready,
+    focusWorkspace: () => editor.focusWorkspace(),
     getDocument: () => editor.getDocument(),
     getState: () => ({
       ...editor.getState(),
@@ -210,6 +232,7 @@ export async function createWorkshop(
     dispose() {
       if (disposal) return disposal;
       disposed = true;
+      resolvePreview();
       generation++;
       controller?.abort();
       activeTest = false;

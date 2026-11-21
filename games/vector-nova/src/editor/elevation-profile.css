@@ -6,10 +6,9 @@
   width: min(660px, calc(100% - 24px));
   max-height: calc(100% - 24px);
   overflow: auto;
-  color: #ebeff0;
-  background: #10191ff7;
-  border: 1px solid #4d585e;
-  border-radius: 5px;
+  color: #eee;
+  background: #101010fa;
+  border: 1px solid #505050;
   box-shadow: 0 6px 24px #0007;
 }
 .workshop-profile header {
@@ -18,8 +17,8 @@
   justify-content: space-between;
   gap: 8px;
   padding: 7px 10px 7px 13px;
-  border-bottom: 1px solid #38424a;
-  background: #171a1d;
+  border-bottom: 1px solid #383838;
+  background: #171717;
 }
 .workshop-profile h2 {
   margin: 0;
@@ -30,7 +29,6 @@
   min-height: 25px;
   width: 26px;
   padding: 1px;
-  border-radius: 3px;
   font-size: 18px;
 }
 .workshop-profile svg {
@@ -41,15 +39,15 @@
 }
 .workshop-profile svg text {
   font-size: 12px;
-  fill: #bbc6ca;
+  fill: #bbb;
 }
 .workshop-profile [data-profile-geometry] > path {
   fill: none;
-  stroke: #35434a;
+  stroke: #393939;
   stroke-width: 1;
 }
 .workshop-profile [data-profile-geometry] > .workshop-profile-road {
-  stroke: #a8dce9;
+  stroke: #e5e5e5;
   stroke-width: 2;
   stroke-linejoin: round;
 }
@@ -97,7 +95,7 @@
 .workshop-profile-empty {
   padding: 12px 13px;
   margin: 0;
-  color: #aebdc1;
+  color: #bbb;
   font-size: 12px;
 }
 .workshop-profile-controls {
@@ -115,11 +113,11 @@
 }
 .workshop-profile-controls input {
   width: clamp(85px, 15vw, 150px);
-  accent-color: #a8dce9;
+  accent-color: #e5e5e5;
 }
 .workshop-profile-controls output {
   flex: 1 0 auto;
-  color: #c4d0d4;
+  color: #ccc;
   font-variant-numeric: tabular-nums;
 }
 .track-workshop [data-editor-action='profile-issue'] {
@@ -127,5 +125,4 @@
   padding: 5px 7px;
   color: #f5c891;
   border-color: #8c6540;
-  border-radius: 3px;
 }

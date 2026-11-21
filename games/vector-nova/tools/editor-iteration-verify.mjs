@@ -523,8 +523,11 @@ async function recovery(page, before) {
     'recovery precedes drawing',
   );
   const pendingPoints = (await state(page)).points;
-  const box = await canvas(page).boundingBox();
-  await page.mouse.click(box.x + box.width * 0.4, box.y + box.height * 0.7);
+  assert(await page.locator('[data-editor-empty]').isHidden());
+  assert(
+    await page.locator('[data-editor-layout]').evaluate((node) => node.inert),
+  );
+  await page.locator('[data-editor-recovery] figure').click();
   assert.equal(
     (await state(page)).points,
     pendingPoints,

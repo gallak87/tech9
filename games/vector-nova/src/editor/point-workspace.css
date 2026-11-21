@@ -1,11 +1,11 @@
 .workshop-point-workspace {
   margin: 0;
-  padding: 5px 12px 7px;
+  padding: 7px 12px 8px;
   min-width: 0;
   border: 0;
-  border-top: 1px solid #46505a;
-  background: #1a2025;
-  color: #dfe8ec;
+  border-top: 1px solid var(--workshop-rule);
+  background: var(--workshop-panel);
+  color: var(--workshop-text);
   flex: none;
 }
 .workshop-point-workspace[hidden] {
@@ -26,18 +26,17 @@
   min-width: 0;
 }
 .workshop-point-workspace :is(button, select) {
-  background: #252e35;
-  border: 1px solid #4c5962;
-  border-radius: 3px;
+  background: var(--workshop-control);
+  border: 1px solid var(--workshop-rule);
   padding: 2px 7px;
-  min-height: 25px;
+  min-height: 28px;
 }
 .workshop-point-workspace button:disabled,
 .workshop-point-workspace select:disabled {
   opacity: 0.45;
 }
 .workshop-point-workspace button[aria-pressed='true'] {
-  border-color: #eabf89;
+  border-color: var(--workshop-accent);
 }
 .workshop-point-ruler {
   font-size: 12px;
@@ -51,13 +50,9 @@
   position: relative;
   flex: 1;
   min-width: 45px;
-  height: 27px;
-  background: linear-gradient(
-    transparent 75%,
-    #4c5962 75%,
-    #4c5962 80%,
-    transparent 80%
-  );
+  height: 34px;
+  background: var(--workshop-base);
+  border-bottom: 1px solid #555;
 }
 .workshop-point-track svg,
 .workshop-point-track input[type='range'] {
@@ -69,16 +64,32 @@
   padding: 0;
 }
 .workshop-point-track line {
-  stroke: #84939c;
+  stroke: #777;
   stroke-width: 1;
 }
 .workshop-point-track line.chosen {
-  stroke: #95dcea;
+  stroke: #f0eeee;
   stroke-width: 2;
 }
 .workshop-point-track line.current {
-  stroke: #ffcb80;
+  stroke: var(--workshop-accent);
   stroke-width: 4;
+}
+.workshop-point-track .workshop-point-terrain {
+  stroke: #777;
+  stroke-width: 1;
+  fill: none;
+  vector-effect: non-scaling-stroke;
+}
+.workshop-point-cursor {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  width: 9px;
+  height: 7px;
+  background: var(--workshop-accent);
+  pointer-events: none;
+  clip-path: polygon(0 0, 100% 0, 100% 40%, 50% 100%, 0 40%);
 }
 .workshop-point-track input {
   opacity: 0;
@@ -86,22 +97,22 @@
   touch-action: none;
 }
 .workshop-point-track:focus-within {
-  outline: 2px solid #95dcea;
+  outline: 2px solid #f0eeee;
   outline-offset: 1px;
 }
 .workshop-point-address input,
 .workshop-point-adjust input {
   appearance: textfield;
   text-align: right;
-  background: #12171c;
-  border: 1px solid #485660;
+  background: var(--workshop-base);
+  border: 1px solid var(--workshop-rule);
   padding: 3px 1px;
 }
 .workshop-point-workspace input::-webkit-inner-spin-button {
   -webkit-appearance: none;
 }
 .workshop-point-transforms {
-  margin-top: 3px;
+  margin-top: 6px;
   font-size: 12px;
   column-gap: 9px;
   row-gap: 4px;
@@ -111,16 +122,16 @@
   display: none;
 }
 .workshop-point-transforms output {
-  color: #a5dce4;
+  color: #eee;
 }
 .workshop-point-address small,
 .workshop-point-adjust small {
-  color: #b2bfc5;
+  color: var(--workshop-muted);
 }
 .workshop-point-twist {
   flex-shrink: 0;
   margin-inline-start: auto;
-  border-left: 1px solid #4c5962;
+  border-left: 1px solid var(--workshop-rule);
   padding-inline-start: 9px;
 }
 .workshop-point-twist button {
@@ -139,9 +150,16 @@
 }
 .workshop-scrub-grip {
   position: relative;
-  display: inline-block;
-  padding: 4px 0;
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 3px 6px;
+  border-bottom: 1px dotted #888;
   white-space: nowrap;
+}
+.workshop-scrub-grip:hover {
+  color: #fff;
+  background: var(--workshop-control);
 }
 .workshop-scrub-grip input[type='range'] {
   width: 100%;
@@ -154,14 +172,13 @@
   touch-action: none;
 }
 .workshop-scrub-grip:focus-within {
-  outline: 2px solid #95dcea;
+  outline: 2px solid #f0eeee;
   outline-offset: 1px;
 }
 .track-workshop .workshop-point-workspace input[type='number'] {
-  min-height: 25px;
+  min-height: 28px;
   padding: 2px 5px;
   width: 7.5ch;
-  border-radius: 3px;
 }
 .track-workshop .workshop-point-address input[type='number'] {
   width: 5ch;
@@ -170,7 +187,7 @@
   white-space: nowrap;
 }
 .track-workshop .workshop-point-workspace select {
-  min-height: 25px;
+  min-height: 28px;
   width: auto;
   padding: 2px 4px;
 }

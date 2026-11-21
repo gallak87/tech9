@@ -19,6 +19,8 @@ import {
   GENERATOR_VERSION,
 } from './document.js';
 import { createTrackLibrary } from './library.js';
+import starterOutlines from './starter-outlines.json' with { type: 'json' };
+import { editorRouteOutline } from './route-outline.js';
 import { createDraftRecovery } from './draft-recovery.js';
 import { createRouteMap } from './map.js';
 import { createRollRatePreview } from './roll-rate.js';
@@ -112,7 +114,8 @@ export function createTrackEditor(
   {
     onExit = () => {},
     onTestDrive = () => {},
-    onTunes = null,
+    onPreviewReady,
+    onPreviewError,
     shipId = 'kestrel',
     document: initial,
     library = createTrackLibrary(),
@@ -157,7 +160,8 @@ export function createTrackEditor(
   let redo = [];
   let saved = '';
   let records = [];
-  let savedId = '';
+  let savedId = initial?.id ?? '';
+  let deleteCandidate = null;
   let busy = false;
   let disposed = false;
   let suspended = false;
@@ -196,14 +200,12 @@ export function createTrackEditor(
   }
   syncEnvironmentDraft();
   const groupScroll = new Map();
-  let layoutKey = '';
   const view = 'world';
   let mapOpen = false;
   let profileOpen = false;
   let tool = doc.points.length < 4 ? 'draw' : 'move';
   let rangeArmed = false;
   let seedPickups = true;
-  let starterPromptDismissedFor = null;
   let jumpManualChosen = false;
   let jumpSuggestion = null;
   let jumpSizePreset = 'small';
@@ -273,6 +275,7 @@ export function createTrackEditor(
   let messageKind = '';
   let statusTimer;
   const life = new AbortController();
+  const touch = matchMedia('(pointer: coarse)');
   host.classList.add('track-editor-host');
   host.innerHTML = `<div class="track-workshop workshop-direct workshop-strip-editor" aria-label="Track Workshop">
     <header class="workshop-header" data-editor-header>
@@ -289,10 +292,10 @@ export function createTrackEditor(
       <div class="workshop-header-course">${courseTypeControl()}</div>
       <div class="workshop-header-actions">
         ${button('undo', 'Undo', 'aria-label="Undo edit"')}${button('redo', 'Redo', 'aria-label="Redo edit"')}
-        ${typeof onTunes === 'function' ? button('tunes', 'Tunes') : ''}
-        ${button('exit', 'Back', 'aria-label="Back to Race setup"')}
+        ${button('exit', 'Back', 'aria-label="Leave Workshop"')}
       </div>
     </header>
+    <section class="workshop-recovery" data-editor-recovery hidden aria-labelledby="workshop-recovery-name"></section>
     <div class="workshop-layout" data-editor-layout data-compact-dock="palette">
       <aside class="workshop-palette" aria-label="Track palette">
         <div class="workshop-panel-heading"><h2>Palette</h2></div>
@@ -307,7 +310,6 @@ export function createTrackEditor(
         </div>
       </aside>
       <main class="workshop-main">
-        <div class="workshop-recovery" data-editor-recovery hidden role="status"></div>
         <div class="workshop-viewport-toolbar" role="group" aria-label="Viewport tools">${renderToolModes()}${renderCameraControls()}</div>
         <div class="workshop-canvas">
           <div class="workshop-map-wrap workshop-map-popover" data-editor-map-wrap hidden role="dialog" aria-label="2D route map">
@@ -320,9 +322,7 @@ export function createTrackEditor(
           <div class="workshop-preview-status" data-editor-preview-status></div>
       <section class="workshop-validation" id="workshop-warnings" aria-label="Track warnings" data-editor-section="warnings" data-editor-validation hidden></section>
           <div class="workshop-viewport-hint" data-editor-view-hint></div>
-          <span class="workshop-status" role="status" aria-live="polite" data-editor-status></span>
-          <section class="workshop-starter-overlay" aria-label="Start a track" data-editor-starters hidden><h2>Start a track</h2>${renderStarterChoices('canvas')}</section>
-          <div class="workshop-empty-hint" data-editor-empty><span class="workshop-eyebrow">YOUR ROAD, FROM SCRATCH</span><strong data-editor-empty-title>Click the ground to start.</strong><span data-editor-empty-copy>Draw a few points. We build the road and supports.</span></div>
+          <div class="workshop-empty-hint" data-editor-empty><strong data-editor-empty-title>Click the ground to start.</strong><span data-editor-empty-copy>Draw a few points. We build the road and supports.</span></div>
         </div>
         ${pointWorkspaceMarkup}
         <div class="workshop-camera-help" data-editor-camera-help role="status"></div>
@@ -344,6 +344,8 @@ export function createTrackEditor(
     </div>
     <footer class="workshop-readiness" aria-label="Track status">
       <div class="workshop-drive-status" role="status" aria-live="polite" data-editor-readiness><strong data-editor-readiness-label></strong><span data-editor-readiness-reason></span></div>
+      <span class="workshop-status" role="status" data-editor-status></span>
+      <span class="workshop-backup-error" role="status" data-editor-recovery-error hidden></span>
       <div class="workshop-readiness-actions">
         ${button('drive-readiness-action', 'Focus point', 'hidden')}
         ${button('toggle-warnings', 'Warnings <span data-editor-warning-count>0</span>', 'class="workshop-warnings-toggle" aria-expanded="false" aria-controls="workshop-warnings"')}
@@ -407,9 +409,38 @@ export function createTrackEditor(
   let sectionHasSelection;
   function showFileMenu(open, { focus = false } = {}) {
     fileMenu.hidden = !open;
+    if (!open && deleteCandidate) {
+      deleteCandidate = null;
+      sectionHTML.delete('library');
+    }
     fileButton.setAttribute('aria-expanded', String(open));
     if (focus) fileButton.focus({ preventScroll: true });
   }
+  fileMenu.addEventListener(
+    'keydown',
+    (event) => {
+      if (
+        !['ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key) ||
+        event.target.matches('select, input')
+      )
+        return;
+      const commands = [
+        ...fileMenu.querySelectorAll('button:enabled, select:enabled, summary'),
+      ].filter((el) => el.getClientRects().length);
+      const index = commands.indexOf(document.activeElement);
+      if (index < 0) return;
+      const next =
+        event.key === 'Home'
+          ? 0
+          : event.key === 'End'
+            ? commands.length - 1
+            : (commands.length + index + (event.key === 'ArrowDown' ? 1 : -1)) %
+              commands.length;
+      event.preventDefault();
+      commands[next].focus();
+    },
+    { signal: life.signal },
+  );
   function rememberGroupScroll() {
     if (authorGroup) groupScroll.set(authorGroup, tools.scrollTop);
     groupScroll.set(globalGroup || 'road-home', globalTools.scrollTop);
@@ -613,11 +644,13 @@ export function createTrackEditor(
     onError(error) {
       previewMessage = error.message;
       syncStatus();
+      onPreviewError?.(error);
     },
     onReady() {
       previewMessage = '';
       syncStatus();
       syncCameraUI();
+      onPreviewReady?.();
     },
     onFlyChange(active, { restoreFocus = false } = {}) {
       if (disposed) return;
@@ -686,7 +719,7 @@ export function createTrackEditor(
         flying ? 'Exit free camera' : 'Enter free camera',
       );
       control.setAttribute('aria-pressed', String(flying));
-      control.disabled = busy || !viewport.isReady();
+      control.disabled = busy || Boolean(recoveryEntry) || !viewport.isReady();
     }
     root.querySelector('[data-editor-fly-badge]').hidden = !flying;
     const help = root.querySelector('[data-editor-camera-help]');
@@ -729,10 +762,32 @@ export function createTrackEditor(
   }
   function syncRecovery() {
     const node = root.querySelector('[data-editor-recovery]');
-    node.hidden = !recoveryEntry && !recoveryError;
-    node.innerHTML = recoveryEntry
-      ? `<span><strong>Continue your last draft?</strong> ${escape(recoveryEntry.document.name)} · ${escape(new Date(recoveryEntry.updatedAt).toLocaleString())}</span><div>${button('recover-draft', 'Continue draft')}${button('discard-recovery', 'Start fresh')}</div>`
-      : escape(recoveryError);
+    const choosing = Boolean(recoveryEntry);
+    node.hidden = !choosing;
+    root.toggleAttribute('data-recovering', choosing);
+    root.querySelector('[data-editor-layout]').inert = choosing;
+    root.querySelector('.workshop-readiness').inert = choosing;
+    if (choosing && !node.hasChildNodes()) {
+      const draft = recoveryEntry.document;
+      const family = editorBiome(draft.biome);
+      const route = editorRouteOutline(draft);
+      const when = new Intl.DateTimeFormat(undefined, {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      }).format(recoveryEntry.updatedAt);
+      node.innerHTML = `<div class="workshop-recovery-copy">
+        <p class="workshop-eyebrow">Last draft</p><h1 id="workshop-recovery-name">${escape(draft.name)}</h1>
+        <p class="workshop-draft-description">${escape(family.label)} · ${draft.courseType === 'downhill' ? 'Downhill' : 'Circuit'} · ${draft.points.length} road ${draft.points.length === 1 ? 'point' : 'points'}</p>
+        <p class="workshop-draft-date">Backed up ${escape(when)}</p>
+        <div class="workshop-recovery-actions">${button('recover-draft', 'Continue draft', 'class="workshop-primary"')}${button('discard-recovery', 'Start fresh')}</div>
+        <p class="workshop-fresh-note">Starting fresh clears this backup. Saved levels stay in your library.</p>
+        <p role="alert" data-recovery-alert></p></div>
+        <figure><img src="${escape(environmentThumbnail(draft.biome, draft.settings.sceneryPreset))}" alt="">${route ? `<svg viewBox="0 0 300 190" role="img" aria-label="Draft route outline"><path d="${route.path}"/><circle cx="${route.start[0]}" cy="${route.start[1]}" r="3.5"/></svg>` : ''}</figure>`;
+    }
+    if (!choosing) node.replaceChildren();
+    const error = root.querySelector('[data-editor-recovery-error]');
+    error.textContent = recoveryError;
+    error.hidden = !recoveryError;
     root.querySelector('[data-editor-recovery-state]')?.remove();
     if (recoveryState) {
       const state = document.createElement('span');
@@ -991,18 +1046,9 @@ export function createTrackEditor(
             ? lastTestAttempt
             : null,
       });
-    const showStarters =
-      doc.points.length === 0 &&
-      starterPromptDismissedFor !== doc.id &&
-      !recoveryEntry &&
-      context === 'road' &&
-      !mapOpen &&
-      !profileOpen &&
-      !globalGroup &&
-      !authorGroup;
-    root.querySelector('[data-editor-starters]').hidden = !showStarters;
     root.querySelector('[data-editor-empty]').hidden =
-      showStarters ||
+      Boolean(recoveryEntry) ||
+      viewport.isFlying() ||
       doc.points.length >= 4 ||
       mapOpen ||
       profileOpen ||
@@ -1013,11 +1059,13 @@ export function createTrackEditor(
         ? 'Choose Draw road to keep building.'
         : doc.points.length
           ? `Add ${4 - doc.points.length} more road ${doc.points.length === 3 ? 'point' : 'points'}.`
-          : 'Click the ground to start.';
+          : touch.matches
+            ? 'Tap the ground to start.'
+            : 'Click the ground to start.';
     root.querySelector('[data-editor-empty-copy]').textContent =
       doc.courseType === 'circuit'
-        ? 'Place at least four broad points. The last connects to the first automatically.'
-        : 'Place at least four broad points from start to finish. We build the road and supports.';
+        ? 'Place four points to close the circuit, or choose a starter from the palette.'
+        : 'Place four points from start to finish, or choose a starter from the palette.';
     syncStatus();
   }
   function focusKey() {
@@ -1317,7 +1365,7 @@ export function createTrackEditor(
           )
           .join(
             '',
-          )}</select></label>${button('preview-jump', 'Preview new jump here', `class="workshop-wide" ${count >= 4 && selected >= 0 ? '' : 'disabled'}`)}${button('preview-find-jump', 'Find clear space', `class="workshop-wide" ${count >= 4 ? '' : 'disabled'}`)}${current ? button(current.authoring ? 'preview-resize' : 'preview-rebuild', current.authoring ? 'Preview resize' : 'Preview rebuild', 'class="workshop-wide"') : ''}${current && !current.authoring ? '<p class="workshop-help">This older jump has no original road snapshot. Rebuild previews new ramps over its current road; Undo restores it.</p>' : ''}`;
+          )}</select></label>${button('preview-jump', 'Preview new jump here', `class="workshop-wide" ${count >= 4 && selected >= 0 ? '' : 'disabled'}`)}${button('preview-find-jump', 'Find clear space', `class="workshop-wide" ${count >= 4 ? '' : 'disabled'}`)}${current ? button(current.authoring ? 'preview-resize' : 'preview-rebuild', current.authoring ? 'Preview resize' : 'Preview rebuild', 'class="workshop-wide"') : ''}${current && !current.authoring ? '<p class="workshop-help">Preview new ramps on the current road. Apply to replace the jump, or cancel to keep it.</p>' : ''}`;
     const builder = `<section class="workshop-section">${proposal}${choices}${jumpProposalError ? `<p class="workshop-jump-error" role="status">${escape(jumpProposalError)}</p>` : ''}${renderLocalTestControls('jump')}</section>`;
     return (
       builder +
@@ -1488,18 +1536,36 @@ export function createTrackEditor(
   }
   function renderStarterChoices(location) {
     return `<div class="workshop-starter-choices">${PLAYABLE_STARTERS.map(
-      ({ id, name, summary }) =>
+      ({ id, name, summary, options }) =>
         button(
           `starter-${location}-${id}`,
-          `<strong>${escape(name)}</strong><span>${escape(summary)}</span>`,
+          `<span class="workshop-starter-art"><img alt="" src="${escape(environmentThumbnail(options.biome, options.sceneryPreset))}"><svg viewBox="0 0 300 190" aria-hidden="true"><path d="${starterOutlines[id]}"/></svg></span><span class="workshop-starter-info"><strong>${escape(name)}</strong><small>${escape(summary)}</small></span>`,
           'class="workshop-starter-card"',
         ),
     ).join(
       '',
-    )}${location === 'palette' ? '' : button(location === 'canvas' ? 'starter-draw' : 'blank', 'Draw from scratch')}</div>`;
+    )}${location === 'palette' ? '' : button('blank', 'Draw from scratch')}</div>`;
   }
   function renderLibrary() {
-    return `<section class="workshop-section">${details('new-track', 'New track', renderStarterChoices('file'))}${button('reset-track', 'Reset road', 'class="workshop-wide"')}<div class="workshop-section-divider"></div><label class="workshop-label">Saved track<select data-editor-field="saved" aria-label="Saved track" ${records.length ? '' : 'disabled'}>${records.length ? records.map((record) => `<option value="${escape(record.id)}" ${record.id === savedId ? 'selected' : ''}>${escape(record.name)}</option>`).join('') : '<option>No saved tracks</option>'}</select></label><div class="workshop-button-row">${button('load', 'Load track', records.length ? '' : 'disabled')}${button('remove', 'Delete saved', records.length ? '' : 'disabled')}</div>${button('save-copy', 'Save a copy', 'class="workshop-wide"')}<div class="workshop-section-divider"></div><div class="workshop-button-row">${button('import', 'Import track file')}${button('export', 'Export track file')}</div></section>`;
+    const record = records.find((item) => item.id === savedId);
+    const choices = records
+      .map((item) =>
+        option(escape(item.id), escape(item.name), item.id === savedId),
+      )
+      .join('');
+    const savedLevels = records.length
+      ? `
+      <label class="workshop-label">Saved level<select data-editor-field="saved" aria-label="Saved track">${choices}</select></label>
+      <div class="workshop-button-row">${button('load', 'Open level')}${button('remove', 'Delete…')}</div>
+      ${deleteCandidate && deleteCandidate === record?.id ? `<div class="workshop-delete-confirm" role="group" aria-label="Confirm deletion"><p>Delete <strong>${escape(record.name)}</strong> from Custom levels?</p>${button('cancel-delete', 'Keep level')}${button('delete-level', 'Delete level')}</div>` : ''}`
+      : '<p class="workshop-help">Your saved levels appear here.</p>';
+    return `<section class="workshop-file-commands">
+      ${details('new-track', 'New track', renderStarterChoices('file'))}
+      ${button('save-copy', 'Save a copy')}
+      <div class="workshop-file-library">${savedLevels}</div>
+      ${button('import', 'Import track file…')}${button('export', 'Export track file…')}
+      ${button('reset-track', 'Clear road', 'class="workshop-clear-road"')}
+    </section>`;
   }
   function renderWorld() {
     const pending = environmentDraft;
@@ -1587,11 +1653,6 @@ export function createTrackEditor(
     const report = root.querySelector('[data-editor-flight-report]');
     if (report && report.innerHTML !== flightReportMarkup)
       report.innerHTML = flightReportMarkup;
-    const nextLayoutKey = `${inspector}:${globalGroup}:${mapOpen}:${compactDock}`;
-    if (nextLayoutKey !== layoutKey) {
-      layoutKey = nextLayoutKey;
-      window.dispatchEvent(new Event('editor-layout-change'));
-    }
   }
   function showWarnings(open, { focus = false } = {}) {
     warningPanel.hidden = !open;
@@ -1750,8 +1811,10 @@ export function createTrackEditor(
       context !== 'road';
     root.querySelector('.workshop-map-help').textContent =
       context === 'road'
-        ? 'Shift-click to select a span · Drag a grip to change height or roll'
-        : 'Route overview · Click outside to close';
+        ? touch.matches
+          ? 'Select span, then tap an end point · Drag a grip to change height or roll'
+          : 'Shift-click to select a span · Drag a grip to change height or roll'
+        : 'Route overview · Close to return to the world';
     svg.setAttribute(
       'aria-label',
       context === 'road'
@@ -1767,8 +1830,9 @@ export function createTrackEditor(
     if (document.activeElement !== nameControl) nameControl.value = doc.name;
     root.querySelector('[data-editor-field="course-type"]').value =
       doc.courseType;
-    root.querySelector('[data-editor-course-label]').textContent =
-      `TRACK EDITOR · ${doc.courseType === 'downhill' ? 'DOWNHILL' : 'CIRCUIT'}`;
+    root.querySelector('[data-editor-course-label]').textContent = recoveryEntry
+      ? 'TRACK EDITOR'
+      : `TRACK EDITOR · ${doc.courseType === 'downhill' ? 'DOWNHILL' : 'CIRCUIT'}`;
     const netDrop =
       doc.points.length > 1 ? doc.points[0].y - doc.points.at(-1).y : null;
     root.querySelector('[data-editor-facts]').innerHTML =
@@ -1789,7 +1853,7 @@ export function createTrackEditor(
         busy ||
         node.dataset.editorBaseDisabled === 'true' ||
         (Boolean(recoveryEntry) &&
-          !['recover-draft', 'discard-recovery'].includes(
+          !['recover-draft', 'discard-recovery', 'exit'].includes(
             node.dataset.editorAction,
           ));
       if (!node.dataset.editorAction) continue;
@@ -1852,7 +1916,7 @@ export function createTrackEditor(
       }
       if (
         recoveryEntry &&
-        !['recover-draft', 'discard-recovery'].includes(action)
+        !['recover-draft', 'discard-recovery', 'exit'].includes(action)
       )
         node.disabled = true;
     }
@@ -1865,8 +1929,12 @@ export function createTrackEditor(
     const activeTool = PREVIEW_TOOLS.find((item) => item.id === tool);
     root.querySelector('[data-editor-view-hint]').textContent =
       context === 'environment'
-        ? 'Scenery · Drag to pan · Right-drag to orbit'
-        : `${activeTool.label} · ${activeTool.hint}`;
+        ? touch.matches
+          ? 'Drag to pan the scenery'
+          : 'Scenery · Drag to pan · Right-drag to orbit'
+        : touch.matches
+          ? activeTool.touchHint
+          : `${activeTool.label} · ${activeTool.hint}`;
     syncCanvas({ frame });
     syncStatus();
     syncCameraUI();
@@ -1928,6 +1996,12 @@ export function createTrackEditor(
     if (!records.some((record) => record.id === savedId))
       savedId = records[0]?.id ?? '';
   }
+  async function readSavedVersion(id) {
+    const previous = saved;
+    const stored = await library.read(id);
+    if (disposed || doc.id !== id || saved !== previous || !stored) return;
+    saved = JSON.stringify(stored);
+  }
   async function run(operation) {
     if (busy) return;
     const invokingFocus = focusKey();
@@ -1947,7 +2021,10 @@ export function createTrackEditor(
   }
   async function action(name, meta = {}) {
     if (disposed || busy) return;
-    if (recoveryEntry && !['recover-draft', 'discard-recovery'].includes(name))
+    if (
+      recoveryEntry &&
+      !['recover-draft', 'discard-recovery', 'exit'].includes(name)
+    )
       return;
     cancelActiveDrag();
     if (
@@ -2070,16 +2147,13 @@ export function createTrackEditor(
       const index =
         recovered.points.length >= 4 ? 0 : recovered.points.length - 1;
       tool = recovered.points.length >= 4 ? 'move' : 'draw';
-      commit(
-        recovered,
-        'Draft recovered. Save keeps a named copy in My tracks.',
-        { frame: true, selection: selectPointSpan(recovered.points, index) },
-      );
-      await run(async () => {
-        const stored = await library.read(doc.id);
-        if (stored && JSON.stringify(stored) === JSON.stringify(doc))
-          saved = JSON.stringify(doc);
+      commit(recovered, `Resumed ${recovered.name}.`, {
+        frame: true,
+        selection: selectPointSpan(recovered.points, index),
       });
+      if (records.some((record) => record.id === recovered.id))
+        savedId = recovered.id;
+      await run(() => readSavedVersion(recovered.id));
       root
         .querySelector(
           `[data-editor-action="${tool === 'draw' ? 'draw-mode' : 'select-mode'}"]`,
@@ -2095,11 +2169,10 @@ export function createTrackEditor(
         checkpointJSON = JSON.stringify(doc);
         recoveryState = '';
         render();
+        focusWorkspace();
       } catch {
-        status(
-          'Could not clear the recovery draft. Your current work is unchanged.',
-          'error',
-        );
+        root.querySelector('[data-recovery-alert]').textContent =
+          'Could not clear this backup. You can still continue your draft.';
       }
       return;
     }
@@ -2150,7 +2223,10 @@ export function createTrackEditor(
     }
     if (name === 'tab-library') {
       showFileMenu(fileMenu.hidden);
-      if (!fileMenu.hidden) focusGroup('library');
+      if (!fileMenu.hidden) {
+        render();
+        focusGroup('library');
+      }
       return;
     }
     if (name === 'tab-generate') {
@@ -2231,13 +2307,6 @@ export function createTrackEditor(
         },
         `${editorBiome(pending.biome).label} environment regenerated. Your road, jumps and pickups are unchanged.`,
       );
-      return;
-    }
-    if (name === 'tunes') {
-      if (mapOpen) closeMap();
-      setProfileOpen(false);
-      if (typeof onTunes === 'function')
-        onTunes(root.querySelector('[data-editor-action="tunes"]'));
       return;
     }
     if (name === 'toggle-warnings' || name === 'close-warnings') {
@@ -2357,11 +2426,8 @@ export function createTrackEditor(
       root.querySelector('[data-editor-action="select-mode"]')?.focus();
       return;
     }
-    const chosenTool = PREVIEW_TOOLS.find(
-      (item) => item.action === (name === 'starter-draw' ? 'draw-mode' : name),
-    );
+    const chosenTool = PREVIEW_TOOLS.find((item) => item.action === name);
     if (chosenTool) {
-      if (name === 'starter-draw') starterPromptDismissedFor = doc.id;
       viewport.cancelInteraction();
       viewport.exitFly();
       tool = chosenTool.id;
@@ -2371,8 +2437,6 @@ export function createTrackEditor(
 
       status(`${chosenTool.label}: ${chosenTool.hint}`);
       render();
-      if (name === 'starter-draw')
-        root.querySelector('[data-editor-action="draw-mode"]')?.focus();
       viewport.setVisible(view === 'world' && !suspended);
       return;
     }
@@ -2506,7 +2570,6 @@ export function createTrackEditor(
       if (mapOpen) closeMap({ focus: true });
       else {
         viewport.exitFly();
-        window.dispatchEvent(new Event('editor-map-open'));
         rememberGroupScroll();
         authorGroup = '';
         mapOpen = true;
@@ -2522,7 +2585,6 @@ export function createTrackEditor(
       if (!profileOpen) {
         viewport.exitFly();
         closeMap();
-        window.dispatchEvent(new Event('editor-map-open'));
       }
       setProfileOpen(!profileOpen, { focus: true });
       return;
@@ -2720,7 +2782,7 @@ export function createTrackEditor(
       }, 'Road style selected. Choose Create road to apply it.');
       return;
     }
-    const starterId = /^starter-(?:canvas|file|palette)-(.+)$/.exec(name)?.[1];
+    const starterId = /^starter-(?:file|palette)-(.+)$/.exec(name)?.[1];
     const recipe = PLAYABLE_STARTERS.find(({ id }) => id === starterId);
     if (
       recipe ||
@@ -2833,7 +2895,6 @@ export function createTrackEditor(
         blank: true,
         courseType: doc.courseType,
       });
-      starterPromptDismissedFor = name === 'reset-track' ? doc.id : next.id;
       if (name === 'reset-track') {
         next.id = doc.id;
         next.name = doc.name;
@@ -2910,8 +2971,8 @@ export function createTrackEditor(
           );
         status(
           pending
-            ? 'Track saved to My tracks; new environment choices are still pending. Apply environment to preview them.'
-            : 'Track saved to My tracks.',
+            ? 'Track saved to Custom levels. Apply your scenery choices to include them.'
+            : 'Track saved to Custom levels.',
         );
       });
       return;
@@ -2939,14 +3000,25 @@ export function createTrackEditor(
       });
       return;
     }
-    if (name === 'remove') {
+    if (name === 'remove' || name === 'cancel-delete') {
+      deleteCandidate = name === 'remove' ? savedId : null;
+      render();
+      root
+        .querySelector(
+          `[data-editor-action="${deleteCandidate ? 'cancel-delete' : 'remove'}"]`,
+        )
+        ?.focus();
+      return;
+    }
+    if (name === 'delete-level' && deleteCandidate === savedId) {
+      deleteCandidate = null;
       await run(async () => {
         const record = records.find((item) => item.id === savedId);
         await library.remove(savedId);
         if (savedId === doc.id) saved = '';
         await refreshLibrary();
         status(
-          `${record?.name ?? 'Track'} removed from My tracks. The current draft is still open.`,
+          `${record?.name ?? 'Track'} removed from Custom levels. The current draft is still open.`,
         );
       });
       return;
@@ -2966,10 +3038,14 @@ export function createTrackEditor(
         authorGroup = '';
         roadAuthorGroup = '';
         tool = imported.points.length < 4 ? 'draw' : 'move';
-        commit(imported, 'Track imported. Save it to keep it in My tracks.', {
-          frame: true,
-          selection: selectPointSpan(imported.points, 0),
-        });
+        commit(
+          imported,
+          'Track imported. Save it to keep it in Custom levels.',
+          {
+            frame: true,
+            selection: selectPointSpan(imported.points, 0),
+          },
+        );
         restoreJumpSelection();
         root
           .querySelector('[data-editor-action="select-mode"]')
@@ -3178,7 +3254,9 @@ export function createTrackEditor(
       return;
     }
     if (field === 'saved') {
+      deleteCandidate = null;
       savedId = value;
+      render();
       return;
     }
     if (field === 'step') {
@@ -3407,6 +3485,7 @@ export function createTrackEditor(
         if (recoveryEntry) {
           event.preventDefault();
           event.stopPropagation();
+          if (!event.repeat) action('exit');
           return;
         }
         if (event.repeat) {
@@ -3519,14 +3598,23 @@ export function createTrackEditor(
     },
     { signal: life.signal },
   );
+  touch.addEventListener('change', () => render(), { signal: life.signal });
   render({ frame: true });
   viewport.setVisible(true);
-  root
-    .querySelector(
-      `[data-editor-action="${recoveryEntry ? 'recover-draft' : tool === 'draw' ? 'draw-mode' : 'select-mode'}"]`,
-    )
-    .focus({ preventScroll: true });
+  function focusWorkspace() {
+    root
+      .querySelector(
+        `[data-editor-action="${recoveryEntry ? 'recover-draft' : tool === 'draw' ? 'draw-mode' : 'select-mode'}"]`,
+      )
+      ?.focus({ preventScroll: true });
+  }
+  focusWorkspace();
   refreshLibrary()
+    .then(() =>
+      initial && records.some((record) => record.id === initial.id)
+        ? readSavedVersion(initial.id)
+        : undefined,
+    )
     .then(() => {
       if (!disposed) render();
     })
@@ -3540,6 +3628,7 @@ export function createTrackEditor(
     { signal: life.signal },
   );
   return {
+    focusWorkspace,
     getDocument: () => clone(doc),
     setTestDriveAttempt(report) {
       lastTestAttempt = report;

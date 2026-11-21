@@ -779,15 +779,13 @@ async function filePopoverChecks(page) {
   const file = action(page, 'tab-library');
   const menu = page.locator('[data-editor-section="library"]');
   const heading = page.locator('[data-editor-details="new-track"] > summary');
-  const world = responsive
-    ? await openEditorSection(page, 'world')
-    : page.locator('[data-editor-section="world"]');
   await ready(page);
-  assert(await world.isVisible(), 'wide Road mode opens with scenery swatches');
+  const world = await openEditorSection(page, 'world');
+  assert(await world.isVisible(), 'Scenery opens its swatch palette');
   if (!responsive) {
     const palette = world.getByRole('group', { name: 'Scenery swatches' });
     assert(await palette.isVisible());
-    assert(await action(page, 'draw-mode').isVisible());
+    assert(await action(page, 'fit').isVisible());
   }
   const before = await canvas(page).boundingBox();
   const camera = (await state(page)).preview.camera;

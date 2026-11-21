@@ -2,6 +2,7 @@
 export const EDITOR_TOOLS = [
   {
     id: 'draw',
+    touchHint: 'Tap ground to add a point · Drag to pan',
     action: 'draw-mode',
     label: 'Draw road',
     key: 'D',
@@ -10,6 +11,7 @@ export const EDITOR_TOOLS = [
   },
   {
     id: 'move',
+    touchHint: 'Drag a point to move it · Select span to edit a range',
     action: 'select-mode',
     label: 'Select / move',
     key: 'V',
@@ -18,6 +20,7 @@ export const EDITOR_TOOLS = [
   },
   {
     id: 'height',
+    touchHint: 'Drag a point up or down to set its height',
     action: 'height-mode',
     label: 'Height',
     key: 'H',
@@ -34,6 +37,7 @@ export const EDITOR_TOOLS = [
   },
   {
     id: 'pan',
+    touchHint: 'Drag the view to pan',
     action: 'pan-mode',
     label: 'Pan',
     key: 'P',

@@ -45,12 +45,12 @@ export function createUI(
     const finishActions = document.createElement('div');
     finishActions.id = 'sprint-finish-actions';
     finishActions.className = 'actions hidden';
-    finishActions.innerHTML = `<button id="sprint-home" class="primary">${metadata.customCourse ? 'Back to editor' : 'Race setup'} →</button><button id="sprint-retry">R · ${metadata.customCourse ? 'RESTART TEST DRIVE' : playtest ? 'REPEAT CASE' : 'RETRY DESCENT'}</button>`;
+    finishActions.innerHTML = `<button id="sprint-home" class="primary">${metadata.editorTest ? 'Back to editor' : 'Race setup'} →</button><button id="sprint-retry">R · ${metadata.editorTest ? 'RESTART TEST DRIVE' : playtest ? 'REPEAT CASE' : 'RETRY DESCENT'}</button>`;
     root.append(finishActions);
     $('sprint-retry').onclick = actions.restart;
     $('sprint-home').onclick = actions.home;
   }
-  if (metadata.customCourse) {
+  if (metadata.editorTest) {
     $('home').textContent = 'Back to editor';
     $('restart').textContent = 'Restart test drive';
   }
@@ -509,7 +509,7 @@ export function createUI(
       );
       updateControlHints(gamepad);
       if (!playtest)
-        $('restart').textContent = metadata.customCourse
+        $('restart').textContent = metadata.editorTest
           ? 'Restart test drive'
           : metadata.freestyle
             ? freestylePractice
@@ -609,11 +609,11 @@ export function createUI(
           : r.best
             ? `BEST ${fmt(r.best)}`
             : 'SET YOUR FIRST CLEAN LAP';
-      $('home').textContent = metadata.customCourse
+      $('home').textContent = metadata.editorTest
         ? 'Back to editor'
         : 'Race setup';
       if ($('sprint-home'))
-        $('sprint-home').textContent = metadata.customCourse
+        $('sprint-home').textContent = metadata.editorTest
           ? 'Back to editor →'
           : 'Race setup →';
       if (cup) {

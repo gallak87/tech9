@@ -34,10 +34,15 @@ export function createMusicPlayer(
   let shuffled = preferences.shuffle === true;
   let queue = musicTracks;
   let driving = false;
-  let launcherOnly = false;
   let returnFocus = null;
   const compact = matchMedia('(max-width: 760px)');
-  const isCompact = () => compact.matches && (driving || !isMenuVisible());
+  const compactEditor = matchMedia(
+    '(max-width: 760px), (max-width: 900px) and (max-height: 540px)',
+  );
+  const isCompact = () =>
+    document.body.dataset.screen === 'editor'
+      ? compactEditor.matches
+      : compact.matches && (driving || !isMenuVisible());
   const root = document.createElement('aside');
   root.className = 'music-player';
   root.dataset.musicPlayer = '';
@@ -274,7 +279,6 @@ export function createMusicPlayer(
     save();
   }
   function collapse(collapsed) {
-    root.hidden = launcherOnly && collapsed;
     root.classList.toggle('is-compact', isCompact());
     controls.hidden = collapsed;
     root.classList.toggle('is-collapsed', collapsed);
@@ -298,8 +302,7 @@ export function createMusicPlayer(
   }
   function open(origin = document.activeElement) {
     if (driving && !isCompact()) return;
-    if (origin && !root.contains(origin)) returnFocus = origin;
-    positionLauncherPanel();
+    if (origin) returnFocus = origin;
     if (returnFocus?.getAttribute('aria-controls') === 'music-panel')
       returnFocus.setAttribute('aria-expanded', 'true');
     collapse(false);
@@ -307,62 +310,12 @@ export function createMusicPlayer(
     play.focus();
     save();
   }
-  function positionLauncherPanel() {
-    if (!launcherOnly) return;
-    const workshop =
-      returnFocus?.closest?.('.track-workshop') ??
-      document.querySelector('#track-editor-host .track-workshop');
-    const header = workshop
-      ?.querySelector('[data-editor-header]')
-      ?.getBoundingClientRect();
-    const main = workshop?.querySelector('.workshop-main');
-    const preview = (
-      main?.querySelector('.workshop-canvas') ?? main
-    )?.getBoundingClientRect();
-    const strip = workshop?.querySelector('[data-editor-authoring]');
-    const authoring = strip?.getClientRects().length
-      ? strip.getBoundingClientRect()
-      : null;
-    const width = window.innerWidth,
-      height = window.innerHeight,
-      gap = 12;
-    const left = Math.max(gap, (preview?.left ?? 0) + gap);
-    let edge = Math.min(width - gap, (preview?.right ?? width) - gap);
-    const topEdge = Math.max(0, preview?.top ?? 0);
-    const bottom = Math.min(height - gap, (preview?.bottom ?? height) - gap);
-    // The authoring strip expands in place. Its live left edge reserves both
-    // its compact modes and any inline options, while global drawers shrink
-    // the preview rectangle itself.
-    if (
-      authoring &&
-      authoring.width &&
-      authoring.left > left &&
-      authoring.top < bottom &&
-      authoring.bottom > topEdge
-    )
-      edge = Math.min(edge, authoring.left - gap);
-    let top = Math.max(gap, topEdge + gap);
-    if (header && header.top < bottom && header.bottom > top)
-      top = Math.max(top, header.bottom + 8);
-    top = Math.min(height - gap, top);
-    for (const [name, value] of Object.entries({
-      top,
-      right: Math.max(gap, width - edge),
-      'max-width': Math.max(0, edge - left),
-      'max-height': Math.max(0, bottom - top),
-    }))
-      root.style.setProperty(`--music-launcher-${name}`, `${value}px`);
-  }
-  listen(window, 'resize', positionLauncherPanel);
-  listen(window, 'editor-layout-change', positionLauncherPanel);
-  listen(window, 'editor-map-open', () => {
-    if (launcherOnly) close();
-  });
-  function close() {
+  function close(restoreFocus = true) {
     collapse(true);
     if (returnFocus?.getAttribute('aria-controls') === 'music-panel')
       returnFocus.setAttribute('aria-expanded', 'false');
     if (
+      restoreFocus &&
       returnFocus?.isConnected &&
       returnFocus.getClientRects().length &&
       !returnFocus.closest('[hidden], .hidden, [inert]')
@@ -377,14 +330,18 @@ export function createMusicPlayer(
   }
   listen(expand, 'click', toggleExpanded);
   listen(compactToggle, 'click', toggleExpanded);
-  listen(compact, 'change', () => {
-    expand.disabled = driving && !isCompact();
-    close();
-  });
-  listen(document, 'pointerdown', (event) => {
-    if (!root.contains(event.target) && root.hasAttribute('data-menu-active'))
+  for (const query of [compact, compactEditor])
+    listen(query, 'change', () => {
+      if (root.classList.contains('is-compact') === isCompact()) return;
+      expand.disabled = driving && !isCompact();
       close();
-  });
+    });
+  function dismissOutside(event) {
+    if (!root.contains(event.target) && root.hasAttribute('data-menu-active'))
+      close(false);
+  }
+  listen(document, 'pointerdown', dismissOutside);
+  listen(document, 'focusin', dismissOutside);
   function retryStartupPlayback(event) {
     if (
       !event.isTrusted ||
@@ -514,13 +471,11 @@ export function createMusicPlayer(
       (index + (event.shiftKey ? -1 : 1) + items.length) % items.length
     ]?.focus();
   });
-  listen(root, 'click', (event) => {
-    if (event.detail > 0) event.target.closest('button')?.blur();
-  });
   listen(root, 'focusin', (event) => {
     if (event.relatedTarget && !root.contains(event.relatedTarget))
       returnFocus = event.relatedTarget;
-    if (isMenuVisible()) root.setAttribute('data-menu-active', '');
+    if (isMenuVisible() && !controls.hidden)
+      root.setAttribute('data-menu-active', '');
     clearInput();
   });
   listen(document, 'visibilitychange', () => {
@@ -538,13 +493,6 @@ export function createMusicPlayer(
     open,
     close,
     togglePlayback,
-    setLauncherOnly(value) {
-      const next = !!value;
-      if (launcherOnly === next) return;
-      launcherOnly = next;
-      root.classList.toggle('is-launcher-only', launcherOnly);
-      close();
-    },
     configureNavigation({
       clearInput: nextClearInput,
       isMenuVisible: nextIsMenuVisible,

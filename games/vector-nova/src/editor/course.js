@@ -4,7 +4,7 @@ import { editorBiome } from './biomes.js';
 import { createEditorLevel } from './nightweir.js';
 
 // Only bundled factories interpret user data. Documents never become module paths.
-export function loadEditorCourse(input) {
+export function loadEditorCourse(input, { testDrive = true } = {}) {
   const document = validateDocument(input);
   const downhill = document.courseType === 'downhill';
   const biome = editorBiome(document.biome);
@@ -15,6 +15,7 @@ export function loadEditorCourse(input) {
     shape: false,
     review: false,
     customCourse: true,
+    editorTest: testDrive,
     ui: {
       edition: 'TRACK WORKSHOP',
       subtitle: downhill
@@ -24,7 +25,9 @@ export function loadEditorCourse(input) {
         ? `Drive your own ${biome.label} descent.`
         : `Test your own ${biome.label} circuit.`,
       tag: downhill ? 'CUSTOM DOWNHILL' : 'CUSTOM CIRCUIT',
-      tagDetail: 'Practice only · no career rewards',
+      tagDetail: testDrive
+        ? 'Editor test drive'
+        : 'Custom level · no career rewards',
       ...(downhill ? { courseLabel: 'Custom descent' } : {}),
     },
   });

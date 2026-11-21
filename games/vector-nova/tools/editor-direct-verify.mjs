@@ -5,7 +5,11 @@ import {
   revealEditorAction,
   openEditorSection,
 } from './editor-controls.mjs';
-import { createDocument, generateDocument } from '../src/editor/document.js';
+import {
+  createDocument,
+  generateDocument,
+  GENERATOR_VERSION,
+} from '../src/editor/document.js';
 import {
   createCareerSlots,
   createMemoryStorage,
@@ -113,10 +117,9 @@ try {
   await page.goto(new URL('?intro=0&editor=1', base).href);
   await page.waitForFunction(
     () =>
-      document.querySelector('[data-editor-field="name"]') ||
-      document
-        .querySelector('[data-editor-loading] h1')
-        ?.textContent.includes('could not open'),
+      (document.body.dataset.screen === 'editor' &&
+        document.querySelector('[data-editor-field="name"]')) ||
+      document.querySelector('.loading-page .transfer-status.failed'),
     null,
     { timeout: 90000 },
   );
@@ -139,7 +142,7 @@ try {
         [1920, 1080],
       ]) {
     await page.setViewportSize({ width, height });
-    assert.equal(await page.locator('[data-music-player]').isVisible(), false);
+    assert(await page.locator('[data-music-player].is-collapsed').isVisible());
     for (const name of ['save', 'test', 'undo', 'redo']) {
       assert(await action(page, name).isVisible(), `${name} stays visible`);
       assert(
@@ -152,16 +155,13 @@ try {
         `${name} is not covered by another overlay`,
       );
     }
-    await (await revealEditorAction(page, 'tunes')).click();
+    await action(page, 'draw-mode').focus();
+    await page.keyboard.press('/');
     await page.locator('[data-music-player]').waitFor({ state: 'visible' });
     const musicBox = await page.locator('[data-music-player]').boundingBox();
-    const main = await page.locator('.workshop-main').boundingBox();
     assert(
-      musicBox.x >= main.x &&
-        musicBox.y >= main.y &&
-        musicBox.x + musicBox.width <= main.x + main.width + 1 &&
-        musicBox.y + musicBox.height <= main.y + main.height + 1,
-      'Tunes stays within the preview beside or above the dock',
+      musicBox.y < 32 && musicBox.x + musicBox.width > width * 0.9,
+      'Tunes uses the game transport in the upper right',
     );
     for (const name of ['save', 'test'])
       assert(
@@ -177,22 +177,22 @@ try {
         `Tunes does not cover ${name}`,
       );
     await page.keyboard.press('Escape');
-    assert.equal(await page.locator('[data-music-player]').isVisible(), false);
+    assert(await page.locator('[data-music-player].is-collapsed').isVisible());
     assert(
-      await action(page, 'tunes').evaluate(
+      await action(page, 'draw-mode').evaluate(
         (el) => el === document.activeElement,
       ),
     );
   }
   if (!responsive) await page.setViewportSize({ width: 1440, height: 1000 });
   await ready(page);
-  await (await revealEditorAction(page, 'tunes')).focus();
-  await page.keyboard.press('Enter');
+  await action(page, 'draw-mode').focus();
+  await page.keyboard.press('/');
   await page.locator('[data-music-player]').waitFor({ state: 'visible' });
   await (await revealEditorAction(page, 'view-map')).focus();
   await page.keyboard.press('Enter');
   await page.locator('[data-editor-map-wrap]').waitFor({ state: 'visible' });
-  assert.equal(await page.locator('[data-music-player]').isVisible(), false);
+  assert(await page.locator('[data-music-player].is-collapsed').isVisible());
   assert.equal((await state(page)).view, 'world');
   assert.equal((await state(page)).mapOpen, true);
   assert(
@@ -226,9 +226,11 @@ try {
   );
   assert(await action(page, 'test').isEnabled());
   await openEditorSection(page, 'jumps');
+  if (!(await field(page, 'jump-selected').isVisible()))
+    await page.getByText(/^Your jumps · \d+$/).click();
   assert(
     await field(page, 'jump-selected').isVisible(),
-    'existing jumps have a direct inspection path',
+    'Your jumps opens the gap inspector',
   );
   if (!responsive) {
     await (await revealEditorAction(page, 'focus-selection')).click();
@@ -413,7 +415,7 @@ try {
   let doc = await save(page);
   assert.equal(
     doc.generator.version,
-    3,
+    GENERATOR_VERSION,
     'public Generate uses the current varied layout',
   );
   assert(
@@ -640,6 +642,7 @@ try {
   const roadBeforeWorld = doc.points;
   for (const preset of ['industrial', 'reclaimed', 'waterfront']) {
     await (await revealEditorAction(page, `preset-${preset}`)).click();
+    await (await revealEditorAction(page, 'regenerate-environment')).click();
     await ready(page);
     const themed = await save(page);
     assert.equal(themed.settings.sceneryPreset, preset);
@@ -658,7 +661,11 @@ try {
   await (await revealEditorAction(page, 'new-world-seed')).click();
   await ready(page);
   const reseededWorld = await save(page);
-  assert.notEqual(reseededWorld.generator.seed, beforeWorldSeed.generator.seed);
+  assert.notEqual(
+    reseededWorld.environment.seed,
+    beforeWorldSeed.environment.seed,
+  );
+  assert.equal(reseededWorld.generator.seed, beforeWorldSeed.generator.seed);
   assert.deepEqual(
     reseededWorld.points,
     beforeWorldSeed.points,
@@ -666,8 +673,8 @@ try {
   );
   await (await revealEditorAction(page, 'undo')).click();
   assert.equal(
-    (await save(page)).generator.seed,
-    beforeWorldSeed.generator.seed,
+    (await save(page)).environment.seed,
+    beforeWorldSeed.environment.seed,
   );
   assert.equal(
     await action(page, 'add-prop').count(),
@@ -686,7 +693,7 @@ try {
   const regenerated = await save(page);
   assert.equal(
     regenerated.generator.version,
-    3,
+    GENERATOR_VERSION,
     'regeneration returns to the current layout',
   );
   assert(regenerated.jumps.length > 0, 'long circuit includes seeded jumps');

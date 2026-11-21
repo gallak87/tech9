@@ -129,9 +129,9 @@ async function uncovered(control, label) {
 }
 async function closeGroups(page) {
   const active = (await state(page)).authorGroup;
-  if (active) await tapOrClick(action(page, `tab-${active}`));
+  if (active) await choose(page, `tab-${active}`);
   if ((await state(page)).globalGroup)
-    await tapOrClick(action(page, 'global-close'));
+    await openEditorSection(page, 'road-home');
 }
 async function structure(page) {
   const root = page.locator('.track-workshop');
@@ -546,7 +546,7 @@ try {
       );
 
     for (const key of authorGroups) {
-      await tapOrClick(action(page, `tab-${key}`));
+      await choose(page, `tab-${key}`);
       assert(await section(page, key).isVisible());
       assert.equal((await state(page)).authorGroup, key);
       for (const other of authorGroups.filter((id) => id !== key))
@@ -577,14 +577,12 @@ try {
     }
     await closeGroups(page);
     await openEditorSection(page, 'generate');
-    const globalBox = await page
-      .locator('[data-editor-global-panel]')
-      .boundingBox();
+    const globalBox = await page.locator('.workshop-palette').boundingBox();
     assert.equal((await state(page)).authorGroup, '');
-    assert(globalBox, 'Generate opens the separate global settings drawer');
+    assert(globalBox, 'Generate opens inside the Palette');
     assert(
       await page
-        .locator('[data-editor-global-panel]')
+        .locator('.workshop-palette')
         .evaluate((el) => !el.closest('.workshop-canvas')),
     );
     if (!responsive) {
@@ -622,7 +620,8 @@ try {
       await page.keyboard.press('Enter');
       assert(await section(page, 'route').isVisible());
       await page.keyboard.press('Escape');
-      assert.equal(await section(page, 'route').isVisible(), false);
+      assert.equal((await state(page)).authorGroup, '');
+      assert(await section(page, 'route').isVisible());
       assert(
         await action(page, 'tab-route').evaluate(
           (el) => el === document.activeElement,
@@ -679,17 +678,17 @@ try {
     const edited = await save(page);
     assert(edited.points[selected].y > original.points[selected].y);
     await choose(page, 'context-raise');
-    await section(page, 'route').waitFor({ state: 'hidden' });
+    assert(await section(page, 'route').isVisible());
     assert.equal(
       (await state(page)).tool,
       'draw',
-      'executing a point option collapses without changing mode',
+      'executing a point option keeps the active selection and mode',
     );
     assert(
-      await action(page, 'tab-route').evaluate(
+      await action(page, 'context-raise').evaluate(
         (el) => el === document.activeElement,
       ),
-      'the collapsed group button receives focus',
+      'the point action retains focus',
     );
     await choose(page, 'undo');
     assert.deepEqual(
@@ -697,9 +696,7 @@ try {
       edited,
       'the point action remains one undoable geometry edit',
     );
-    console.log(
-      'PASS scalar options stay open, action executes and collapses, active mode/Undo remain correct',
-    );
+    console.log('PASS scalar edits, point actions, focus and exact Undo');
 
     const bank = await revealEditorField(page, 'shape-start');
     await bank.focus();

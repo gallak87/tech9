@@ -178,7 +178,8 @@ async function responsiveCheck(page) {
     buffer: Buffer.from(JSON.stringify(fixture)),
   });
   await ready(page);
-  if ((await state(page)).globalGroup) await choose(page, 'global-close');
+  if ((await state(page)).globalGroup)
+    await openEditorSection(page, 'road-home');
   await openEditorSection(page, 'jumps');
   await change(page, 'jump-size-preset', 'small');
   await choose(page, 'preview-find-jump');
@@ -256,7 +257,8 @@ async function responsiveCheck(page) {
 }
 
 async function incompleteRecovery(page) {
-  if ((await state(page)).globalGroup) await choose(page, 'global-close');
+  if ((await state(page)).globalGroup)
+    await openEditorSection(page, 'road-home');
   if ((await state(page)).points) await choose(page, 'reset-track');
   await change(page, 'name', name);
   await choose(page, 'draw-mode', 'keyboard');
@@ -335,7 +337,8 @@ async function incompleteRecovery(page) {
 }
 
 async function sparseRoad(page) {
-  if ((await state(page)).globalGroup) await choose(page, 'global-close');
+  if ((await state(page)).globalGroup)
+    await openEditorSection(page, 'road-home');
   if ((await state(page)).points) await choose(page, 'reset-track');
   await change(page, 'name', name);
   await choose(page, 'draw-mode', 'keyboard');
@@ -391,12 +394,12 @@ async function stripChecks(page) {
       await action(page, id).isVisible(),
       `${id} remains directly visible`,
     );
-  const strip = page.locator('[data-editor-authoring]');
   assert(
-    (await strip.evaluate((node) =>
-      parseFloat(getComputedStyle(node).borderTopRightRadius),
-    )) > 0,
-    'the single strip retains slightly rounded corners',
+    await page.getByRole('contentinfo', { name: 'Track status' }).isVisible(),
+  );
+  assert.match(
+    await page.locator('[data-editor-readiness-label]').textContent(),
+    /Ready to drive|Before driving/,
   );
 }
 

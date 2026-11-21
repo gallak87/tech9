@@ -92,6 +92,7 @@ export function createPreviewGuides(scene, host) {
       const {
         document: doc,
         candidate,
+        crossing,
         selectedJumpId,
         attempt,
         selectedPoint,
@@ -145,6 +146,14 @@ export function createPreviewGuides(scene, host) {
           `Point ${selectedPoint + 1} · ${Math.round(point.y)} m`,
           [point.x, point.y, point.z],
           '#ffe1a2',
+        );
+      }
+      if (crossing) {
+        line([crossing.position, crossing.otherPosition], '#e4c18a');
+        label(
+          `Point ${crossing.otherPointIndex + 1} · nearby deck`,
+          crossing.otherPosition,
+          '#e4c18a',
         );
       }
       if (candidate) {

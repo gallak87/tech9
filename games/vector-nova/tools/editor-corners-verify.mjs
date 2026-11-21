@@ -7,7 +7,11 @@ import {
   createDocument,
   validateDocument,
 } from '../src/editor/document.js';
-import { openEditorSection, revealEditorAction } from './editor-controls.mjs';
+import {
+  openEditorSection,
+  revealEditorAction,
+  revealEditorField,
+} from './editor-controls.mjs';
 import { seedVerificationCareer } from './verification-career.mjs';
 import {
   collectPageErrors,
@@ -91,18 +95,18 @@ assert.equal(hardAnalysis.primaryIssue.severity, 'error');
 const tightDocument = {
   ...document,
   id: 'track-experimental-tight-corner',
-  name: 'Experimental 31.5 m corner',
+  name: 'Experimental 27.5 m hairpin',
   width: 40,
   points: document.points.map((point) => ({
     ...point,
-    x: point.x * 0.696,
-    y: point.y * 0.696,
-    z: point.z * 0.696,
+    x: point.x * 0.5004,
+    y: point.y * 0.5004,
+    z: point.z * 0.5004,
   })),
 };
 const tight = analyzePracticeDocument(tightDocument);
 assert(tight.valid);
-assert.equal(tight.minRadius.toFixed(1), '31.5');
+assert.equal(tight.minRadius.toFixed(1), '27.5');
 assert.equal(analyzeDocument(tightDocument, { strict: true }).valid, false);
 assert.equal(analyzePracticeDocument(hardDocument).valid, true);
 const coincidentDocument = structuredClone(tightDocument);
@@ -241,7 +245,8 @@ async function browserCheck() {
       buffer: Buffer.from(JSON.stringify(value)),
     });
     await ready(page);
-    if ((await state(page)).globalGroup) await choose(page, 'global-close');
+    if ((await state(page)).globalGroup)
+      await openEditorSection(page, 'road-home');
   }
   async function warningsFit(page) {
     const panel = await openEditorSection(page, 'warnings');
@@ -571,10 +576,18 @@ async function browserCheck() {
     );
 
     await importDocument(page, tightDocument);
+    const savedHairpin = await save(page, tightDocument.name);
+    await importDocument(page, document);
+    await openEditorSection(page, 'library');
+    await (
+      await revealEditorField(page, 'saved')
+    ).selectOption(savedHairpin.id);
+    await choose(page, 'load');
+    await ready(page);
     assert(await action(page, 'test').isEnabled());
     assert.match(
       await page.locator('[data-editor-validation]').textContent(),
-      /31\.5 m/,
+      /27\.5 m/,
     );
     await choose(page, 'test');
     await page.waitForFunction(
@@ -597,6 +610,7 @@ async function browserCheck() {
     await page.locator('#home').click();
     await ready(page);
     assert(await action(page, 'test').isEnabled());
+    await choose(page, 'show-issue');
     await openEditorSection(page, 'route');
     await choose(page, 'test-point');
     await page.waitForFunction(
@@ -608,7 +622,7 @@ async function browserCheck() {
     await page.locator('#home').click();
     await ready(page);
     console.log(
-      'PASS 31.5 m bend on a 40 m road drives in Practice from course start and from a point',
+      'PASS a saved 27.5 m hairpin on a 40 m road starts Practice from course start and the warning point',
     );
 
     if (responsive) {

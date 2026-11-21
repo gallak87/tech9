@@ -166,8 +166,8 @@ async function stableContext(
   assert.equal(current.context, id);
   assert.equal(
     current.globalGroup,
-    remembered[id].globalGroup,
-    'each context restores its own open or closed drawer',
+    id === 'environment' ? 'world' : '',
+    'each category opens its own top-level palette',
   );
   assert.equal(
     current.authorGroup,
@@ -202,12 +202,16 @@ async function stableContext(
     'true',
   );
   assert.equal(
-    await action(page, 'open-environment').isVisible(),
-    id === 'environment' && !current.globalGroup,
+    await page.locator('[data-editor-section="world"]').isVisible(),
+    id === 'environment',
   );
   assert.equal(await action(page, 'draw-mode').isVisible(), id === 'road');
-  for (const key of ['tab-generate', 'tab-pickups'])
-    assert.equal(await action(page, key).isVisible(), id === 'road');
+  assert.equal(await action(page, 'tab-generate').isVisible(), id === 'road');
+  assert(await action(page, 'tab-pickups').isVisible());
+  assert.equal(
+    await action(page, 'tab-pickups').getAttribute('aria-pressed'),
+    'false',
+  );
 }
 
 async function reviewWorlds(page) {
@@ -259,7 +263,7 @@ async function reviewWorlds(page) {
       'the selected character preserves its exact preset fullness',
     );
     valid(doc);
-    if ((await state(page)).globalGroup) await choose(page, 'global-close');
+    if ((await state(page)).globalGroup) await section(page, 'road-home');
     const prefix = `${fixture.length / 1000}km-${fixture.type}-${fixture.character}`;
     const submission = [];
     for (let frame = 0; frame < 5; frame++) {

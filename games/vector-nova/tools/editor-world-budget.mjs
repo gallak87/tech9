@@ -207,7 +207,7 @@ try {
         fixture.name,
         { timeout: 90000 },
       );
-      await page.locator('[data-editor-action="global-close"]').click();
+      await page.locator('[data-editor-action="context-road"]').click();
       await page.locator('[data-editor-action="fit"]').click();
       if (practice) {
         await page.locator('[data-editor-action="test"]').click();

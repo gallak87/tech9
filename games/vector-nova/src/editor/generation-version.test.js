@@ -52,11 +52,34 @@ test('explicit v3 dispatch preserves historical circuit and downhill geometry af
   }
 });
 
-test('current circuit generation retains the existing layout while recording its explicit version', () => {
-  const old = generateDocument({ ...options, generatorVersion: 3 });
+test('explicit v4 reproduces its released circuit and downhill geometry', () => {
+  const circuit = generateDocument({ ...options, generatorVersion: 4 });
+  const v3 = generateDocument({ ...options, generatorVersion: 3 });
+  assert.equal(circuit.generator.version, 4);
+  assert.deepEqual(circuit.points, v3.points);
+  assert.deepEqual(circuit.jumps, v3.jumps);
+  const downhill = generateDocument({
+    ...options,
+    courseType: 'downhill',
+    generatorVersion: 4,
+  });
+  const geometry = JSON.stringify(
+    { points: downhill.points, jumps: downhill.jumps },
+    (_, value) =>
+      typeof value === 'number' ? Math.round(value * 1e6) / 1e6 : value,
+  );
+  assert.equal(
+    createHash('sha256').update(geometry).digest('hex'),
+    '6a8780110b49da3a73070edc3e4978a4ca74520b10201f814b5d68bba3bc0e44',
+  );
+});
+
+test('new courses record the v5 geometry pipeline and agree with async generation', async () => {
   const current = generateDocument(options);
   assert.equal(current.generator.version, GENERATOR_VERSION);
-  assert.equal(current.generator.version, 4);
-  assert.deepEqual(current.points, old.points);
-  assert.deepEqual(current.jumps, old.jumps);
+  assert.equal(current.generator.version, 5);
+  assert.deepEqual(
+    current,
+    await generateDocumentAsync(options, { yieldControl: async () => {} }),
+  );
 });

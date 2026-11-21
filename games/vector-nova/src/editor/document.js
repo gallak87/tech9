@@ -1,7 +1,13 @@
 import * as T from 'three';
-import { routeCurve, createRouteSampler } from './route.js';
+import {
+  routeCurve,
+  createRouteSampler,
+  isProtectedJumpRotation,
+} from './route.js';
 import { createSeededCourseGeometry } from './seeded-course.js';
 import { createSeededLayoutGeometry } from './seeded-layout.js';
+import { analyzeEditorJumps } from './jumps.js';
+import { createEditorTrack } from './track.js';
 import { worldPreset, REGIONAL_LAYOUT_VERSION } from './world-presets.js';
 import { editorBiome, isEditorBiome, editorWorldPreset } from './biomes.js';
 import {
@@ -30,6 +36,7 @@ export const JUMP_FREQUENCIES = Object.freeze([
 export const JUMP_SIZES = Object.freeze(['small', 'mixed', 'large']);
 export const DOWNHILL_RUNOUT = 600;
 export const EDITOR_ROAD_GUIDANCE = Object.freeze({ radius: 55, grade: 0.45 });
+const MIN_DISTINCT_POINT_SPACING = 0.01;
 export function editorRoadLimits(width, { strict = false } = {}) {
   return strict
     ? { radius: EDITOR_ROAD_GUIDANCE.radius, grade: EDITOR_ROAD_GUIDANCE.grade }
@@ -684,10 +691,22 @@ function generationCandidate(draft, attempt) {
     });
     const document = validateDocument({ ...draft, ...geometry });
     const analysis = analyzeDocument(document, { strict: true });
-    return {
-      document: analysis.valid ? document : null,
-      reason: analysis.errors.join(' '),
-    };
+    if (!analysis.valid)
+      return { document: null, reason: analysis.errors.join(' ') };
+    if (document.generator.version >= 5 && document.jumps.length) {
+      // The strict geometry pass has already built these cached route frames.
+      // Forecast the actual launch/receiver after the connector length fit.
+      const { jumps } = analyzeEditorJumps(createEditorTrack(document));
+      const missed = jumps.find(
+        ({ cruise, boost }) => !cruise.landed || !boost.landed,
+      );
+      if (missed)
+        return {
+          document: null,
+          reason: `The receiver for jump ${jumps.indexOf(missed) + 1} does not catch both cruise and boost approaches.`,
+        };
+    }
+    return { document, reason: '' };
   } catch (error) {
     return { document: null, reason: error.message };
   }
@@ -842,7 +861,7 @@ function analyzeCourse(value, { strict, practice }) {
     const a = doc.points[i],
       b = doc.points[(i + 1) % doc.points.length];
     const separation = Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
-    const coincident = separation < 0.01;
+    const coincident = separation < MIN_DISTINCT_POINT_SPACING;
     if (separation >= 30 || (closePointsReported && !coincident)) continue;
     const pointIndex = (i + 1) % doc.points.length;
     const message =
@@ -875,16 +894,14 @@ function analyzeCourse(value, { strict, practice }) {
     };
   const curve = documentCurve(doc),
     length = curve.getLength();
+  const segments =
+    doc.courseType === 'downhill' ? doc.points.length - 1 : doc.points.length;
+  const pointAtParameter = (parameter) =>
+    Math.round(parameter * segments) % doc.points.length;
   const issueAt = (rank, kind, label, message, distance, details = {}) => {
     const station = T.MathUtils.clamp(distance, 0, length),
       parameter = curve.getUtoTmapping(station / length);
-    const segments =
-      doc.courseType === 'downhill' ? doc.points.length - 1 : doc.points.length;
-    let pointIndex = Math.round(parameter * segments);
-    pointIndex =
-      doc.courseType === 'downhill'
-        ? Math.min(doc.points.length - 1, pointIndex)
-        : pointIndex % doc.points.length;
+    const pointIndex = pointAtParameter(parameter);
     const start = Math.max(0, Math.min(length - 120, station - 60)),
       end = Math.min(length, start + 120);
     const segmentIndex =
@@ -1233,26 +1250,30 @@ function analyzeCourse(value, { strict, practice }) {
             Math.abs(a.right.y) * (doc.width / 2 + 6) + Math.abs(a.up.y) * 24;
           const bHeight =
             Math.abs(b.right.y) * (doc.width / 2 + 6) + Math.abs(b.up.y) * 24;
-          if (
-            Math.abs(a.position.y - b.position.y) <
-              Math.max(30, aHeight + bHeight) &&
-            Math.hypot(
-              a.position.x - b.position.x,
-              a.position.z - b.position.z,
-            ) < cellSize
-          ) {
+          const vertical = Math.abs(a.position.y - b.position.y);
+          const verticalLimit = Math.max(30, aHeight + bHeight);
+          const horizontal = Math.hypot(
+            a.position.x - b.position.x,
+            a.position.z - b.position.z,
+          );
+          if (vertical < verticalLimit && horizontal < cellSize) {
             crossing = true;
-            issueAt(
-              4,
-              'crossing',
-              'Separate these road sections',
-              (i) =>
-                `Move point ${i + 1} away from the nearby road, or leave more height clearance.`,
-              (i * length) / count,
-              reportHazard(
+            const otherIndex = pointAtParameter(
+              curve.getUtoTmapping(j / count),
+            );
+            const label = 'Nearby road decks';
+            const message = (index) =>
+              `Near points ${index + 1} and ${otherIndex + 1}, the road centerlines are ${horizontal.toFixed(1)} m apart in plan and ${vertical.toFixed(1)} m apart in height. The clearance check looks for ${cellSize} m sideways or ${verticalLimit.toFixed(1)} m vertically.`;
+            issueAt(4, 'crossing', label, message, (i * length) / count, {
+              ...reportHazard(
                 'Two road sections are too close for their rotated road and driving corridor. Leave more space or height clearance.',
               ),
-            );
+              otherPointIndex: otherIndex,
+              otherPosition: b.position.toArray(),
+              horizontal,
+              vertical,
+              verticalLimit,
+            });
             break;
           }
         }
@@ -1398,11 +1419,6 @@ export function addCorkscrew(
     fail(
       'Choose a corkscrew start before its end and one or two complete turns',
     );
-  const span = (end - start) * routeCurve(doc).getLength();
-  if (span < Math.abs(turns) * 500)
-    fail(
-      `A ${Math.abs(turns) * 360}° twist needs at least ${Math.abs(turns) * 500} m of road. Choose a longer section.`,
-    );
   doc.rolls.push({ id, start, end, turns });
   return validateDocument(doc);
 }
@@ -1440,23 +1456,7 @@ export function applySectionShape(
   const source = createRouteSampler(doc),
     start = pointRouteFraction(doc, startIndex),
     end = pointRouteFraction(doc, endIndex);
-  const span =
-    type === 'straight'
-      ? Math.hypot(
-          doc.points[endIndex].x - doc.points[startIndex].x,
-          doc.points[endIndex].y - doc.points[startIndex].y,
-          doc.points[endIndex].z - doc.points[startIndex].z,
-        )
-      : (end - start) * source.length;
   const divisions = Math.max(4, endIndex - startIndex);
-  const minimum = Math.max(
-    divisions * 32,
-    Math.ceil((Math.abs(angle) * 1.5) / 0.022),
-  );
-  if (span < minimum)
-    fail(
-      `This rotation needs at least ${minimum} m of road. Choose a longer section or smaller angle.`,
-    );
   const startPoint = doc.points[startIndex],
     endPoint = doc.points[endIndex],
     target = startPoint.roll + angle,
@@ -1491,26 +1491,28 @@ export function applySectionShape(
       roll: startPoint.roll + angle * u,
     });
   }
+  if (
+    samples.some((point, index) => {
+      if (index === 0) return false;
+      const previous = samples[index - 1];
+      return (
+        Math.hypot(
+          point.x - previous.x,
+          point.y - previous.y,
+          point.z - previous.z,
+        ) < MIN_DISTINCT_POINT_SPACING
+      );
+    })
+  )
+    fail('This section needs distinct road points. Choose a longer section.');
   const later = doc.points
     .slice(endIndex + 1)
     .map((p) => ({ ...p, roll: p.roll + delta }));
   doc.points = [...doc.points.slice(0, startIndex), ...samples, ...later];
   doc.autoCloseRoll = doc.courseType === 'circuit';
   const result = validateDocument(doc);
-  const analysis = analyzeDocument(result);
-  const closingProblem = analysis.errors.find((error) =>
-    /circuit return|clear road after the final jump/.test(error),
-  );
-  if (closingProblem) fail(closingProblem);
-  const rotationProblem = analysis.errors.find((error) =>
-    /rotation changes too quickly|connection twists|Neighboring road points/.test(
-      error,
-    ),
-  );
-  if (rotationProblem)
-    fail(
-      'This connection needs a longer shaped section. Choose points farther apart or use a smaller angle.',
-    );
+  const { rollClosure } = createRouteSampler(result);
+  if (rollClosure && !rollClosure.valid) fail(rollClosure.reason);
   return result;
 }
 
@@ -1563,14 +1565,13 @@ export function addJump(
     end = pointRouteFraction(doc, endIndex) * source.length;
   const finish =
     doc.courseType === 'downhill' ? source.length - 600 : source.length;
-  if (start < 160) fail('Leave at least 160 m of approach before a launch');
-  if (end + receiving + (rampAssist ? 450 : 40) >= finish)
+  if (start <= 0) fail('Leave supported road at the course start.');
+  if (end + receiving + (rampAssist ? 450 : 0) >= finish)
     fail(
       'Choose an earlier landing or shorter receiving deck; leave room before the finish/runout',
     );
-  if (end - start < 30)
-    fail('Choose launch and landing points at least 30 m apart');
   if (rampAssist) {
+    if (start < 160) fail('The assisted ramp needs 160 m of approach.');
     const launchPosition = new T.Vector3(launch.x, launch.y, launch.z),
       landingPosition = new T.Vector3(landing.x, landing.y, landing.z);
     const direction = landingPosition.clone().sub(launchPosition).setY(0);
@@ -1590,15 +1591,15 @@ export function addJump(
       landingY = Math.max(12, launchY - 75);
     const vectorAt = (origin, distance, y) =>
       origin.clone().addScaledVector(direction, distance).setY(y);
-    const make = (at, position, original = null) => ({
+    const make = (at, position, original = null, bank = 0, roll = 0) => ({
       at,
       point: {
         id: original?.id ?? `point-${globalThis.crypto.randomUUID()}`,
         x: position.x,
         y: position.y,
         z: position.z,
-        bank: 0,
-        roll: 0,
+        bank,
+        roll,
       },
     });
     const approach = start - rampLength,
@@ -1614,16 +1615,38 @@ export function addJump(
       fail(
         'The assisted ramp would change an existing jump approach or receiving deck. Choose a separate section or disable ramp assistance.',
       );
-    const kept = doc.points
-      .map((point, index) => ({
-        at: pointRouteFraction(doc, index) * source.length,
-        point,
-      }))
-      .filter((entry) => entry.at < leadInStart - 40 || entry.at > rejoin + 40);
+    const controls = doc.points.map((point, index) => ({
+      at:
+        fractionForPoint(doc.points, doc.courseType, index, source.curve) *
+        source.length,
+      point,
+    }));
+    const corridorStart = leadInStart - 40,
+      corridorEnd = rejoin + 40;
+    if (
+      doc.rolls.some(
+        (roll) =>
+          roll.start * source.length < corridorEnd &&
+          roll.end * source.length > corridorStart,
+      ) ||
+      controls.some(
+        (entry, index) =>
+          isProtectedJumpRotation(entry.point) &&
+          (controls[index - 1]?.at ?? 0) <= corridorEnd &&
+          (controls[index + 1]?.at ?? source.length) >= corridorStart,
+      )
+    )
+      fail(
+        'The assisted ramp would replace a bank or twist. Choose a separate section or disable ramp assistance.',
+      );
+    const kept = controls.filter(
+      ({ at }) => at < corridorStart || at > corridorEnd,
+    );
     const entries = [
       ...kept,
       ...(() => {
         const first = source.sample(leadInStart),
+          angles = source.anglesAt(leadInStart),
           target = vectorAt(
             launchPosition,
             -rampLength,
@@ -1658,6 +1681,8 @@ export function addJump(
             T.MathUtils.lerp(leadInStart, approach, u),
             curve.getPointAt(u),
             leadInStart === 0 && u === 0 ? doc.points[0] : null,
+            angles.bankTrim * (1 - u),
+            angles.authoredRoll * (1 - u),
           ),
         );
       })(),
@@ -1678,6 +1703,7 @@ export function addJump(
       make(end + receiving, vectorAt(landingPosition, receiving, landingY)),
       ...(() => {
         const receiverEnd = vectorAt(landingPosition, receiving, landingY),
+          angles = source.anglesAt(rejoin),
           target = source.sample(rejoin);
         const curve = new T.CubicBezierCurve3(
           receiverEnd,
@@ -1686,7 +1712,13 @@ export function addJump(
           target.position,
         );
         return [0.25, 0.5, 0.75, 1].map((u) =>
-          make(end + receiving + 450 * u, curve.getPoint(u)),
+          make(
+            end + receiving + 450 * u,
+            curve.getPoint(u),
+            null,
+            angles.bankTrim * u,
+            angles.authoredRoll * u,
+          ),
         );
       })(),
     ].sort((a, b) => a.at - b.at);
@@ -1706,11 +1738,7 @@ export function addJump(
     launchPointId: launch.id,
     landingPointId: landing.id,
   });
-  const result = validateDocument(doc),
-    analysis = analyzeDocument(result);
-  const conflict = analysis.errors.find((error) =>
-    /Jumps need|receiving deck before|first launch|gap must/.test(error),
-  );
-  if (conflict) fail(conflict);
+  const result = validateDocument(doc);
+  assertEditorPracticeReady(result);
   return result;
 }

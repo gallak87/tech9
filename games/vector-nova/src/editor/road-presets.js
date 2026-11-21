@@ -6,6 +6,21 @@ const preset = (value) =>
 
 export const ROAD_PRESETS = Object.freeze([
   preset({
+    id: 'stacked',
+    label: 'Stacked',
+    description:
+      'Banked climbs, plunging returns and jumps over a folded circuit.',
+    circuitOnly: true,
+    options: {
+      length: 7500,
+      bendiness: 0.86,
+      elevation: 0.9,
+      crossovers: 1,
+      jumpFrequency: 'few',
+      jumpSize: 'mixed',
+    },
+  }),
+  preset({
     id: 'flowing',
     label: 'Flowing',
     description: 'Broad turns, gentle rises and a few approachable jumps.',
@@ -76,7 +91,7 @@ export function roadPresetOptions(id, { courseType = 'circuit', length } = {}) {
     throw new Error('Choose Circuit or Downhill course type.');
   if (selected.circuitOnly && courseType !== 'circuit')
     throw new Error(
-      'Woven is a Circuit starter. Choose another Downhill starter.',
+      `${selected.label} is a Circuit starter. Choose another Downhill starter.`,
     );
   if (length !== undefined && !Number.isFinite(length))
     throw new Error('Road starter length must be a finite number.');

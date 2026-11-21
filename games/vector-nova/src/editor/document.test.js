@@ -6,6 +6,7 @@ import {
   generateDocument,
   validateDocument,
   analyzeDocument,
+  analyzePracticeDocument,
   documentIdentity,
   applySectionShape,
   addCorkscrew,
@@ -223,15 +224,14 @@ test('rotation chunks propagate their final angle into connectors and chain into
     );
     assert.equal(p.roll, a.roll);
   }
-  assert.throws(
-    () =>
-      applySectionShape(plainDocument(), {
-        startIndex: 0,
-        endIndex: 1,
-        angle: Math.PI * 1.5,
-      }),
-    /longer section/,
-  );
+  const fastTurn = applySectionShape(plainDocument(), {
+    startIndex: 0,
+    endIndex: 1,
+    angle: Math.PI * 1.5,
+  });
+  const turnReport = analyzePracticeDocument(fastTurn);
+  assert.equal(turnReport.valid, true);
+  assert(turnReport.advisories.some(({ kind }) => kind === 'rotation'));
   assert.equal(
     analyzeDocument(addCorkscrew(plainDocument(), { start: 0.2, end: 0.7 }))
       .valid,
@@ -247,16 +247,19 @@ test('water clearance follows actual rotated deck edges instead of a clamped ban
   assert.match(analyzeDocument(doc).errors.join(' '), /water clearance/);
 });
 
-test('short rotation chunks reject crowded subdivisions and supported short connections remain playable', () => {
-  assert.throws(
-    () =>
-      applySectionShape(plainDocument({ length: 1800 }), {
-        startIndex: 0,
-        endIndex: 1,
-        angle: Math.PI / 2,
-      }),
-    /128 m/,
-  );
+test('short rotation chunks allow tightly spaced subdivisions in Practice', () => {
+  const source = plainDocument({ length: 1800 });
+  const [a, b] = source.points;
+  for (const axis of ['x', 'y', 'z'])
+    b[axis] = a[axis] + (b[axis] - a[axis]) * 0.4;
+  const short = applySectionShape(source, {
+    startIndex: 0,
+    endIndex: 1,
+    angle: Math.PI / 2,
+  });
+  const report = analyzePracticeDocument(short);
+  assert.equal(report.valid, true);
+  assert(report.advisories.some(({ kind }) => kind === 'spacing'));
   for (const length of [2400, 3000]) {
     const doc = applySectionShape(plainDocument({ length }), {
       startIndex: 0,
@@ -272,6 +275,40 @@ test('short rotation chunks reject crowded subdivisions and supported short conn
       assert.ok(Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z) >= 30);
     }
   }
+});
+
+test('manual jump accepts short approach and gap with physical support, and rejects overlapping receivers', () => {
+  const source = plainDocument({ length: 3600 });
+  const [start, next] = source.points;
+  const span = Math.hypot(next.x - start.x, next.y - start.y, next.z - start.z);
+  source.points.splice(
+    1,
+    0,
+    ...[60, 80].map((distance) => ({
+      id: `near-start-${distance}`,
+      x: start.x + ((next.x - start.x) * distance) / span,
+      y: start.y + ((next.y - start.y) * distance) / span,
+      z: start.z + ((next.z - start.z) * distance) / span,
+      bank: 0,
+      roll: 0,
+    })),
+  );
+  const draft = addJump(source, {
+    startIndex: 1,
+    endIndex: 2,
+    rampAssist: false,
+  });
+  const report = analyzePracticeDocument(draft);
+  const [gap] = draft.jumps;
+  assert.equal(report.valid, true);
+  assert.deepEqual(draft.points, source.points);
+  assert(gap.start * report.length < 160);
+  assert((gap.end - gap.start) * report.length < 30);
+  assert(report.advisories.some(({ kind }) => kind === 'jump'));
+  assert.throws(
+    () => addJump(draft, { startIndex: 2, endIndex: 3, rampAssist: false }),
+    /separate launch|receiv/i,
+  );
 });
 
 test('Circuit and Downhill starters are deterministic with safe supported runouts', () => {
@@ -384,7 +421,7 @@ test('current generator preferences have strict canonical enums and blank drafts
     blank: true,
   });
   assert.equal(blank.generator.version, GENERATOR_VERSION);
-  assert.equal(blank.generator.version, 4);
+  assert.equal(blank.generator.version, 5);
   assert.equal(blank.generator.jumpFrequency, 'normal');
   assert.equal(blank.generator.jumpSize, 'mixed');
   assert.equal(blank.generator.crossovers, 0);
@@ -405,7 +442,7 @@ test('current generator preferences have strict canonical enums and blank drafts
     ['crossovers', '0.5'],
     ['crossovers', NaN],
     ['crossovers', Infinity],
-    ['version', 5],
+    ['version', 6],
   ]) {
     const invalid = structuredClone(blank);
     invalid.generator[field] = value;
@@ -631,6 +668,7 @@ test('saved layout3 records retain exact pre-rollout identities until explicit e
     const saved = generateDocument({
       biome,
       seed: 7,
+      generatorVersion: 4,
       environment: { version: 1, seed: 7, layoutVersion: 3 },
     });
     const loaded = validateDocument(JSON.parse(JSON.stringify(saved)));

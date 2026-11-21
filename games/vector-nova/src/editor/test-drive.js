@@ -18,7 +18,8 @@ function inspectApproach(track, start, takeoff) {
   const count = Math.ceil((takeoff - start) / 10);
   let straight = targetLength > 0.001;
   for (let index = 0; index <= count; index++) {
-    const station = start + ((takeoff - start) * index) / count;
+    const station =
+      index === count ? takeoff : start + ((takeoff - start) * index) / count;
     const frame = track.sample(station);
     if (
       track.isGap(station) ||

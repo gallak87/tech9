@@ -238,7 +238,16 @@ test('grade, rotated-deck clearance, rotation and crossing errors each identify 
   });
   const crossing = analyzeDocument(crossed);
   assert.equal(crossing.primaryIssue.kind, 'crossing');
-  assert.equal(crossing.primaryIssue.label, 'Separate these road sections');
+  assert.equal(crossing.primaryIssue.label, 'Nearby road decks');
+  assert.notEqual(
+    crossing.primaryIssue.otherPointIndex,
+    crossing.primaryIssue.pointIndex,
+  );
+  assert.equal(crossing.primaryIssue.otherPosition.length, 3);
+  assert.match(
+    crossing.primaryIssue.message,
+    /centerlines.*sideways.*vertically/,
+  );
   assertSpan(crossing.primaryIssue, crossing.length);
 
   for (const [course, kind] of [

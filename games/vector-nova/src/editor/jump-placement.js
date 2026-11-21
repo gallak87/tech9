@@ -1,15 +1,26 @@
 import {
   addJump,
   analyzeDocument,
+  analyzePracticeDocument,
   pointRouteFractions,
   DOCUMENT_LIMITS,
 } from './document.js';
-import { createRouteSampler } from './route.js';
+import { createRouteSampler, isProtectedJumpRotation } from './route.js';
 import { prepareJumpEdit, AUTHORING_JUMP_SIZES } from './jump-authoring.js';
 
 async function sampledSuggestion(
   doc,
-  { stations, length, receiving, first, size, yieldControl, onProgress },
+  {
+    stations,
+    length,
+    receiving,
+    first,
+    size,
+    yieldControl,
+    onProgress,
+    prefers,
+    fallback,
+  },
 ) {
   const route = createRouteSampler(doc),
     finish = length - (doc.courseType === 'downhill' ? 600 : 0),
@@ -65,24 +76,25 @@ async function sampledSuggestion(
           Math.abs(stations[startIndex] - selected[i].at)
         )
           startIndex = index;
-      return {
+      const suggestion = {
         ...prepared,
         startIndex,
         endIndex: Math.min(doc.points.length - 1, startIndex + 1),
         gapLength: prepared.resolved.gapLength,
       };
+      if (prefers(suggestion.document)) return suggestion;
+      fallback ??= suggestion;
     } catch (error) {
       reason = error.message;
     }
   }
+  if (fallback) return fallback;
   throw new Error(
     `No clear automatic section fits here. ${reason || 'Select a straighter upright section with room for its approach and receiver.'}`,
   );
 }
 
 const overlap = (a, b, c, d) => a < d && b > c;
-const upright = (angle) =>
-  Math.abs(Math.atan2(Math.sin(angle), Math.cos(angle))) < 0.05;
 
 // Compare the whole authored ramp corridor, not just the launch/landing chord.
 // Sampling is shared across candidates; only the final eight need full edits.
@@ -144,7 +156,7 @@ function chooseCandidates(
     quality += Math.abs(receiverSpan - (rx * x + rz * z)) / receiverSpan;
     quality += Math.abs(rx * z - rz * x) / receiverSpan;
     // Penalize nearby unrelated decks at the proposed road's actual height.
-    // The authoritative route validator still decides whether an edit is safe.
+    // Keep this preference local to the proposed launch and receiver.
     const headroom = Math.min(120, chord / 3) * Math.tan(Math.PI / 12) + 8;
     const launchY = rampAssist
       ? Math.min(DOCUMENT_LIMITS.height - headroom, Math.max(80, launch.y + 35))
@@ -208,7 +220,7 @@ export async function findNextSuitableJump(
     receiving = 300,
     rampAssist = true,
     size = 'small',
-    analysis = analyzeDocument(doc),
+    analysis = analyzePracticeDocument(doc),
     fractions = pointRouteFractions(doc),
     yieldControl = () => Promise.resolve(),
     onProgress = () => {},
@@ -237,9 +249,8 @@ export async function findNextSuitableJump(
     const a = doc.points[i],
       b = doc.points[i + 1];
     if (
-      !upright(a.roll ?? 0) ||
-      !upright(b.roll ?? 0) ||
-      Math.abs((b.roll ?? 0) - (a.roll ?? 0)) > 0.05
+      rampAssist &&
+      (isProtectedJumpRotation(a) || isProtectedJumpRotation(b))
     )
       protectedRuns.push([stations[i] - 50, stations[i + 1] + 50]);
   }
@@ -297,40 +308,37 @@ export async function findNextSuitableJump(
         AUTHORING_JUMP_SIZES[size],
       )
     : [];
-  let attempts = 0;
+  // A clean course keeps the preferred clean placements when available.
+  // Warnings elsewhere on an experimental course do not constrain the search.
+  const preferClean = analyzeDocument(doc).valid;
+  const prefers = (candidate) =>
+    !preferClean || analyzeDocument(candidate).valid;
+  let attempts = 0,
+    fallback = null;
   for (const candidate of selected) {
     attempts++;
     onProgress({ attempt: attempts, total: selected.length });
     await yieldControl();
     try {
-      if (rampAssist) {
-        const prepared = await prepareJumpEdit(doc, {
-          pointIndex: candidate.startIndex,
-          size,
-          receiving,
-        });
-        return {
-          ...prepared,
-          startIndex: candidate.startIndex,
-          endIndex: candidate.endIndex,
-          gapLength: prepared.resolved.gapLength,
-        };
-      }
-      const preparedDocument = addJump(doc, {
-        ...candidate,
-        receiving,
-        rampAssist,
-      });
-      if (!analyzeDocument(preparedDocument).valid) continue;
-      return {
+      const prepared = rampAssist
+        ? await prepareJumpEdit(doc, {
+            pointIndex: candidate.startIndex,
+            size,
+            receiving,
+          })
+        : { document: addJump(doc, { ...candidate, receiving, rampAssist }) };
+      const suggestion = {
+        ...prepared,
         startIndex: candidate.startIndex,
         endIndex: candidate.endIndex,
         gapLength:
+          prepared.resolved?.gapLength ??
           stations[candidate.endIndex] - stations[candidate.startIndex],
-        document: preparedDocument,
       };
+      if (prefers(suggestion.document)) return suggestion;
+      fallback ??= suggestion;
     } catch {
-      // Curvature and ramp clearance need the authoritative authoring checks.
+      // A candidate still needs supported, unclaimed approach and landing road.
     }
   }
   if (rampAssist)
@@ -342,7 +350,10 @@ export async function findNextSuitableJump(
       size,
       yieldControl,
       onProgress,
+      prefers,
+      fallback,
     });
+  if (fallback) return fallback;
   throw new Error(
     'No clear automatic section fits here. A longer course or removing a nearby jump can free space; you can also choose launch and landing points manually.',
   );

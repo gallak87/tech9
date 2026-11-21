@@ -10,7 +10,7 @@ import {
 test('starter cards expose frozen road-only metadata and independent preference copies', () => {
   assert.deepEqual(
     ROAD_PRESETS.map((preset) => preset.id),
-    ['flowing', 'technical', 'woven', 'big-air'],
+    ['stacked', 'flowing', 'technical', 'woven', 'big-air'],
   );
   assert(Object.isFrozen(ROAD_PRESETS));
   for (const preset of ROAD_PRESETS) {

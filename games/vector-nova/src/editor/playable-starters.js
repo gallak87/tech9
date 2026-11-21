@@ -2,6 +2,27 @@
 // checked against. The resolved road and scenery still save as a normal draft.
 export const PLAYABLE_STARTERS = [
   {
+    id: 'harbor',
+    name: 'Harbor braid',
+    summary: '7.5 km circuit · Banked flyovers and a jump',
+    options: {
+      generatorVersion: 5,
+      courseType: 'circuit',
+      seed: 42,
+      length: 7500,
+      bendiness: 0.86,
+      elevation: 0.9,
+      crossovers: 1,
+      width: 40,
+      jumpFrequency: 'few',
+      jumpSize: 'mixed',
+      biome: 'nightweir',
+      sceneryPreset: 'waterfront',
+      environmentSeed: 6104,
+    },
+    pickups: { preset: 'boost-heavy', density: 0.65 },
+  },
+  {
     id: 'waterfront',
     name: 'Waterfront loop',
     summary: '3 km circuit · No jumps',

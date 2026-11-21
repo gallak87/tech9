@@ -217,7 +217,10 @@ export function createEditorHandles(scene) {
             ? 8
             : hover?.kind === 'point' && hover.index === i
               ? 8
-              : 6)
+              : Math.max(
+                  1.75,
+                  Math.min(6, (doc.width ?? 40) / (5 * screen.units)),
+                ))
         : 0;
       matrix.makeScale(scale, scale, scale).setPosition(p);
       dots.setMatrixAt(i, matrix);
@@ -341,14 +344,23 @@ export function createEditorHandles(scene) {
       const screen = raycaster.ray.at(100, new T.Vector3()).project(viewCamera);
       const x = ((screen.x + 1) * viewWidth) / 2,
         y = ((1 - screen.y) * viewHeight) / 2;
-      const score = (hit) =>
-        (projected[hit.instanceId].x - x) ** 2 +
-        (projected[hit.instanceId].y - y) ** 2;
-      const dot = raycaster
-        .intersectObject(dots, false)
-        .filter((hit) => projected[hit.instanceId]?.visible)
-        .sort((a, b) => score(a) - score(b) || a.distance - b.distance)[0];
-      if (dot) return { kind: 'point', index: dot.instanceId };
+      // Keep the full pointer target when zoomed-out dots shrink to reveal the deck.
+      let nearest = null;
+      let best = Infinity;
+      for (const point of projected) {
+        if (!point.visible) continue;
+        const radius = point.index === selection.selectedPoint ? 8 : 6;
+        const distance = (point.x - x) ** 2 + (point.y - y) ** 2;
+        if (distance > radius ** 2) continue;
+        if (
+          distance < best ||
+          (distance === best && point.units < nearest.units)
+        ) {
+          best = distance;
+          nearest = point;
+        }
+      }
+      if (nearest) return { kind: 'point', index: nearest.index };
       return null;
     },
     point(index) {

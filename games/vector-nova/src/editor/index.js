@@ -71,8 +71,8 @@ const uid = (prefix) =>
 
 const AUTHOR_GROUPS = [
   ['route', 'Point'],
-  ['shape', 'Road section'],
-  ['jumps', 'Jumps'],
+  ['shape', 'Section'],
+  ['jumps', 'Jump'],
 ];
 const GLOBAL_GROUPS = [
   ['generate', 'Create road'],
@@ -115,10 +115,7 @@ export function createTrackEditor(
       generatorVersion,
       courseType: ignoredType,
       ...preferences
-    } = roadPresetOptions('flowing', {
-      courseType: doc.courseType,
-      length: doc.generator.length,
-    });
+    } = roadPresetOptions('stacked');
     Object.assign(doc.generator, preferences, { version: generatorVersion });
     void ignoredType;
   }
@@ -165,7 +162,7 @@ export function createTrackEditor(
   let authorGroup = '';
   let globalGroup = '';
   let context = 'road';
-  const workspacePanels = { road: '', environment: 'world' };
+  let compactDock = 'palette';
   let roadAuthorGroup = '';
   const openDetails = new Map();
   function details(key, label, content) {
@@ -276,26 +273,22 @@ export function createTrackEditor(
         ${button('exit', 'Back', 'aria-label="Back to Race setup"')}
       </div>
     </header>
-    <div class="workshop-layout" data-editor-layout>
+    <div class="workshop-layout" data-editor-layout data-compact-dock="palette">
       <aside class="workshop-palette" aria-label="Track palette">
-        <nav class="workshop-global-nav" aria-label="Palette tools">
-          <div class="workshop-context-switch" role="group" aria-label="Authoring context">${button('context-road', 'Road', 'aria-pressed="true"')}${button('context-environment', 'Scenery', 'aria-pressed="false"')}</div>
-          ${button('tab-generate', 'Create road', 'class="workshop-task-action" aria-expanded="false" aria-controls="workshop-palette-generate"')}
-          ${button('tab-pickups', 'Pickups', 'class="workshop-task-action" aria-expanded="false" aria-controls="workshop-palette-pickups"')}
+        <div class="workshop-panel-heading"><h2>Palette</h2></div>
+        <nav class="workshop-global-nav" aria-label="Palette categories">
+          ${button('context-road', 'Road', 'aria-pressed="true"')}
+          ${button('context-environment', 'Scenery', 'aria-pressed="false"')}
+          ${button('tab-pickups', 'Pickups', 'aria-pressed="false" aria-controls="workshop-palette-pickups"')}
         </nav>
-        <div class="workshop-global-panel" data-editor-global-panel hidden>
-          <div class="workshop-panel-heading"><h2 data-editor-global-title>Scenery</h2>${button('global-close', '×', 'aria-label="Close palette options"')}</div>
-          <div class="workshop-options-scroll" data-editor-global-tools></div>
+        <div class="workshop-options-scroll" data-editor-global-tools>
+          <section class="workshop-road-home" data-editor-section="road-home" aria-label="Road palette"></section>
+          ${GLOBAL_GROUPS.map(([id, label]) => `<section class="workshop-global-section" id="workshop-palette-${id}" data-editor-section="${id}" aria-label="${label}" hidden><div data-editor-section-body="${id}"></div></section>`).join('')}
         </div>
       </aside>
       <main class="workshop-main">
         <div class="workshop-recovery" data-editor-recovery hidden role="status"></div>
         <div class="workshop-viewport-toolbar" role="group" aria-label="Viewport tools">${renderToolModes()}${renderCameraControls()}</div>
-        <div class="workshop-viewbar">
-          <span data-editor-view-hint></span><div class="workshop-selection-summary" data-editor-selection></div>
-          ${button('toggle-warnings', 'Warnings <span data-editor-warning-count>0</span>', 'class="workshop-warnings-toggle" aria-expanded="false" aria-controls="workshop-warnings"')}
-          <section class="workshop-validation" id="workshop-warnings" aria-label="Track warnings" data-editor-section="warnings" data-editor-validation hidden></section>
-        </div>
         <div class="workshop-canvas">
           <div class="workshop-map-wrap workshop-map-popover" data-editor-map-wrap hidden role="dialog" aria-label="2D route map">
             <div class="workshop-map-heading"><strong>Route map</strong>${button('map-close', '×', 'aria-label="Close route map"')}</div>
@@ -305,19 +298,37 @@ export function createTrackEditor(
           ${elevationProfileMarkup}
           <div class="workshop-world" data-editor-world><span class="workshop-fly-badge" data-editor-fly-badge hidden>FREE CAMERA · ESC / B TO EXIT</span></div>
           <div class="workshop-preview-status" data-editor-preview-status></div>
+      <section class="workshop-validation" id="workshop-warnings" aria-label="Track warnings" data-editor-section="warnings" data-editor-validation hidden></section>
+          <div class="workshop-viewport-hint" data-editor-view-hint></div>
           <span class="workshop-status" role="status" aria-live="polite" data-editor-status></span>
           <section class="workshop-starter-overlay" aria-label="Start a track" data-editor-starters hidden><h2>Start a track</h2>${renderStarterChoices('canvas')}</section>
           <div class="workshop-empty-hint" data-editor-empty><span class="workshop-eyebrow">YOUR ROAD, FROM SCRATCH</span><strong data-editor-empty-title>Click the ground to start.</strong><span data-editor-empty-copy>Draw a few points. We build the road and supports.</span></div>
         </div>
         <div class="workshop-camera-help" data-editor-camera-help role="status"></div>
       </main>
+      <nav class="workshop-compact-docks" aria-label="Workspace docks">
+        ${button('dock-palette', 'Palette', 'aria-pressed="true"')}
+        ${button('dock-inspector', 'Inspector', 'aria-pressed="false"')}
+      </nav>
       <aside class="workshop-inspector" data-editor-authoring aria-label="Inspector">
         <div class="workshop-panel-heading"><h2>Inspector</h2></div>
-        <div class="workshop-facts" data-editor-facts></div>
-        <div class="workshop-environment-strip" data-editor-environment-strip hidden>${button('open-environment', 'Choose scenery')}</div>
-        <div class="workshop-strip-groups" data-editor-tools>${AUTHOR_GROUPS.map(([id, label]) => `<div class="workshop-strip-group">${button(`tab-${id}`, `<span>${label}</span><span class="workshop-group-arrow" aria-hidden="true">⌄</span>`, `class="workshop-group-button" aria-expanded="false" aria-controls="workshop-group-${id}"`)}<section class="workshop-strip-options" id="workshop-group-${id}" data-editor-section="${id}" aria-label="${label}" hidden><div data-editor-section-body="${id}"></div></section></div>`).join('')}</div>
+        <div class="workshop-strip-groups" data-editor-tools>
+          <div class="workshop-inspector-selection" data-editor-selection></div>
+          <nav class="workshop-inspector-tabs" data-editor-inspector-tabs aria-label="Inspector tools">
+            ${AUTHOR_GROUPS.map(([id, label]) => button(`tab-${id}`, label, `aria-pressed="false" aria-controls="workshop-group-${id}"`)).join('')}
+          </nav>
+          ${AUTHOR_GROUPS.map(([id, label]) => `<section class="workshop-strip-options" id="workshop-group-${id}" data-editor-section="${id}" aria-label="${label}" hidden><div data-editor-section-body="${id}"></div></section>`).join('')}
+        </div>
       </aside>
     </div>
+    <footer class="workshop-readiness" aria-label="Track status">
+      <div class="workshop-drive-status" role="status" aria-live="polite" data-editor-readiness><strong data-editor-readiness-label></strong><span data-editor-readiness-reason></span></div>
+      <div class="workshop-readiness-actions">
+        ${button('drive-readiness-action', 'Focus point', 'hidden')}
+        ${button('toggle-warnings', 'Warnings <span data-editor-warning-count>0</span>', 'class="workshop-warnings-toggle" aria-expanded="false" aria-controls="workshop-warnings"')}
+      </div>
+      <div class="workshop-facts" data-editor-facts></div>
+    </footer>
   </div>`;
   const root = host.firstElementChild;
   const tools = root.querySelector('[data-editor-tools]');
@@ -340,6 +351,16 @@ export function createTrackEditor(
   );
   const warningCount = root.querySelector('[data-editor-warning-count]');
   const statusEl = root.querySelector('[data-editor-status]');
+  const readiness = root.querySelector('[data-editor-readiness]');
+  const readinessLabel = readiness.querySelector(
+    '[data-editor-readiness-label]',
+  );
+  const readinessReason = readiness.querySelector(
+    '[data-editor-readiness-reason]',
+  );
+  const readinessAction = root.querySelector(
+    '[data-editor-action="drive-readiness-action"]',
+  );
   const warningActions = new Map();
   let warningMarkup = '';
   const fileMenu = root.querySelector('#workshop-file-panel');
@@ -352,7 +373,7 @@ export function createTrackEditor(
   }
   function rememberGroupScroll() {
     if (authorGroup) groupScroll.set(authorGroup, tools.scrollTop);
-    if (globalGroup) groupScroll.set(globalGroup, globalTools.scrollTop);
+    groupScroll.set(globalGroup || 'road-home', globalTools.scrollTop);
   }
   function closeAuthorGroup({ focus = true } = {}) {
     if (!authorGroup) return;
@@ -423,6 +444,7 @@ export function createTrackEditor(
       [jump.launchPointId, jump.landingPointId].includes(doc.points[index].id),
     );
     if (associatedJump) selectedJumpId = associatedJump.id;
+    compactDock = 'inspector';
     shapeStart = Math.min(rangeAnchor, rangeEnd);
     shapeEnd = Math.min(
       doc.points.length - 1,
@@ -789,6 +811,7 @@ export function createTrackEditor(
       viewport.setGuides({
         document: doc,
         selectedPoint: selected,
+        crossing: issue?.otherPosition ? issue : null,
         problemPoint: issue?.pointIndex ?? null,
         problemSeverity: issue?.severity ?? 'error',
         selectedJumpId,
@@ -940,12 +963,74 @@ export function createTrackEditor(
   function renderCameraControls() {
     return `<div class="workshop-camera-controls" role="group" aria-label="Camera controls">${button('focus-selection', 'Focus', 'aria-label="Focus selection" title="Focus selected point or section (F)"')}${button('fit', 'Overview', 'title="Fit the entire track"')}${button('zoom-out', '−', 'aria-label="Zoom out" title="Zoom out"')}${button('zoom-in', '+', 'aria-label="Zoom in" title="Zoom in"')}${button('fly-camera', 'Fly', 'aria-label="Enter free camera" aria-pressed="false"')}${button('view-map', 'Map', 'aria-label="Open route map" aria-haspopup="dialog" aria-expanded="false" aria-controls="workshop-route-map"')}${button('view-profile', 'Profile', 'aria-label="Elevation profile" aria-haspopup="dialog" aria-expanded="false" aria-controls="workshop-elevation-profile"')}</div>`;
   }
-  function renderSelection() {
-    if (context === 'environment')
-      return `<strong>${escape(editorBiome(doc.biome).label)}</strong><span>Environment · road editing paused</span>`;
-    const point = doc.points[selected],
-      span = selectedRange();
-    return `<strong>${point ? `Point ${String(selected + 1).padStart(2, '0')}` : 'No point selected'}</strong><span>${PREVIEW_TOOLS.find((item) => item.id === tool).label}${point ? ` · ${Math.round(point.y)} m · ${roadAngleLabel(point)}` : ''}${span ? ` · Points ${span.start + 1}–${span.end + 1}` : ''}</span>`;
+  function activeInspector() {
+    if (context !== 'road') return '';
+    if (authorGroup) return authorGroup;
+    if (hasJumpCandidate()) return 'jumps';
+    if (selectedRange()) return 'shape';
+    const point = doc.points[selected];
+    if (!point) return '';
+    const jump = doc.jumps.find(
+      ({ launchPointId, landingPointId }) =>
+        point.id === launchPointId || point.id === landingPointId,
+    );
+    return jump ? 'jumps' : 'route';
+  }
+
+  function renderSelection(inspector, analysis) {
+    const point = doc.points[selected];
+    if (context === 'environment') {
+      const biome = editorBiome(doc.biome);
+      return `<span class="workshop-inspector-kind">Applied scenery</span><h3>${escape(biome.label)}</h3><p>Choose a swatch in the palette to change the environment.</p>`;
+    }
+    if (!point)
+      return `<h3>No selection</h3><p>${doc.points.length ? 'Select a point in the viewport or use a route anchor.' : 'Draw a road or choose a starter from the palette.'}</p>`;
+
+    const distance = (index) =>
+      `${((fractionAt(index) * analysis.length) / 1000).toFixed(2)} km`;
+    const metrics = (pairs) =>
+      `<dl class="workshop-inspector-metrics">${pairs.map(([label, value]) => `<div><dt>${label}</dt><dd>${value}</dd></div>`).join('')}</dl>`;
+    const span = selectedRange();
+    if (inspector === 'shape' && span) {
+      const rise = Math.round(
+        doc.points[span.end].y - doc.points[span.start].y,
+      );
+      const peakRoll = Math.round(
+        (Math.max(
+          ...doc.points
+            .slice(span.start, span.end + 1)
+            .map(({ roll = 0 }) => Math.abs(roll)),
+        ) *
+          180) /
+          Math.PI,
+      );
+      return `<span class="workshop-inspector-kind">Road section</span><h3>Points ${span.start + 1}–${span.end + 1}</h3><p>${distance(span.start)} – ${distance(span.end)}</p>${metrics(
+        [
+          ['Rise', `${rise > 0 ? '+' : ''}${rise} m`],
+          ['Peak roll', `${peakRoll}°`],
+        ],
+      )}`;
+    }
+    const jumpIndex =
+      inspector === 'jumps'
+        ? doc.jumps.findIndex(({ id }) => id === selectedJumpId)
+        : -1;
+    if (jumpIndex >= 0) {
+      const jump = doc.jumps[jumpIndex];
+      const launch = doc.points.findIndex(
+        ({ id }) => id === jump.launchPointId,
+      );
+      const landing = doc.points.findIndex(
+        ({ id }) => id === jump.landingPointId,
+      );
+      return `<span class="workshop-inspector-kind">Jump</span><h3>Jump ${jumpIndex + 1}</h3><p>Point ${launch + 1} to ${landing + 1} · ${distance(launch)} – ${distance(landing)}</p>`;
+    }
+    return `<span class="workshop-inspector-kind">${pointLabel(selected)}</span><h3>Point ${String(selected + 1).padStart(2, '0')}</h3><p>${distance(selected)} along route</p>${metrics(
+      [
+        ['Elevation', `${Math.round(point.y)} m`],
+        ['Rotation', roadAngleLabel(point)],
+      ],
+    )}`;
   }
   function renderRoadPanel() {
     const point = doc.points[selected],
@@ -954,7 +1039,7 @@ export function createTrackEditor(
       return '<p class="workshop-help">Click a road point to move it, change its height or test from there.</p>';
     const precise = `<div class="workshop-coordinate-grid"><label>X / East<input type="number" data-editor-field="point-x" aria-label="Point X coordinate" min="-25000" max="25000" step="5" value="${rounded(point.x, 1)}"></label><label>Z / South<input type="number" data-editor-field="point-z" aria-label="Point Z coordinate" min="-25000" max="25000" step="5" value="${rounded(point.z, 1)}"></label></div><label class="workshop-label">Move distance<select data-editor-field="step" aria-label="Point movement distance">${[5, 20, 100].map((size) => option(size, `${size} m`, size === step)).join('')}</select></label><div class="workshop-nudge" role="group" aria-label="Move selected point">${button('north', '↑ North')}${button('west', '← West')}${button('east', 'East →')}${button('south', '↓ South')}</div>`;
     const more = `<label class="workshop-label">Choose a point<select data-editor-field="point" aria-label="Selected route point">${doc.points.map((p, i) => option(i, `${String(i + 1).padStart(2, '0')} · ${pointLabel(i)}`, i === selected)).join('')}</select></label>${range('point-bank', 'Bank trim', rounded(((point.bank ?? 0) * 180) / Math.PI, 1), -20, 20, 1, '°')}<label class="workshop-label">Whole course width<select data-editor-field="width" aria-label="Road width">${[32, 40, 48, 64].map((width) => option(width, `${width} m`, width === doc.width)).join('')}</select></label><div class="workshop-button-row">${button('earlier', 'Move earlier', selected <= 0 ? 'disabled' : '')}${button('later', 'Move later', selected >= doc.points.length - 1 ? 'disabled' : '')}</div>`;
-    return `<p class="workshop-help">Drag the point to move it. Shift-drag or use Height to raise it.</p><div class="workshop-button-row">${button('context-prev', '← Previous', disabled)}${button('context-next', 'Next →', disabled)}</div>${range('point-y', 'Height', rounded(point.y, 1), 0, 3000, 5, ' m')}<div class="workshop-button-row">${button('context-raise', 'Raise 10 m')}${button('context-lower', 'Lower 10 m')}</div><div class="workshop-button-row">${button('add-point', 'Add point after', doc.points.length >= DOCUMENT_LIMITS.points ? 'disabled' : '')}${button('delete-point', 'Delete point')}</div>${renderLocalTestControls('point')}${details('point-position', 'Precise position', precise)}${details('point-more', 'More point settings', more)}`;
+    return `<div class="workshop-button-row">${button('context-prev', '← Previous', disabled)}${button('context-next', 'Next →', disabled)}</div>${range('point-y', 'Height', rounded(point.y, 1), 0, 3000, 5, ' m')}<div class="workshop-button-row">${button('context-raise', 'Raise 10 m')}${button('context-lower', 'Lower 10 m')}</div><div class="workshop-button-row">${button('add-point', 'Add point after', doc.points.length >= DOCUMENT_LIMITS.points ? 'disabled' : '')}${button('delete-point', 'Delete point')}</div>${renderLocalTestControls('point')}${details('point-position', 'Precise position', precise)}${details('point-more', 'More point settings', more)}`;
   }
   function renderShape() {
     const point = doc.points[selected];
@@ -1050,7 +1135,7 @@ export function createTrackEditor(
             : '<p class="workshop-help">Flight preview will appear here.</p>';
     flightReportMarkup = advisory;
     const ready = jumpManualChosen || jumpSuggestion?.source === doc;
-    const creation = `<section class="workshop-section workshop-jump-authoring"><h2>Add a jump</h2><p class="workshop-help">Find a clear launch and landing, then add the gap. Your road stays unchanged until you choose Add.</p>${button('find-jump-section', 'Use next suitable section', `class="workshop-wide" ${count >= 4 ? '' : 'disabled'}`)}<p class="workshop-jump-suggestion" data-editor-jump-suggestion>${ready ? `Points ${jumpStart + 1} → ${jumpEnd + 1} · ${Math.round((fractionAt(jumpEnd) - fractionAt(jumpStart)) * length)} m gap` : 'No section chosen yet.'}</p>${button('add-jump', 'Add jump gap', `class="workshop-primary workshop-wide" ${count >= 4 && ready ? '' : 'disabled'}`)}<div class="workshop-jump-manual"><h3>Launch and landing</h3><p class="workshop-help">For your own spans and huge jumps. Leave at least 160 m of approach and a clear receiving deck.</p><label class="workshop-label">Launch point<select data-editor-field="jump-start" aria-label="Jump launch point" ${count >= 4 ? '' : 'disabled'}>${count ? pointOptions(jumpStart) : '<option>No points yet</option>'}</select></label><label class="workshop-label">Landing point<select data-editor-field="jump-end" aria-label="Jump landing point" ${count >= 4 ? '' : 'disabled'}>${count ? pointOptions(jumpEnd) : '<option>No points yet</option>'}</select></label><label class="workshop-label">New gap landing runout<select data-editor-field="jump-receiving" aria-label="New jump landing runout">${[150, 300, 600, 1200].map((metres) => option(metres, `${metres} m`, jumpReceiving === metres)).join('')}${![150, 300, 600, 1200].includes(jumpReceiving) ? option(jumpReceiving, `${Math.round(jumpReceiving)} m`, true) : ''}</select></label><label class="workshop-checkbox"><input type="checkbox" data-editor-field="jump-ramp" ${jumpRampAssist ? 'checked' : ''}><span>Shape launch ramp and receiving deck</span></label><p class="workshop-help">Creates a visible ramp and broad landing. Clear this to keep existing heights. Flight paths help you judge the result; no hidden launch force is added.</p></div></section>`;
+    const creation = `<section class="workshop-section workshop-jump-authoring"><h2>Add a jump</h2><p class="workshop-help">Find a clear launch and landing, then add the gap. Your road stays unchanged until you choose Add.</p>${button('find-jump-section', 'Use next suitable section', `class="workshop-wide" ${count >= 4 ? '' : 'disabled'}`)}<p class="workshop-jump-suggestion" data-editor-jump-suggestion>${ready ? `Points ${jumpStart + 1} → ${jumpEnd + 1} · ${Math.round((fractionAt(jumpEnd) - fractionAt(jumpStart)) * length)} m gap` : 'No section chosen yet.'}</p>${button('add-jump', 'Add jump gap', `class="workshop-primary workshop-wide" ${count >= 4 && ready ? '' : 'disabled'}`)}<div class="workshop-jump-manual"><h3>Launch and landing</h3><p class="workshop-help">For your own spans and huge jumps. Choose supported takeoff and landing road. Ramp assistance uses at least 160 m of approach.</p><label class="workshop-label">Launch point<select data-editor-field="jump-start" aria-label="Jump launch point" ${count >= 4 ? '' : 'disabled'}>${count ? pointOptions(jumpStart) : '<option>No points yet</option>'}</select></label><label class="workshop-label">Landing point<select data-editor-field="jump-end" aria-label="Jump landing point" ${count >= 4 ? '' : 'disabled'}>${count ? pointOptions(jumpEnd) : '<option>No points yet</option>'}</select></label><label class="workshop-label">New gap landing runout<select data-editor-field="jump-receiving" aria-label="New jump landing runout">${[150, 300, 600, 1200].map((metres) => option(metres, `${metres} m`, jumpReceiving === metres)).join('')}${![150, 300, 600, 1200].includes(jumpReceiving) ? option(jumpReceiving, `${Math.round(jumpReceiving)} m`, true) : ''}</select></label><label class="workshop-checkbox"><input type="checkbox" data-editor-field="jump-ramp" ${jumpRampAssist ? 'checked' : ''}><span>Shape launch ramp and receiving deck</span></label><p class="workshop-help">Creates a visible ramp and broad landing. Clear this to keep existing heights. Flight paths help you judge the result; no hidden launch force is added.</p></div></section>`;
     const inspector = gaps.length
       ? `<section class="workshop-section"><div class="workshop-section-row"><h2>Your jumps</h2><span>${gaps.length} ${gaps.length === 1 ? 'gap' : 'gaps'}</span></div><label class="workshop-label">Gap to inspect<select data-editor-field="jump-selected" aria-label="Selected jump gap">${gapOptions}</select></label>${current ? `<label class="workshop-label">This gap’s landing runout<select data-editor-field="selected-jump-receiving" aria-label="Selected gap landing runout">${[150, 300, 600, 1200].map((metres) => option(metres, `${metres} m`, current.receiving === metres)).join('')}${![150, 300, 600, 1200].includes(current.receiving) ? option(current.receiving, `${Math.round(current.receiving)} m`, true) : ''}</select></label>` : ''}${button('inspect-jump', 'Focus jump in 3D', `class="workshop-wide" ${current ? '' : 'disabled'}`)}<label class="workshop-checkbox"><input type="checkbox" data-editor-field="show-flight-paths" ${showFlightPaths ? 'checked' : ''}><span>Show cruise and boost flight paths</span></label><div data-editor-flight-report></div><div class="workshop-button-row">${button('remove-jump', 'Remove gap', current ? '' : 'disabled')}${button('clear-jumps', 'Clear all gaps', gaps.length ? '' : 'disabled')}</div><p class="workshop-help">Removing a gap restores its road and supports. Ramp and landing edits stay; Undo restores the whole edit.</p></section>`
       : '';
@@ -1173,7 +1258,7 @@ export function createTrackEditor(
       button(
         `road-preset-${preset.id}`,
         `<strong>${escape(preset.label)}</strong><span>${escape(preset.description)}</span>`,
-        `class="workshop-road-card" aria-pressed="${matchingPreset?.id === preset.id}" ${preset.circuitOnly && doc.courseType === 'downhill' ? 'disabled title="Woven is a Circuit preset"' : ''}`,
+        `class="workshop-road-card" aria-pressed="${matchingPreset?.id === preset.id}" ${preset.circuitOnly && doc.courseType === 'downhill' ? `disabled title="${escape(preset.label)} is a Circuit preset"` : ''}`,
       ),
     ).join('');
     const custom = `${range('bendiness', 'Curviness', generator.bendiness, 0, 1, 0.05, '', true)}${range('crossovers', 'Crossovers', generator.crossovers ?? 0, 0, 1, 0.05, '', true, doc.courseType !== 'circuit')}<p class="workshop-help">${doc.courseType === 'circuit' ? 'Crossovers adds overpasses with automatic clearance.' : 'Crossovers is available for Circuit courses.'}</p>${range('elevation', doc.courseType === 'downhill' ? 'Descent strength' : 'Vertical variation', generator.elevation, 0, 1, 0.05, '', true)}<div class="workshop-generator-jumps"><label class="workshop-label">Jump frequency<select data-editor-field="jump-frequency" aria-label="Jump frequency">${[
@@ -1196,7 +1281,26 @@ export function createTrackEditor(
       .join(
         '',
       )}</select></label></div><label class="workshop-label">Road seed<input type="number" data-editor-field="seed" aria-label="Road seed" min="0" max="4294967295" step="1" value="${generator.seed}"></label><p class="workshop-help">The same seed and settings repeat the road.</p>${button('quick-start', 'Create simple starter', 'class="workshop-wide"')}`;
-    return `<section class="workshop-section"><h2>Choose your line.</h2><p class="workshop-help">Pick a style and length. Create replaces your road; Undo brings it back.</p><div class="workshop-road-cards" role="group" aria-label="Road style">${starterCards}</div><label class="workshop-label">${doc.courseType === 'downhill' ? 'Length including runout' : 'Length'}<select data-editor-field="length" aria-label="Generated track length">${[3000, 5000, 10000, 15000, 20000].map((length) => option(length, `${length / 1000} km`, length === generator.length)).join('')}${![3000, 5000, 10000, 15000, 20000].includes(generator.length) ? option(generator.length, `${generator.length / 1000} km`, true) : ''}</select></label><label class="workshop-checkbox"><input type="checkbox" data-editor-field="seed-pickups" ${seedPickups ? 'checked' : ''}><span>Fill with pickups</span></label>${details('generator', `Customize${matchingPreset ? '' : ' · custom settings'}`, custom)}<div class="workshop-generator-actions">${button('generate', 'Create road', 'class="workshop-primary workshop-wide"')}${button('new-variation', 'Try another variation', `class="workshop-wide" ${doc.points.length < 4 ? 'hidden' : ''}`)}</div><p class="workshop-help">${doc.courseType === 'downhill' ? 'A sustained descent with a supported finish runout.' : 'A closed course with supported roads and clear jump landings.'}</p></section>`;
+    return `<section class="workshop-section">${button('global-close', '← Road palette', 'class="workshop-palette-back"')}<h2>Generate road</h2><p class="workshop-help">Create replaces the route. Use Undo to bring it back.</p><div class="workshop-road-cards" role="group" aria-label="Road style">${starterCards}</div><label class="workshop-label">${doc.courseType === 'downhill' ? 'Length including runout' : 'Length'}<select data-editor-field="length" aria-label="Generated track length">${[3000, 5000, 7500, 10000, 15000, 20000].map((length) => option(length, `${length / 1000} km`, length === generator.length)).join('')}${![3000, 5000, 7500, 10000, 15000, 20000].includes(generator.length) ? option(generator.length, `${generator.length / 1000} km`, true) : ''}</select></label><label class="workshop-checkbox"><input type="checkbox" data-editor-field="seed-pickups" ${seedPickups ? 'checked' : ''}><span>Fill with pickups</span></label>${details('generator', `Customize${matchingPreset ? '' : ' · custom settings'}`, custom)}<div class="workshop-generator-actions">${button('generate', 'Create road', 'class="workshop-primary workshop-wide"')}${button('new-variation', 'Try another variation', `class="workshop-wide" ${doc.points.length < 4 ? 'hidden' : ''}`)}</div><p class="workshop-help">${doc.courseType === 'downhill' ? 'A sustained descent with a supported finish runout.' : 'A closed course with supported roads and clear jump landings.'}</p></section>`;
+  }
+  function renderRoadHome(analysis) {
+    const anchor = (index, label) =>
+      button(
+        `palette-point-${index}`,
+        `<span>${escape(label)}</span><small>${((fractionAt(index) * analysis.length) / 1000).toFixed(2)} km</small>`,
+        `class="workshop-road-anchor" aria-pressed="${selected === index}"`,
+      );
+    const anchors = [];
+    if (doc.points.length) anchors.push(anchor(0, pointLabel(0)));
+    doc.jumps.forEach((jump, jumpIndex) => {
+      const index = doc.points.findIndex(({ id }) => id === jump.launchPointId);
+      if (index > 0)
+        anchors.push(anchor(index, `Jump ${jumpIndex + 1} launch`));
+    });
+    if (doc.courseType === 'downhill' && doc.points.length > 1)
+      anchors.push(anchor(doc.points.length - 1, 'Runout end'));
+
+    return `${button('tab-generate', 'Create road <span aria-hidden="true">↗</span>', 'class="workshop-palette-create" aria-controls="workshop-palette-generate"')}<h3>Starter tracks</h3>${renderStarterChoices('palette')}${anchors.length ? `<h3>Route anchors</h3><div class="workshop-road-anchors">${anchors.join('')}</div>` : ''}`;
   }
   function renderStarterChoices(location) {
     return `<div class="workshop-starter-choices">${PLAYABLE_STARTERS.map(
@@ -1208,7 +1312,7 @@ export function createTrackEditor(
         ),
     ).join(
       '',
-    )}${button(location === 'canvas' ? 'starter-draw' : 'blank', 'Draw from scratch')}</div>`;
+    )}${location === 'palette' ? '' : button(location === 'canvas' ? 'starter-draw' : 'blank', 'Draw from scratch')}</div>`;
   }
   function renderLibrary() {
     return `<section class="workshop-section">${details('new-track', 'New track', renderStarterChoices('file'))}${button('reset-track', 'Reset road', 'class="workshop-wide"')}<div class="workshop-section-divider"></div><label class="workshop-label">Saved track<select data-editor-field="saved" aria-label="Saved track" ${records.length ? '' : 'disabled'}>${records.length ? records.map((record) => `<option value="${escape(record.id)}" ${record.id === savedId ? 'selected' : ''}>${escape(record.name)}</option>`).join('') : '<option>No saved tracks</option>'}</select></label><div class="workshop-button-row">${button('load', 'Load track', records.length ? '' : 'disabled')}${button('remove', 'Delete saved', records.length ? '' : 'disabled')}</div>${button('save-copy', 'Save a copy', 'class="workshop-wide"')}<div class="workshop-section-divider"></div><div class="workshop-button-row">${button('import', 'Import track file')}${button('export', 'Export track file')}</div></section>`;
@@ -1259,14 +1363,7 @@ export function createTrackEditor(
       <div class="workshop-generator-actions">${button('regenerate-environment', 'Apply environment', 'class="workshop-primary workshop-wide"')}${button('new-world-seed', 'Try another variation', 'class="workshop-wide"')}</div>
     </section>`;
   }
-  function syncSections() {
-    const restingScenery = context === 'road' && !globalGroup && !recoveryEntry;
-    const leftGroup = restingScenery ? 'world' : globalGroup;
-    if (!globalTools.children.length)
-      globalTools.innerHTML = GLOBAL_GROUPS.map(
-        ([id, label]) =>
-          `<section class="workshop-global-section" id="workshop-palette-${id}" data-editor-section="${id}" aria-label="${label}" hidden><div data-editor-section-body="${id}"></div></section>`,
-      ).join('');
+  function syncSections(analysis, inspector) {
     const renderers = {
       route: renderRoadPanel,
       shape: renderShape,
@@ -1276,6 +1373,13 @@ export function createTrackEditor(
       pickups: renderPickups,
       library: renderLibrary,
     };
+    const roadHome = root.querySelector('[data-editor-section="road-home"]');
+    const roadHomeMarkup = renderRoadHome(analysis);
+    if (sectionHTML.get('road-home') !== roadHomeMarkup) {
+      roadHome.innerHTML = roadHomeMarkup;
+      sectionHTML.set('road-home', roadHomeMarkup);
+    }
+    roadHome.hidden = Boolean(globalGroup);
     for (const [id] of PANEL_SECTIONS) {
       const section = root.querySelector(`[data-editor-section="${id}"]`);
       const html = renderers[id]();
@@ -1285,22 +1389,12 @@ export function createTrackEditor(
         sectionHTML.set(id, html);
       }
       if (id !== 'library')
-        section.hidden = id !== authorGroup && id !== leftGroup;
+        section.hidden = id !== inspector && id !== globalGroup;
     }
-    const panel = root.querySelector('[data-editor-global-panel]');
-    panel.hidden = !leftGroup;
-    panel.dataset.sceneryDock = String(restingScenery);
-    root.querySelector('[data-editor-action="global-close"]').hidden =
-      !globalGroup;
-    root.querySelector('[data-editor-global-title]').textContent =
-      leftGroup === 'world'
-        ? 'Scenery'
-        : (GLOBAL_GROUPS.find(([id]) => id === leftGroup)?.[1] ??
-          'Track settings');
     const report = root.querySelector('[data-editor-flight-report]');
     if (report && report.innerHTML !== flightReportMarkup)
       report.innerHTML = flightReportMarkup;
-    const nextLayoutKey = `${authorGroup}:${globalGroup}:${mapOpen}`;
+    const nextLayoutKey = `${inspector}:${globalGroup}:${mapOpen}:${compactDock}`;
     if (nextLayoutKey !== layoutKey) {
       layoutKey = nextLayoutKey;
       window.dispatchEvent(new Event('editor-layout-change'));
@@ -1317,6 +1411,39 @@ export function createTrackEditor(
       target.focus({ preventScroll: true });
     }
   }
+  function syncReadiness(analysis) {
+    const pointsNeeded = Math.max(0, 4 - doc.points.length);
+    const issue = analysis.primaryIssue;
+    const name = recoveryEntry
+      ? 'Draft recovery'
+      : pointsNeeded
+        ? 'Draft'
+        : analysis.valid
+          ? 'Ready to drive'
+          : 'Before driving';
+    const reason = recoveryEntry
+      ? 'Choose whether to restore your backed-up draft.'
+      : pointsNeeded
+        ? `Add ${pointsNeeded} more road ${pointsNeeded === 1 ? 'point' : 'points'} to test drive.`
+        : analysis.valid
+          ? ''
+          : (issue?.message ?? analysis.errors[0] ?? 'Review track warnings.');
+    if (readinessLabel.textContent !== name) readinessLabel.textContent = name;
+    if (readinessReason.textContent !== reason)
+      readinessReason.textContent = reason;
+    readiness.dataset.state =
+      pointsNeeded || recoveryEntry
+        ? 'draft'
+        : analysis.valid
+          ? 'ready'
+          : 'review';
+    readinessAction.hidden =
+      Boolean(recoveryEntry) ||
+      (!pointsNeeded &&
+        (analysis.valid || !Number.isInteger(issue?.pointIndex)));
+    readinessAction.textContent = pointsNeeded ? 'Draw road' : 'Focus point';
+  }
+
   function syncWarnings(analysis) {
     const drawing = doc.points.length < 4;
     const current = drawing ? null : visibleIssue();
@@ -1406,20 +1533,28 @@ export function createTrackEditor(
     latestAnalysis = analysis;
     scheduleFlightPreview();
     syncEnvironmentDraft();
-    syncSections();
-    for (const name of ['road', 'environment'])
+    const inspector = activeInspector();
+    syncSections(analysis, inspector);
+    const palette = globalGroup === 'pickups' ? 'pickups' : context;
+    for (const [name, action] of [
+      ['road', 'context-road'],
+      ['environment', 'context-environment'],
+      ['pickups', 'tab-pickups'],
+    ])
       root
-        .querySelector(`[data-editor-action="context-${name}"]`)
-        .setAttribute('aria-pressed', String(context === name));
+        .querySelector(`[data-editor-action="${action}"]`)
+        .setAttribute('aria-pressed', String(palette === name));
     root.dataset.context = context;
-    for (const name of ['generate', 'pickups'])
-      root.querySelector(`[data-editor-action="tab-${name}"]`).hidden =
-        context !== 'road';
+    root.querySelector('[data-editor-layout]').dataset.compactDock =
+      compactDock;
+    for (const name of ['palette', 'inspector'])
+      root
+        .querySelector(`[data-editor-action="dock-${name}"]`)
+        .setAttribute('aria-pressed', String(compactDock === name));
     root.querySelector('[data-editor-tool-palette]').hidden =
       context !== 'road';
-    root.querySelector('[data-editor-environment-strip]').hidden =
-      context !== 'environment' || Boolean(globalGroup);
-    tools.hidden = context !== 'road';
+    root.querySelector('[data-editor-inspector-tabs]').hidden =
+      context !== 'road';
     root.querySelector('.workshop-map-help').textContent =
       context === 'road'
         ? 'Click or drag road points · Click outside to close'
@@ -1430,7 +1565,11 @@ export function createTrackEditor(
         ? 'Top-down road editor. Click points to select them; Draw road adds points.'
         : 'Top-down route overview. Road editing is paused in Environment.',
     );
-    root.querySelector('[data-editor-selection]').innerHTML = renderSelection();
+    const selection = renderSelection(inspector, analysis);
+    if (sectionHTML.get('inspector') !== selection) {
+      root.querySelector('[data-editor-selection]').innerHTML = selection;
+      sectionHTML.set('inspector', selection);
+    }
     const nameControl = root.querySelector('[data-editor-field="name"]');
     if (document.activeElement !== nameControl) nameControl.value = doc.name;
     root.querySelector('[data-editor-field="course-type"]').value =
@@ -1444,10 +1583,7 @@ export function createTrackEditor(
     checkpointRecovery();
     syncRecovery();
     syncWarnings(analysis);
-    root.querySelector('[data-editor-action="tab-route"]').innerHTML =
-      `<span>${selected >= 0 ? `Point ${String(selected + 1).padStart(2, '0')}` : 'Point'}</span><span class="workshop-group-arrow" aria-hidden="true">⌄</span>`;
-    root.querySelector('[data-editor-action="tab-jumps"]').innerHTML =
-      `<span>${hasJumpCandidate() ? 'Jump preview' : selectedJumpId && doc.jumps.some((jump) => jump.id === selectedJumpId && [jump.launchPointId, jump.landingPointId].includes(doc.points[selected]?.id)) ? 'Selected jump' : 'Add / edit jump'}</span><span class="workshop-group-arrow" aria-hidden="true">⌄</span>`;
+    syncReadiness(analysis);
     const finishing = tool === 'draw' && doc.points.length >= 4;
     root.querySelector('[data-editor-action="finish-drawing"]').hidden =
       !finishing;
@@ -1508,12 +1644,11 @@ export function createTrackEditor(
           busy || (['load', 'remove'].includes(action) && !records.length);
       if (action === 'inspect-jump')
         node.disabled = busy || !flightPreview?.cruise;
-      if (action.startsWith('tab-') && action !== 'tab-library') {
-        const expanded =
-          action === `tab-${authorGroup}` || action === `tab-${globalGroup}`;
-        node.setAttribute('aria-expanded', String(expanded));
-        node.setAttribute('aria-pressed', String(expanded));
-      }
+      if (AUTHOR_GROUPS.some(([id]) => action === `tab-${id}`))
+        node.setAttribute(
+          'aria-pressed',
+          String(action === `tab-${inspector}`),
+        );
       if (action === 'view-map') {
         node.setAttribute('aria-pressed', String(mapOpen));
         node.setAttribute('aria-expanded', String(mapOpen));
@@ -1537,8 +1672,8 @@ export function createTrackEditor(
     const activeTool = PREVIEW_TOOLS.find((item) => item.id === tool);
     root.querySelector('[data-editor-view-hint]').textContent =
       context === 'environment'
-        ? 'ENVIRONMENT · Drag to pan · Right-drag to orbit'
-        : `${activeTool.label.toUpperCase()} · ${activeTool.hint}`;
+        ? 'Scenery · Drag to pan · Right-drag to orbit'
+        : `${activeTool.label} · ${activeTool.hint}`;
     syncCanvas({ frame });
     syncStatus();
     syncCameraUI();
@@ -1772,25 +1907,43 @@ export function createTrackEditor(
       }
       return;
     }
-    if (name === 'context-road' || name === 'context-environment') {
-      if (name === `context-${context}`) return;
-      rememberGroupScroll();
-      viewport.cancelInteraction();
-      workspacePanels[context] = globalGroup;
-      if (context === 'road') roadAuthorGroup = authorGroup;
-      context = name === 'context-road' ? 'road' : 'environment';
-      globalGroup = workspacePanels[context];
-      authorGroup = context === 'road' ? roadAuthorGroup : '';
-      tab =
-        globalGroup || authorGroup || (context === 'road' ? 'route' : 'world');
+    if (name === 'dock-palette' || name === 'dock-inspector') {
+      compactDock = name === 'dock-palette' ? 'palette' : 'inspector';
       render();
       return;
     }
-    if (name === 'open-environment') {
-      globalGroup = 'world';
-      workspacePanels.environment = 'world';
+    if (
+      name === 'context-road' ||
+      name === 'context-environment' ||
+      name === 'tab-pickups'
+    ) {
+      const nextContext =
+        name === 'context-environment' ? 'environment' : 'road';
+      const nextGroup =
+        name === 'context-environment'
+          ? 'world'
+          : name === 'tab-pickups'
+            ? 'pickups'
+            : '';
+      if (context === nextContext && globalGroup === nextGroup) return;
+      rememberGroupScroll();
+      viewport.cancelInteraction();
+      if (context === 'road') roadAuthorGroup = authorGroup;
+      context = nextContext;
+      globalGroup = nextGroup;
+      authorGroup = context === 'road' ? roadAuthorGroup : '';
+      compactDock = 'palette';
+      tab = globalGroup || authorGroup || 'route';
       render();
-      focusGroup('world');
+      globalTools.scrollTop = groupScroll.get(globalGroup || 'road-home') ?? 0;
+      return;
+    }
+    if (name.startsWith('palette-point-')) {
+      selectPoint(Number(name.slice('palette-point-'.length)));
+      viewport.focusSelection();
+      root
+        .querySelector(`[data-editor-action="tab-${activeInspector()}"]`)
+        ?.focus({ preventScroll: true });
       return;
     }
     if (name.startsWith('choose-biome-')) {
@@ -1804,40 +1957,42 @@ export function createTrackEditor(
       if (!fileMenu.hidden) focusGroup('library');
       return;
     }
+    if (name === 'tab-generate') {
+      rememberGroupScroll();
+      globalGroup = 'generate';
+      compactDock = 'palette';
+      tab = 'generate';
+      render();
+      globalTools.scrollTop = groupScroll.get('generate') ?? 0;
+      focusGroup('generate');
+      return;
+    }
     if (name.startsWith('tab-')) {
       const next = name.slice(4);
-      if (next === 'world') context = 'environment';
-      if (['generate', 'pickups'].includes(next)) context = 'road';
-      if (!PANEL_SECTIONS.some(([id]) => id === next)) return;
+      if (!AUTHOR_GROUPS.some(([id]) => id === next)) return;
       rememberGroupScroll();
-      const isAuthor = AUTHOR_GROUPS.some(([id]) => id === next);
-      const closing = next === (isAuthor ? authorGroup : globalGroup);
-      authorGroup = isAuthor && !closing ? next : '';
-      globalGroup = !isAuthor && !closing ? next : '';
-      workspacePanels[context] = globalGroup;
-      if (isAuthor) roadAuthorGroup = authorGroup;
+      const closing = next === authorGroup;
+      authorGroup = closing ? '' : next;
+      roadAuthorGroup = authorGroup;
       tab = next;
+      compactDock = 'inspector';
       if (next === 'jumps' && !closing) {
         restoreJumpSelection();
         showFlightPaths = true;
       }
       render();
-      const scrollArea = isAuthor ? tools : globalTools;
-      scrollArea.scrollTop = groupScroll.get(next) ?? 0;
-      if (!closing) focusGroup(next);
+      if (!closing) {
+        tools.scrollTop = groupScroll.get(next) ?? 0;
+        focusGroup(next);
+      }
       return;
     }
     if (name === 'global-close') {
       const previous = globalGroup;
-      rememberGroupScroll();
-      globalGroup = '';
-      workspacePanels[context] = '';
-      tab =
-        globalGroup || authorGroup || (context === 'road' ? 'route' : 'world');
-      render();
+      await action('context-road');
       root
         .querySelector(
-          `[data-editor-action="${previous === 'world' ? 'context-environment' : `tab-${previous}`}"]`,
+          `[data-editor-action="${previous === 'generate' ? 'tab-generate' : 'context-road'}"]`,
         )
         ?.focus({ preventScroll: true });
       return;
@@ -1885,12 +2040,6 @@ export function createTrackEditor(
     if (name === 'tunes') {
       if (mapOpen) closeMap();
       setProfileOpen(false);
-      if (authorGroup || (globalGroup && window.innerWidth < 900)) {
-        rememberGroupScroll();
-        authorGroup = '';
-        if (window.innerWidth < 900) globalGroup = '';
-        render();
-      }
       if (typeof onTunes === 'function')
         onTunes(root.querySelector('[data-editor-action="tunes"]'));
       return;
@@ -1921,9 +2070,25 @@ export function createTrackEditor(
         root.querySelector('[data-editor-action="select-mode"]')?.focus();
       return;
     }
-    if (warningActions.has(name)) {
-      const issue = warningActions.get(name);
+    if (name === 'drive-readiness-action' && doc.points.length < 4) {
+      await action('context-road');
+      await action('draw-mode');
+      root.querySelector('[data-editor-action="draw-mode"]').focus();
+      return;
+    }
+    if (name === 'drive-readiness-action' || warningActions.has(name)) {
+      const issue =
+        name === 'drive-readiness-action'
+          ? analysisFor().primaryIssue
+          : warningActions.get(name);
+      if (!Number.isInteger(issue?.pointIndex)) {
+        showWarnings(true, { focus: true });
+        return;
+      }
       if (context !== 'road') await action('context-road');
+      authorGroup = '';
+      roadAuthorGroup = '';
+      compactDock = 'inspector';
       inspectedIssue = issue;
       selected = issue.pointIndex;
       selectedProp = -1;
@@ -1936,13 +2101,23 @@ export function createTrackEditor(
       const point = doc.points[selected];
       if (issue.position)
         viewport.focusTrajectories([
-          { points: [issue.position, [point.x, point.y, point.z]] },
+          {
+            points: [
+              issue.position,
+              issue.otherPosition ?? [point.x, point.y, point.z],
+            ],
+          },
         ]);
       else viewport.focusSelection();
       status(issue.message || issue.label);
-      root
-        .querySelector('[data-editor-action="show-issue"]')
-        ?.focus({ preventScroll: true });
+      if (name === 'drive-readiness-action')
+        root
+          .querySelector(`[data-editor-action="tab-${activeInspector()}"]`)
+          ?.focus({ preventScroll: true });
+      else
+        root
+          .querySelector('[data-editor-action="show-issue"]')
+          ?.focus({ preventScroll: true });
       return;
     }
     if (name === 'smooth-corner') {
@@ -2352,10 +2527,8 @@ export function createTrackEditor(
       }, 'Road style selected. Choose Create road to apply it.');
       return;
     }
-    const recipe = PLAYABLE_STARTERS.find(
-      ({ id }) =>
-        name === `starter-canvas-${id}` || name === `starter-file-${id}`,
-    );
+    const starterId = /^starter-(?:canvas|file|palette)-(.+)$/.exec(name)?.[1];
+    const recipe = PLAYABLE_STARTERS.find(({ id }) => id === starterId);
     if (
       recipe ||
       ['generate', 'quick-start', 'new-seed', 'new-variation'].includes(name)
@@ -2441,7 +2614,6 @@ export function createTrackEditor(
       if (generated) {
         showFileMenu(false);
         globalGroup = '';
-        workspacePanels.road = '';
         render();
         root
           .querySelector(
@@ -2454,8 +2626,8 @@ export function createTrackEditor(
     if (name === 'blank' || name === 'reset-track') {
       showFileMenu(false);
       context = 'road';
+      compactDock = 'palette';
       globalGroup = '';
-      workspacePanels.road = '';
       authorGroup = '';
       roadAuthorGroup = '';
       viewport.cancelInteraction();
@@ -2564,10 +2736,10 @@ export function createTrackEditor(
         if (!next) throw new Error('This saved track is no longer available.');
         showFileMenu(false);
         context = 'road';
+        compactDock = 'palette';
         globalGroup = '';
         authorGroup = '';
         roadAuthorGroup = '';
-        workspacePanels.road = '';
         tool = next.points.length < 4 ? 'draw' : 'move';
         selected = next.points.length ? 0 : -1;
         rangeAnchor = selected;
@@ -2605,10 +2777,10 @@ export function createTrackEditor(
         const imported = validateDocument(next);
         showFileMenu(false);
         context = 'road';
+        compactDock = 'palette';
         globalGroup = '';
         authorGroup = '';
         roadAuthorGroup = '';
-        workspacePanels.road = '';
         tool = imported.points.length < 4 ? 'draw' : 'move';
         selected = imported.points.length ? 0 : -1;
         rangeAnchor = selected;
@@ -3008,12 +3180,6 @@ export function createTrackEditor(
         }
         if (globalGroup) {
           action('global-close');
-          return;
-        }
-        if (context === 'environment') {
-          root
-            .querySelector('[data-editor-action="context-environment"]')
-            ?.focus({ preventScroll: true });
           return;
         }
         if (

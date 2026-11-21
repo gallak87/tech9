@@ -29,6 +29,23 @@ const fill = (doc, options) => ({
   pickups: generatePickupLayout(doc, options),
 });
 
+test('fill works with a clearance warning on another section of a playable course', () => {
+  const doc = generateDocument({ seedJumps: false, seed: 42, length: 4800 });
+  doc.props.push({
+    id: 'roadside-building',
+    type: 'building',
+    distance: 0.8,
+    lateral: 0,
+    scale: 1,
+    rotation: 0,
+  });
+  assert.equal(analyzeDocument(doc).primaryIssue.kind, 'clearance');
+  const filled = fill(doc, { density: 0.5 });
+  assert(filled.pickups.devices.length > 1);
+  assert.deepEqual(filled.points, doc.points);
+  assert.deepEqual(filled.props, doc.props);
+});
+
 test('fill is deterministic, keeps the start readable and places all real device types inside spaced road footprints', () => {
   const doc = generateDocument({ seedJumps: false, seed: 42, length: 4800 });
   const original = JSON.stringify(doc);

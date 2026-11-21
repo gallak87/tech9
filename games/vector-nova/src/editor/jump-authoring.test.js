@@ -4,10 +4,12 @@ import {
   createDocument,
   generateDocument,
   analyzeDocument,
+  analyzePracticeDocument,
   validateDocument,
   pointRouteFractions,
 } from './document.js';
 import { prepareJumpEdit } from './jump-authoring.js';
+import { findNextSuitableJump } from './jump-placement.js';
 import { createEditorTrack } from './track.js';
 import { predictEditorJumpTrajectory } from './jumps.js';
 
@@ -93,6 +95,62 @@ test('resize after save/load restores original corridor and never compounds ramp
       original,
     );
   }
+});
+
+test('an unrelated clearance warning leaves jump preview and automatic placement available', async () => {
+  const source = sparseCourse();
+  source.props.push({
+    id: 'distant-roadside-building',
+    type: 'building',
+    distance: 0.8,
+    lateral: 0,
+    scale: 1,
+    rotation: 0,
+  });
+  assert.equal(analyzeDocument(source).primaryIssue.kind, 'clearance');
+  const baseline = structuredClone(source);
+  for (const proposal of [
+    await prepareJumpEdit(source, { pointIndex: 2 }),
+    await findNextSuitableJump(source, { fromIndex: 2 }),
+  ]) {
+    const report = analyzePracticeDocument(proposal.document);
+    assert(report.valid, report.errors.join(' '));
+    assert(proposal.resolved.receiving >= 150);
+    assert.equal(proposal.document.props[0].id, source.props[0].id);
+  }
+  assert.deepEqual(source, baseline);
+});
+
+test('assisted ramps blend ordinary swept banks while preserving the road outside their saved corridor', async () => {
+  const source = sparseCourse();
+  for (let i = 0; i < source.points.length; i++) {
+    source.points[i].roll = 0.65 + 0.4 * Math.sin(i);
+    source.points[i].bank = 0.22;
+  }
+  const proposal = await findNextSuitableJump(source, { fromIndex: 2 });
+  const jump = proposal.document.jumps.find(({ id }) => id === proposal.jumpId);
+  const retained = new Set(jump.authoring.beforePoints.map(({ id }) => id));
+  for (const point of source.points) {
+    if (!retained.has(point.id))
+      assert.deepEqual(
+        proposal.document.points.find(({ id }) => id === point.id),
+        point,
+      );
+  }
+  for (const id of [jump.launchPointId, jump.landingPointId]) {
+    const point = proposal.document.points.find((point) => point.id === id);
+    assert.equal(point.bank, 0);
+    assert.equal(point.roll, 0);
+  }
+  assert(
+    proposal.document.points.some(
+      (point) =>
+        !source.points.some(({ id }) => id === point.id) &&
+        point.roll > 0 &&
+        point.bank > 0,
+    ),
+  );
+  assert(analyzePracticeDocument(proposal.document).valid);
 });
 
 test('edited ramp ownership rejects an unsafe resize without touching the draft', async () => {

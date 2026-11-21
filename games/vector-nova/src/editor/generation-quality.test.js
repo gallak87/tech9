@@ -1,4 +1,5 @@
 import test from 'node:test';
+import { PLAYABLE_STARTERS } from './playable-starters.js';
 import { mockBundledEditorAssets } from './test-assets.js';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
@@ -9,6 +10,7 @@ import {
   DOCUMENT_LIMITS,
 } from './document.js';
 import { createEditorTrack } from './track.js';
+import { resolveEditorTestStart } from './test-drive.js';
 import {
   createEditorRoad,
   createEditorEnvironment,
@@ -367,6 +369,20 @@ test('zero crossovers retain the existing v3 geometry and explicit zero matches 
       expected,
       `zero preserves the approved road: ${label(options)}`,
     );
+  }
+});
+
+test('the Harbor braid starter stacks two separated crossings and a variation changes the racing line', () => {
+  const options = PLAYABLE_STARTERS.find(
+    (starter) => starter.id === 'harbor',
+  ).options;
+  for (const [seed, expectedCrossings] of [
+    [options.seed, 2],
+    [6103, 1],
+  ]) {
+    const doc = generateDocument({ ...options, seed });
+    const { crossings } = assertWovenCourse(doc, { ...options, seed });
+    assert.equal(crossings.length, expectedCrossings);
   }
 });
 
@@ -907,6 +923,104 @@ test('v3 circuit and downhill jumps launch from the rendered road and land throu
       runtime.dispose();
       dynamics.dispose();
       collision.dispose();
+    }
+  }
+});
+
+test('v5 woven seeds change real overpass topology, carve relief and jump spacing', () => {
+  const options = {
+    generatorVersion: 5,
+    courseType: 'circuit',
+    length: 7500,
+    width: 40,
+    bendiness: 0.86,
+    elevation: 0.9,
+    crossovers: 1,
+    jumpFrequency: 'few',
+    jumpSize: 'mixed',
+  };
+  const sampled = [7, 42].map((seed) => {
+    const document = generateDocument({ ...options, seed });
+    const resolved = assertWovenCourse(document, { ...options, seed });
+    const strict = analyzeDocument(document, { strict: true });
+    assert(strict.valid, strict.errors.join(' '));
+    assert.equal(resolved.track.jumps.length, 1);
+    const jump = resolved.track.jumps[0];
+    assert.equal(resolved.track.isGap(jump.takeoff), false);
+    assert.equal(resolved.track.isGap(jump.landingStart), false);
+    const start = resolveEditorTestStart(
+      document,
+      { kind: 'jump', jumpId: jump.id },
+      { track: resolved.track, shipId: 'shrike' },
+    );
+    assert.equal(start.approachMetres, 240);
+    assert.deepEqual(start.warnings, []);
+    assert(
+      Math.max(...document.points.map(({ roll }) => Math.abs(roll))) >
+        Math.PI / 4,
+    );
+    assert(strict.bounds.max[1] - strict.bounds.min[1] > 190);
+    assert.deepEqual(
+      validateDocument(JSON.parse(JSON.stringify(document))),
+      document,
+    );
+    return resolved;
+  });
+  assert.deepEqual(
+    sampled.map(({ crossings }) => crossings.length),
+    [1, 2],
+  );
+  const [different, braid] = sampled.map(({ track }) => track.jumps[0]);
+  assert(Math.abs(braid.takeoff - different.takeoff) > 150);
+  assert(
+    Math.abs(
+      braid.landingStart -
+        braid.takeoff -
+        (different.landingStart - different.takeoff),
+    ) > 15,
+  );
+
+  const { track } = sampled[1];
+  for (const ship of SHIPS)
+    for (const boost of [false, true]) {
+      const result = predictEditorJumpTrajectory(track, braid, {
+        shipId: ship.id,
+        boost,
+        speed: boost ? ship.handling.boostSpeed : ship.handling.cruiseSpeed,
+      });
+      assert(result.landed, `${ship.id}/${boost}: ${result.summary}`);
+    }
+});
+
+test('v5 fitting holds geometry limits at short, steep and long road budgets', () => {
+  for (const [seed, courseType, length] of [
+    [0, 'circuit', 3000],
+    [4294967295, 'circuit', 5000],
+    [42, 'circuit', 20000],
+    [42, 'downhill', 5000],
+    [42, 'downhill', 20000],
+  ]) {
+    const options = {
+      seed,
+      courseType,
+      length,
+      width: 64,
+      bendiness: 1,
+      elevation: 1,
+      crossovers: 1,
+      jumpFrequency: 'many',
+      jumpSize: 'large',
+    };
+    const document = generateDocument(options);
+    const analysis = analyzeDocument(document, { strict: true });
+    assert(analysis.valid, analysis.errors.join(' '));
+    assert(Math.abs(analysis.length - length) < 0.01);
+    assert(document.jumps.length > 0);
+    assert(document.points.some(({ roll }) => Math.abs(roll) > 0.35));
+    assert(document.points.length <= DOCUMENT_LIMITS.points);
+    if (courseType === 'downhill') {
+      assert(Math.abs(analysis.length - analysis.finishDistance - 600) < 0.01);
+      assert.equal(document.points.at(-1).roll, 0);
     }
   }
 });

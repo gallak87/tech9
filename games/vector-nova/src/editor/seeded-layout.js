@@ -1,5 +1,7 @@
 import * as T from 'three';
 import { routeCurve } from './route.js';
+import { createHighOctaneProfile } from './high-octane-profile.js';
+import { createOctaneRoutePlan } from './octane-route-plan.js';
 
 const TAU = Math.PI * 2;
 const clamp = T.MathUtils.clamp;
@@ -169,7 +171,9 @@ function jumpBlock(shape, start, direction, courseType) {
     });
   }
   point(0, base);
-  if (pre) point(pre, base);
+  const approachSteps = Math.ceil(pre / 80);
+  for (let i = 1; i <= approachSteps; i++)
+    point((pre * i) / approachSteps, base);
   point(pre + 40, base + Math.tan(shape.pitch) * 40);
   point(launchAt, lip, 'launch');
   point(
@@ -519,7 +523,12 @@ function appendWovenConnector(output, a, b, ta, tb, radius, omitEnd) {
   arc(best.lastCenter, best.lastAngle, best.lastArc, best.lastTurn, true);
 }
 
-function createWovenCircuitBuilder(options, random, requestedShapes) {
+function createWovenCircuitBuilder(
+  options,
+  random,
+  requestedShapes,
+  jumpRandom,
+) {
   const { length, bendiness, elevation, crossovers } = options;
   const gridLength = length < 2400 ? 180 : 240;
   // Each additional pair of waves needs room for its grade transitions and
@@ -546,10 +555,15 @@ function createWovenCircuitBuilder(options, random, requestedShapes) {
         : options.jumpSize === 'mixed'
           ? clamp(length * 0.01, 112, 220)
           : 135;
-    const shape = shapeFor(Math.min(original.gap, cap), length < 5000);
+    const variation =
+      options.version >= 5 && length >= 5000 ? 0.87 + 0.26 * jumpRandom() : 1;
+    const shape = shapeFor(
+      Math.min(original.gap, cap * variation),
+      length < 5000,
+    );
     const recovery = length < 5000 ? 120 : Math.max(180, -shape.delta * 6);
-    const preFlat = length < 5000 ? 0 : 80,
-      postReceiver = preFlat;
+    const preFlat = length < 5000 ? 0 : options.version >= 5 ? 240 : 80,
+      postReceiver = length < 5000 ? 0 : 80;
     return {
       ...shape,
       recovery,
@@ -592,8 +606,12 @@ function createWovenCircuitBuilder(options, random, requestedShapes) {
   }
   const leftShapes = [],
     rightShapes = [];
+  const jumpSide =
+    options.version >= 5 && length >= 6500 && options.attempt === 0
+      ? Number((options.seed & 2) === 0)
+      : 0;
   for (let i = 0; i < shapes.length; i++)
-    (i % 2 ? rightShapes : leftShapes).push(shapes[i]);
+    ((i + jumpSide) % 2 ? rightShapes : leftShapes).push(shapes[i]);
   const leftLength = leftShapes.reduce((n, s) => n + s.length, 0);
   const rightLength =
     gridLength + rightShapes.reduce((n, s) => n + s.length, 0);
@@ -617,9 +635,11 @@ function createWovenCircuitBuilder(options, random, requestedShapes) {
       .normalize();
   const height = (u) =>
     base + clearanceHeight * Math.sin(TAU * u) + hill * Math.cos(TAU * 2 * u);
-  const anchors = [];
+  const octanePlan =
+    options.version >= 5 ? createOctaneRoutePlan({ ...options, waves }) : null;
+  const anchors = (octanePlan ?? []).filter(({ u }) => u !== 0 && u !== 0.5);
   const count = waves * 8;
-  for (let i = 1; i < count; i++) {
+  for (let i = 1; !octanePlan && i < count; i++) {
     const u = i / count;
     // The complete outer half-lobe is replaced by its tangent district. Its
     // neighboring crossing nodes remain explicit, so topology cannot disappear.
@@ -634,14 +654,28 @@ function createWovenCircuitBuilder(options, random, requestedShapes) {
     anchors.push({ u });
   }
   anchors.push(
-    { u: 0, length: rightLength, shapes: rightShapes, grid: gridLength },
-    { u: 0.5, length: leftLength, shapes: leftShapes, grid: 0 },
+    {
+      ...octanePlan?.find(({ u }) => u === 0),
+      u: 0,
+      length: rightLength,
+      shapes: rightShapes,
+      grid: gridLength,
+    },
+    {
+      ...octanePlan?.find(({ u }) => u === 0.5),
+      u: 0.5,
+      length: leftLength,
+      shapes: leftShapes,
+      grid: 0,
+    },
   );
   anchors.sort((a, b) => a.u - b.u);
   return (scale) => {
     const positioned = anchors.map((a) => {
-      const axis = tangent(a.u);
-      const center = plan(a.u).multiplyScalar(scale).setY(height(a.u));
+      const axis = octanePlan ? rotate(a.dx, flip * a.dz) : tangent(a.u);
+      const center = (octanePlan ? rotate(a.x, flip * a.z) : plan(a.u))
+        .multiplyScalar(scale)
+        .setY(height(a.u));
       if (a.length)
         center.addScaledVector(rotate(a.u < 0.25 ? 1 : -1, 0), a.length * 0.35);
       return {
@@ -821,7 +855,7 @@ function publicGeometry(generated, courseType) {
     y: p.position.y,
     z: p.position.z,
     bank: 0,
-    roll: 0,
+    roll: p.roll ?? 0,
   }));
   const curve = routeCurve({ points, courseType }),
     lengths = curve.getLengths(),
@@ -907,23 +941,37 @@ export function createSeededLayoutGeometry(options) {
     courseType: 'circuit',
     bendiness: 0.45,
     elevation: 0.35,
+    width: 40,
+    waterLevel: 0,
     jumpFrequency: 'normal',
     jumpSize: 'mixed',
     attempt: 0,
     ...options,
   };
-  const random = randomFor(
-    (normalized.seed ^ Math.imul(normalized.attempt, 0x9e3779b9)) >>> 0,
-  );
-  const shapes = jumpDefinitions(normalized, random);
+  const candidateSeed =
+    (normalized.seed ^ Math.imul(normalized.attempt, 0x9e3779b9)) >>> 0;
+  const random = randomFor(candidateSeed);
+  const jumpRandom =
+    normalized.version >= 5
+      ? randomFor((candidateSeed ^ 0x86d15f7a) >>> 0)
+      : random;
+  const shapes = jumpDefinitions(normalized, jumpRandom);
   const build =
     normalized.courseType === 'downhill'
       ? createDownhillBuilder(normalized, random, shapes)
       : normalized.crossovers > 0
-        ? createWovenCircuitBuilder(normalized, random, shapes)
+        ? createWovenCircuitBuilder(normalized, random, shapes, jumpRandom)
         : createCircuitBuilder(normalized, random, shapes);
+  const shapeProfile =
+    normalized.version >= 5
+      ? createHighOctaneProfile(
+          normalized,
+          randomFor((normalized.seed ^ 0xd1b54a35) >>> 0),
+        )
+      : null;
   const measure = (scale, coarse = true) => {
     const generated = build(scale);
+    shapeProfile?.(generated);
     const points = generated.points.map((p) => p.position);
     if (points.length < 4) return { length: Infinity, generated };
     const length = routeCurve(

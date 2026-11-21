@@ -6,6 +6,10 @@ const smoother = (t) => t * t * t * (10 + t * (-15 + 6 * t));
 const TAU = Math.PI * 2;
 const routeCache = new Map();
 const arcCache = new Map();
+// The assisted ramp may ease a conventional bank to neutral. Wall rides and
+// unwrapped rotations belong to the author and must stay outside that edit.
+export const isProtectedJumpRotation = (point) =>
+  Math.abs(point.roll ?? 0) >= Math.PI / 2 - 0.05;
 export function routeCurve(doc, arcDivisions = null) {
   const points = doc.points.map((p) => new T.Vector3(p.x, p.y, p.z));
   const closed = doc.courseType !== 'downhill';
@@ -186,12 +190,13 @@ export function createRouteSampler(doc) {
       fraction = p - node,
       first = doc.points[node % doc.points.length],
       next = doc.points[(node + 1) % doc.points.length];
+    const bankTrim = T.MathUtils.lerp(first.bank, next.bank, smooth(fraction));
     const bank = T.MathUtils.clamp(
       T.MathUtils.lerp(
         banks[low % count],
         banks[closed ? (low + 1) % count : Math.min(low + 1, count - 1)],
         blend,
-      ) + T.MathUtils.lerp(first.bank, next.bank, smooth(fraction)),
+      ) + bankTrim,
       -0.6,
       0.6,
     );
@@ -223,7 +228,7 @@ export function createRouteSampler(doc) {
       );
       authoredRoll += feature.turns * TAU * smoother(u);
     }
-    return { bank, authoredRoll, roll: bank + authoredRoll };
+    return { bank, bankTrim, authoredRoll, roll: bank + authoredRoll };
   }
   function sample(s) {
     const distance = wrap(s),

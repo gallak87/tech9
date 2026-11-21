@@ -249,7 +249,7 @@ try {
         );
       if (digest(JSON.stringify(applied.points)) !== roadFingerprint)
         throw new Error(`${key}: applying scenery changed the fixed road`);
-      await action('global-close');
+      await action('context-road');
       const hiding = await page.addStyleTag({
         content: `
           .workshop-strip-editor .workshop-layout {
@@ -257,9 +257,12 @@ try {
             grid-template-rows: auto minmax(0, 1fr);
           }
           .workshop-strip-editor .workshop-main { grid-column: 1; grid-row: 2; }
+          .workshop-palette { grid-column: 1; grid-row: 1; }
           .workshop-global-nav { display: flex; }
-          .workshop-global-panel, .workshop-inspector { display: none; }
-          .workshop-preview-status, .workshop-status, .workshop-empty-hint, .workshop-fly-badge { visibility: hidden; }
+          .workshop-palette .workshop-panel-heading, [data-editor-global-tools],
+          .workshop-inspector, .workshop-readiness { display: none; }
+          .workshop-preview-status, .workshop-status, .workshop-viewport-hint,
+          .workshop-empty-hint, .workshop-fly-badge { visibility: hidden; }
         `,
       });
       await ready();

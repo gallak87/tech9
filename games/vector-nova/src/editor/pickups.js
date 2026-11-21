@@ -3,7 +3,11 @@ import { createDeviceLayout } from '../pickups/layout.js';
 import { collectRoadSurfaces } from '../pickups/device-mount.js';
 import { createDeviceHardware } from '../pickups/hardware.js';
 import { disposeGroup } from '../pickups/geometry.js';
-import { validateDocument, analyzeDocument, editorRandom } from './document.js';
+import {
+  validateDocument,
+  analyzePracticeDocument,
+  editorRandom,
+} from './document.js';
 import { createEditorTrack } from './track.js';
 
 export const PICKUP_PRESETS = Object.freeze([
@@ -129,7 +133,7 @@ export function generatePickupLayout(
   if (!Number.isFinite(density) || density < 0 || density > 1)
     throw new Error('Pickup density must be between zero and one.');
   if (density === 0) return { version: 1, preset, density, devices: [] };
-  const analysis = analyzeDocument(doc);
+  const analysis = analyzePracticeDocument(doc);
   if (!analysis.valid)
     throw new Error('Finish a valid road before filling it with pickups.');
   const track = createEditorTrack(doc);

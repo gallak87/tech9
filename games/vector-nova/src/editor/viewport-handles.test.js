@@ -54,7 +54,7 @@ test('3D handles remain pickable on incomplete drafts and their visible elevatio
   assert.equal(scene.children.length, 0);
 });
 
-test('handle projection clips points behind the camera and keeps the same pixel size at different view depths', () => {
+test('handle projection clips points behind the camera and leaves the deck visible and points pickable at overview distance', () => {
   const view = new T.PerspectiveCamera(48, 1000 / 600, 0.5, 200000);
   view.position.set(0, 0, 1000);
   view.lookAt(0, 0, 0);
@@ -93,8 +93,14 @@ test('handle projection clips points behind the camera and keeps the same pixel 
       );
     pixels.push(Math.abs(b.x - a.x));
   }
-  assert.ok(Math.abs(pixels[0] - pixels[1]) < 0.001);
-  assert.ok(Math.abs(pixels[0] - 6) < 0.001);
+  assert.ok(pixels[1] < pixels[0] && pixels[0] <= 6);
+  const far = handles.getState().points[1];
+  const ray = new T.Raycaster();
+  ray.setFromCamera(
+    new T.Vector2((far.x + 5) / 500 - 1, 1 - far.y / 300),
+    view,
+  );
+  assert.deepEqual(handles.pick(ray), { kind: 'point', index: 1 });
   handles.dispose();
 });
 

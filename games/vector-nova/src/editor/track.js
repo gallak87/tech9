@@ -66,12 +66,17 @@ export function createEditorTrack(value) {
     scenarios: { staging: { distance: 0, lateral: 0, speed: 0, heading: 0 } },
   };
   track.jumps = compileEditorJumps(doc, track);
+  // Modulo around a circuit can shift a station by a few ulps. The exact
+  // launch and landing lips belong to the supported road on every lap.
+  const lipTolerance = 1e-7;
   track.isGap = (distance) => {
     const station = closed
       ? T.MathUtils.euclideanModulo(distance, length)
       : distance;
     return track.jumps.some(
-      (j) => station > j.takeoff && station < j.landingStart,
+      (j) =>
+        station > j.takeoff + lipTolerance &&
+        station < j.landingStart - lipTolerance,
     );
   };
   track.isJumpProtected = (distance) => {

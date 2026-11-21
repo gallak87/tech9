@@ -5,33 +5,46 @@ async function continueRecovery(page) {
   const control = page.locator('[data-editor-action="recover-draft"]');
   if (await control.isVisible()) await control.click();
 }
+const authorSections = new Set(['route', 'shape', 'jumps']);
+
+async function revealDock(page, name) {
+  const tab = page.locator(`[data-editor-action="dock-${name}"]`);
+  if (
+    (await tab.isVisible()) &&
+    (await tab.getAttribute('aria-pressed')) !== 'true'
+  )
+    await tab.click();
+}
+
 export async function openEditorSection(page, name) {
   await continueRecovery(page);
   const section = page.locator(`[data-editor-section="${name}"]`);
-  if (!(await section.isVisible())) {
-    if (name === 'warnings') {
-      await page.locator('[data-editor-action="toggle-warnings"]').click();
-      await section.waitFor({ state: 'visible' });
-      return section;
+  if (await section.isVisible()) return section;
+
+  const trigger = (id) => page.locator(`[data-editor-action="${id}"]`);
+  if (name === 'warnings') await trigger('toggle-warnings').click();
+  else if (name === 'library') await trigger('tab-library').click();
+  else {
+    const inspector = authorSections.has(name);
+    const scenery = name === 'world';
+    if (
+      scenery ||
+      (await trigger('context-environment').getAttribute('aria-pressed')) ===
+        'true'
+    ) {
+      await revealDock(page, 'palette');
+      await trigger(scenery ? 'context-environment' : 'context-road').click();
     }
-    if (name !== 'library') {
-      const context = page.locator(
-        `[data-editor-action="context-${name === 'world' ? 'environment' : 'road'}"]`,
-      );
-      if ((await context.getAttribute('aria-pressed')) !== 'true')
-        await context.click();
+    await revealDock(page, inspector ? 'inspector' : 'palette');
+    if (!(await section.isVisible())) {
+      if (name === 'generate' && !(await trigger('tab-generate').isVisible()))
+        await trigger('context-road').click();
+      await trigger(
+        name === 'road-home' ? 'context-road' : `tab-${name}`,
+      ).click();
     }
-    // Contexts remember their last drawer. An already-selected Environment
-    // context needs Choose scenery, while returning to a context can restore
-    // its desired group without another click (which would close it again).
-    if (!(await section.isVisible()))
-      await page
-        .locator(
-          `[data-editor-action="${name === 'world' ? 'open-environment' : `tab-${name}`}"]`,
-        )
-        .click();
-    await section.waitFor({ state: 'visible' });
   }
+  await section.waitFor({ state: 'visible' });
   return section;
 }
 
@@ -45,8 +58,18 @@ export async function revealEditorControl(control, label = 'editor control') {
       (element) =>
         element.closest('[data-editor-section]')?.dataset.editorSection,
     );
-    if (!owner) throw new Error(`${label} is hidden without an editor group.`);
-    await openEditorSection(control.page(), owner);
+    if (owner) await openEditorSection(control.page(), owner);
+    else {
+      const dock = await control.evaluate((element) =>
+        element.closest('.workshop-inspector')
+          ? 'inspector'
+          : element.closest('.workshop-palette')
+            ? 'palette'
+            : null,
+      );
+      if (!dock) throw new Error(`${label} is hidden without an editor group.`);
+      await revealDock(control.page(), dock);
+    }
   }
   const details = control.locator('xpath=ancestor::details');
   for (let i = 0; i < (await details.count()); i++) {

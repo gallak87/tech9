@@ -226,7 +226,7 @@ async function applyFamily(id, previous, canonicalRoad) {
     await pad(1);
     assert.equal((await state()).globalGroup, '');
     assert(
-      await action('context-environment').evaluate(
+      await action('context-road').evaluate(
         (el) => el === document.activeElement,
       ),
       'controller Back closes the drawer and returns visible native focus',
@@ -289,7 +289,7 @@ async function applyFamily(id, previous, canonicalRoad) {
     applied,
     `${id}: one Undo exactly restores the common road and applied world`,
   );
-  if ((await state()).globalGroup) await choose('global-close');
+  if ((await state()).globalGroup) await section('road-home');
   await choose('fit');
   await frames();
   await capture(id, 'overview');
@@ -510,7 +510,7 @@ async function responsiveFlow(common, canonicalRoad) {
       await choose('context-environment');
       assert.equal((await state()).context, 'environment');
       assert.deepEqual((await state()).preview.camera, camera);
-      if ((await state()).globalGroup) await choose('global-close');
+      if ((await state()).globalGroup) await section('road-home');
       await choose('view-map');
       assert((await state()).mapOpen);
       assert(await page.locator('[data-editor-world] canvas').isVisible());

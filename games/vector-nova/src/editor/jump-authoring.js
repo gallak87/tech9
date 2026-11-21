@@ -1,11 +1,11 @@
 import {
   addJump,
-  analyzeDocument,
+  analyzePracticeDocument,
   pointRouteFractions,
   validateDocument,
   DOCUMENT_LIMITS,
 } from './document.js';
-import { createRouteSampler } from './route.js';
+import { createRouteSampler, isProtectedJumpRotation } from './route.js';
 
 export const AUTHORING_JUMP_SIZES = Object.freeze({
   small: 180,
@@ -15,8 +15,6 @@ export const AUTHORING_JUMP_SIZES = Object.freeze({
 const copy = (value) => structuredClone(value);
 const signature = (points) => JSON.stringify(points);
 const overlap = (a, b, c, d) => a < d && b > c;
-const upright = (angle) =>
-  Math.abs(Math.atan2(Math.sin(angle), Math.cos(angle))) < 0.05;
 
 function stations(doc) {
   const fractions = pointRouteFractions(doc),
@@ -169,10 +167,7 @@ function protectCorridor(doc, start, end, receiving, route, distances) {
     doc.points.some((p, i) => {
       const next = doc.points[(i + 1) % doc.points.length];
       return (
-        (!upright(p.roll) ||
-          !upright(next.roll) ||
-          Math.abs(p.roll - next.roll) > 0.01 ||
-          Math.abs(p.bank) > 0.05) &&
+        (isProtectedJumpRotation(p) || isProtectedJumpRotation(next)) &&
         overlap(
           begin,
           finish,
@@ -315,7 +310,7 @@ export async function prepareJumpEdit(
   if (!Object.hasOwn(AUTHORING_JUMP_SIZES, size))
     throw new Error('Choose a Small, Medium or Large jump.');
   let doc = validateDocument(value);
-  const initial = analyzeDocument(doc);
+  const initial = analyzePracticeDocument(doc);
   if (!initial.valid)
     throw new Error(
       `Finish a valid road before adding a jump. ${initial.errors[0]}`,
@@ -387,11 +382,11 @@ export async function prepareJumpEdit(
       rampAssist: true,
     });
     candidate = remapFeatures(source, candidate);
-    const report = analyzeDocument(candidate);
+    const report = analyzePracticeDocument(candidate);
     if (!report.valid) throw new Error(report.errors[0]);
   } catch (error) {
     throw new Error(
-      `A safe ${size} jump does not fit here. ${error.message} Select a straighter section, or try a smaller jump.`,
+      `This ${size} jump could not be built here. ${error.message} Select a straighter section, or try a smaller jump.`,
       { cause: error },
     );
   }

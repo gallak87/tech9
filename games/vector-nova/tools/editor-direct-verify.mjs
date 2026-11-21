@@ -283,13 +283,13 @@ try {
       'Finish drawing enters road editing',
     );
     assert(
-      Number.isInteger((await state(page)).primaryIssue?.pointIndex),
+      Number.isInteger((await state(page)).focusedIssue?.pointIndex),
       'a pinched corner is identified',
     );
     await (await revealEditorAction(page, 'show-issue')).click();
     assert.equal(
       (await state(page)).selectedPoint,
-      (await state(page)).primaryIssue.pointIndex,
+      (await state(page)).focusedIssue.pointIndex,
     );
     await (await revealEditorAction(page, 'spread-road')).click();
     await ready(page);

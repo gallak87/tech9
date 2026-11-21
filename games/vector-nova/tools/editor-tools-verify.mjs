@@ -610,17 +610,17 @@ async function warningRepair(page, fixture) {
   fixture.name = 'Editor warning verification';
   await importTrack(page, fixture);
   const before = await save(page, fixture.name);
-  const issue = (await state(page)).primaryIssue;
+  const issue = (await state(page)).focusedIssue;
   assert.equal(
     issue?.kind,
     'bend',
     'the imported generated road has a tight-corner warning',
   );
-  assert.equal(await action(page, 'test').isEnabled(), false);
+  assert(await action(page, 'test').isEnabled());
   await openEditorSection(page, 'warnings');
   assert.match(
     await action(page, 'show-issue').innerText(),
-    new RegExp(`Point ${issue.pointIndex + 1}.*Tight corner`),
+    new RegExp(`Point ${issue.pointIndex + 1}.*(?:Sharp turn|Sharp crest)`),
   );
   for (const value of ['show-issue', 'smooth-corner', 'spread-road']) {
     const button = action(page, value);
@@ -740,14 +740,14 @@ async function trackChecks(page) {
   assert.match(await warnings.innerText(), /^Warnings\s+0$/);
   assert(await panel.isHidden(), 'clean tracks keep the warning panel closed');
   await importTrack(page, obstructed);
-  assert(await action(page, 'test').isDisabled());
-  assert.equal((await state(page)).primaryIssue?.kind, 'clearance');
+  assert(await action(page, 'test').isEnabled());
+  assert.equal((await state(page)).focusedIssue?.kind, 'clearance');
   assert.match(await warnings.innerText(), /Warnings\s+[1-9]/);
   assert.equal(await warnings.getAttribute('aria-expanded'), 'false');
   await warnings.focus();
   await page.keyboard.press('Enter');
   assert(await panel.isVisible());
-  assert.match(await panel.innerText(), /Before driving.*Move this road away/s);
+  assert.match(await panel.innerText(), /Driving notes.*Move this road away/s);
   assert(
     await action(page, 'show-issue').evaluate(
       (el) => el === document.activeElement,
@@ -756,22 +756,22 @@ async function trackChecks(page) {
   await page.keyboard.press('Enter');
   assert.equal(
     (await state(page)).selectedPoint,
-    (await state(page)).primaryIssue.pointIndex,
+    (await state(page)).focusedIssue.pointIndex,
   );
   await page.keyboard.press('Escape');
   assert(await panel.isHidden());
   assert(await warnings.evaluate((el) => el === document.activeElement));
 
   await action(page, 'undo').click();
-  assert(await action(page, 'test').isEnabled());
+  assert.equal((await state(page)).focusedIssue, null);
   await action(page, 'redo').click();
-  assert(await action(page, 'test').isDisabled());
+  assert.equal((await state(page)).focusedIssue?.kind, 'clearance');
 
   await (await revealEditorAction(page, 'regenerate-environment')).click();
   assert(await action(page, 'test').isEnabled());
-  assert.equal((await state(page)).primaryIssue, null);
+  assert.equal((await state(page)).focusedIssue, null);
   console.log(
-    'PASS Track Warnings disclose and locate an obstruction, with keyboard focus restored and the drive gate updated',
+    'PASS Track Warnings disclose and locate an obstruction, restore keyboard focus, and allow Practice',
   );
 }
 

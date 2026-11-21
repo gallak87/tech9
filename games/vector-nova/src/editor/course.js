@@ -1,13 +1,11 @@
 import { validateMetadata, validateDefinition } from '../levels/contract.js';
-import { validateDocument, analyzeDocument } from './document.js';
+import { validateDocument } from './document.js';
 import { editorBiome } from './biomes.js';
 import { createEditorLevel } from './nightweir.js';
 
 // Only bundled factories interpret user data. Documents never become module paths.
 export function loadEditorCourse(input) {
   const document = validateDocument(input);
-  const analysis = analyzeDocument(document);
-  if (!analysis.valid) throw new Error(analysis.errors.join(' '));
   const downhill = document.courseType === 'downhill';
   const biome = editorBiome(document.biome);
   const metadata = validateMetadata({

@@ -3,6 +3,7 @@ import { mkdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import {
   analyzeDocument,
+  analyzePracticeDocument,
   createDocument,
   validateDocument,
 } from '../src/editor/document.js';
@@ -87,12 +88,39 @@ assert.equal(
 assert(hardAnalysis.maxGrade > 1.25);
 assert.equal(hardAnalysis.primaryIssue.kind, 'grade');
 assert.equal(hardAnalysis.primaryIssue.severity, 'error');
-console.log('PASS advisory bend/climb and blocked hard-grade CPU diagnostics', {
-  length: baselineAnalysis.length,
-  minRadius: baselineAnalysis.minRadius,
-  maxGrade: baselineAnalysis.maxGrade,
-  hardGrade: hardAnalysis.maxGrade,
-});
+const tightDocument = {
+  ...document,
+  id: 'track-experimental-tight-corner',
+  name: 'Experimental 31.5 m corner',
+  width: 40,
+  points: document.points.map((point) => ({
+    ...point,
+    x: point.x * 0.696,
+    y: point.y * 0.696,
+    z: point.z * 0.696,
+  })),
+};
+const tight = analyzePracticeDocument(tightDocument);
+assert(tight.valid);
+assert.equal(tight.minRadius.toFixed(1), '31.5');
+assert.equal(analyzeDocument(tightDocument, { strict: true }).valid, false);
+assert.equal(analyzePracticeDocument(hardDocument).valid, true);
+const coincidentDocument = structuredClone(tightDocument);
+coincidentDocument.points[1] = {
+  ...coincidentDocument.points[0],
+  id: coincidentDocument.points[1].id,
+};
+assert.equal(analyzePracticeDocument(coincidentDocument).valid, false);
+console.log(
+  'PASS strict vs Practice bend, climb and coincident-point CPU diagnostics',
+  {
+    length: baselineAnalysis.length,
+    minRadius: baselineAnalysis.minRadius,
+    maxGrade: baselineAnalysis.maxGrade,
+    hardGrade: hardAnalysis.maxGrade,
+    experimentalRadius: tight.minRadius,
+  },
+);
 
 if (!process.argv.includes('--cpu-only')) await browserCheck();
 
@@ -258,9 +286,10 @@ async function browserCheck() {
         await page
           .locator('[data-editor-validation]')
           .getAttribute('data-severity'),
-        'none',
-        'dragging uses its own transient validation state',
+        'warning',
+        'the advisory report updates after releasing the point',
       );
+      assert.equal((await state(page)).preview.interaction.problemMarker, null);
     } finally {
       await page.mouse.up();
     }
@@ -521,25 +550,66 @@ async function browserCheck() {
 
     await importDocument(page, hardDocument);
     assert.deepEqual(await save(page, hardDocument.name), hardDocument);
-    assert.equal((await state(page)).primaryIssue.kind, 'grade');
-    assert.equal((await state(page)).primaryIssue.severity, 'error');
-    assert.equal(
-      await page
-        .locator('[data-editor-validation]')
-        .getAttribute('data-severity'),
-      'error',
+    assert.equal((await state(page)).primaryIssue, null);
+    assert(
+      (await state(page)).advisories.some((issue) => issue.kind === 'grade'),
     );
     assert(
+      await action(page, 'test').isEnabled(),
+      'steep climb is an advisory',
+    );
+
+    await importDocument(page, coincidentDocument);
+    assert(
       await action(page, 'test').isDisabled(),
-      'hard grade remains blocked',
+      'coincident points must be moved before driving',
     );
-    assert.doesNotMatch(
+    assert.equal((await state(page)).primaryIssue.kind, 'spacing');
+    assert.match(
       await page.locator('[data-editor-validation]').textContent(),
-      /Ready to (?:test )?drive|Road checks passed/,
+      /distinct positions/,
     );
-    await warningsFit(page);
-    await capture(page, 'hard-climb-blocked.png');
-    console.log('PASS genuinely unsafe climb still blocks Test drive');
+
+    await importDocument(page, tightDocument);
+    assert(await action(page, 'test').isEnabled());
+    assert.match(
+      await page.locator('[data-editor-validation]').textContent(),
+      /31\.5 m/,
+    );
+    await choose(page, 'test');
+    await page.waitForFunction(
+      () => window.__VN?.getEditorTestAttempt?.()?.request.kind === 'course',
+      null,
+      { timeout: 90000 },
+    );
+    assert.equal(await page.evaluate(() => window.__VN.getTrack().width), 40);
+    await page.keyboard.down('w');
+    try {
+      await page.waitForFunction(
+        () => window.__VN.getSnapshot().vehicle.distance > 20,
+        null,
+        { timeout: 15000 },
+      );
+    } finally {
+      await page.keyboard.up('w');
+    }
+    await page.keyboard.press('Escape');
+    await page.locator('#home').click();
+    await ready(page);
+    assert(await action(page, 'test').isEnabled());
+    await openEditorSection(page, 'route');
+    await choose(page, 'test-point');
+    await page.waitForFunction(
+      () => window.__VN?.getEditorTestAttempt?.()?.request.kind === 'point',
+      null,
+      { timeout: 90000 },
+    );
+    await page.keyboard.press('Escape');
+    await page.locator('#home').click();
+    await ready(page);
+    console.log(
+      'PASS 31.5 m bend on a 40 m road drives in Practice from course start and from a point',
+    );
 
     if (responsive) {
       await importDocument(page, baseline);

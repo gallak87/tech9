@@ -22,7 +22,7 @@ import {
 } from '../physics/collision-world.js';
 import {
   validateDocument,
-  analyzeDocument,
+  assertEditorPracticeReady,
   documentIdentity,
   editorRandom,
 } from './document.js';
@@ -1378,9 +1378,8 @@ export function createEditorCollisionWorld(doc, track) {
 }
 
 export function createEditorLevel(value) {
-  const doc = validateDocument(value),
-    analysis = analyzeDocument(doc);
-  if (!analysis.valid) throw new Error(analysis.errors.join(' '));
+  const doc = validateDocument(value);
+  assertEditorPracticeReady(doc);
   return {
     version: `editor-${doc.biome}-regional-v1`,
     renderer: {

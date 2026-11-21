@@ -5,9 +5,12 @@ import {
   generateDocument,
   editorRoadLimits,
   analyzeDocument as analyze,
+  analyzePracticeDocument,
   pointRouteFraction,
   pointRouteFractions,
 } from './document.js';
+import { loadEditorCourse } from './course.js';
+import { resolveEditorTestStart } from './test-drive.js';
 
 const analyzeDocument = (doc) => analyze(doc, { strict: true });
 
@@ -237,6 +240,49 @@ test('grade, rotated-deck clearance, rotation and crossing errors each identify 
   assert.equal(crossing.primaryIssue.kind, 'crossing');
   assert.equal(crossing.primaryIssue.label, 'Separate these road sections');
   assertSpan(crossing.primaryIssue, crossing.length);
+
+  for (const [course, kind] of [
+    [grade, 'grade'],
+    [wet, 'clearance'],
+    [scenery, 'clearance'],
+    [rolled, 'rotation'],
+    [crossed, 'crossing'],
+  ]) {
+    const practice = analyzePracticeDocument(course);
+    assert(practice.valid, practice.errors.join(' '));
+    const advisory = practice.advisories.find((issue) => issue.kind === kind);
+    assert(advisory, `${kind} should be an advisory`);
+    assertSpan(advisory, practice.length);
+  }
+});
+
+test('Practice, the course compiler and native start agree on supported geometry', () => {
+  const doc = loop();
+  assert.equal(analyzeDocument(doc).valid, false);
+  assert.equal(analyzePracticeDocument(doc).valid, true);
+  assert.doesNotThrow(() => loadEditorCourse(doc).definition.createTrack());
+  assert.equal(resolveEditorTestStart(doc).distance, 0);
+
+  const attached = structuredClone(doc);
+  attached.jumps = [
+    { id: 'first-gap', start: 0.2, end: 0.4, receiving: 300 },
+    { id: 'second-gap', start: 0.45, end: 0.65, receiving: 300 },
+  ];
+  assert.equal(analyzePracticeDocument(attached).primaryIssue.kind, 'jump');
+  assert.throws(() => loadEditorCourse(attached), /separate launch/);
+  assert.throws(() => resolveEditorTestStart(attached), /separate launch/);
+
+  const overlapping = structuredClone(doc);
+  Object.assign(overlapping.points[1], { x: 0, y: 52, z: 0 });
+  assert.equal(
+    analyzePracticeDocument(overlapping).primaryIssue.kind,
+    'spacing',
+  );
+  assert.throws(() => loadEditorCourse(overlapping), /distinct positions/);
+  assert.throws(
+    () => resolveEditorTestStart(overlapping),
+    /distinct positions/,
+  );
 });
 
 test('bulk point fractions exactly match individual queries for loops and long descents with anchored gaps', () => {

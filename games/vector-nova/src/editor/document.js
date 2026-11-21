@@ -760,8 +760,23 @@ export function createDocument({
   return doc;
 }
 
-/** Draft files may be saved; only a complete, clear driving loop can be tested. */
+/** Course design checks, including the tighter limits used by generation. */
 export function analyzeDocument(value, { strict = false } = {}) {
+  return analyzeCourse(value, { strict, practice: false });
+}
+
+/** Practice accepts experimental geometry when the course can be constructed. */
+export function analyzePracticeDocument(value) {
+  return analyzeCourse(value, { strict: false, practice: true });
+}
+
+export function assertEditorPracticeReady(value) {
+  const report = analyzePracticeDocument(value);
+  if (!report.valid) throw new Error(report.errors.join(' '));
+  return report;
+}
+
+function analyzeCourse(value, { strict, practice }) {
   let doc;
   try {
     doc = validateDocument(value);
@@ -782,6 +797,12 @@ export function analyzeDocument(value, { strict = false } = {}) {
   }
   const errors = [],
     warnings = [];
+  const hazardSeverity = practice ? 'warning' : 'error';
+  function reportHazard(message, blocking = false) {
+    const severity = blocking ? 'error' : hazardSeverity;
+    (severity === 'error' ? errors : warnings).push(message);
+    return { severity };
+  }
   const issues = [];
   const limits = editorRoadLimits(doc.width, { strict });
   let primaryIssue = null,
@@ -812,6 +833,7 @@ export function analyzeDocument(value, { strict = false } = {}) {
         message: 'Add at least four road points before you test drive.',
       },
     };
+  let closePointsReported = false;
   for (
     let i = 0;
     i < doc.points.length - (doc.courseType === 'downhill' ? 1 : 0);
@@ -819,17 +841,28 @@ export function analyzeDocument(value, { strict = false } = {}) {
   ) {
     const a = doc.points[i],
       b = doc.points[(i + 1) % doc.points.length];
-    if (Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z) < 30) {
-      errors.push('Neighboring road points must be at least 30 m apart.');
-      const pointIndex = (i + 1) % doc.points.length;
-      recordIssue(2, {
-        kind: 'spacing',
-        pointIndex,
-        label: 'Move these points apart',
-        message: `Move point ${pointIndex + 1} at least 30 m from its neighbor.`,
-      });
-      break;
-    }
+    const separation = Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+    const coincident = separation < 0.01;
+    if (separation >= 30 || (closePointsReported && !coincident)) continue;
+    const pointIndex = (i + 1) % doc.points.length;
+    const message =
+      practice && coincident
+        ? 'Neighboring points need distinct positions to form a road.'
+        : `Move point ${pointIndex + 1} at least 30 m from its neighbor.`;
+    recordIssue(2, {
+      ...reportHazard(
+        practice
+          ? message
+          : 'Neighboring road points must be at least 30 m apart.',
+        coincident,
+      ),
+      kind: 'spacing',
+      pointIndex,
+      label: 'Move these points apart',
+      message,
+    });
+    if (errors.length) break;
+    closePointsReported = true;
   }
   if (errors.length)
     return {
@@ -891,49 +924,52 @@ export function analyzeDocument(value, { strict = false } = {}) {
   let previousEnd = -1;
   for (const jump of jumps) {
     if (jump.takeoff < 160) {
-      errors.push(
-        'Leave at least 160 m of supported road before the first launch.',
-      );
       issueAt(
         7,
         'jump',
         'Move this launch farther along',
         'Leave at least 160 m of supported approach before this launch.',
         jump.takeoff,
+        reportHazard(
+          'Leave at least 160 m of supported road before the first launch.',
+          jump.takeoff <= 0,
+        ),
       );
     }
     if (jump.landingStart - jump.takeoff < 30) {
-      errors.push('A jump gap must be at least 30 m long.');
       issueAt(
         7,
         'jump',
         'Lengthen this gap',
         'Move the landing at least 30 m beyond the launch.',
         jump.landingStart,
+        reportHazard('A jump gap must be at least 30 m long.'),
       );
     }
     if (jump.takeoff <= previousEnd + 80) {
-      errors.push(
-        'Jumps need separate launch and receiving runs with at least 80 m between them.',
-      );
       issueAt(
         7,
         'jump',
         'Separate these jumps',
         'Leave at least 80 m between the previous receiver and this launch.',
         jump.takeoff,
+        reportHazard(
+          'Jumps need separate launch and receiving runs with at least 80 m between them.',
+          jump.takeoff <= previousEnd,
+        ),
       );
     }
     if (jump.recovery >= finishDistance - 40) {
-      errors.push(
-        'Leave the whole receiving deck before the finish and its runout.',
-      );
       issueAt(
         7,
         'jump',
         'Move this landing earlier',
         'Leave the complete receiving deck before the finish and braking runout.',
         jump.landingStart,
+        reportHazard(
+          'Leave the whole receiving deck before the finish and its runout.',
+          jump.recovery >= finishDistance,
+        ),
       );
     }
     previousEnd = jump.recovery;
@@ -967,9 +1003,6 @@ export function analyzeDocument(value, { strict = false } = {}) {
     }
   }
   if (maxBankRate > 0.008) {
-    errors.push(
-      'A bank adjustment changes too quickly. Spread it over more road.',
-    );
     issueAt(
       6,
       'rotation',
@@ -977,6 +1010,9 @@ export function analyzeDocument(value, { strict = false } = {}) {
       (i) => `Spread the bank adjustment around point ${i + 1} over more road.`,
       fractionForPoint(doc.points, doc.courseType, worstBankPoint, curve) *
         length,
+      reportHazard(
+        'A bank adjustment changes too quickly. Spread it over more road.',
+      ),
     );
   }
   for (let i = 0; i < count; i++) {
@@ -1013,7 +1049,7 @@ export function analyzeDocument(value, { strict = false } = {}) {
     }
   }
   if (maxGrade > EDITOR_ROAD_GUIDANCE.grade) {
-    const blocked = maxGrade > limits.grade;
+    const blocked = !practice && maxGrade > limits.grade;
     if (blocked)
       errors.push(
         'A climb is too steep. Spread the height change over more road.',
@@ -1038,7 +1074,7 @@ export function analyzeDocument(value, { strict = false } = {}) {
     );
   }
   if (minRadius < EDITOR_ROAD_GUIDANCE.radius) {
-    const blocked = minRadius < limits.radius;
+    const blocked = !practice && minRadius < limits.radius;
     if (blocked)
       errors.push(
         'A bend is too tight. Widen the corner or move its road points apart.',
@@ -1123,9 +1159,6 @@ export function analyzeDocument(value, { strict = false } = {}) {
     }
   }
   if (minDeckHeight < doc.settings.waterLevel + 4) {
-    errors.push(
-      'Raise the road or lower the basin water. The whole rotated deck needs at least 4 m of water clearance.',
-    );
     issueAt(
       3,
       'clearance',
@@ -1133,12 +1166,12 @@ export function analyzeDocument(value, { strict = false } = {}) {
       (i) =>
         `Raise point ${i + 1} so the entire rotated deck stays clear of the basin water.`,
       worstClearance,
+      reportHazard(
+        'Raise the road or lower the basin water. The whole rotated deck needs at least 4 m of water clearance.',
+      ),
     );
   }
   if (maxRollRate > 0.025) {
-    errors.push(
-      'A road rotation changes too quickly. Lengthen the shaped section or use a smaller angle.',
-    );
     issueAt(
       6,
       'rotation',
@@ -1146,12 +1179,12 @@ export function analyzeDocument(value, { strict = false } = {}) {
       (i) =>
         `Spread the angle change around point ${i + 1} over a longer section.`,
       worstRotation,
+      reportHazard(
+        'A road rotation changes too quickly. Lengthen the shaped section or use a smaller angle.',
+      ),
     );
   }
   if (maxFrameRate > 0.06) {
-    errors.push(
-      'A road connection twists or bends too sharply. Spread the shape over more road.',
-    );
     issueAt(
       6,
       'rotation',
@@ -1159,6 +1192,9 @@ export function analyzeDocument(value, { strict = false } = {}) {
       (i) =>
         `Spread the bend or rotation around point ${i + 1} over more road.`,
       worstFrame,
+      reportHazard(
+        'A road connection twists or bends too sharply. Spread the shape over more road.',
+      ),
     );
   }
   if (route.rollClosure && !route.rollClosure.valid)
@@ -1213,6 +1249,9 @@ export function analyzeDocument(value, { strict = false } = {}) {
               (i) =>
                 `Move point ${i + 1} away from the nearby road, or leave more height clearance.`,
               (i * length) / count,
+              reportHazard(
+                'Two road sections are too close for their rotated road and driving corridor. Leave more space or height clearance.',
+              ),
             );
             break;
           }
@@ -1222,10 +1261,6 @@ export function analyzeDocument(value, { strict = false } = {}) {
     if (!buckets.has(key)) buckets.set(key, []);
     buckets.get(key).push(i);
   }
-  if (crossing)
-    errors.push(
-      'Two road sections are too close for their rotated road and driving corridor. Leave more space or height clearance.',
-    );
   const placedProps = [];
   for (const prop of doc.props) {
     const frame = curve.getPointAt(prop.distance);
@@ -1242,10 +1277,10 @@ export function analyzeDocument(value, { strict = false } = {}) {
           p.radius + radius,
       )
     ) {
-      errors.push(
-        `Move ${prop.id} away from the other placed scenery assembly.`,
-      );
       recordIssue(9, {
+        ...reportHazard(
+          `Move ${prop.id} away from the other placed scenery assembly.`,
+        ),
         kind: 'scenery',
         pointIndex: null,
         label: 'Choose another world preset',
@@ -1264,7 +1299,6 @@ export function analyzeDocument(value, { strict = false } = {}) {
       return touches;
     });
     if (touchesRoad) {
-      errors.push(`Move ${prop.id} farther from the road and camera corridor.`);
       issueAt(
         3,
         'clearance',
@@ -1272,6 +1306,9 @@ export function analyzeDocument(value, { strict = false } = {}) {
         (i) =>
           `Move point ${i + 1} away from the scenery, or choose another world preset.`,
         (blockedSample * length) / count,
+        reportHazard(
+          `Move ${prop.id} farther from the road and camera corridor.`,
+        ),
       );
     }
   }

@@ -1,5 +1,6 @@
 import { getShip } from '../ships/catalog.js';
 import {
+  assertEditorPracticeReady,
   documentIdentity,
   pointRouteFractions,
   validateDocument,
@@ -69,6 +70,7 @@ export function resolveEditorTestStart(
 ) {
   const doc = validateDocument(value);
   const request = normalizeEditorTestRequest(input);
+  if (!suppliedTrack) assertEditorPracticeReady(doc);
   const track = suppliedTrack ?? createEditorTrack(doc);
   const ship = getShip(shipId);
   const speed =

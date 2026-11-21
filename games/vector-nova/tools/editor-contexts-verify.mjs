@@ -366,7 +366,9 @@ async function waterClearanceCheck(page) {
   await choose(page, 'regenerate-environment');
   await ready(page);
   const applied = await save(page),
-    issue = (await state(page)).primaryIssue;
+    issue = (await state(page)).advisories.find(
+      (issue) => issue.kind === 'clearance',
+    );
   assert.equal(applied.settings.waterLevel, -20);
   assert.deepEqual(
     road(applied),
@@ -375,8 +377,8 @@ async function waterClearanceCheck(page) {
   );
   assert.equal(
     await action(page, 'test').isEnabled(),
-    false,
-    'applied higher water invalidates the previously cached clearance',
+    true,
+    'applied higher water warrants advice and still allows Practice',
   );
   assert.equal(issue?.kind, 'clearance');
   assert(
@@ -391,9 +393,11 @@ async function waterClearanceCheck(page) {
   await ready(page);
   assert(
     await action(page, 'test').isEnabled(),
-    'Undo restores low water and clears the stale invalid state',
+    'Undo restores low water and clears the warning',
   );
-  assert.notEqual((await state(page)).primaryIssue?.kind, 'clearance');
+  assert(
+    !(await state(page)).advisories.some((issue) => issue.kind === 'clearance'),
+  );
   assert.deepEqual(
     await save(page),
     before,
@@ -401,7 +405,7 @@ async function waterClearanceCheck(page) {
   );
   assert.deepEqual(errors, []);
   console.log(
-    'PASS public water-preset clearance invalidation, located warning and exact valid Undo without road edits',
+    'PASS applied water-preset warning preserves Practice and Undo exactly restores the road',
   );
 }
 

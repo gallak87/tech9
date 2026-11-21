@@ -5,7 +5,7 @@ import {
   createDocument,
   generateDocumentAsync,
   validateDocument,
-  analyzeDocument,
+  analyzePracticeDocument,
   DOCUMENT_LIMITS,
   DOWNHILL_RUNOUT,
   applySectionShape,
@@ -212,7 +212,7 @@ export function createTrackEditor(
   function analysisFor() {
     const revision = dragBefore ?? doc;
     if (!analysisCache.has(revision))
-      analysisCache.set(revision, analyzeDocument(revision));
+      analysisCache.set(revision, analyzePracticeDocument(revision));
     return analysisCache.get(revision);
   }
   function fractionsFor(value = doc) {
@@ -1099,8 +1099,12 @@ export function createTrackEditor(
       : null;
   }
   function testStart(request) {
+    const analysis = analysisFor();
+    if (!analysis.valid)
+      return { error: analysis.primaryIssue?.message ?? analysis.errors[0] };
     try {
-      return { plan: resolveEditorTestStart(doc, request, { shipId }) };
+      const track = createEditorTrack(doc);
+      return { plan: resolveEditorTestStart(doc, request, { shipId, track }) };
     } catch (error) {
       return { error: error.message };
     }
@@ -1108,7 +1112,6 @@ export function createTrackEditor(
   function renderLocalTestControls(kind) {
     if (kind === 'jump' && !selectedJumpId) return '';
     const { plan, error } = testStart(testRequest(kind));
-    const available = Boolean(plan) && analysisFor().valid;
     const summary = plan ? getEditorTestStartSummary(plan) : error;
     const controls = `<label class="workshop-label">Entry speed<select data-editor-field="${kind === 'jump' ? 'test-entry-speed' : 'point-test-entry-speed'}" aria-label="${kind === 'jump' ? 'Test entry speed' : 'Point test entry speed'}">${[
       ['cruise', 'Full cruise'],
@@ -1127,7 +1130,7 @@ export function createTrackEditor(
       .join(
         '',
       )}</select></label><p class="workshop-help">${escape(summary)}. R retries this approach.</p>`;
-    return `<div class="workshop-local-test">${button(kind === 'jump' ? 'test-jump' : 'test-point', kind === 'jump' ? 'Test this jump' : 'Test from here', `class="workshop-wide" ${available ? '' : 'disabled'}`)}${details(`test-${kind}`, 'Test options', controls)}</div>`;
+    return `<div class="workshop-local-test">${button(kind === 'jump' ? 'test-jump' : 'test-point', kind === 'jump' ? 'Test this jump' : 'Test from here', `class="workshop-wide" ${plan ? '' : 'disabled'}`)}${details(`test-${kind}`, 'Test options', controls)}</div>`;
   }
 
   function renderPickups() {
@@ -1963,7 +1966,7 @@ export function createTrackEditor(
         rangeEnd = selected;
 
         tool = 'move';
-        const report = analyzeDocument(next);
+        const report = analyzePracticeDocument(next);
         commit(
           next,
           `Corner near point ${selected + 1} smoothed. ${report.valid ? `Ready to test drive.${report.advisories?.length ? ` Warning: ${report.advisories[0].message}` : ''}` : `Next: ${report.primaryIssue?.message ?? report.errors[0]}`} Undo restores your road.`,

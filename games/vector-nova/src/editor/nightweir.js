@@ -1369,11 +1369,16 @@ export function createEditorCollisionWorld(doc, track) {
   const environment = createEditorEnvironment(doc, track, { collectSolid });
   road.dispose();
   environment.dispose();
+  const denseRoad = track.hasAuthoredRoll;
   return createCollisionWorld({
     id: track.id + '-solids',
     version: 3,
     geometryId: track.geometryVersion,
     triangles,
+    // Native Practice uses Rapier. For dense routes, reuse the extraction
+    // arrays and build a CPU sweep index only if a legacy caller needs it.
+    deferSweepIndex: denseRoad,
+    adoptTriangles: denseRoad,
   });
 }
 

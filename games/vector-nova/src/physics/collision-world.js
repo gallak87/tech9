@@ -125,19 +125,42 @@ function candidates(node, bounds, result) {
   }
 }
 
-// Level factories provide asset-free triangle data. The immutable world owns
-// only its acceleration index, never a racer state or presentation resources.
-export function createCollisionWorld({ id, version, geometryId, triangles }) {
-  if (
-    !id ||
-    !Number.isInteger(version) ||
-    !geometryId ||
-    !Array.isArray(triangles)
-  )
-    throw new Error(
-      'Collision world requires identity and authored triangles.',
-    );
-  const shapes = [];
+function makeSweepShape(triangle) {
+  const points = triangle.points.map((point) => new T.Vector3(...point));
+  const edges = [
+    points[1].clone().sub(points[0]),
+    points[2].clone().sub(points[1]),
+    points[0].clone().sub(points[2]),
+  ];
+  const bounds = new T.Box3().setFromPoints(points);
+  return {
+    points,
+    edges,
+    normal: edges[0].clone().cross(edges[1]).normalize(),
+    bounds,
+    center: bounds.getCenter(new T.Vector3()),
+    order: triangle.order,
+    info: Object.freeze({ ...triangle, points: undefined }),
+  };
+}
+
+function validateTriangles(triangles, adoptTriangles) {
+  const result = adoptTriangles ? triangles : [];
+  const copiedPoints = new WeakMap();
+  let kept = 0;
+  function immutablePoint(point) {
+    let copy = copiedPoints.get(point);
+    if (!copy) {
+      copy = Object.freeze(new T.Vector3(...point).toArray());
+      if (!copy.every(Number.isFinite))
+        throw new Error('Invalid collision triangle.');
+      copiedPoints.set(point, copy);
+    }
+    return copy;
+  }
+  const a = new T.Vector3(),
+    b = new T.Vector3(),
+    c = new T.Vector3();
   for (const [order, triangle] of triangles.entries()) {
     const range =
       Number.isFinite(triangle.start) &&
@@ -165,50 +188,72 @@ export function createCollisionWorld({ id, version, geometryId, triangles }) {
         ))
     )
       throw new Error('Invalid collision road coordinates.');
-    const points = triangle.points.map((point) => new T.Vector3(...point));
+    const points = adoptTriangles
+      ? triangle.points
+      : triangle.points.map(immutablePoint);
     if (
       points.length !== 3 ||
-      points.some((point) => !point.toArray().every(Number.isFinite))
+      (adoptTriangles &&
+        points.some(
+          (point) => point.length !== 3 || !point.every(Number.isFinite),
+        ))
     )
       throw new Error('Invalid collision triangle.');
-    const edges = [
-      points[1].clone().sub(points[0]),
-      points[2].clone().sub(points[1]),
-      points[0].clone().sub(points[2]),
-    ];
-    const normal = edges[0].clone().cross(edges[1]);
-    if (normal.lengthSq() < EPS) continue;
-    const bounds = new T.Box3().setFromPoints(points);
-    shapes.push({
-      points,
-      edges,
-      normal: normal.normalize(),
-      bounds,
-      center: bounds.getCenter(new T.Vector3()),
-      order,
-      info: Object.freeze({ ...triangle, points: undefined, order }),
-    });
+    a.fromArray(points[0]);
+    b.fromArray(points[1]);
+    c.fromArray(points[2]);
+    c.sub(b);
+    b.sub(a);
+    if (b.cross(c).lengthSq() < EPS) continue;
+    if (adoptTriangles) {
+      for (const point of points) {
+        if (!Object.isFrozen(point)) Object.freeze(point);
+      }
+      triangle.points = Object.freeze(points);
+      triangle.order = order;
+      result[kept++] = Object.freeze(triangle);
+    } else {
+      result.push(
+        Object.freeze({ ...triangle, points: Object.freeze(points), order }),
+      );
+    }
   }
-  let root = tree([...shapes]);
+  if (adoptTriangles) result.length = kept;
+  return Object.freeze(result);
+}
+
+// Level factories provide asset-free triangle data. The immutable world owns
+// only its acceleration index, never a racer state or presentation resources.
+export function createCollisionWorld({
+  id,
+  version,
+  geometryId,
+  triangles,
+  deferSweepIndex = false,
+  adoptTriangles = false,
+}) {
+  if (
+    !id ||
+    !Number.isInteger(version) ||
+    !geometryId ||
+    !Array.isArray(triangles)
+  )
+    throw new Error(
+      'Collision world requires identity and authored triangles.',
+    );
+  // Preserve triangle order so a Rapier subshape maps back to route metadata.
+  const validated = validateTriangles(triangles, adoptTriangles);
+  let root = deferSweepIndex ? null : tree(validated.map(makeSweepShape));
+  let disposed = false;
   return Object.freeze({
     id,
     version,
     rulesId: `${geometryId}:${JSON.stringify(COLLISION_RULES)}`,
-    triangleCount: shapes.length,
-    // The dynamics backend consumes these validated, immutable authored vertices.
-    // Preserve triangle order so a trimesh subshape maps back to route metadata.
-    triangles: Object.freeze(
-      shapes.map((shape) =>
-        Object.freeze({
-          ...shape.info,
-          points: Object.freeze(
-            shape.points.map((point) => Object.freeze(point.toArray())),
-          ),
-        }),
-      ),
-    ),
+    triangleCount: validated.length,
+    triangles: validated,
     sweepHull(before, after, hull = VEHICLE_HULL) {
-      if (!root) return null;
+      if (disposed) return null;
+      root ??= tree(validated.map(makeSweepShape));
       const radius = Math.hypot(hull.halfWidth, hull.hover, hull.halfLength);
       const bounds = new T.Box3()
         .setFromPoints([before.position, after.position])
@@ -243,6 +288,7 @@ export function createCollisionWorld({ id, version, geometryId, triangles }) {
       return null;
     },
     dispose() {
+      disposed = true;
       root = null;
     },
   });
@@ -255,31 +301,30 @@ export function indexedTriangles(
   matrix = null,
   roadCoord = null,
 ) {
-  const points = [];
+  const points = [],
+    coordinates = [];
+  const point = new T.Vector3();
   for (let i = 0; i < positions.length; i += 3) {
-    const point = new T.Vector3().fromArray(positions, i);
+    point.fromArray(positions, i);
     if (matrix) point.applyMatrix4(matrix);
     points.push(point.toArray());
+    if (roadCoord)
+      coordinates.push([roadCoord.getX(i / 3), roadCoord.getY(i / 3)]);
   }
-  return Array.from({ length: indices.length / 3 }, (_, i) => ({
-    ...info,
-    ...(roadCoord
-      ? {
-          roadCoordinates: [0, 1, 2].map((n) => [
-            roadCoord.getX(indices[i * 3 + n]),
-            roadCoord.getY(indices[i * 3 + n]),
-          ]),
-          distance:
-            [0, 1, 2].reduce(
-              (sum, n) => sum + roadCoord.getX(indices[i * 3 + n]),
-              0,
-            ) / 3,
-        }
-      : {}),
-    points: [
-      points[indices[i * 3]],
-      points[indices[i * 3 + 1]],
-      points[indices[i * 3 + 2]],
-    ],
-  }));
+  return Array.from({ length: indices.length / 3 }, (_, i) => {
+    const a = indices[i * 3],
+      b = indices[i * 3 + 1],
+      c = indices[i * 3 + 2];
+    return {
+      ...info,
+      ...(roadCoord
+        ? {
+            roadCoordinates: [coordinates[a], coordinates[b], coordinates[c]],
+            distance:
+              (coordinates[a][0] + coordinates[b][0] + coordinates[c][0]) / 3,
+          }
+        : {}),
+      points: [points[a], points[b], points[c]],
+    };
+  });
 }

@@ -66,14 +66,13 @@ export function createRoadSurface(triangles) {
       return vertex;
     });
     const face = {
-      source,
       a,
       ds1,
       ds2,
       dx1,
       dx2,
       determinant,
-      points,
+      origin: points[0],
       along,
       across,
       smooth,
@@ -101,11 +100,18 @@ export function createRoadSurface(triangles) {
     vertex.along.divideScalar(vertex.weight);
     vertex.across.divideScalar(vertex.weight);
   }
-  for (const face of faces)
-    face.owners = Object.freeze([
+  const ownerLists = new Map();
+  for (const face of faces) {
+    const owners = [
       ...new Set(face.smooth.flatMap((vertex) => [...vertex.owners])),
-    ]);
+    ];
+    const key = JSON.stringify(owners);
+    if (!ownerLists.has(key)) ownerLists.set(key, Object.freeze(owners));
+    face.owners = ownerLists.get(key);
+  }
+  for (const vertex of vertices.values()) vertex.owners = null;
   vertices.clear();
+  faces.length = 0;
   const sample = (distance, lateral, reference) => {
     let result = null,
       nearest = Infinity,
@@ -119,7 +125,7 @@ export function createRoadSurface(triangles) {
       const u = (s * f.dx2 - x * f.ds2) / f.determinant;
       const v = (x * f.ds1 - s * f.dx1) / f.determinant;
       if (u < -1e-5 || v < -1e-5 || u + v > 1 + 1e-5) continue;
-      const position = f.points[0]
+      const position = f.origin
         .clone()
         .addScaledVector(f.along, s)
         .addScaledVector(f.across, x);
@@ -185,7 +191,6 @@ export function createRoadSurface(triangles) {
   };
   sample.dispose = () => {
     cells.clear();
-    faces.length = 0;
   };
   return sample;
 }

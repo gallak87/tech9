@@ -145,16 +145,16 @@ export async function createRapierWorld({
     // Only dense, extensive meshes benefit from partitioning. Keep primitive
     // boxes and large coarse faces intact, including their edge topology.
     const bounds = new T.Box3();
+    const face = new T.Box3();
+    const point = new T.Vector3();
     let largestFace = 0;
     for (const triangle of triangles) {
-      const face = new T.Box3();
-      for (const point of triangle.points)
-        face.expandByPoint(new T.Vector3(...point));
+      face.makeEmpty();
+      for (const vertex of triangle.points)
+        face.expandByPoint(point.fromArray(vertex));
       bounds.union(face);
-      largestFace = Math.max(
-        largestFace,
-        ...face.getSize(new T.Vector3()).toArray(),
-      );
+      face.getSize(point);
+      largestFace = Math.max(largestFace, point.x, point.y, point.z);
     }
     const size = RAPIER_RULES.staticCellSize;
     if (
@@ -214,8 +214,12 @@ export async function createRapierWorld({
     const vertices = new Float32Array(triangles.length * 9),
       indices = new Uint32Array(triangles.length * 3);
     triangles.forEach((t, i) => {
-      vertices.set(t.points.flat(), i * 9);
-      indices.set([i * 3, i * 3 + 1, i * 3 + 2], i * 3);
+      vertices.set(t.points[0], i * 9);
+      vertices.set(t.points[1], i * 9 + 3);
+      vertices.set(t.points[2], i * 9 + 6);
+      indices[i * 3] = i * 3;
+      indices[i * 3 + 1] = i * 3 + 1;
+      indices[i * 3 + 2] = i * 3 + 2;
     });
     const collider = engine.createCollider(
       RAPIER.ColliderDesc.trimesh(
@@ -233,11 +237,20 @@ export async function createRapierWorld({
         ...triangles.flatMap((t) => t.roadCoordinates.map((p) => p[0])),
       ),
     };
-    const faces = triangles.map(
-      (t) => new T.Triangle(...t.points.map((p) => new T.Vector3(...p))),
-    );
     const motionGroup = motionGroups.get(triangles[0].motionGroup);
-    const entry = { collider, triangles, faces, road, motionGroup };
+    let faces;
+    const entry = {
+      collider,
+      triangles,
+      // These exact faces are only needed for contacts with this local batch.
+      get faces() {
+        return (faces ??= triangles.map(
+          (t) => new T.Triangle(...t.points.map((p) => new T.Vector3(...p))),
+        ));
+      },
+      road,
+      motionGroup,
+    };
     statics.set(collider.handle, entry);
     motionGroup?.entries.push(entry);
   }

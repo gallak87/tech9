@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as T from 'three';
+import { createCollisionWorld } from '../src/physics/collision-world.js';
 import {
   createRapierWorld,
   RAPIER_RULES,
@@ -18,6 +19,67 @@ const near = (actual, expected, tolerance = 1e-4) =>
     Math.abs(actual - expected) <= tolerance,
     `${actual} ~= ${expected}`,
   );
+
+test('query-first worlds keep exact face metadata and legacy sweep results', () => {
+  const corner = [-20, 0, -20];
+  const triangles = [
+    {
+      id: 'deck',
+      kind: 'deck',
+      start: 0,
+      end: 40,
+      points: [corner, [-20, 0, 20], [20, 0, -20]],
+      roadCoordinates: [
+        [0, -20],
+        [40, -20],
+        [0, 20],
+      ],
+    },
+    {
+      id: 'zero-area',
+      kind: 'structure',
+      points: [corner, corner, corner],
+    },
+    {
+      id: 'deck',
+      kind: 'deck',
+      start: 0,
+      end: 40,
+      points: [
+        [20, 0, -20],
+        [-20, 0, 20],
+        [20, 0, 20],
+      ],
+      roadCoordinates: [
+        [0, 20],
+        [40, -20],
+        [40, 20],
+      ],
+    },
+  ];
+  const source = { id: 'indexed-road', version: 3, geometryId: 'demo' };
+  const eager = createCollisionWorld({ ...source, triangles });
+  const staged = createCollisionWorld({
+    ...source,
+    triangles: structuredClone(triangles),
+    adoptTriangles: true,
+    deferSweepIndex: true,
+  });
+  assert.equal(staged.rulesId, eager.rulesId);
+  assert.deepEqual(staged.triangles, eager.triangles);
+  assert.deepEqual(
+    staged.triangles.map(({ order }) => order),
+    [0, 2],
+  );
+  const a = pose(new T.Vector3(-5, 8, -5)),
+    b = pose(new T.Vector3(-5, -8, -5));
+  const expected = eager.sweepHull(a, b);
+  assert(expected);
+  assert.deepEqual(staged.sweepHull(a, b), expected);
+  staged.dispose();
+  eager.dispose();
+  assert.equal(staged.sweepHull(a, b), null);
+});
 
 test('staged forces cover the entire shared tick exactly once and clear before the next tick', async (t) => {
   const world = await createRapierWorld({ gravity: 26 });

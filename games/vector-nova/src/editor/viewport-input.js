@@ -32,6 +32,7 @@ export function bindEditorViewportInput(
 ) {
   const life = new AbortController();
   const raycaster = new T.Raycaster();
+  const clickSlop = 4;
   const tools = new Set(['select', 'draw', 'move', 'height', 'orbit', 'pan']);
   const currentTool = () => {
     const selection = getSelection();
@@ -150,7 +151,12 @@ export function bindEditorViewportInput(
         (event.button === 2 && event.shiftKey) ||
         (event.button === 0 && !space && !isFlying() && tool === 'pan')
       ) {
-        gesture = { ...common, kind: 'pan', camera: getCameraState() };
+        gesture = {
+          ...common,
+          kind: 'pan',
+          camera: getCameraState(),
+          groundPan: event.button === 0,
+        };
         canvas.style.cursor = 'grabbing';
       } else if (
         event.button === 2 ||
@@ -221,6 +227,8 @@ export function bindEditorViewportInput(
           gesture = {
             ...common,
             kind: road ? 'road' : 'ground',
+            camera: getCameraState(),
+            groundPan: true,
             road,
             position,
           };
@@ -267,7 +275,7 @@ export function bindEditorViewportInput(
         } else changed = handles?.setDrawCursor(null) || changed;
         if (changed) draw();
         canvas.style.cursor =
-          tool === 'orbit' || tool === 'pan'
+          isFlying() || tool === 'orbit' || tool === 'pan'
             ? 'grab'
             : hover
               ? tool === 'select'
@@ -279,7 +287,7 @@ export function bindEditorViewportInput(
                     : 'pointer'
               : tool === 'draw'
                 ? 'crosshair'
-                : '';
+                : 'grab';
         return;
       }
       if (gesture.pointerId !== event.pointerId) return;
@@ -290,8 +298,13 @@ export function bindEditorViewportInput(
         draw();
         return;
       }
-      if (gesture.kind === 'pan') {
-        onPan?.(dx, dy, gesture.camera);
+      if (gesture.kind === 'pan' || gesture.groundPan) {
+        if (gesture.groundPan) {
+          if (!gesture.moved && Math.hypot(dx, dy) < clickSlop) return;
+          gesture.moved = true;
+          canvas.style.cursor = 'grabbing';
+        }
+        onPan?.(dx, dy, gesture.camera, gesture.groundPan);
         draw();
         return;
       }
@@ -334,7 +347,7 @@ export function bindEditorViewportInput(
       const ended = gesture;
       const click =
         Math.hypot(event.clientX - ended.startX, event.clientY - ended.startY) <
-        4;
+        clickSlop;
       finish(false);
       if (click && ended.finishDrawing && !ended.moved)
         selectPoint(ended.index, { finishDrawing: true });
@@ -342,6 +355,7 @@ export function bindEditorViewportInput(
         selectPoint(ended.index, { extendRange: true, shiftKey: true });
       if (
         click &&
+        !ended.moved &&
         ['ground', 'road'].includes(ended.kind) &&
         currentTool() === 'draw' &&
         ended.position
@@ -349,6 +363,7 @@ export function bindEditorViewportInput(
         onAddPoint?.(constrainEditorPoint(ended.position));
       if (
         click &&
+        !ended.moved &&
         ended.kind === 'road' &&
         ['select', 'move', 'height'].includes(currentTool())
       ) {

@@ -207,7 +207,24 @@ export function createEditorViewport(
           pitch = T.MathUtils.clamp(start.pitch + dy * 0.004, -1.45, 1.45);
         }
       },
-      onPan(dx, dy, start) {
+      onPan(dx, dy, start, groundPan) {
+        if (groundPan) {
+          const slope = Math.sin(start.pitch);
+          // Bound the depth scale when the view is nearly parallel to X/Z.
+          const depthScale =
+            (slope < 0 ? -1 : 1) / Math.max(0.25, Math.abs(slope));
+          const forward = new T.Vector3(
+            -Math.sin(start.yaw),
+            0,
+            -Math.cos(start.yaw),
+          );
+          const right = start.right.clone().setY(0).normalize();
+          target
+            .copy(start.target)
+            .addScaledVector(right, -dx * start.units)
+            .addScaledVector(forward, dy * depthScale * start.units);
+          return;
+        }
         const move = start.right
           .clone()
           .multiplyScalar(-dx * start.units)

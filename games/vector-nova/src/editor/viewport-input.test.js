@@ -112,7 +112,10 @@ function harness(t, { tool = 'draw', courseType = 'downhill', points } = {}) {
     getCameraState: () => ({}),
     isFlying: () => false,
     onOrbit: () => h.orbit++,
-    onPan: () => h.pan++,
+    onPan(dx, dy, _start, ground) {
+      h.pan++;
+      h.lastPan = { dx, dy, ground };
+    },
     onSelectPoint(index, meta) {
       h.selected.push({ index, meta });
       h.selection.selectedPoint = index;
@@ -300,6 +303,39 @@ test('Select is click-only; Orbit and Pan primary drags never select or modify a
   assert.equal(h.selected.length, 1);
   assert.equal(h.moved.length, 0);
   assert.equal(h.added.length, 0);
+});
+
+test('empty ground pans the view and a Draw drag never becomes a click', (t) => {
+  const h = harness(t, { tool: 'move', points: [] });
+  const ground = { clientX: 100, clientY: 150 };
+  const moved = { clientX: 140, clientY: 180 };
+  h.event('pointermove', ground);
+  assert.equal(h.canvas.style.cursor, 'grab');
+  h.event('pointerdown', ground);
+  h.event('pointermove', { ...ground, clientX: 101 });
+  assert.equal(h.pan, 0, 'ordinary click jitter does not pan');
+  h.event('pointermove', moved);
+  assert.equal(h.canvas.style.cursor, 'grabbing');
+  h.event('pointerup', moved);
+  assert.deepEqual(h.lastPan, { dx: 40, dy: 30, ground: true });
+  assert.deepEqual(h.doc.points, []);
+  assert.deepEqual(h.selected, []);
+
+  h.setTool('draw');
+  h.event('pointerdown', ground);
+  h.event('pointermove', moved);
+  h.event('pointermove', ground);
+  h.event('pointerup', ground);
+  assert.deepEqual(h.lastPan, { dx: 0, dy: 0, ground: true });
+  assert.deepEqual(
+    h.added,
+    [],
+    'a drag that returns to its start places nothing',
+  );
+
+  h.event('pointerdown');
+  h.event('pointerup');
+  assert.equal(h.added.length, 1, 'a new click still places a point');
 });
 
 test('switching tools cancels the current transaction and queued movement, and clears stale hover guidance', (t) => {

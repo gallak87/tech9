@@ -19,6 +19,7 @@ const responsive = process.argv.includes('--responsive');
 const cameraOnly = process.argv.includes('--map-camera');
 const escapeOnly = process.argv.includes('--escape');
 const trackChecksOnly = process.argv.includes('--track-checks');
+const fileOnly = process.argv.includes('--file');
 const name = 'Editor tool verification';
 const tools = [
   ['draw', 'draw-mode', 'd'],
@@ -208,7 +209,7 @@ async function paletteLayout(page) {
   }
   const reset = await revealEditorAction(page, 'reset-track');
   assert(await reset.isVisible(), 'Reset road is visible in File');
-  await action(page, 'global-close').click();
+  await action(page, 'tab-library').click();
   const normal = await action(page, 'select-mode').evaluate((el) => ({
     border: getComputedStyle(el).borderLeftColor,
     background: getComputedStyle(el).backgroundColor,
@@ -750,6 +751,70 @@ async function trackChecks(page) {
   );
 }
 
+async function filePopoverChecks(page) {
+  const file = action(page, 'tab-library');
+  const menu = page.locator('[data-editor-section="library"]');
+  const heading = page.locator('[data-editor-details="new-track"] > summary');
+  const world = responsive
+    ? await openEditorSection(page, 'world')
+    : page.locator('[data-editor-section="world"]');
+  await ready(page);
+  assert(await world.isVisible(), 'wide Road mode opens with scenery swatches');
+  if (!responsive) {
+    const palette = world.getByRole('group', { name: 'Scenery swatches' });
+    assert(await palette.isVisible());
+    assert(await action(page, 'draw-mode').isVisible());
+  }
+  const before = await canvas(page).boundingBox();
+  const camera = (await state(page)).preview.camera;
+
+  if (responsive) await file.tap();
+  else {
+    await file.focus();
+    await page.keyboard.press('Enter');
+  }
+  await menu.waitFor({ state: 'visible' });
+  assert.equal(await file.getAttribute('aria-expanded'), 'true');
+  assert(await world.isVisible(), 'File keeps left scenery settings visible');
+  assert.deepEqual(await canvas(page).boundingBox(), before);
+  assert.deepEqual((await state(page)).preview.camera, camera);
+  assert(await heading.evaluate((el) => el === document.activeElement));
+  const box = await menu.boundingBox();
+  const buttonBox = await file.boundingBox();
+  assert(
+    box.x >= 0 &&
+      box.x + box.width <= page.viewportSize().width &&
+      box.y >= buttonBox.y + buttonBox.height &&
+      box.y + box.height <= page.viewportSize().height,
+    'File popover stays below its button and inside the viewport',
+  );
+
+  if (responsive) await file.tap();
+  else {
+    await page.keyboard.press('Escape');
+    assert(await file.evaluate((el) => el === document.activeElement));
+    await pad(page, 0);
+    await menu.waitFor({ state: 'visible' });
+    assert(await heading.evaluate((el) => el === document.activeElement));
+    await pad(page, 0);
+    await action(page, 'blank').waitFor({ state: 'visible' });
+    await pad(page, 1);
+    assert(await file.evaluate((el) => el === document.activeElement));
+  }
+  await menu.waitFor({ state: 'hidden' });
+  assert.equal(await file.getAttribute('aria-expanded'), 'false');
+  assert(await world.isVisible());
+  assert.deepEqual(await canvas(page).boundingBox(), before);
+
+  await file.click();
+  await page.locator('[data-editor-field="name"]').focus();
+  await menu.waitFor({ state: 'hidden' });
+  assert(await world.isVisible());
+  console.log(
+    'PASS File overlays the canvas without replacing scenery, dismisses and returns focus',
+  );
+}
+
 try {
   await context.routeWebSocket('**/*', () => {});
   await context.addInitScript((seed) => {
@@ -780,7 +845,7 @@ try {
   await nameField.fill(name);
   await nameField.press('Tab');
   await ready(page);
-  if (!trackChecksOnly) {
+  if (!trackChecksOnly && !fileOnly) {
     for (const [width, height] of responsive
       ? [[390, 844]]
       : [
@@ -794,7 +859,9 @@ try {
     await expectTool(page, 'draw');
   }
 
-  if (trackChecksOnly) {
+  if (fileOnly) {
+    await filePopoverChecks(page);
+  } else if (trackChecksOnly) {
     await trackChecks(page);
   } else if (escapeOnly) {
     await escapeChecks(page);

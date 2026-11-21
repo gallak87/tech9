@@ -6,7 +6,7 @@ export const EDITOR_TOOLS = [
     label: 'Draw road',
     key: 'D',
     icon: '<path d="m4 17 1-5L15 2l5 5-10 10-5 1Z M13 4l5 5 M4 22h16"/>',
-    hint: 'Click to add road points · Drag a handle to adjust · Finish drawing when ready',
+    hint: 'Click to add road points · Drag a handle to adjust · Drag empty ground to pan',
   },
   {
     id: 'move',
@@ -14,7 +14,7 @@ export const EDITOR_TOOLS = [
     label: 'Select / move',
     key: 'V',
     icon: '<path d="m5 3 13 10-7 1-3 7-3-18Z"/>',
-    hint: 'Click a point to select · Drag to move · Shift-drag or the height arrow raises it',
+    hint: 'Drag points to move · Shift-drag for height · Drag empty ground to pan',
   },
   {
     id: 'height',
@@ -22,7 +22,7 @@ export const EDITOR_TOOLS = [
     label: 'Height',
     key: 'H',
     icon: '<path d="M12 3v18 M7 8l5-5 5 5 M7 16l5 5 5-5"/>',
-    hint: 'Drag a road point up or down to change its height · X/Z stay fixed',
+    hint: 'Drag points to change height · Drag empty ground to pan',
   },
   {
     id: 'orbit',

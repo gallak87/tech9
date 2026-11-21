@@ -161,7 +161,9 @@ function harness(t, { tool = 'draw', courseType = 'downhill', points } = {}) {
       h.before = null;
       h.bankCancelled++;
     },
-    draw() {},
+    draw() {
+      requestAnimationFrame(() => h.input?.flushPending());
+    },
   });
   h.event = (type, options = {}, target = canvas) => {
     const event = new Event(type, { cancelable: true });
@@ -242,10 +244,15 @@ test('Alt makes a height gesture precise while keeping one undo transaction', (t
   assert.ok(ordinaryDelta > 0);
   assert.ok(fineDelta > 0 && fineDelta < ordinaryDelta);
   assert.ok(
-    Math.abs(fineDelta - ordinaryDelta * 0.2) <= 1,
-    'fine movement respects the metre grid',
+    Math.abs(fineDelta - ordinaryDelta * 0.2) < 1e-8,
+    'fine movement preserves the full drag precision',
   );
-  h.event('pointerup', { ...at, clientY: at.clientY - 40, altKey: true });
+  // Releasing before the next frame commits the latest sub-metre movement.
+  const last = { ...at, clientY: at.clientY - 40.25, altKey: true };
+  h.event('pointermove', last);
+  h.event('pointerup', last);
+  const finalStep = h.doc.points[1].y - 52 - fineDelta;
+  assert.ok(finalStep > 0 && finalStep < 1);
   assert.equal(h.ended, 1);
   assert.equal(h.selection.tool, 'height');
 });

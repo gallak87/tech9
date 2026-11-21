@@ -30,6 +30,8 @@ export function createRouteMap(
   let rollRateSections = [];
   let curveKey;
   let curve;
+  let previewCurve = null;
+  let usingPreviewCurve = false;
   let problem = null;
   let problemSeverity = 'error';
   let selectedSection = null;
@@ -46,6 +48,26 @@ export function createRouteMap(
   let sceneryKey = '';
   let scenery;
   const life = new AbortController();
+  // Transforming one point leaves most SVG markup unchanged. Keep the road,
+  // selection, hit targets, and grips mounted independently during a scrubbing gesture.
+  function layer() {
+    const group = svg.ownerDocument.createElementNS(
+      'http://www.w3.org/2000/svg',
+      'g',
+    );
+    svg.append(group);
+    let previous = '';
+    return (markup) => {
+      if (markup === previous) return;
+      group.innerHTML = markup;
+      previous = markup;
+    };
+  }
+  const roadLayer = layer();
+  const sectionLayer = layer();
+  const warningLayer = layer();
+  const markerLayer = layer();
+  const gripLayer = layer();
   function fit() {
     const points = document.points;
     let minX = -400,
@@ -151,13 +173,12 @@ export function createRouteMap(
     const key = JSON.stringify([
       curveKey,
       bounds,
-      points.map(({ roll }) => roll),
+      points.map(({ roll }) => Math.abs(roll ?? 0) >= 0.001),
       document.width,
       document.jumps,
       document.pickups,
       document.props,
       inspectedJump,
-      rollRateSections,
       trajectories,
     ]);
     if (key === sceneryKey) return scenery;
@@ -184,14 +205,6 @@ export function createRouteMap(
             )
             .join('')
         : '';
-    const twistSegments = curve
-      ? rollRateSections
-          .map(
-            ({ start, end }) =>
-              `<path d="${lineFor(start, end)}" fill="none" stroke="#ff6864" stroke-width="5" stroke-linecap="round" pointer-events="none"><title>Fast twist</title></path>`,
-          )
-          .join('')
-      : '';
     const arcs = curve?.getLengths();
     const fractionAt = (t) => {
       const value = t * (arcs.length - 1),
@@ -300,7 +313,7 @@ export function createRouteMap(
       })
       .join('');
     const markup = `<defs><pattern id="${gridId}" x="${gridX}" y="${gridY}" width="${spacing}" height="${spacing}" patternUnits="userSpaceOnUse"><path d="M ${spacing} 0 L 0 0 0 ${spacing}" fill="none" stroke="#34414a" stroke-width="1"/></pattern></defs><rect width="${W}" height="${H}" fill="#10191f"/><rect width="${W}" height="${H}" fill="url(#${gridId})"/>${ghost}<path d="${path}" fill="none" stroke="#71858b" stroke-width="${Math.max(5, document.width * bounds.scale)}" stroke-linejoin="round"/><path d="${path}" fill="none" stroke="#b2cbd0" stroke-width="1.5" stroke-dasharray="7 8"/>${rollSections}${props}${pickups}${gapMarkers}${flightPaths}${finishMarker}<text x="24" y="647" class="workshop-map-scale">GRID 100 m · NORTH ↑</text>${trajectories.length ? '<text x="24" y="605" class="workshop-map-cruise-key">CYAN / CRUISE</text><text x="24" y="625" class="workshop-map-boost-key">AMBER / BOOST</text>' : points.some((p) => Math.abs(p.roll ?? 0) > 0.001) ? '<text x="24" y="625" class="workshop-map-roll-key">VIOLET / ROLLED ROAD</text>' : ''}`;
-    scenery = { markup, runs, twistSegments };
+    scenery = { markup, runs };
     return scenery;
   }
 
@@ -406,13 +419,24 @@ export function createRouteMap(
       closed,
       points.map(({ x, y, z }) => [x, y, z]),
     ]);
-    if (key !== curveKey) {
+    if (key !== curveKey || usingPreviewCurve !== Boolean(previewCurve)) {
       curveKey = key;
-      curve = points.length >= 3 ? routeCurve(document) : null;
+      curve =
+        previewCurve ?? (points.length >= 3 ? routeCurve(document) : null);
+      usingPreviewCurve = Boolean(previewCurve);
+      sceneryKey = '';
     }
     const scale = screenScale();
     updateMarkerLayout(scale);
-    const { markup, runs, twistSegments } = renderScenery(closed);
+    const twistSegments = curve
+      ? rollRateSections
+          .map(
+            ({ start, end }) =>
+              `<path d="${lineFor(start, end)}" fill="none" stroke="#ff6864" stroke-width="5" stroke-linecap="round" pointer-events="none"><title>Fast twist</title></path>`,
+          )
+          .join('')
+      : '';
+    const { markup, runs } = renderScenery(closed);
     const sectionPath =
       curve && selectedSection
         ? runs
@@ -426,7 +450,11 @@ export function createRouteMap(
     const selectedRoad = sectionPath
       ? `<path d="${sectionPath}" class="workshop-map-section" stroke-width="${5 / scale}"/>`
       : '';
-    svg.innerHTML = `${markup}${selectedRoad}${twistSegments}${renderMarkers(closed, scale)}${renderHandles(points[selection])}`;
+    roadLayer(markup);
+    sectionLayer(selectedRoad);
+    warningLayer(twistSegments);
+    markerLayer(renderMarkers(closed, scale));
+    gripLayer(renderHandles(points[selection]));
   }
 
   function nearestPoint(position, pointerType) {
@@ -585,15 +613,9 @@ export function createRouteMap(
         onBankDrag?.(drag.index, drag.roll);
       } else if (drag.kind === 'height') {
         const dy = (p.y - drag.origin.y) / drag.bounds.scale;
-        const step = event.altKey ? 1 : 5;
         onDrag(
           drag.index,
-          {
-            y:
-              Math.round(
-                (drag.point.y - dy * (event.altKey ? 0.2 : 1)) / step,
-              ) * step,
-          },
+          { y: drag.point.y - dy * (event.altKey ? 0.2 : 1) },
           { preserveTool: true },
         );
       } else if (drag.kind === 'move') {
@@ -681,6 +703,7 @@ export function createRouteMap(
       {
         frame = false,
         visible: shown = true,
+        previewCurve: liveCurve = null,
         section = null,
         selectedPoints = [],
         rollRateSections: measured = [],
@@ -693,6 +716,7 @@ export function createRouteMap(
       } = {},
     ) {
       document = next;
+      previewCurve = liveCurve;
       visible = shown;
       if (!visible) hovered = -1;
       selection = selected;

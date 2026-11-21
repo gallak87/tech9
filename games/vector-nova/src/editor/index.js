@@ -22,6 +22,7 @@ import { createTrackLibrary } from './library.js';
 import { createDraftRecovery } from './draft-recovery.js';
 import { createRouteMap } from './map.js';
 import { createRollRatePreview } from './roll-rate.js';
+import { curvePointFraction, editorDragCurve } from './route.js';
 import {
   applyPointDelta,
   boundPointDelta,
@@ -261,6 +262,10 @@ export function createTrackEditor(
   let dragBefore;
   let dragLimited = false;
   let draggingRoll = false;
+  let dragCurve = null;
+  let dragIndices = [];
+  let inspectorRange = null;
+  const discardedInspectorRanges = new WeakSet();
   let previewRollRates;
   let dragRollRateSections = [];
   let previewMessage = 'Opening your workspace…';
@@ -505,15 +510,15 @@ export function createTrackEditor(
       );
       dragBefore = doc;
       doc = clone(doc);
-      draggingRoll = Object.hasOwn(position, 'roll');
+      viewport.setGuides({ document: null });
+      dragIndices = selectedPointIndices();
+      draggingRoll =
+        Object.hasOwn(position, 'roll') || Object.hasOwn(position, 'bank');
       if (draggingRoll && analysisFor().rollRateSections)
-        previewRollRates = createRollRatePreview(
-          dragBefore,
-          selectedPointIndices(),
-        );
+        previewRollRates = createRollRatePreview(dragBefore, dragIndices);
       rangeArmed = false;
     }
-    const indices = selectedPointIndices();
+    const indices = dragIndices;
     const original = dragBefore.points[index];
     const requested = Object.fromEntries(
       Object.entries(position).map(([axis, value]) => [
@@ -527,6 +532,8 @@ export function createTrackEditor(
       requested,
     );
     applyPointDelta(doc.points, dragBefore.points, indices, delta);
+    if (!draggingRoll && doc.points.length >= 3)
+      dragCurve = editorDragCurve(doc);
     if (previewRollRates) dragRollRateSections = previewRollRates(doc.points);
     dragLimited = limited;
     status(
@@ -544,6 +551,8 @@ export function createTrackEditor(
     const next = doc;
     doc = dragBefore;
     dragBefore = null;
+    dragCurve = null;
+    inspectorRange = null;
     const message = dragLimited
       ? 'Selection reached an editing limit.'
       : draggingRoll
@@ -557,8 +566,15 @@ export function createTrackEditor(
   }
   function cancelDrag() {
     if (!dragBefore) return;
+    if (inspectorRange) {
+      // Detaching an active native slider can dispatch change during render.
+      discardedInspectorRanges.add(inspectorRange);
+      sectionHTML.delete('route');
+    }
     doc = dragBefore;
     dragBefore = null;
+    dragCurve = null;
+    inspectorRange = null;
     status(draggingRoll ? 'Roll canceled.' : 'Move canceled.');
     dragLimited = false;
     draggingRoll = false;
@@ -848,9 +864,15 @@ export function createTrackEditor(
   }
   function syncCanvas({ frame = false } = {}) {
     const issue = visibleIssue();
-    const selectedPoints = context === 'road' ? selectedPointIndices() : [];
+    const selectedPoints =
+      context === 'road'
+        ? dragBefore
+          ? dragIndices
+          : selectedPointIndices()
+        : [];
     updatePointWorkspace({
       points: doc.points,
+      adjusting: Boolean(dragBefore),
       active: selected,
       selected: selectedPoints,
       armed: rangeArmed,
@@ -865,7 +887,7 @@ export function createTrackEditor(
     const rollRateSections = dragBefore
       ? dragRollRateSections
       : (analysisFor().rollRateSections ?? []);
-    if (!dragBefore) {
+    if (!dragBefore || dragCurve) {
       activeSection = null;
       const span = selectedRange();
       const selectedSpan =
@@ -876,13 +898,19 @@ export function createTrackEditor(
       if (selectedSpan && doc.points.length >= 4) {
         try {
           activeSection = {
-            start: fractionAt(selectedSpan.start),
-            end: fractionAt(selectedSpan.end),
+            start: dragCurve
+              ? curvePointFraction(dragCurve, selectedSpan.start)
+              : fractionAt(selectedSpan.start),
+            end: dragCurve
+              ? curvePointFraction(dragCurve, selectedSpan.end)
+              : fractionAt(selectedSpan.end),
           };
         } catch {
           /* Incomplete drafts retain their editing controls. */
         }
       }
+    }
+    if (!dragBefore) {
       const key = editorWorldFingerprint(doc);
       if (key !== previewDocumentKey) {
         previewDocumentKey = key;
@@ -893,6 +921,7 @@ export function createTrackEditor(
       map.setDocument(doc, context === 'road' ? selected : -1, {
         frame,
         visible: mapOpen,
+        previewCurve: dragCurve,
         selectedPoints,
         rollRateSections,
         section: activeSection,
@@ -904,16 +933,22 @@ export function createTrackEditor(
         tool: context === 'road' ? tool : 'orbit',
         readOnly: context !== 'road',
       });
-    if (profileOpen && !dragBefore)
-      updateProfile(doc, fractionsFor(), {
-        selected: context === 'road' ? selected : -1,
-        selectedPoints,
-        rollRateSections,
-        issuePoint: issue?.pointIndex ?? null,
-        issueLabel: issue ? issueName(issue) : '',
-        editable: context === 'road',
-      });
-    viewport.setDocument(clone(doc), {
+    if (profileOpen)
+      updateProfile(
+        dragCurve ? doc : (dragBefore ?? doc),
+        dragCurve ? null : fractionsFor(dragBefore ?? doc),
+        {
+          previewCurve: dragCurve,
+          selected: context === 'road' ? selected : -1,
+          selectedPoints,
+          rollRateSections,
+          issuePoint: issue?.pointIndex ?? null,
+          issueLabel: issue ? issueName(issue) : '',
+          editable: context === 'road',
+        },
+      );
+    viewport.setDocument(dragBefore ? doc : clone(doc), {
+      previewCurve: dragCurve,
       frame,
       previewOnly: Boolean(dragBefore),
       selectedPoint: context === 'road' ? selected : -1,
@@ -939,9 +974,9 @@ export function createTrackEditor(
       drawMode: context === 'road' && tool === 'draw',
       tool: context === 'road' ? tool : 'pan',
     });
+    if (dragBefore) return;
     viewport.setTrajectories(context === 'road' ? flightLines() : []);
-    if (dragBefore || context !== 'road')
-      viewport.setGuides({ document: null });
+    if (context !== 'road') viewport.setGuides({ document: null });
     else
       viewport.setGuides({
         document: doc,
@@ -1679,7 +1714,7 @@ export function createTrackEditor(
     }
   }
   function render({ frame = false } = {}) {
-    if (disposed) return;
+    if (disposed || dragBefore) return;
     const focus = focusKey();
     const scrollTop = tools.scrollTop;
     const globalScrollTop = globalTools.scrollTop;
@@ -2992,7 +3027,17 @@ export function createTrackEditor(
   );
   function fieldChange(event) {
     const field = event.target.dataset.editorField;
-    if (!field || busy || recoveryEntry) return;
+    if (
+      !field ||
+      busy ||
+      recoveryEntry ||
+      discardedInspectorRanges.has(event.target)
+    )
+      return;
+    if (event.target === inspectorRange) {
+      endDrag();
+      return;
+    }
     cancelActiveDrag();
     const value = event.target.value;
     const number = Number(value);
@@ -3287,7 +3332,27 @@ export function createTrackEditor(
   root.addEventListener(
     'input',
     (event) => {
-      if (event.target.type !== 'range') return;
+      if (
+        event.target.type !== 'range' ||
+        discardedInspectorRanges.has(event.target)
+      )
+        return;
+      const field = event.target.dataset.editorField;
+      if (
+        ['point-y', 'point-bank'].includes(field) &&
+        selected >= 0 &&
+        !busy &&
+        !recoveryEntry
+      ) {
+        inspectorRange = event.target;
+        const bank = field === 'point-bank';
+        const axis = bank ? 'bank' : 'y';
+        const input = event.target.valueAsNumber;
+        dragPoint(selected, { [axis]: bank ? (input * Math.PI) / 180 : input });
+        // A group may reach a limit before the active point does.
+        const accepted = doc.points[selected][axis];
+        event.target.value = bank ? (accepted * 180) / Math.PI : accepted;
+      }
       const output =
         event.target.previousElementSibling?.querySelector('output');
       if (output)
@@ -3305,9 +3370,40 @@ export function createTrackEditor(
     { signal: life.signal },
   );
   root.addEventListener(
+    'pointerup',
+    (event) => {
+      if (event.target !== inspectorRange) return;
+      // An unchanged/clamped range may emit pointerup without a change event.
+      queueMicrotask(() => {
+        if (event.target === inspectorRange) endDrag();
+      });
+    },
+    { signal: life.signal },
+  );
+  root.addEventListener(
+    'pointercancel',
+    () => {
+      if (inspectorRange) cancelDrag();
+    },
+    { signal: life.signal },
+  );
+  window.addEventListener(
+    'blur',
+    () => {
+      if (inspectorRange) cancelDrag();
+    },
+    { signal: life.signal },
+  );
+  root.addEventListener(
     'keydown',
     (event) => {
       if (event.key === 'Escape') {
+        if (inspectorRange) {
+          event.preventDefault();
+          event.stopPropagation();
+          cancelDrag();
+          return;
+        }
         if (recoveryEntry) {
           event.preventDefault();
           event.stopPropagation();

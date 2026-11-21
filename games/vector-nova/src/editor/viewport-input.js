@@ -52,8 +52,7 @@ export function bindEditorViewportInput(
   let lastTool = currentTool();
   let gesture = null,
     space = false,
-    pending = null,
-    pendingFrame = null;
+    pending = null;
   const rayAt = (event) => {
     const bounds = canvas.getBoundingClientRect(),
       camera = getCamera();
@@ -85,9 +84,11 @@ export function bindEditorViewportInput(
         : getCamera().getWorldDirection(new T.Vector3());
     return new T.Plane().setFromNormalAndCoplanarPoint(normal, point);
   };
+  function drawingPoint(ray, elevation = 52) {
+    const plane = new T.Plane(new T.Vector3(0, 1, 0), -elevation);
+    return ray.intersectPlane(plane, new T.Vector3())?.setY(elevation) ?? null;
+  }
   function flush() {
-    cancelAnimationFrame(pendingFrame);
-    pendingFrame = null;
     if (pending === null || !gesture) return;
     const move = pending;
     pending = null;
@@ -108,8 +109,6 @@ export function bindEditorViewportInput(
   function finish(cancel = false) {
     if (!gesture) return;
     if (cancel) {
-      cancelAnimationFrame(pendingFrame);
-      pendingFrame = null;
       pending = null;
     } else flush();
     const ended = gesture;
@@ -239,11 +238,7 @@ export function bindEditorViewportInput(
           const doc = getDocument();
           const selected =
             doc?.points[getSelection()?.selectedPoint] ?? doc?.points.at(-1);
-          const plane = new T.Plane(
-            new T.Vector3(0, 1, 0),
-            -(selected?.y ?? 52),
-          );
-          const position = ray.ray.intersectPlane(plane, new T.Vector3());
+          const position = drawingPoint(ray.ray, selected?.y);
           gesture = {
             ...common,
             kind: road ? 'road' : 'ground',
@@ -283,10 +278,7 @@ export function bindEditorViewportInput(
             ? handles.point(0)
             : hover
               ? null
-              : ray.ray.intersectPlane(
-                  new T.Plane(new T.Vector3(0, 1, 0), -(selected?.y ?? 52)),
-                  new T.Vector3(),
-                );
+              : drawingPoint(ray.ray, selected?.y);
           changed =
             handles?.setDrawCursor(
               position ? constrainEditorPoint(position) : null,
@@ -348,9 +340,7 @@ export function bindEditorViewportInput(
         pending = gesture.roll;
       } else if (gesture.kind === 'height') {
         pending = {
-          y: Math.round(
-            gesture.position.y - dy * gesture.units * (event.altKey ? 0.2 : 1),
-          ),
+          y: gesture.position.y - dy * gesture.units * (event.altKey ? 0.2 : 1),
         };
       } else {
         const hit = ray.ray.intersectPlane(gesture.plane, new T.Vector3());
@@ -363,7 +353,7 @@ export function bindEditorViewportInput(
           z: Math.round(position.z / 5) * 5,
         };
       }
-      if (!pendingFrame) pendingFrame = requestAnimationFrame(flush);
+      draw();
     },
     { signal: life.signal },
   );
@@ -531,12 +521,12 @@ export function bindEditorViewportInput(
   );
   return {
     syncTool,
+    flushPending: flush,
     isDragging: () => Boolean(gesture && pointDragKinds.has(gesture.kind)),
     cancel: () => finish(true),
     dispose() {
       finish(true);
       life.abort();
-      cancelAnimationFrame(pendingFrame);
     },
   };
 }

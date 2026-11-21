@@ -10,9 +10,34 @@ const arcCache = new Map();
 // unwrapped rotations belong to the author and must stay outside that edit.
 export const isProtectedJumpRotation = (point) =>
   Math.abs(point.roll ?? 0) >= Math.PI / 2 - 0.05;
+function controlCurve(doc) {
+  return new T.CatmullRomCurve3(
+    doc.points.map((p) => new T.Vector3(p.x, p.y, p.z)),
+    doc.courseType !== 'downhill',
+    'centripetal',
+  );
+}
+
+// Keep authored knots exactly on arc-table entries for live editor overlays.
+// Race geometry and released editor documents use the full-resolution route.
+export function editorDragCurve(doc) {
+  const curve = controlCurve(doc);
+  const segments = curve.closed ? doc.points.length : doc.points.length - 1;
+  curve.arcLengthDivisions = 12 * segments;
+  return curve;
+}
+
+// Both route curves align their arc table to the authored points.
+export function curvePointFraction(curve, index) {
+  const lengths = curve.getLengths();
+  const segments = curve.closed ? curve.points.length : curve.points.length - 1;
+  const knot = index * ((lengths.length - 1) / segments);
+  return lengths.at(-1) > 0 ? lengths[knot] / lengths.at(-1) : 0;
+}
+
 export function routeCurve(doc, arcDivisions = null) {
-  const points = doc.points.map((p) => new T.Vector3(p.x, p.y, p.z));
-  const closed = doc.courseType !== 'downhill';
+  const curve = controlCurve(doc);
+  const { points, closed } = curve;
   let roughLength = 0;
   for (let i = 1; i < points.length; i++)
     roughLength += points[i].distanceTo(points[i - 1]);
@@ -25,7 +50,6 @@ export function routeCurve(doc, arcDivisions = null) {
   // knot exactly on an arc-table boundary instead of interpolating across it.
   const segments = Math.max(1, closed ? points.length : points.length - 1);
   const divisions = Math.ceil(requestedDivisions / segments) * segments;
-  const curve = new T.CatmullRomCurve3(points, closed, 'centripetal');
   curve.arcLengthDivisions = divisions;
   const key = JSON.stringify([
     closed,
@@ -221,16 +245,13 @@ export function createRouteSampler(doc) {
       first = doc.points[node],
       next = doc.points[(node + 1) % doc.points.length];
     const bankTrim = T.MathUtils.lerp(first.bank, next.bank, weight);
-    const bank = T.MathUtils.clamp(
-      T.MathUtils.lerp(
-        banks[low % count],
-        banks[closed ? (low + 1) % count : Math.min(low + 1, count - 1)],
-        blend,
-      ) + bankTrim,
-      -0.6,
-      0.6,
+    const curveBank = T.MathUtils.lerp(
+      banks[low % count],
+      banks[closed ? (low + 1) % count : Math.min(low + 1, count - 1)],
+      blend,
     );
-    return { distance, node, weight, bank, bankTrim };
+    const bank = T.MathUtils.clamp(curveBank + bankTrim, -0.6, 0.6);
+    return { distance, parameter: t, node, weight, bank, bankTrim, curveBank };
   }
   function anglesAt(s) {
     const { bank, bankTrim, distance, node, weight } = rollInputsAt(s);
@@ -247,9 +268,9 @@ export function createRouteSampler(doc) {
       authoredRoll += featureRollAt(feature, distance, length);
     return { bank, bankTrim, authoredRoll, roll: bank + authoredRoll };
   }
-  function prepareRollSamples(count, step) {
-    const stations = Array.from({ length: count }, (_, i) => {
-      const inputs = rollInputsAt(i * step);
+  function prepareRollStations(distances) {
+    const stations = distances.map((distance) => {
+      const inputs = rollInputsAt(distance);
       return {
         ...inputs,
         offsets: doc.rolls.map((feature) =>
@@ -264,7 +285,14 @@ export function createRouteSampler(doc) {
         return {
           closure,
           at(index) {
-            const { bank, distance, node, offsets, weight } = stations[index];
+            const { curveBank, distance, node, offsets, weight } =
+              stations[index];
+            const bankTrim = T.MathUtils.lerp(
+              points[node].bank,
+              points[(node + 1) % points.length].bank,
+              weight,
+            );
+            const bank = T.MathUtils.clamp(curveBank + bankTrim, -0.6, 0.6);
             let roll = authoredRollAt(
               points,
               node,
@@ -322,8 +350,14 @@ export function createRouteSampler(doc) {
     closed,
     sample,
     anglesAt,
-    prepareRollSamples,
+    prepareRollStations,
+    prepareRollSamples(count, step) {
+      return prepareRollStations(
+        Array.from({ length: count }, (_, i) => i * step),
+      );
+    },
     positionAt,
+    tangentAt,
     frameStep: step,
     rollClosure,
   };

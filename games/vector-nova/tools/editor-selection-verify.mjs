@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import { createDocument } from '../src/editor/document.js';
-import { openEditorSection, revealEditorAction } from './editor-controls.mjs';
+import {
+  openEditorSection,
+  revealEditorAction,
+  revealEditorField,
+} from './editor-controls.mjs';
 import { seedVerificationCareer } from './verification-career.mjs';
 import {
   collectPageErrors,
@@ -154,6 +158,82 @@ try {
   await ready();
   assert.deepEqual(await save(), after);
 
+  // Commit A, immediately start B, then cancel B while the precise world for A
+  // is still being prepared. Read positions from the displayed driving deck.
+  const renderedRoad = async () => (await state()).preview.liveRoad;
+  const flushFrame = () =>
+    page.evaluate(
+      () =>
+        new Promise((done) =>
+          requestAnimationFrame(() => requestAnimationFrame(done)),
+        ),
+    );
+  const heightScrub = await page.locator('[data-scrub="y"]').boundingBox();
+  const originX = heightScrub.x + heightScrub.width / 2;
+  const originY = heightScrub.y + heightScrub.height / 2;
+  const originalDeck = await renderedRoad();
+  assert(originalDeck.sample);
+  const scrubHeight = async (amount) => {
+    await page.mouse.move(originX, originY);
+    await page.mouse.down();
+    await page.mouse.move(originX + amount, originY, { steps: 2 });
+    await flushFrame();
+    return renderedRoad();
+  };
+  const first = await scrubHeight(25);
+  assert(first.active && first.changedRows > 0);
+  assert(
+    Math.abs(first.sample.center[1] - originalDeck.sample.center[1] - 25) < 2,
+  );
+  const finishWatch = await page.evaluateHandle(() => {
+    let stopped = false;
+    const elevations = [];
+    const sample = () => {
+      if (stopped) return;
+      const visible =
+        window.__VN_FRONTEND.getState().editor?.preview.liveRoad?.sample;
+      if (visible) elevations.push(visible.center[1]);
+      requestAnimationFrame(sample);
+    };
+    requestAnimationFrame(sample);
+    return () => {
+      stopped = true;
+      return elevations;
+    };
+  });
+  await page.mouse.up();
+  assert(
+    !(await state()).preview.worldReady,
+    'second edit begins before the exact rebuild',
+  );
+  const second = await scrubHeight(14);
+  assert(
+    second.active &&
+      Math.abs(second.sample.center[1] - first.sample.center[1] - 14) < 2,
+  );
+  await page.keyboard.press('Escape');
+  await page.mouse.up();
+  await ready();
+  await flushFrame();
+  const heightsDuringHandoff = await finishWatch.evaluate((stop) => stop());
+  await finishWatch.dispose();
+  assert(heightsDuringHandoff.length > 1);
+  assert(
+    heightsDuringHandoff.every((y) => y > first.sample.center[1] - 3),
+    'commit and cancel both keep the first edit on screen',
+  );
+  const rebuilt = await renderedRoad();
+  assert(!rebuilt.active);
+  assert(Math.abs(rebuilt.sample.center[1] - first.sample.center[1]) < 2);
+  await choose('undo');
+  await ready();
+  assert.deepEqual(await save(), after);
+  assert.deepEqual((await renderedRoad()).sample, originalDeck.sample);
+
+  console.log(
+    'PASS held 3D deck height, continuous commit handoff, immediate second edit, Escape and Undo',
+  );
+
   const rollScrub = await page.locator('[data-scrub="roll"]').boundingBox();
   assert(rollScrub);
   const scrubX = rollScrub.x + rollScrub.width / 2,
@@ -161,6 +241,17 @@ try {
   await page.mouse.move(scrubX, scrubY);
   await page.mouse.down();
   await page.mouse.move(scrubX + 18, scrubY, { steps: 5 });
+  await flushFrame();
+  const heldRoll = await renderedRoad();
+  const edgeWidth = (sample) =>
+    sample.right.map((value, axis) => value - sample.left[axis]);
+  const beforeWidth = edgeWidth(originalDeck.sample),
+    afterWidth = edgeWidth(heldRoll.sample);
+  assert(heldRoll.active);
+  assert(
+    Math.abs(beforeWidth[1] - afterWidth[1]) > 2,
+    'the road cross-section actually rotates while held',
+  );
   await page.mouse.up();
   await ready();
   const rolled = await save();
@@ -231,6 +322,32 @@ try {
   console.log(
     'PASS live twist highlights appear, clear, cancel and Undo without a held world rebuild',
   );
+  // Chromium may emit change during Escape before the physical pointer is up.
+  // This must restore fractional authored values as well as the driving mesh.
+  for (const field of ['point-y', 'point-bank']) {
+    const control = await revealEditorField(page, field);
+    const bounds = await control.boundingBox();
+    const fraction = await control.evaluate(
+      (input) =>
+        (input.valueAsNumber - Number(input.min)) /
+        (Number(input.max) - Number(input.min)),
+    );
+    const x = bounds.x + 8 + (bounds.width - 16) * fraction;
+    const y = bounds.y + bounds.height / 2;
+    const original = (await renderedRoad()).sample;
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x + 12, y, { steps: 5 });
+    await flushFrame();
+    assert((await renderedRoad()).active, field);
+    assert.notDeepEqual((await renderedRoad()).sample, original);
+    await page.keyboard.press('Escape');
+    await page.mouse.up();
+    await ready();
+    await flushFrame();
+    assert.deepEqual((await renderedRoad()).sample, original);
+    assert.deepEqual(await save(), after);
+  }
   assert.deepEqual(faults, []);
   console.log(
     'PASS map modifiers, rigid group translation, disjoint height entry, roll scrub and one-step Undo/Redo by authored point identity',

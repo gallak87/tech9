@@ -216,7 +216,16 @@ export function bindPointWorkspace(
     }
     if (axis && index >= 0) input.value = shown(values[axis]);
   });
-  return ({ points, active, selected, armed, disabled, visible, canTwist }) => {
+  return ({
+    points,
+    active,
+    selected,
+    armed,
+    disabled,
+    visible,
+    canTwist,
+    adjusting,
+  }) => {
     const oldIndex = index;
     count = points.length;
     index = active;
@@ -224,6 +233,18 @@ export function bindPointWorkspace(
     el.hidden = !visible;
     el.disabled = locked;
     if (!visible) return;
+    const point = points[index];
+    values = { y: point?.y ?? 0, roll: ((point?.roll ?? 0) * 180) / Math.PI };
+    for (const input of el.querySelectorAll('[data-point-axis]')) {
+      input.disabled = !point;
+      if (document.activeElement !== input || gesture || oldIndex !== index)
+        input.value = point ? shown(values[input.dataset.pointAxis]) : '';
+    }
+    for (const grip of el.querySelectorAll('[data-scrub]')) {
+      grip.disabled = !point;
+      grip.value = Math.round(values[grip.dataset.scrub]);
+    }
+    if (adjusting && oldIndex === index) return;
     address.max = count;
     if (document.activeElement !== address || oldIndex !== index)
       address.value = index < 0 ? '' : index + 1;
@@ -246,17 +267,6 @@ export function bindPointWorkspace(
           return `<line x1="${x}" x2="${x}" y1="${active ? 1 : marks.has(i) || i % 5 === 0 ? 5 : 10}" y2="18" vector-effect="non-scaling-stroke" class="${active ? 'current' : marks.has(i) ? 'chosen' : ''}"/>`;
         })
         .join('');
-    }
-    const point = points[index];
-    values = { y: point?.y ?? 0, roll: ((point?.roll ?? 0) * 180) / Math.PI };
-    for (const input of el.querySelectorAll('[data-point-axis]')) {
-      input.disabled = !point;
-      if (document.activeElement !== input || gesture || oldIndex !== index)
-        input.value = point ? shown(values[input.dataset.pointAxis]) : '';
-    }
-    for (const grip of el.querySelectorAll('[data-scrub]')) {
-      grip.disabled = !point;
-      grip.value = Math.round(values[grip.dataset.scrub]);
     }
     arm.disabled = !point || count < 2;
     arm.textContent = armed ? 'Pick end point…' : 'Select span';

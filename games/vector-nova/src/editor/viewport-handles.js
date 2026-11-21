@@ -36,7 +36,7 @@ export function projectEditorHandle(position, camera, width, height) {
 export function constrainEditorPoint(point) {
   return {
     x: Math.round(T.MathUtils.clamp(point.x, -25000, 25000) / 5) * 5,
-    y: Math.round(T.MathUtils.clamp(point.y, 0, 3000)),
+    y: T.MathUtils.clamp(point.y, 0, 3000),
     z: Math.round(T.MathUtils.clamp(point.z, -25000, 25000) / 5) * 5,
   };
 }
@@ -181,6 +181,7 @@ export function createEditorHandles(scene) {
     dragging = false,
     visible = true,
     disposed = false;
+  let usingDragCurve = false;
   let viewCamera,
     viewWidth = 1,
     viewHeight = 1;
@@ -245,26 +246,36 @@ export function createEditorHandles(scene) {
       doc.courseType,
       doc.points.map(({ x, y, z }) => [x, y, z]),
     ]);
-    if (key !== curveKey && !dragging) {
+    const previewCurve = selection.previewCurve;
+    if (
+      key !== curveKey ||
+      (previewCurve && curve !== previewCurve) ||
+      (!previewCurve && usingDragCurve)
+    ) {
       curveKey = key;
-      curve = doc.points.length >= 3 ? routeCurve(doc) : null;
+      curve = previewCurve ?? (doc.points.length >= 3 ? routeCurve(doc) : null);
+      usingDragCurve = Boolean(previewCurve);
+      strokeKey = null;
     }
     if (key !== pointKey) {
       pointKey = key;
-      const path =
-        doc.points.length >= 3
-          ? new T.CatmullRomCurve3(
-              doc.points.map((p) => new T.Vector3(p.x, p.y, p.z)),
-              doc.courseType !== 'downhill',
-              'centripetal',
-            )
-          : null;
-      replaceGeometry(
-        guide,
-        path
-          ? path.getPoints(Math.min(600, Math.max(64, doc.points.length * 6)))
-          : doc.points.map((p) => new T.Vector3(p.x, p.y, p.z)),
-      );
+      const segments = Math.min(600, Math.max(64, doc.points.length * 6));
+      const count = curve ? segments + 1 : doc.points.length;
+      let vertices = guide.geometry.getAttribute('position');
+      if (!vertices || vertices.count !== count) {
+        guide.geometry.dispose();
+        guide.geometry = new T.BufferGeometry();
+        vertices = new T.Float32BufferAttribute(new Float32Array(count * 3), 3);
+        vertices.setUsage(T.DynamicDrawUsage);
+        guide.geometry.setAttribute('position', vertices);
+      }
+      const target = new T.Vector3();
+      for (let i = 0; i < count; i++) {
+        const p = curve ? curve.getPoint(i / segments, target) : doc.points[i];
+        vertices.setXYZ(i, p.x, p.y, p.z);
+      }
+      vertices.needsUpdate = true;
+      guide.geometry.computeBoundingSphere();
     }
     const selections = Array.isArray(selection.section)
       ? selection.section
@@ -281,8 +292,6 @@ export function createEditorHandles(scene) {
       updateStroke(span, selections);
       updateStroke(fastTwist, selection.rollRateSections);
     }
-    // Don't leave a selected path at its previous location during a point move.
-    if (dragging && key !== curveKey) span.visible = fastTwist.visible = false;
   }
   function update(camera, width, height) {
     viewCamera = camera;
@@ -331,7 +340,6 @@ export function createEditorHandles(scene) {
     }
     dots.instanceMatrix.needsUpdate = true;
     if (dots.instanceColor) dots.instanceColor.needsUpdate = true;
-    dots.computeBoundingSphere();
     const problemIndex = selection.problemPoint;
     const problem = Array.isArray(selection.problemPosition)
       ? {
@@ -420,10 +428,6 @@ export function createEditorHandles(scene) {
     setDrawCursor: (point, options) => drawing.setCursor(point, options),
     setDragging(value) {
       dragging = value;
-      if (!value && doc) {
-        curveKey = pointKey = strokeKey = null;
-        setDocument(doc, selection);
-      }
     },
     setVisible(value) {
       visible = value;

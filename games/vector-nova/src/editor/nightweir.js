@@ -27,6 +27,7 @@ import {
   editorRandom,
 } from './document.js';
 import { createEditorTrack } from './track.js';
+import { createRoadEdit } from './road-edit.js';
 import { editorBiome } from './biomes.js';
 import { worldPreset } from './world-presets.js';
 import { createRegionPlan } from './region-plan.js';
@@ -74,7 +75,14 @@ export function createEditorRoad(
   const limestoneKit =
     biome.id === 'shatterline' &&
     track.editorEnvironment?.environment.layoutVersion >= 3;
-  const part = owner(`Editor / ${biome.label} ${style.kind} road kit`, preview);
+  let mount = null;
+  const part = owner(
+    `Editor / ${biome.label} ${style.kind} road kit`,
+    preview,
+    {
+      instanceMetadata: preview ? () => mount : null,
+    },
+  );
   part.group.userData.biome = biome.id;
   part.group.userData.roadKind = style.kind;
   const asphalt =
@@ -489,6 +497,7 @@ export function createEditorRoad(
       )
         continue;
       const position = new T.Vector3(top.x, (top.y + base) / 2, top.z);
+      if (preview) mount = { distance: s, pierTop: top, base, footing: false };
       part.block(
         'Automatic concrete pier',
         concrete,
@@ -498,6 +507,7 @@ export function createEditorRoad(
         collectSolid,
         true,
       );
+      if (preview) mount = { ...mount, footing: true };
       part.block(
         'Pier spread footing',
         concrete,
@@ -517,6 +527,7 @@ export function createEditorRoad(
       });
     }
     if (!suspended && frame.up.y < 0.7) {
+      if (preview) mount = { distance: s, grounded: true };
       const upright = groundFrame(track, s),
         span = half + 42,
         crownY = frame.position.y + half + 38;
@@ -574,6 +585,7 @@ export function createEditorRoad(
         );
       }
     }
+    if (preview) mount = { distance: s, grounded: false };
     if (!asphaltKind) {
       const keelDepth =
         style.kind === 'steel'
@@ -1295,6 +1307,8 @@ export function createEditorWorld(
     previous: priorEnvironment,
   });
   const pickups = road ? createEditorPickupHardware(track, doc, road) : null;
+  const roadEdit =
+    preview && track ? createRoadEdit(doc, road.group, pickups) : null;
   if (pickups) group.add(pickups.group);
   if (road) group.add(road.group);
   group.add(environment.group);
@@ -1309,6 +1323,9 @@ export function createEditorWorld(
     track,
     reuseKey,
     resourceContext: renderer,
+    updateRoadEdit: (next, indices) => roadEdit?.update(next, indices) ?? false,
+    clearRoadEdit: () => roadEdit?.clear(),
+    getRoadEditState: (index) => roadEdit?.getState(index) ?? null,
     environmentOwner: environment,
     incremental: {
       ...environment.incremental,

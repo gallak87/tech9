@@ -90,6 +90,8 @@ export function createEditorViewport(
   let world;
   let latest;
   let committedDocument;
+  let showRoadEdit = false;
+  let roadEditDirty = false;
   let visible = false;
   let disposed = false;
   let build = 0;
@@ -332,8 +334,11 @@ export function createEditorViewport(
   function draw() {
     if (!visible || !renderer || disposed || raf) return;
     raf = requestAnimationFrame(() => {
+      // Consume the latest pointer sample in the frame that actually draws it.
+      // Nested draw requests during this flush belong to this same frame.
+      editingInput?.flushPending();
       raf = null;
-      if (!visible || disposed) return;
+      if (!visible || !renderer || disposed) return;
       const width = host.clientWidth;
       const height = host.clientHeight;
       if (!width || !height) return;
@@ -341,6 +346,14 @@ export function createEditorViewport(
         renderer.setSize(width, height, false);
         renderWidth = width;
         renderHeight = height;
+      }
+      if (roadEditDirty && world) {
+        roadEditDirty = false;
+        if (
+          !showRoadEdit ||
+          !world.updateRoadEdit(latest, selection.selectedPoints)
+        )
+          world.clearRoadEdit();
       }
       camera.aspect = width / height;
       camera.near = flying ? 0.5 : Math.max(0.5, Math.min(20, distance / 2000));
@@ -825,7 +838,8 @@ export function createEditorViewport(
         });
       }
       await backdropPromise;
-      if (disposed || revision !== build) return;
+      if (disposed || revision !== build || (world && selection.previewOnly))
+        return;
       next = await createEditorWorld(buildingDocument, {
         renderer,
         preview: true,
@@ -860,6 +874,10 @@ export function createEditorViewport(
       }
       world = next;
       builtFingerprint = buildingFingerprint;
+      // A drag can begin while the committed world is compiling. Reapply its
+      // latest pose before the replacement is ever presented.
+      showRoadEdit = selection.previewOnly;
+      roadEditDirty = showRoadEdit;
       scene.add(world.group);
       estimatedGpuBytes = estimateResources();
       draw();
@@ -893,6 +911,8 @@ export function createEditorViewport(
     world?.dispose();
     world = undefined;
     builtFingerprint = null;
+    showRoadEdit = false;
+    roadEditDirty = false;
     clearTrajectories();
     guides?.dispose();
     guides = null;
@@ -921,6 +941,7 @@ export function createEditorViewport(
             camera: cameraState(),
             worldReady: Boolean(world) && builtFingerprint === fingerprint,
             interaction: handles?.getState() ?? null,
+            liveRoad: world?.getRoadEditState(selection.selectedPoint) ?? null,
             guideRouteBuilds: guides?.getMetrics().routeBuilds ?? 0,
           }
         : null,
@@ -957,6 +978,7 @@ export function createEditorViewport(
       {
         frame = false,
         previewOnly = false,
+        previewCurve = null,
         selectedPoint = -1,
         selectedPoints = [],
         rollRateSections = [],
@@ -974,9 +996,22 @@ export function createEditorViewport(
     ) {
       const next = previewOnly ? fingerprint : editorWorldFingerprint(document);
       const changed = next !== fingerprint;
+      const wasDragging = Boolean(selection.previewOnly);
+      // Keep the last posed surface on screen while its detailed world builds.
+      // Cancel/Undo to the existing world can restore the buffers immediately.
+      const keepEdit =
+        previewOnly ||
+        ((wasDragging || (showRoadEdit && !changed)) &&
+          next !== builtFingerprint &&
+          document.id === latest?.id);
+      roadEditDirty ||=
+        previewOnly || keepEdit !== showRoadEdit || (keepEdit && changed);
+      showRoadEdit = keepEdit;
       latest = document;
       if (!previewOnly) committedDocument = document;
       selection = {
+        previewOnly,
+        previewCurve,
         selectedPoint,
         selectedPoints,
         rollRateSections,
@@ -996,9 +1031,13 @@ export function createEditorViewport(
       editingInput?.syncTool();
       if (frame) frameDocument();
       draw();
-      if (!changed) return;
+      if (previewOnly) {
+        if (!wasDragging && world) clearTimeout(timer);
+        return;
+      }
+      if (!changed && !wasDragging) return;
       clearTimeout(timer);
-      if (visible && !editingInput?.isDragging())
+      if (visible && next !== builtFingerprint && !editingInput?.isDragging())
         timer = setTimeout(rebuild, 180);
     },
     setTrajectories(next) {

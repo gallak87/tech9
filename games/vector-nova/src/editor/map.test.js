@@ -28,7 +28,7 @@ class Surface {
     this.captures = new Set();
     this.dataset = {};
     this.id = 'test-map';
-    this.innerHTML = '';
+    this.children = [];
     this.ctmScale = 1;
   }
   addEventListener(type, listener, { signal } = {}) {
@@ -63,6 +63,12 @@ class Surface {
   closest() {
     return null;
   }
+  get innerHTML() {
+    return this.children.map((child) => child.innerHTML).join('');
+  }
+  append(child) {
+    this.children.push(child);
+  }
   getScreenCTM() {
     const scale = this.ctmScale;
     return {
@@ -79,7 +85,7 @@ class Surface {
     this.captures.delete(id);
   }
   replaceChildren() {
-    this.innerHTML = '';
+    this.children = [];
   }
 }
 const node = (index) => ({
@@ -110,7 +116,10 @@ function fixture() {
 function harness(initialTool = 'move') {
   const svg = new Surface(),
     view = new Surface();
-  svg.ownerDocument = { defaultView: view };
+  svg.ownerDocument = {
+    defaultView: view,
+    createElementNS: () => ({ innerHTML: '' }),
+  };
   let doc = fixture(),
     tool = initialTool,
     selected = 0,
@@ -259,10 +268,17 @@ test('Height changes only elevation and Draw continues placing after a Shift-hei
     original = clone(height.doc);
   height.svg.ctmScale = 2;
   gesture(height, 1, 75, -25);
-  assert.equal(
-    height.doc.points[1].y,
-    65,
-    'height uses SVG viewbox scale rather than raw CSS pixels',
+  const ordinary = height.doc.points[1].y - original.points[1].y;
+  const fine = harness('height');
+  fine.svg.ctmScale = 2;
+  gesture(fine, 1, 75, -25, { altKey: true });
+  assert.ok(
+    ordinary > 13 && ordinary < 14,
+    'height follows SVG viewbox units continuously',
+  );
+  assert.ok(
+    Math.abs(fine.doc.points[1].y - original.points[1].y - ordinary * 0.2) <
+      1e-8,
   );
   assert.equal(height.doc.points[1].x, original.points[1].x);
   assert.equal(height.doc.points[1].z, original.points[1].z);

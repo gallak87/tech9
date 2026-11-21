@@ -53,7 +53,7 @@ vMapUv=editorMetreUV(position,normal)*${repeat.toFixed(6)};
 export function createEditorOwner(
   name,
   preview = false,
-  { previous = null, regional = false } = {},
+  { previous = null, regional = false, instanceMetadata = null } = {},
 ) {
   const group = new T.Group();
   group.name = name;
@@ -151,11 +151,17 @@ export function createEditorOwner(
       : material.uuid + ':' + geometry.uuid;
     let batch = batches.get(key);
     if (!batch) {
-      batch = { material, geometry, list: [] };
+      batch = {
+        material,
+        geometry,
+        list: [],
+        metadata: instanceMetadata ? [] : null,
+      };
       batches.set(key, batch);
     }
     const matrix = new T.Matrix4().compose(position, quaternion, scale);
     batch.list.push(matrix);
+    batch.metadata?.push(instanceMetadata());
     if (collectSolid)
       collectSolid({ name, geometry, matrix, kind: 'structure' });
   }
@@ -166,7 +172,7 @@ export function createEditorOwner(
     const prior = previous?.chunks;
     // Each new owner borrows buffers, never an ancestor owner/lifetime chain.
     previous = null;
-    for (const [key, { material, geometry, list }] of batches) {
+    for (const [key, { material, geometry, list, metadata }] of batches) {
       const values = new Float32Array(list.length * 16);
       list.forEach((matrix, i) => matrix.toArray(values, i * 16));
       const cached = prior?.get(key);
@@ -181,6 +187,7 @@ export function createEditorOwner(
         list.length,
       );
       mesh.name = material.name;
+      if (metadata) mesh.userData.instanceMetadata = metadata;
       if (reusable) {
         addGeometry(cached.geometry);
         mesh.instanceMatrix = cached.instanceMatrix;

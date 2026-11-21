@@ -1,5 +1,5 @@
 import { DOWNHILL_RUNOUT } from './document.js';
-import { routeCurve } from './route.js';
+import { curvePointFraction, routeCurve } from './route.js';
 import { pointSelectionModifiers } from './point-gestures.js';
 
 const WIDTH = 720;
@@ -13,14 +13,14 @@ const meters = (value) => `${Math.round(value)} m`;
 const stationLabel = (value, length) =>
   length >= 1000 ? `${round(value / 1000)} km` : meters(value);
 
-export function sampleElevationProfile(doc, fractions) {
+export function sampleElevationProfile(doc, fractions, preparedCurve) {
   if (doc.points.length < 4) return null;
-  const curve = routeCurve(doc);
+  const curve = preparedCurve ?? routeCurve(doc);
   const length = curve.getLength();
   if (!Number.isFinite(length) || length < 1) return null;
 
   const points = doc.points.map((point, index) => ({
-    fraction: fractions[index],
+    fraction: fractions?.[index] ?? curvePointFraction(curve, index),
     elevation: point.y,
   }));
   const jumps = (doc.jumps ?? [])
@@ -208,13 +208,18 @@ export function bindElevationProfile(panel, onSelect, signal) {
       issuePoint,
       editable,
       issueLabel,
+      previewCurve,
     },
   ) {
-    if (doc !== revision) {
-      revision = doc;
-      if (!cache.has(doc))
-        cache.set(doc, sampleElevationProfile(doc, fractions));
-      chart = cache.get(doc);
+    const key = previewCurve ?? doc;
+    if (key !== revision) {
+      revision = key;
+      if (previewCurve) chart = sampleElevationProfile(doc, null, previewCurve);
+      else {
+        if (!cache.has(doc))
+          cache.set(doc, sampleElevationProfile(doc, fractions));
+        chart = cache.get(doc);
+      }
       empty.hidden = Boolean(chart);
       plot.hidden = !chart;
       empty.textContent =

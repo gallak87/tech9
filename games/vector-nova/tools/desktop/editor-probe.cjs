@@ -100,8 +100,14 @@ if (!process.versions.electron) {
     await wait(
       '!!document.querySelector("#track-editor-host #workshop-route-map")',
     );
+    if (
+      await evaluate(
+        '!!document.querySelector("[data-editor-recovery]:not([hidden]) [data-editor-action=discard-recovery]")',
+      )
+    )
+      await click('[data-editor-action="discard-recovery"]');
   }
-  async function loadSaved(id) {
+  async function loadSaved(id, name) {
     await click('[data-editor-action="tab-library"]');
     await wait(
       `Array.from(document.querySelector('[data-editor-field="saved"]')?.options ?? []).some(option => option.value === ${JSON.stringify(id)})`,
@@ -111,19 +117,10 @@ if (!process.versions.electron) {
     );
     await click('[data-editor-action="load"]');
     await wait(
-      `!document.querySelector('[data-editor-action="load"]').disabled`,
-    );
-    await click('[data-editor-action="tab-route"]');
-    await wait(
-      `document.querySelector('[data-editor-field="name"]')?.value === 'Native UI draft'`,
+      `document.querySelector('[data-editor-field="name"]')?.value === ${JSON.stringify(name)}`,
     );
   }
   async function testNativeDrive() {
-    await wait(
-      `!document.querySelector('[data-editor-action="save"]').disabled`,
-    );
-    await click('[data-editor-action="tab-generate"]');
-    await click('[data-editor-action="generate"]');
     await click('[data-editor-action="test"]');
     await wait(
       `!!document.querySelector('#editor-game-host #hud:not(.hidden)')`,
@@ -157,7 +154,7 @@ if (!process.versions.electron) {
     );
     window.webContents.debugger.detach();
     console.log(
-      'PASS native editor: bundled Generate circuit test-drives with real keyboard throttle, pauses and returns to the editable draft.',
+      'PASS native editor: the Shatterline starter drives, pauses and returns to the editable draft.',
     );
   }
   const draft = {
@@ -211,8 +208,13 @@ if (!process.versions.electron) {
       const uiEntry = entries.find((entry) => entry.name === 'Native UI draft');
       assert(uiEntry, 'the UI-created draft survives process restart');
       await openWorkshop();
-      await loadSaved(uiEntry.id);
+      const starter = entries.find((entry) => entry.biome === 'shatterline');
+      assert(starter, 'the Shatterline starter survives process restart');
+      await loadSaved(uiEntry.id, uiEntry.name);
       assert.equal((await call('read', uiEntry.id)).points.length, 0);
+      await loadSaved(starter.id, starter.name);
+      assert.equal((await call('read', starter.id)).jumps.length, 1);
+      assert.equal(await call('remove', starter.id), true);
       assert.equal(await call('remove', uiEntry.id), true);
       assert.equal(await call('remove', draft.id), true);
       assert.equal(await call('read', draft.id), null);
@@ -261,9 +263,6 @@ if (!process.versions.electron) {
         draft,
       );
       await openWorkshop();
-      await click('[data-editor-action="tab-generate"]');
-      await click('[data-editor-action="blank"]');
-      await click('[data-editor-action="tab-route"]');
       await evaluate(
         `(() => { const input = document.querySelector('[data-editor-field="name"]'); input.value = 'Native UI draft'; input.dispatchEvent(new Event('change', {bubbles:true})); })()`,
       );
@@ -275,6 +274,15 @@ if (!process.versions.electron) {
         (entry) => entry.name === 'Native UI draft',
       );
       assert.equal((await call('read', uiEntry.id)).points.length, 0);
+      await click('[data-editor-action="starter-canvas-canyon"]');
+      await click('[data-editor-action="save"]');
+      await wait(
+        '(async () => (await window.vectorNovaDesktop.tracks.list()).some(entry => entry.biome === "shatterline"))()',
+      );
+      const starter = (await call('list')).find(
+        (entry) => entry.biome === 'shatterline',
+      );
+      assert.equal((await call('read', starter.id)).jumps.length, 1);
       await testNativeDrive();
       assert.equal(
         (await call('read', uiEntry.id)).points.length,

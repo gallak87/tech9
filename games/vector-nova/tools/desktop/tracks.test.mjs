@@ -12,6 +12,11 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createRequire } from 'node:module';
+import { EDITOR_BIOMES } from '../../src/editor/biomes.js';
+import { createDocument, validateDocument } from '../../src/editor/document.js';
+import { prepareJumpEdit } from '../../src/editor/jump-authoring.js';
+import { createTrackLibrary } from '../../src/editor/library.js';
+import { createMemoryStorage } from '../../src/progression/careers.js';
 
 const { createTrackStore, registerTrackHandlers, MAX_TRACK_BYTES } =
   createRequire(import.meta.url)('../../desktop/tracks.cjs');
@@ -33,6 +38,24 @@ const document = (id = 'track-first') => ({
   settings: { density: 0.6, waterLevel: -28 },
   props: [],
 });
+
+async function assistedCourse() {
+  const doc = createDocument({ blank: true, biome: 'shatterline' });
+  doc.points = Array.from({ length: 8 }, (_, index) => ({
+    id: `point-${index}`,
+    x: 650 * Math.cos((index * Math.PI) / 4),
+    y: 100,
+    z: 650 * Math.sin((index * Math.PI) / 4),
+    bank: 0,
+    roll: 0,
+  }));
+  const { document } = await prepareJumpEdit(doc, {
+    pointIndex: 2,
+    size: 'small',
+  });
+  assert(document.jumps[0].authoring.signature.length > 1024);
+  return document;
+}
 
 async function fixture(t) {
   const root = await mkdtemp(join(tmpdir(), 'vn-tracks-'));
@@ -70,6 +93,44 @@ test('native library round-trips blank drafts and edited courses without adding 
   assert.equal(await store.read(draft.id), null);
 });
 
+test('browser and native libraries round-trip every current biome, legacy layouts and assisted jumps', async (t) => {
+  const { store } = await fixture(t);
+  const browser = createTrackLibrary({ storage: createMemoryStorage() });
+  const legacy = document('track-legacy');
+  legacy.props = [
+    {
+      id: 'pump-1',
+      type: 'pump',
+      distance: 0.2,
+      lateral: 200,
+      scale: 1,
+      rotation: 0,
+    },
+  ];
+  const drafts = [
+    ...EDITOR_BIOMES.map(({ id: biome }, index) =>
+      createDocument({ biome, blank: true, seed: index }),
+    ),
+    legacy,
+    ...[1, 2, 3].map((layoutVersion) => ({
+      ...legacy,
+      id: `track-legacy-${layoutVersion}`,
+      environment: { version: 1, seed: 42, layoutVersion },
+    })),
+    await assistedCourse(),
+  ];
+  for (const draft of drafts) {
+    const canonical = validateDocument(draft);
+    await store.save(draft);
+    await browser.save(await store.read(draft.id));
+    assert.deepEqual(await browser.read(draft.id), canonical);
+    await store.save(await browser.read(draft.id));
+    assert.deepEqual(await store.read(draft.id), canonical);
+  }
+  assert.equal((await store.list()).length, drafts.length);
+  assert.equal((await browser.list()).length, drafts.length);
+});
+
 test('native library confines IDs and rejects malformed, oversized and linked track files', async (t) => {
   const { root, store } = await fixture(t);
   for (const id of [
@@ -90,6 +151,10 @@ test('native library confines IDs and rejects malformed, oversized and linked tr
   await assert.rejects(
     async () => store.save({ ...document(), biome: 'other' }),
     /supported/,
+  );
+  await assert.rejects(
+    async () => store.save({ ...document(), extra: 'a'.repeat(1025) }),
+    /valid JSON/,
   );
   await store.save(document());
   await writeFile(join(root, 'tracks', 'track-broken.json'), '{broken');
@@ -185,12 +250,13 @@ test('track IPC validates the sender before operations and handles native import
   assert.equal(await handlers.get('tracks:export')({}, document()), null);
   const source = join(root, 'import.json'),
     target = join(root, 'export.json');
-  await writeFile(source, JSON.stringify(document()));
+  const draft = await assistedCourse();
+  await writeFile(source, JSON.stringify(draft, null, 2));
   openResult = { canceled: false, filePaths: [source] };
   saveResult = { canceled: false, filePath: target };
-  assert.deepEqual(await handlers.get('tracks:import')({}), document());
-  assert.equal(await handlers.get('tracks:export')({}, document()), true);
-  assert.deepEqual(JSON.parse(await readFile(target, 'utf8')), document());
+  assert.deepEqual(await handlers.get('tracks:import')({}), draft);
+  assert.equal(await handlers.get('tracks:export')({}, draft), true);
+  assert.deepEqual(JSON.parse(await readFile(target, 'utf8')), draft);
   assert.deepEqual(
     await handlers.get('tracks:list')({}),
     [],

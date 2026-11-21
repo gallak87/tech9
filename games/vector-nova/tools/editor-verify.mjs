@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { generateDocument } from '../src/editor/document.js';
+import { generateDocument, GENERATOR_VERSION } from '../src/editor/document.js';
 import {
   revealEditorField,
   revealEditorAction,
@@ -175,7 +175,7 @@ try {
   );
   assert.equal(
     generated.generator.version,
-    3,
+    GENERATOR_VERSION,
     'Generate uses the current varied layout',
   );
   assert.equal(
@@ -321,6 +321,7 @@ try {
   );
   await panel(page, 'world');
   await (await revealEditorAction(page, 'preset-industrial')).click();
+  await (await revealEditorAction(page, 'regenerate-environment')).click();
   await save(page);
   documents = await savedDocuments(page);
   assert.equal(
@@ -647,6 +648,7 @@ try {
   await page.reload();
   await entry.waitFor({ timeout: 90000 });
   await entry.click();
+  await action(page, 'test').waitFor({ timeout: 90000 });
   await openEditorSection(page, 'library');
   await page.waitForFunction(
     () =>

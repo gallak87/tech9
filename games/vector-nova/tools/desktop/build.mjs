@@ -159,6 +159,10 @@ export async function buildDesktop(edition) {
   }
   for (const file of ['main.cjs', 'preload.cjs', 'security.cjs', 'tracks.cjs'])
     await cp(resolve(root, 'desktop', file), resolve(stage, file));
+  const trackFileDir = resolve(stage, 'track-file');
+  await mkdir(trackFileDir);
+  for (const file of ['track-file.js', 'biomes.js', 'world-presets.js'])
+    await cp(resolve(root, 'src/editor', file), resolve(trackFileDir, file));
   const sourcePackage = JSON.parse(
     await readFile(resolve(root, 'package.json')),
   );
@@ -171,6 +175,10 @@ export async function buildDesktop(edition) {
         version: sourcePackage.version,
         description: 'An offline single-player anti-gravity racer',
         author: 'VECTOR//NOVA contributors',
+        type: 'module',
+        imports: {
+          '#vector-nova-track-file': './track-file/track-file.js',
+        },
         main: 'main.cjs',
         edition,
       },

@@ -412,6 +412,7 @@ export function createRouteMap(
   );
   view?.addEventListener('blur', () => finish(true), { signal: life.signal });
   return {
+    cancelInteraction: () => finish(true),
     setDocument(
       next,
       selected,

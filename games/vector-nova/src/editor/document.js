@@ -9,8 +9,15 @@ import {
   GENERATOR_VERSIONS,
   usesSeededLayout,
 } from './generation-version.js';
+import {
+  MAX_JUMP_SIGNATURE_LENGTH,
+  TRACK_FORMAT as DOCUMENT_FORMAT,
+  TRACK_ID_PATTERN,
+  TRACK_VERSION,
+  trackName,
+} from './track-file.js';
 
-export const DOCUMENT_FORMAT = 'vector-nova-track';
+export { DOCUMENT_FORMAT };
 export { GENERATOR_VERSION } from './generation-version.js';
 export const ENVIRONMENT_VERSION = 1;
 export const ENVIRONMENT_LAYOUT_VERSION = REGIONAL_LAYOUT_VERSION;
@@ -60,7 +67,6 @@ export const DOCUMENT_LIMITS = Object.freeze({
   props: 128,
   width: [32, 64],
 });
-const slug = /^[a-z][a-z0-9-]{0,79}$/;
 const record = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const fail = (message) => {
   throw new Error(message);
@@ -71,7 +77,7 @@ const number = (v, min, max, label) => {
   return Object.is(v, -0) ? 0 : v;
 };
 const identifier = (v, label) => {
-  if (typeof v !== 'string' || !slug.test(v))
+  if (typeof v !== 'string' || !TRACK_ID_PATTERN.test(v))
     fail(`${label} must be a short lowercase identifier`);
   return v;
 };
@@ -87,17 +93,15 @@ export function editorRandom(seed) {
 
 /** Validate untrusted files and copy only the versioned, data-only public schema. */
 export function validateDocument(value) {
-  if (!record(value) || value.format !== DOCUMENT_FORMAT || value.version !== 1)
+  if (
+    !record(value) ||
+    value.format !== DOCUMENT_FORMAT ||
+    value.version !== TRACK_VERSION
+  )
     fail('This is not a supported Vector Nova track file (version 1)');
   if (!isEditorBiome(value.biome)) fail('Choose a supported editor biome');
   const biome = value.biome;
-  if (
-    typeof value.name !== 'string' ||
-    !value.name.trim() ||
-    value.name.trim().length > 60 ||
-    [...value.name].some((c) => c.charCodeAt(0) < 32)
-  )
-    fail('Track name must contain 1–60 printable characters');
+  const name = trackName(value.name);
   const courseType = value.courseType ?? 'circuit';
   if (!['circuit', 'downhill'].includes(courseType))
     fail('Choose Circuit or Downhill course type');
@@ -259,7 +263,7 @@ export function validateDocument(value) {
           !saved.generatedPointIds.length ||
           saved.generatedPointIds.length > DOCUMENT_LIMITS.points ||
           typeof saved.signature !== 'string' ||
-          saved.signature.length > 150000
+          saved.signature.length > MAX_JUMP_SIGNATURE_LENGTH
         )
           fail('Unsupported saved jump authoring data');
         const storedIds = new Set();
@@ -403,9 +407,9 @@ export function validateDocument(value) {
       fail('Road-finish sections must not overlap');
   return {
     format: DOCUMENT_FORMAT,
-    version: 1,
+    version: TRACK_VERSION,
     id: identifier(value.id, 'Track ID'),
-    name: value.name.trim(),
+    name,
     biome,
     courseType,
     autoCloseRoll,
@@ -485,7 +489,7 @@ function generateLegacyDocument({
   if (generatorVersion === 2) {
     const draft = validateDocument({
       format: DOCUMENT_FORMAT,
-      version: 1,
+      version: TRACK_VERSION,
       id: `track-${seed}`,
       name:
         courseType === 'downhill'
@@ -550,7 +554,7 @@ function generateLegacyDocument({
   });
   const doc = {
     format: DOCUMENT_FORMAT,
-    version: 1,
+    version: TRACK_VERSION,
     id: `track-${seed}`,
     name:
       courseType === 'downhill'
@@ -610,7 +614,7 @@ function generationDraft({
   sceneryPreset = preset.id;
   return validateDocument({
     format: DOCUMENT_FORMAT,
-    version: 1,
+    version: TRACK_VERSION,
     id: `track-${seed}`,
     name:
       courseType === 'downhill'

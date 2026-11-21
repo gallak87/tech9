@@ -30,6 +30,7 @@ import { predictEditorJumpTrajectory } from './jumps.js';
 import { getShip } from '../ships/catalog.js';
 import { WORLD_PRESETS } from './world-presets.js';
 import { ROAD_PRESETS, roadPresetOptions } from './road-presets.js';
+import { PLAYABLE_STARTERS } from './playable-starters.js';
 import { EDITOR_BIOMES, editorBiome } from './biomes.js';
 import { findNextSuitableJump } from './jump-placement.js';
 import { prepareJumpEdit } from './jump-authoring.js';
@@ -78,6 +79,17 @@ const PANEL_SECTIONS = [...AUTHOR_GROUPS, ...GLOBAL_GROUPS];
 const PREVIEW_TOOLS = EDITOR_TOOLS.filter(({ id }) =>
   ['draw', 'move', 'height'].includes(id),
 );
+const TEST_MENU_ACTIONS = [
+  ['test-selected-point', 'From selected point', 'point'],
+  ['test-selected-jump', 'This jump', 'jump'],
+  ['test-retry', 'Retry last', 'retry'],
+];
+const TEST_ACTIONS = new Map([
+  ['test', 'course'],
+  ['test-point', 'point'],
+  ['test-jump', 'jump'],
+  ...TEST_MENU_ACTIONS.map(([action, , kind]) => [action, kind]),
+]);
 
 /** The editor owns its draft and history across a suspended Test Drive. */
 export function createTrackEditor(
@@ -179,12 +191,14 @@ export function createTrackEditor(
   let rangeEnd = selected;
   let rangeArmed = false;
   let seedPickups = true;
+  let starterPromptDismissedFor = null;
   let jumpManualChosen = false;
   let jumpSuggestion = null;
   let jumpSizePreset = 'small';
   let jumpCandidate = null;
   let jumpProposalError = '';
   let lastTestAttempt = null;
+  let testReturnAction = 'test';
   let testEntrySpeed = 'cruise';
   let testReserve = 'full';
   let roadSpanBiome = ROAD_SPAN_BIOMES[1];
@@ -192,10 +206,11 @@ export function createTrackEditor(
     jumpCandidate?.sourceKey === JSON.stringify(doc);
   const analysisCache = new WeakMap();
   const fractionCache = new WeakMap();
-  function analysisFor(value = doc) {
-    if (!analysisCache.has(value))
-      analysisCache.set(value, analyzeDocument(value));
-    return analysisCache.get(value);
+  function analysisFor() {
+    const revision = dragBefore ?? doc;
+    if (!analysisCache.has(revision))
+      analysisCache.set(revision, analyzeDocument(revision));
+    return analysisCache.get(revision);
   }
   function fractionsFor(value = doc) {
     if (!fractionCache.has(value))
@@ -245,7 +260,15 @@ export function createTrackEditor(
       <div class="workshop-wordmark">VECTOR<span>//</span>NOVA<small data-editor-course-label>TRACK EDITOR</small></div>
       <label class="workshop-header-name"><span class="workshop-sr-only">Track name</span><input type="text" maxlength="60" data-editor-field="name" aria-label="Track name" value="${escape(doc.name)}"></label>
       <div class="workshop-header-course">${courseTypeControl()}</div>
-      <div class="workshop-header-actions">${button('undo', 'Undo', 'aria-label="Undo edit"')}${button('redo', 'Redo', 'aria-label="Redo edit"')}${button('tab-library', 'File', 'aria-expanded="false" aria-controls="workshop-file-panel"')}${button('save', 'Save')}${typeof onTunes === 'function' ? button('tunes', 'Tunes') : ''}${button('test', 'Test drive', 'class="workshop-primary"')}${button('exit', 'Back', 'aria-label="Back to Race setup"')}</div>
+      <div class="workshop-header-actions">
+        ${button('undo', 'Undo', 'aria-label="Undo edit"')}${button('redo', 'Redo', 'aria-label="Redo edit"')}${button('tab-library', 'File', 'aria-expanded="false" aria-controls="workshop-file-panel"')}${button('save', 'Save')}${typeof onTunes === 'function' ? button('tunes', 'Tunes') : ''}
+        <div class="workshop-test-control" role="group" aria-label="Test Drive">
+          ${button('test', 'Test drive', 'class="workshop-primary"')}
+          ${button('test-options', '<span aria-hidden="true">▾</span>', 'aria-label="Test drive options" aria-expanded="false" aria-controls="workshop-test-menu" title="Test drive options"')}
+          <div class="workshop-test-menu" id="workshop-test-menu" role="group" aria-label="Test drive options" hidden></div>
+        </div>
+        ${button('exit', 'Back', 'aria-label="Back to Race setup"')}
+      </div>
     </header>
     <nav class="workshop-global-nav" aria-label="Track settings"><div class="workshop-context-switch" role="group" aria-label="Authoring context">${button('context-road', 'Road', 'aria-pressed="true"')}${button('context-environment', 'Environment', 'aria-pressed="false"')}</div>${button('tab-generate', 'Create road', 'class="workshop-task-action" aria-expanded="false"')}${button('tab-pickups', 'Fill pickups', 'class="workshop-task-action" aria-expanded="false"')}<div class="workshop-facts" data-editor-facts></div></nav>
     <div class="workshop-layout" data-editor-layout>
@@ -264,6 +287,7 @@ export function createTrackEditor(
           </div>
           <div class="workshop-world" data-editor-world><span class="workshop-fly-badge" data-editor-fly-badge hidden>FREE CAMERA · ESC / B TO EXIT</span></div>
           <div class="workshop-preview-status" data-editor-preview-status></div>
+          <section class="workshop-starter-overlay" aria-label="Start a track" data-editor-starters hidden><h2>Start a track</h2>${renderStarterChoices('canvas')}</section>
           <div class="workshop-empty-hint" data-editor-empty><span class="workshop-eyebrow">YOUR ROAD, FROM SCRATCH</span><strong data-editor-empty-title>Click the ground to start.</strong><span data-editor-empty-copy>Draw a few points. We build the road and supports.</span></div>
           <div class="workshop-authoring-strip" data-editor-authoring role="group" aria-label="Preview authoring tools">
             ${renderToolModes()}
@@ -287,7 +311,15 @@ export function createTrackEditor(
   const svg = root.querySelector('#workshop-route-map');
   const worldHost = root.querySelector('[data-editor-world]');
   const mapPopover = root.querySelector('[data-editor-map-wrap]');
+  const testMenu = root.querySelector('#workshop-test-menu');
+  const testOptions = root.querySelector('[data-editor-action="test-options"]');
+  let testMenuHTML = '';
   const sectionHTML = new Map();
+  function showTestMenu(open, { focus = false } = {}) {
+    testMenu.hidden = !open;
+    testOptions.setAttribute('aria-expanded', String(open));
+    if (focus) testOptions.focus({ preventScroll: true });
+  }
   function rememberGroupScroll() {
     if (authorGroup) groupScroll.set(authorGroup, tools.scrollTop);
     if (globalGroup) groupScroll.set(globalGroup, globalTools.scrollTop);
@@ -306,8 +338,8 @@ export function createTrackEditor(
   }
   function focusGroup(id) {
     const section = root.querySelector(`[data-editor-section="${id}"]`);
-    const first = [...section.querySelectorAll('button, input, select')].find(
-      (node) => !node.disabled,
+    const first = section.querySelector(
+      'summary, button:not(:disabled), input:not(:disabled), select:not(:disabled)',
     );
     first?.focus({ preventScroll: true });
     first?.scrollIntoView({ block: 'nearest' });
@@ -364,14 +396,14 @@ export function createTrackEditor(
     if (busy || suspended || disposed || recoveryEntry || context !== 'road')
       return;
     if (!dragBefore) {
-      dragBefore = clone(doc);
+      dragBefore = doc;
+      doc = clone(doc);
       status('Moving point… release to finish, Escape to cancel.');
       root.querySelector('[data-editor-validation]').dataset.severity = 'none';
       root.querySelector('[data-editor-validation]').innerHTML =
         '<strong>Moving point…</strong>';
     }
-    // An asynchronous preview may render between pointer frames.
-    analysisCache.delete(doc);
+    // Point readouts may be rendered between pointer frames.
     fractionCache.delete(doc);
     latestAnalysis = null;
     Object.assign(doc.points[index], position);
@@ -381,24 +413,10 @@ export function createTrackEditor(
   }
   function endDrag() {
     if (!dragBefore) return;
-    const previous = dragBefore;
+    const next = doc;
+    doc = dragBefore;
     dragBefore = null;
-    if (busy || suspended || disposed) {
-      doc = previous;
-      return;
-    }
-    try {
-      doc = validateDocument(doc);
-      inspectedIssueKind = null;
-      if (JSON.stringify(doc) !== JSON.stringify(previous))
-        pushHistory(previous);
-      status('Position updated.');
-      render();
-    } catch (error) {
-      doc = previous;
-      status(error.message, 'error');
-      render();
-    }
+    if (!busy && !suspended && !disposed) commit(next, 'Position updated.');
   }
   function cancelDrag() {
     if (!dragBefore) return;
@@ -406,6 +424,11 @@ export function createTrackEditor(
     dragBefore = null;
     status('Move canceled.');
     render();
+  }
+  function cancelActiveDrag() {
+    if (!dragBefore) return;
+    viewport.cancelInteraction();
+    map.cancelInteraction();
   }
   const viewport = createEditorViewport(worldHost, {
     navigationRoot: host,
@@ -506,10 +529,9 @@ export function createTrackEditor(
   }
   function flushRecovery() {
     clearTimeout(recoveryTimer);
-    if (recoveryEntry || dragBefore || recoveryState !== 'Saving draft…')
-      return;
+    if (recoveryEntry || recoveryState !== 'Saving draft…') return;
     try {
-      recovery.write(doc);
+      recovery.write(dragBefore ?? doc);
       recoveryState = 'Draft backed up';
       recoveryError = '';
     } catch {
@@ -520,8 +542,9 @@ export function createTrackEditor(
     if (!disposed) syncRecovery();
   }
   function checkpointRecovery() {
+    if (dragBefore || recoveryEntry) return;
     const next = JSON.stringify(doc);
-    if (dragBefore || recoveryEntry || next === checkpointJSON) return;
+    if (next === checkpointJSON) return;
     checkpointJSON = next;
     recoveryState = 'Saving draft…';
     clearTimeout(recoveryTimer);
@@ -545,42 +568,25 @@ export function createTrackEditor(
   function commit(next, text, { frame = false } = {}) {
     try {
       next = validateDocument(next);
-      if (JSON.stringify(next) === JSON.stringify(doc)) {
-        status(text);
-        return;
+      if (JSON.stringify(next) !== JSON.stringify(doc)) {
+        pushHistory(doc);
+        doc = next;
+        inspectedIssueKind = null;
+        jumpCandidate = null;
+        jumpSuggestion = null;
+        jumpManualChosen = false;
+        restoreJumpSelection();
+        selected = Math.min(selected, doc.points.length - 1);
+        selectedProp = -1;
       }
-      pushHistory(clone(doc));
-      const roadKey = (value) =>
-        JSON.stringify([
-          value.points,
-          value.width,
-          value.courseType,
-          value.rolls,
-          value.jumps,
-          value.autoCloseRoll,
-          value.settings.waterLevel,
-        ]);
-      if (roadKey(doc) === roadKey(next)) {
-        if (analysisCache.has(doc))
-          analysisCache.set(next, analysisCache.get(doc));
-        if (fractionCache.has(doc))
-          fractionCache.set(next, fractionCache.get(doc));
-      }
-      doc = next;
-      inspectedIssueKind = null;
-      jumpCandidate = null;
-      jumpSuggestion = null;
-      jumpManualChosen = false;
-      restoreJumpSelection();
-      selected = Math.min(selected, doc.points.length - 1);
-      selectedProp = -1;
       message = text;
       messageKind = '';
-      render({ frame });
     } catch (error) {
       status(error.message, 'error');
       render();
+      return;
     }
+    render({ frame });
   }
   function edit(change, text, options) {
     const next = clone(doc);
@@ -735,7 +741,17 @@ export function createTrackEditor(
             ? lastTestAttempt
             : null,
       });
+    const showStarters =
+      doc.points.length === 0 &&
+      starterPromptDismissedFor !== doc.id &&
+      !recoveryEntry &&
+      context === 'road' &&
+      !mapOpen &&
+      !globalGroup &&
+      !authorGroup;
+    root.querySelector('[data-editor-starters]').hidden = !showStarters;
     root.querySelector('[data-editor-empty]').hidden =
+      showStarters ||
       doc.points.length >= 4 ||
       mapOpen ||
       context !== 'road' ||
@@ -1004,28 +1020,66 @@ export function createTrackEditor(
     const count = doc.points.length;
     return `<section class="workshop-section"><h2>Section road finish</h2><p class="workshop-help">Uses the From / To points above. Changes only this section’s road surface. Scenery and sky keep the environment you chose.</p><label class="workshop-label">Road finish<select data-editor-field="road-span-biome" aria-label="Section road finish">${ROAD_SPAN_BIOMES.map((biome) => option(biome, editorBiome(biome).label, roadSpanBiome === biome)).join('')}</select></label>${button('apply-road-finish', 'Apply road finish', `class="workshop-wide" ${count >= 4 ? '' : 'disabled'}`)}${button('clear-road-finish', 'Use world finish in section', `class="workshop-wide" ${doc.biomeSpans.length ? '' : 'disabled'}`)}${doc.biomeSpans.map((span) => `<p class="workshop-help">${escape(editorBiome(span.biome).label)} · points ${doc.points.findIndex((point) => point.id === span.startPointId) + 1}–${doc.points.findIndex((point) => point.id === span.endPointId) + 1} ${button(`clear-road-span-${span.id}`, 'Clear', 'aria-label="Clear this road finish section"')}</p>`).join('')}<p class="workshop-help">Clear finish overrides before deleting their end points. Jump and twist corridors stay protected.</p></section>`;
   }
-  function localTestRequest(kind = 'point') {
-    return {
-      kind,
-      ...(kind === 'jump'
-        ? { jumpId: selectedJumpId }
-        : { pointId: doc.points[selected]?.id }),
-      speed: testEntrySpeed,
-      reserve: testReserve,
+  function testIsCurrent() {
+    return (
+      lastTestAttempt?.shipId === shipId &&
+      lastTestAttempt.courseIdentity === documentIdentity(doc)
+    );
+  }
+  function testRequest(kind, current = false) {
+    if (kind === 'course') return { kind };
+    if (kind === 'retry') return current ? lastTestAttempt.request : null;
+    const id = kind === 'jump' ? selectedJumpId : doc.points[selected]?.id;
+    return id
+      ? {
+          kind,
+          [kind === 'jump' ? 'jumpId' : 'pointId']: id,
+          speed: testEntrySpeed,
+          reserve: testReserve,
+        }
+      : null;
+  }
+  function testStart(request) {
+    try {
+      return { plan: resolveEditorTestStart(doc, request, { shipId }) };
+    } catch (error) {
+      return { error: error.message };
+    }
+  }
+  function renderTestMenu(valid, current, actual) {
+    const unavailable = {
+      point: 'Select a road point first.',
+      jump: 'Choose a jump in the editor.',
+      retry: lastTestAttempt
+        ? 'Track changed. Choose a new start.'
+        : 'Complete or return from a test first.',
     };
+    const html = [
+      !valid ? '<p>Resolve Track checks to start a drive.</p>' : '',
+      ...TEST_MENU_ACTIONS.map(([action, label, kind]) => {
+        const request = testRequest(kind, current);
+        const { plan, error } = valid && request ? testStart(request) : {};
+        const description = plan
+          ? `${plan.label} · ${Math.round(plan.speed * 3.6)} km/h start · ${plan.energy}% reserve`
+          : valid
+            ? (error ?? unavailable[kind])
+            : '';
+        return `<div>${button(action, label, plan ? '' : 'disabled')}${description ? `<p>${escape(description)}</p>` : ''}</div>`;
+      }),
+      actual
+        ? `<p class="workshop-test-menu-result">${escape(actual)}</p>`
+        : '',
+    ].join('');
+    if (testMenuHTML !== html) {
+      testMenu.innerHTML = html;
+      testMenuHTML = html;
+    }
   }
   function renderLocalTestControls(kind) {
-    let summary,
-      available = analysisFor().valid;
     if (kind === 'jump' && !selectedJumpId) return '';
-    try {
-      summary = getEditorTestStartSummary(
-        resolveEditorTestStart(doc, localTestRequest(kind), { shipId }),
-      );
-    } catch (error) {
-      available = false;
-      summary = error.message;
-    }
+    const { plan, error } = testStart(testRequest(kind));
+    const available = Boolean(plan) && analysisFor().valid;
+    const summary = plan ? getEditorTestStartSummary(plan) : error;
     const controls = `<label class="workshop-label">Entry speed<select data-editor-field="${kind === 'jump' ? 'test-entry-speed' : 'point-test-entry-speed'}" aria-label="${kind === 'jump' ? 'Test entry speed' : 'Point test entry speed'}">${[
       ['cruise', 'Full cruise'],
       ['boost', 'Full boost'],
@@ -1111,8 +1165,20 @@ export function createTrackEditor(
       )}</select></label></div><label class="workshop-label">Road seed<input type="number" data-editor-field="seed" aria-label="Road seed" min="0" max="4294967295" step="1" value="${generator.seed}"></label><p class="workshop-help">The same seed and settings repeat the road.</p>${button('quick-start', 'Create simple starter', 'class="workshop-wide"')}`;
     return `<section class="workshop-section"><h2>Choose your line.</h2><p class="workshop-help">Pick a style and length. Create replaces your road; Undo brings it back.</p><div class="workshop-road-cards" role="group" aria-label="Road style">${starterCards}</div><label class="workshop-label">${doc.courseType === 'downhill' ? 'Length including runout' : 'Length'}<select data-editor-field="length" aria-label="Generated track length">${[3000, 5000, 10000, 15000, 20000].map((length) => option(length, `${length / 1000} km`, length === generator.length)).join('')}${![3000, 5000, 10000, 15000, 20000].includes(generator.length) ? option(generator.length, `${generator.length / 1000} km`, true) : ''}</select></label><label class="workshop-checkbox"><input type="checkbox" data-editor-field="seed-pickups" ${seedPickups ? 'checked' : ''}><span>Fill with pickups</span></label>${details('generator', `Customize${matchingPreset ? '' : ' · custom settings'}`, custom)}<div class="workshop-generator-actions">${button('generate', 'Create road', 'class="workshop-primary workshop-wide"')}${button('new-variation', 'Try another variation', `class="workshop-wide" ${doc.points.length < 4 ? 'hidden' : ''}`)}</div><p class="workshop-help">${doc.courseType === 'downhill' ? 'A sustained descent with a supported finish runout.' : 'A closed course with supported roads and clear jump landings.'}</p></section>`;
   }
+  function renderStarterChoices(location) {
+    return `<div class="workshop-starter-choices">${PLAYABLE_STARTERS.map(
+      ({ id, name, summary }) =>
+        button(
+          `starter-${location}-${id}`,
+          `<strong>${escape(name)}</strong><span>${escape(summary)}</span>`,
+          'class="workshop-starter-card"',
+        ),
+    ).join(
+      '',
+    )}${button(location === 'canvas' ? 'starter-draw' : 'blank', 'Draw from scratch')}</div>`;
+  }
   function renderLibrary() {
-    return `<section class="workshop-section"><h2>Your tracks</h2><p class="workshop-help">Open a saved course or keep a copy of this draft.</p><div class="workshop-button-row">${button('blank', 'New track')}${button('reset-track', 'Reset road')}</div><label class="workshop-label">Saved track<select data-editor-field="saved" aria-label="Saved track" ${records.length ? '' : 'disabled'}>${records.length ? records.map((record) => `<option value="${escape(record.id)}" ${record.id === savedId ? 'selected' : ''}>${escape(record.name)}</option>`).join('') : '<option>No saved tracks</option>'}</select></label><div class="workshop-button-row">${button('load', 'Load track', records.length ? '' : 'disabled')}${button('remove', 'Delete saved', records.length ? '' : 'disabled')}</div>${button('save-copy', 'Save a copy', 'class="workshop-wide"')}<div class="workshop-section-divider"></div>${button('import', 'Import track file', 'class="workshop-wide"')}${button('export', 'Export track file', 'class="workshop-wide"')}<p class="workshop-help">Track files include your road and settings.</p></section>`;
+    return `<section class="workshop-section"><h2>Your tracks</h2><p class="workshop-help">Open a saved course or keep a copy of this draft.</p>${details('new-track', 'New track', renderStarterChoices('file'))}${button('reset-track', 'Reset road', 'class="workshop-wide"')}<label class="workshop-label">Saved track<select data-editor-field="saved" aria-label="Saved track" ${records.length ? '' : 'disabled'}>${records.length ? records.map((record) => `<option value="${escape(record.id)}" ${record.id === savedId ? 'selected' : ''}>${escape(record.name)}</option>`).join('') : '<option>No saved tracks</option>'}</select></label><div class="workshop-button-row">${button('load', 'Load track', records.length ? '' : 'disabled')}${button('remove', 'Delete saved', records.length ? '' : 'disabled')}</div>${button('save-copy', 'Save a copy', 'class="workshop-wide"')}<div class="workshop-section-divider"></div>${button('import', 'Import track file', 'class="workshop-wide"')}${button('export', 'Export track file', 'class="workshop-wide"')}<p class="workshop-help">Track files include your road and settings.</p></section>`;
   }
   function renderWorld() {
     const pending = environmentDraft;
@@ -1286,6 +1352,15 @@ export function createTrackEditor(
     const finishing = tool === 'draw' && doc.points.length >= 4;
     root.querySelector('[data-editor-action="finish-drawing"]').hidden =
       !finishing;
+    const attempt = lastTestAttempt?.lastAttempt;
+    const currentTest = testIsCurrent();
+    const testLabel = currentTest ? 'Last test' : 'Previous track version';
+    const actual = attempt
+      ? `${testLabel} · ${attempt.outcome === 'landed' ? 'Landed' : attempt.outcome === 'missed' ? `Missed: ${attempt.reason ?? 'landing'}` : 'Airborne'} · actual launch ${Math.round(attempt.launch.speed * 3.6)} km/h.`
+      : lastTestAttempt
+        ? `${testLabel} · Returned before a jump launch.`
+        : '';
+    if (!testMenu.hidden) renderTestMenu(analysis.valid, currentTest, actual);
     for (const node of root.querySelectorAll(
       '[data-editor-field], [data-editor-action]',
     )) {
@@ -1374,12 +1449,6 @@ export function createTrackEditor(
       selectedJumpId &&
       flightPreview?.cruise
         ? `Jump estimate · At full cruise: ${flightPreview.cruise.summary} At full boost: ${flightPreview.boost.summary}`
-        : '';
-    const attempt = lastTestAttempt?.lastAttempt;
-    const actual = attempt
-      ? `${lastTestAttempt.courseIdentity === documentIdentity(doc) ? 'Last test' : 'Previous road version'} · ${attempt.outcome === 'landed' ? 'Landed' : attempt.outcome === 'missed' ? `Missed: ${attempt.reason ?? 'landing'}` : 'Airborne'} · actual launch ${Math.round(attempt.launch.speed * 3.6)} km/h.`
-      : lastTestAttempt
-        ? 'Last test · Returned before a jump launch.'
         : '';
     root.querySelector('[data-editor-test-feedback]').textContent = [
       actual,
@@ -1471,6 +1540,7 @@ export function createTrackEditor(
     if (disposed || busy) return;
     if (recoveryEntry && !['recover-draft', 'discard-recovery'].includes(name))
       return;
+    cancelActiveDrag();
     if (
       ['apply-road-finish', 'clear-road-finish'].includes(name) ||
       name.startsWith('clear-road-span-')
@@ -1846,8 +1916,11 @@ export function createTrackEditor(
       root.querySelector('[data-editor-action="select-mode"]')?.focus();
       return;
     }
-    const chosenTool = PREVIEW_TOOLS.find((item) => item.action === name);
+    const chosenTool = PREVIEW_TOOLS.find(
+      (item) => item.action === (name === 'starter-draw' ? 'draw-mode' : name),
+    );
     if (chosenTool) {
+      if (name === 'starter-draw') starterPromptDismissedFor = doc.id;
       viewport.cancelInteraction();
       viewport.exitFly();
       rememberGroupScroll();
@@ -1859,6 +1932,8 @@ export function createTrackEditor(
 
       status(`${chosenTool.label}: ${chosenTool.hint}`);
       render();
+      if (name === 'starter-draw')
+        root.querySelector('[data-editor-action="draw-mode"]')?.focus();
       viewport.setVisible(view === 'world' && !suspended);
       return;
     }
@@ -2003,7 +2078,7 @@ export function createTrackEditor(
       const source = name === 'undo' ? undo : redo,
         destination = name === 'undo' ? redo : undo;
       if (!source.length) return;
-      destination.push(clone(doc));
+      destination.push(doc);
       const previousPoints = new Set(doc.points.map((point) => point.id));
       doc = source.pop();
       inspectedIssueKind = null;
@@ -2185,7 +2260,12 @@ export function createTrackEditor(
       }, 'Road style selected. Choose Create road to apply it.');
       return;
     }
+    const recipe = PLAYABLE_STARTERS.find(
+      ({ id }) =>
+        name === `starter-canvas-${id}` || name === `starter-file-${id}`,
+    );
     if (
+      recipe ||
       ['generate', 'quick-start', 'new-seed', 'new-variation'].includes(name)
     ) {
       status('Generating a drivable route…');
@@ -2201,7 +2281,7 @@ export function createTrackEditor(
           if (seed === doc.generator.seed) seed = (seed + 1) >>> 0;
         }
         const next = await generateDocumentAsync(
-          {
+          recipe?.options ?? {
             ...(starter
               ? { seed: 42017, length: 3000, bendiness: 0.45, elevation: 0.35 }
               : { ...doc.generator, seed }),
@@ -2223,18 +2303,28 @@ export function createTrackEditor(
               new Promise((done) => requestAnimationFrame(done)),
           },
         );
-        next.id = doc.id;
-        next.name = doc.name;
+        next.id = recipe ? uid('track') : doc.id;
+        next.name = recipe?.name ?? doc.name;
         next.props = [];
         next.rolls = [];
-        const pickupOptions = {
+        const pickupOptions = recipe?.pickups ?? {
           preset: doc.pickups?.preset ?? 'balanced',
           density: doc.pickups?.density ?? 0.5,
         };
         next.pickups =
-          starter || seedPickups
+          recipe || starter || seedPickups
             ? generatePickupLayout(next, pickupOptions)
             : { version: 1, ...pickupOptions, devices: [] };
+        if (recipe) {
+          viewport.cancelInteraction();
+          viewport.exitFly();
+          mapOpen = false;
+          context = 'road';
+          authorGroup = '';
+          roadAuthorGroup = '';
+          tab = 'route';
+          environmentKey = '';
+        }
         selected = 0;
         selectedProp = -1;
         rangeAnchor = 0;
@@ -2245,7 +2335,9 @@ export function createTrackEditor(
         jumpEnd = Math.min(next.points.length - 2, jumpStart + 2);
         commit(
           next,
-          `${doc.courseType === 'downhill' ? 'Downhill course' : 'Circuit'} generated from seed ${next.generator.seed}: ${next.jumps.length} ${next.jumps.length === 1 ? 'jump' : 'jumps'}, ${next.pickups.devices.length} pickups. Drag road points to make it yours.`,
+          recipe
+            ? `${recipe.name} is ready to test drive. Undo restores your previous draft.`
+            : `${doc.courseType === 'downhill' ? 'Downhill course' : 'Circuit'} generated from seed ${next.generator.seed}: ${next.jumps.length} ${next.jumps.length === 1 ? 'jump' : 'jumps'}, ${next.pickups.devices.length} pickups. Drag road points to make it yours.`,
           {
             frame: true,
           },
@@ -2258,7 +2350,11 @@ export function createTrackEditor(
         globalGroup = '';
         workspacePanels.road = '';
         render();
-        root.querySelector(`[data-editor-action="select-mode"]`)?.focus();
+        root
+          .querySelector(
+            `[data-editor-action="${recipe ? 'test' : 'select-mode'}"]`,
+          )
+          ?.focus();
       }
       return;
     }
@@ -2285,6 +2381,7 @@ export function createTrackEditor(
         blank: true,
         courseType: doc.courseType,
       });
+      starterPromptDismissedFor = name === 'reset-track' ? doc.id : next.id;
       if (name === 'reset-track') {
         next.id = doc.id;
         next.name = doc.name;
@@ -2328,17 +2425,25 @@ export function createTrackEditor(
       onExit(clone(doc));
       return;
     }
-    if (['test', 'test-jump', 'test-point'].includes(name)) {
-      if (!analysisFor().valid) return;
+    if (name === 'test-options') {
+      showTestMenu(testMenu.hidden);
+      if (!testMenu.hidden) {
+        render();
+        testMenu.querySelector('button:not(:disabled)')?.focus();
+      }
+      return;
+    }
+    if (TEST_ACTIONS.has(name)) {
+      const kind = TEST_ACTIONS.get(name);
+      const request = testRequest(kind, kind === 'retry' && testIsCurrent());
+      if (!request || !analysisFor().valid) return;
+      const fromMenu = TEST_MENU_ACTIONS.some(([action]) => action === name);
+      testReturnAction = fromMenu ? 'test-options' : name;
+      showTestMenu(false, { focus: fromMenu });
       await run(async () => {
         flushRecovery();
         status('Preparing Test Drive…');
-        await onTestDrive(
-          clone(doc),
-          name === 'test'
-            ? { kind: 'course' }
-            : localTestRequest(name === 'test-jump' ? 'jump' : 'point'),
-        );
+        await onTestDrive(clone(doc), request);
       });
       return;
     }
@@ -2349,13 +2454,9 @@ export function createTrackEditor(
           next.id = uid('track');
           next.name = `${next.name.slice(0, 55)} copy`;
         }
-        const current = doc;
-        doc = validateDocument(await library.save(next));
-        if (analysisCache.has(current))
-          analysisCache.set(doc, analysisCache.get(current));
-        if (fractionCache.has(current))
-          fractionCache.set(doc, fractionCache.get(current));
-        saved = JSON.stringify(doc);
+        const stored = validateDocument(await library.save(next));
+        saved = JSON.stringify(stored);
+        if (saved !== JSON.stringify(doc)) doc = stored;
         savedId = doc.id;
         await refreshLibrary();
         const pending =
@@ -2482,6 +2583,7 @@ export function createTrackEditor(
   function fieldChange(event) {
     const field = event.target.dataset.editorField;
     if (!field || busy || recoveryEntry) return;
+    cancelActiveDrag();
     const value = event.target.value;
     const number = Number(value);
     if (
@@ -2673,9 +2775,18 @@ export function createTrackEditor(
           : 'Track settings updated.',
     );
   }
+  function dismissTestMenuOutside(event) {
+    if (
+      !testMenu.hidden &&
+      !testMenu.contains(event.target) &&
+      !testOptions.contains(event.target)
+    )
+      showTestMenu(false);
+  }
   document.addEventListener(
     'pointerdown',
     (event) => {
+      dismissTestMenuOutside(event);
       if (
         mapOpen &&
         !suspended &&
@@ -2690,6 +2801,7 @@ export function createTrackEditor(
   document.addEventListener(
     'focusin',
     (event) => {
+      dismissTestMenuOutside(event);
       if (
         mapOpen &&
         !suspended &&
@@ -2701,7 +2813,14 @@ export function createTrackEditor(
     },
     { signal: life.signal },
   );
-  window.addEventListener('blur', () => closeMap(), { signal: life.signal });
+  window.addEventListener(
+    'blur',
+    () => {
+      closeMap();
+      showTestMenu(false);
+    },
+    { signal: life.signal },
+  );
   root.addEventListener('change', fieldChange, { signal: life.signal });
   root.addEventListener(
     'focusin',
@@ -2756,6 +2875,10 @@ export function createTrackEditor(
         event.preventDefault();
         event.stopPropagation();
         if (busy) return;
+        if (!testMenu.hidden) {
+          showTestMenu(false, { focus: true });
+          return;
+        }
         if (mapOpen) {
           closeMap({ focus: true });
           return;
@@ -2916,6 +3039,7 @@ export function createTrackEditor(
     }),
     suspend() {
       mapOpen = false;
+      showTestMenu(false);
       suspended = true;
       host.hidden = true;
       viewport.setVisible(false);
@@ -2927,9 +3051,8 @@ export function createTrackEditor(
       status('Back in Workshop. Your draft is ready.');
       render();
       viewport.setVisible(view === 'world');
-      root
-        .querySelector('[data-editor-action="test"]')
-        .focus({ preventScroll: true });
+      restoreFocus(['data-editor-action', testReturnAction]);
+      testReturnAction = 'test';
     },
     dispose() {
       if (disposed) return;

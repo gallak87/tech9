@@ -1,20 +1,21 @@
 import { validateDocument } from './document.js';
+import {
+  checkTrackFileSize,
+  MAX_TRACK_BYTES,
+  MAX_TRACKS,
+  parseTrackFile,
+  serializeTrack,
+  TRACK_ID_PATTERN,
+  trackByteLength,
+  trackExportName,
+  trackId,
+} from './track-file.js';
 
 export const TRACK_LIBRARY_KEY = 'vector-nova.tracks.v1.';
-const MAX_TRACK_BYTES = 1024 * 1024;
-const MAX_TRACKS = 256;
-const ID_PATTERN = /^[a-z][a-z0-9-]{0,79}$/;
-const byteLength = (text) => new TextEncoder().encode(text).length;
-const safeId = (id) => {
-  if (typeof id !== 'string' || !ID_PATTERN.test(id))
-    throw new Error('Invalid track ID.');
-  return id;
-};
 
 function canonical(document) {
   const result = validateDocument(document);
-  if (byteLength(JSON.stringify(result)) > MAX_TRACK_BYTES)
-    throw new Error('Choose a track under 1 MB.');
+  serializeTrack(result);
   return result;
 }
 
@@ -49,9 +50,8 @@ async function pickTrackFile() {
         const file = input.files?.[0];
         if (!file) return finish(null);
         try {
-          if (file.size > MAX_TRACK_BYTES)
-            throw new Error('Choose a track under 1 MB.');
-          finish(canonical(JSON.parse(await file.text())));
+          checkTrackFileSize(file.size);
+          finish(canonical(parseTrackFile(await file.text())));
         } catch (error) {
           finish(null, error);
         }
@@ -73,14 +73,14 @@ export function createTrackLibrary({ storage } = {}) {
         return desktop.list();
       },
       async read(id) {
-        const document = await desktop.read(safeId(id));
+        const document = await desktop.read(trackId(id));
         return document === null ? null : canonical(document);
       },
       async save(document) {
         return canonical(await desktop.save(canonical(document)));
       },
       async remove(id) {
-        return desktop.remove(safeId(id));
+        return desktop.remove(trackId(id));
       },
       async import() {
         const document = await desktop.import();
@@ -95,9 +95,9 @@ export function createTrackLibrary({ storage } = {}) {
       ? storage
       : () => storage ?? globalThis.localStorage;
   const readEnvelope = (id) => {
-    const raw = getStorage().getItem(TRACK_LIBRARY_KEY + safeId(id));
+    const raw = getStorage().getItem(TRACK_LIBRARY_KEY + trackId(id));
     if (raw === null) return null;
-    if (byteLength(raw) > MAX_TRACK_BYTES + 256)
+    if (trackByteLength(raw) > MAX_TRACK_BYTES + 256)
       throw new Error('The saved track is too large.');
     const envelope = JSON.parse(raw);
     if (!Number.isFinite(envelope.updatedAt) || envelope.updatedAt < 0)
@@ -114,7 +114,7 @@ export function createTrackLibrary({ storage } = {}) {
       const key = source.key(index);
       if (key?.startsWith(TRACK_LIBRARY_KEY)) {
         const id = key.slice(TRACK_LIBRARY_KEY.length);
-        if (ID_PATTERN.test(id)) ids.push(id);
+        if (TRACK_ID_PATTERN.test(id)) ids.push(id);
       }
     }
     return ids;
@@ -144,7 +144,7 @@ export function createTrackLibrary({ storage } = {}) {
     },
     async save(document) {
       const result = canonical(document),
-        id = safeId(result.id);
+        id = result.id;
       const ids = keys();
       if (!ids.includes(id) && ids.length >= MAX_TRACKS)
         throw new Error(
@@ -158,27 +158,22 @@ export function createTrackLibrary({ storage } = {}) {
     },
     async remove(id) {
       const source = getStorage(),
-        key = TRACK_LIBRARY_KEY + safeId(id);
+        key = TRACK_LIBRARY_KEY + trackId(id);
       const found = source.getItem(key) !== null;
       source.removeItem(key);
       return found;
     },
     import: pickTrackFile,
     async export(document) {
-      const result = canonical(document);
+      const result = validateDocument(document);
       const url = URL.createObjectURL(
-        new Blob([JSON.stringify(result, null, 2)], {
+        new Blob([serializeTrack(result)], {
           type: 'application/json',
         }),
       );
       const link = globalThis.document.createElement('a');
       link.href = url;
-      link.download = `${
-        result.name
-          .replace(/[^a-z0-9 -]/gi, '')
-          .trim()
-          .slice(0, 60) || 'track'
-      }.vntrack.json`;
+      link.download = trackExportName(result.name);
       link.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
       return true;

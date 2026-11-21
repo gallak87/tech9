@@ -2,65 +2,16 @@ const fs = require('node:fs/promises');
 const { constants } = require('node:fs');
 const { join, dirname, basename } = require('node:path');
 const { randomUUID } = require('node:crypto');
-
-const MAX_TRACK_BYTES = 1024 * 1024;
-const MAX_TRACKS = 256;
-const ID_PATTERN = /^[a-z][a-z0-9-]{0,79}$/;
-
-function trackId(id) {
-  if (typeof id !== 'string' || !ID_PATTERN.test(id))
-    throw new Error('Invalid track ID.');
-  return id;
-}
-
-// The renderer owns the canonical course validator. The native boundary only
-// accepts bounded JSON track data; it never accepts executable code or paths.
-function serializeTrack(document) {
-  let count = 0;
-  function inspect(value, depth = 0) {
-    if (++count > 20000 || depth > 12)
-      throw new Error('Track data is too complex.');
-    if (value === null || typeof value === 'boolean') return;
-    if (typeof value === 'number' && Number.isFinite(value)) return;
-    if (typeof value === 'string' && value.length <= 1024) return;
-    if (Array.isArray(value) && value.length <= 512) {
-      for (const child of value) inspect(child, depth + 1);
-      return;
-    }
-    if (
-      value &&
-      typeof value === 'object' &&
-      Object.getPrototypeOf(value) === Object.prototype
-    ) {
-      const entries = Object.entries(value);
-      if (entries.length > 64) throw new Error('Track data is too complex.');
-      for (const [key, child] of entries) {
-        if (key.length > 80) throw new Error('Invalid track field.');
-        inspect(child, depth + 1);
-      }
-      return;
-    }
-    throw new Error('Tracks must contain valid JSON data.');
-  }
-  inspect(document);
-  if (
-    !document ||
-    document.format !== 'vector-nova-track' ||
-    document.version !== 1 ||
-    document.biome !== 'nightweir' ||
-    typeof document.name !== 'string' ||
-    !document.name.trim() ||
-    document.name.length > 80 ||
-    !Array.isArray(document.points) ||
-    !Array.isArray(document.props)
-  )
-    throw new Error('Choose a supported Vector Nova track.');
-  trackId(document.id);
-  const text = JSON.stringify(document);
-  if (Buffer.byteLength(text) > MAX_TRACK_BYTES)
-    throw new Error('Choose a track under 1 MB.');
-  return text;
-}
+const {
+  checkTrackFileSize,
+  MAX_TRACK_BYTES,
+  MAX_TRACKS,
+  parseTrackFile,
+  serializeTrack,
+  TRACK_ID_PATTERN,
+  trackExportName,
+  trackId,
+} = require('#vector-nova-track-file');
 
 async function readTrackFile(path, noFollow = true) {
   if (noFollow) {
@@ -88,14 +39,8 @@ async function readTrackFile(path, noFollow = true) {
       if (!bytesRead) break;
       size += bytesRead;
     }
-    if (size > MAX_TRACK_BYTES) throw new Error('Choose a track under 1 MB.');
-    let document;
-    try {
-      document = JSON.parse(buffer.toString('utf8', 0, size));
-    } catch {
-      throw new Error('The track file could not be read.');
-    }
-    serializeTrack(document);
+    checkTrackFileSize(size);
+    const document = parseTrackFile(buffer.toString('utf8', 0, size));
     return { document, updatedAt: info.mtimeMs };
   } finally {
     await handle.close();
@@ -153,7 +98,7 @@ function createTrackStore(root) {
       for (const entry of entries) {
         if (!entry.isFile() || !entry.name.endsWith('.json')) continue;
         const id = entry.name.slice(0, -5);
-        if (!ID_PATTERN.test(id)) continue;
+        if (!TRACK_ID_PATTERN.test(id)) continue;
         try {
           const { document, updatedAt } = await readTrackFile(filename(id));
           if (document.id !== id) continue;
@@ -195,7 +140,8 @@ function createTrackStore(root) {
           !entries.includes(basename(path)) &&
           entries.filter(
             (name) =>
-              ID_PATTERN.test(name.slice(0, -5)) && name.endsWith('.json'),
+              TRACK_ID_PATTERN.test(name.slice(0, -5)) &&
+              name.endsWith('.json'),
           ).length >= MAX_TRACKS
         )
           throw new Error(
@@ -248,14 +194,9 @@ function registerTrackHandlers({
     },
     async export(document) {
       const text = serializeTrack(document);
-      const name =
-        document.name
-          .replace(/[^a-z0-9 -]/gi, '')
-          .trim()
-          .slice(0, 60) || 'track';
       const result = await dialog.showSaveDialog(getWindow(), {
         title: 'Export track',
-        defaultPath: `${name}.vntrack.json`,
+        defaultPath: trackExportName(document.name),
         filters: [{ name: 'Vector Nova track', extensions: ['json'] }],
       });
       if (result.canceled || !result.filePath) return null;

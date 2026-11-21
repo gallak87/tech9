@@ -94,4 +94,4 @@ Each step is complete when its course can be edited in the shared preview, saved
 - Additional road pieces, branches, tubes and moving road, each with its own collision and race-progress contract.
 - Custom Quick Race/Time Trial competition and separate custom-course records.
 - Sharing, Steam Workshop and Steam Cloud, including version compatibility and asset availability checks.
-- Update the Electron IPC document validator for the expanded whole-course biome/environment schema, scenery layout 4 and generator version 4, then complete native Save/Import/Export and Steam release validation after browser authoring and gameplay are stable.
+- Complete full Steam release validation after browser authoring and gameplay are stable. Native and browser track storage share a bounded file format and test current biomes, legacy environments, and assisted jumps.

@@ -2,7 +2,7 @@ import { revealEditorAction, openEditorSection } from './editor-controls.mjs';
 import assert from 'node:assert/strict';
 import * as T from 'three';
 import { routeCurve } from '../src/editor/route.js';
-import { generateDocument } from '../src/editor/document.js';
+import { createDocument, generateDocument } from '../src/editor/document.js';
 import {
   createCareerSlots,
   createMemoryStorage,
@@ -18,6 +18,7 @@ if (!base) throw new Error('Set VN_URL to the isolated editor server.');
 const responsive = process.argv.includes('--responsive');
 const cameraOnly = process.argv.includes('--map-camera');
 const escapeOnly = process.argv.includes('--escape');
+const trackChecksOnly = process.argv.includes('--track-checks');
 const name = 'Editor tool verification';
 const tools = [
   ['draw', 'draw-mode', 'd'],
@@ -205,10 +206,9 @@ async function paletteLayout(page) {
       `${id} fits and is not covered by the canvas or another overlay`,
     );
   }
-  assert(
-    await action(page, 'reset-track').isVisible(),
-    'Reset track is visible',
-  );
+  const reset = await revealEditorAction(page, 'reset-track');
+  assert(await reset.isVisible(), 'Reset road is visible in File');
+  await action(page, 'global-close').click();
   const normal = await action(page, 'select-mode').evaluate((el) => ({
     border: getComputedStyle(el).borderLeftColor,
     background: getComputedStyle(el).backgroundColor,
@@ -711,6 +711,45 @@ async function warningRepair(page, fixture) {
   );
 }
 
+async function trackChecks(page) {
+  const clean = createDocument({ blank: true });
+  clean.points = Array.from({ length: 8 }, (_, index) => ({
+    id: `point-${index}`,
+    x: 650 * Math.cos((index * Math.PI) / 4),
+    y: 100,
+    z: 650 * Math.sin((index * Math.PI) / 4),
+    bank: 0,
+    roll: 0,
+  }));
+  const obstructed = structuredClone(clean);
+  obstructed.props.push({
+    id: 'blocked-road',
+    type: 'building',
+    distance: 0.3,
+    lateral: 0,
+    scale: 1,
+    rotation: 0,
+  });
+
+  await importTrack(page, clean);
+  assert(await action(page, 'test').isEnabled());
+  await importTrack(page, obstructed);
+  assert(await action(page, 'test').isDisabled());
+  assert.equal((await state(page)).primaryIssue?.kind, 'clearance');
+
+  await action(page, 'undo').click();
+  assert(await action(page, 'test').isEnabled());
+  await action(page, 'redo').click();
+  assert(await action(page, 'test').isDisabled());
+
+  await (await revealEditorAction(page, 'regenerate-environment')).click();
+  assert(await action(page, 'test').isEnabled());
+  assert.equal((await state(page)).primaryIssue, null);
+  console.log(
+    'PASS Track Checks update when an unchanged road gains or loses an obstructing prop',
+  );
+}
+
 try {
   await context.routeWebSocket('**/*', () => {});
   await context.addInitScript((seed) => {
@@ -741,19 +780,23 @@ try {
   await nameField.fill(name);
   await nameField.press('Tab');
   await ready(page);
-  for (const [width, height] of responsive
-    ? [[390, 844]]
-    : [
-        [1440, 900],
-        [1280, 800],
-      ]) {
-    await page.setViewportSize({ width, height });
-    await ready(page);
-    await paletteLayout(page);
+  if (!trackChecksOnly) {
+    for (const [width, height] of responsive
+      ? [[390, 844]]
+      : [
+          [1440, 900],
+          [1280, 800],
+        ]) {
+      await page.setViewportSize({ width, height });
+      await ready(page);
+      await paletteLayout(page);
+    }
+    await expectTool(page, 'draw');
   }
-  await expectTool(page, 'draw');
 
-  if (escapeOnly) {
+  if (trackChecksOnly) {
+    await trackChecks(page);
+  } else if (escapeOnly) {
     await escapeChecks(page);
   } else if (cameraOnly) {
     await mapCameraChecks(page);

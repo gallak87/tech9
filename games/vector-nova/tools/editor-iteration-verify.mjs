@@ -28,6 +28,7 @@ const landscapeOnly = process.argv.includes('--landscape-only');
 const incompleteRecoveryOnly = process.argv.includes(
   '--incomplete-recovery-only',
 );
+const testDriveMenuOnly = process.argv.includes('--test-drive-menu');
 const name = 'Sparse road iteration verification';
 const browser = await launchVerificationBrowser();
 const context = await browser.newContext({
@@ -728,6 +729,97 @@ async function localPractice(page, document) {
   });
 }
 
+async function testDriveMenu(page) {
+  const menu = page.locator('#workshop-test-menu');
+  const launcher = action(page, 'test-options');
+  const focused = () =>
+    page.evaluate(() => document.activeElement?.dataset.editorAction);
+  await launcher.focus();
+  await page.keyboard.press('Enter');
+  assert.match(await menu.innerText(), /Resolve Track checks/);
+  for (const id of ['test-selected-point', 'test-selected-jump', 'test-retry'])
+    assert(await action(page, id).isDisabled());
+  await page.keyboard.press('Escape');
+  assert(await menu.isHidden());
+  assert.equal(await focused(), 'test-options');
+
+  const fixture = generateDocument({ seed: 42017, length: 5000 });
+  await openEditorSection(page, 'library');
+  const chooser = page.waitForEvent('filechooser');
+  await choose(page, 'import');
+  await (
+    await chooser
+  ).setFiles({
+    name: 'test-drive-menu.vntrack.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify(fixture)),
+  });
+  await ready(page);
+  await action(page, 'test').focus();
+  await page.keyboard.press('Tab');
+  assert.equal(await focused(), 'test-options');
+  await pad(page, 0);
+  assert.equal(await focused(), 'test-selected-point');
+  await pad(page, 13);
+  assert.equal(await focused(), 'test-selected-jump');
+  await pad(page, 1);
+  assert(await menu.isHidden(), 'controller B dismisses Test Drive options');
+  assert.equal(await focused(), 'test-options');
+
+  async function readAttempt(kind) {
+    await page.waitForFunction(
+      (kind) =>
+        document.body.dataset.screen === 'race' &&
+        window.__VN?.getEditorTestAttempt?.()?.request.kind === kind,
+      kind,
+      { timeout: 90000 },
+    );
+    return page.evaluate(() => window.__VN.getEditorTestAttempt());
+  }
+  async function returnToEditor() {
+    await page.keyboard.press('Escape');
+    await page.locator('#home').click();
+    await ready(page);
+    assert.equal(await focused(), 'test-options');
+  }
+  await page.keyboard.press('Enter');
+  assert(await action(page, 'test-retry').isDisabled());
+  await page.keyboard.press('Tab');
+  assert.equal(await focused(), 'test-selected-jump');
+  await page.keyboard.press('Enter');
+  const initial = await readAttempt('jump');
+  assert.equal(initial.request.jumpId, fixture.jumps[0].id);
+  assert(initial.start.distance > 0);
+  await returnToEditor();
+  await pad(page, 0);
+  assert.match(await menu.innerText(), /Last test/);
+  await pad(page, 13);
+  await pad(page, 13);
+  assert.equal(await focused(), 'test-retry');
+  await pad(page, 0);
+  const retry = await readAttempt('jump');
+  assert.deepEqual(retry.request, initial.request);
+  assert.deepEqual(retry.start, initial.start);
+  await returnToEditor();
+
+  await choose(page, 'context-next');
+  await launcher.click();
+  await action(page, 'test-selected-point').click();
+  const point = await readAttempt('point');
+  assert.equal(point.request.pointId, fixture.points[1].id);
+  assert(point.start.distance > 0);
+  await returnToEditor();
+  await choose(page, 'context-raise');
+  await launcher.click();
+  assert(await action(page, 'test-retry').isDisabled());
+  assert.match(await menu.innerText(), /Previous track version/);
+  await field(page, 'name').focus();
+  assert(await menu.isHidden(), 'moving focus out dismisses the options');
+  console.log(
+    'PASS Test Drive split controls, keyboard/B, exact retry and stale result',
+  );
+}
+
 const watchdog = setTimeout(() => {
   process.exitCode = 1;
   console.error('Editor iteration verification exceeded six minutes');
@@ -767,7 +859,10 @@ try {
   await page.goto(new URL('?intro=0&music=0&editor=1', base).href);
   await field(page, 'name').waitFor({ timeout: 90000 });
   await ready(page);
-  if (incompleteRecoveryOnly) {
+  if (testDriveMenuOnly) {
+    await testDriveMenu(page);
+    assert.deepEqual(errors, [], 'Test Drive options raise no page errors');
+  } else if (incompleteRecoveryOnly) {
     await incompleteRecovery(page);
     assert.deepEqual(errors, [], 'incomplete recovery raises no page errors');
   } else if (responsive) {

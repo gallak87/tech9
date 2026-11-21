@@ -3,6 +3,9 @@
   "version": "0.3.0",
   "private": true,
   "type": "module",
+  "imports": {
+    "#vector-nova-track-file": "./src/editor/track-file.js"
+  },
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 5179 --strictPort",
     "build": "vite build",

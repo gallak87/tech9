@@ -17,7 +17,8 @@ function harness() {
   frame.rotation.y = 0.43;
   const settings = { quality: 'high', volume: 0.35, reducedMotion: false };
   const events = [],
-    updates = [];
+    updates = [],
+    frames = [];
   const audio = {
     options: null,
     disposed: 0,
@@ -28,6 +29,7 @@ function harness() {
     duration: (event) => (event.type === 'freestyle-bank' ? 2 : 1),
     event: (event) => events.push(event),
     update: (...args) => updates.push(args),
+    setEnvironment: (frame) => frames.push(frame),
     resetEnvironment() {
       this.resets++;
     },
@@ -44,7 +46,17 @@ function harness() {
       return audio;
     },
   });
-  return { owner, scene, frame, ship, settings, events, updates, audio };
+  return {
+    owner,
+    scene,
+    frame,
+    ship,
+    settings,
+    events,
+    updates,
+    frames,
+    audio,
+  };
 }
 
 test('inspector lands, seats and grades the real shared VFX at the same sound anchors', async () => {
@@ -75,6 +87,24 @@ test('inspector lands, seats and grades the real shared VFX at the same sound an
   assert.equal(h.owner.getSnapshot().vfx.grade, 'perfect');
   assert.equal(h.owner.getSnapshot().bankAt, LANDING_PREVIEW_BANK);
   assert.ok(grade.end >= LANDING_PREVIEW_BANK + 2);
+  h.owner.dispose();
+});
+
+test('the roll audition feeds point growth to audio without emitting a completed-rotation cue', async () => {
+  const h = harness();
+  await h.owner.prepare('freestyle-trick');
+  h.owner.update('freestyle-trick', 0, false, -1);
+  h.owner.update('freestyle-trick', 0.125, false, 0);
+  h.owner.update('freestyle-trick', 0.25, false, 0.125);
+  h.owner.update('freestyle-trick', 0.32, false, 0.25);
+  assert.deepEqual(
+    h.frames.map((frame) => frame.motion.freestyle.flight.rotationPoints),
+    [0, 100, 200, 256],
+  );
+  assert.deepEqual(h.events, []);
+  h.owner.update('freestyle-trick', 0.32, true, 0.32);
+  assert.equal(h.frames.at(-1).mode, 'paused');
+  assert.equal(h.updates.at(-1)[2], false);
   h.owner.dispose();
 });
 

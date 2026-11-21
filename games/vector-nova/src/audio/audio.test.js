@@ -342,6 +342,55 @@ test('Freestyle sounds the supported touchdown before its separate graded points
   await audio.dispose();
 });
 
+test('Freestyle tally follows the shared pause, mute and reset lifecycle without replaying accumulated points', async () => {
+  for (const cancel of ['pause', 'mute', 'reset']) {
+    const context = sampleContext({ [FREESTYLE_SAMPLES.trick]: 0.06 });
+    const audio = createAudio({
+      createContext: () => context,
+      fetchAudio,
+      engine: false,
+      samples: {},
+      environment: createFreestyleAudio,
+    });
+    const frame = (points, clock) => ({
+      mode: 'racing',
+      motion: {
+        freestyle: {
+          clock,
+          flight: { id: 'transfer-1', rotationPoints: points },
+        },
+      },
+    });
+    await audio.unlock();
+    audio.update(state, 0.5, true);
+    audio.setEnvironment(frame(0, 0));
+    audio.setEnvironment(frame(100, 0.125));
+    assert.equal(audio.getPresentation().triggerCount, 1);
+    assert.equal(audio.getPresentation().activeVoices, 1);
+    audio.event({
+      type: 'freestyle-trick',
+      payload: { id: 'transfer-1', kind: 'roll', ordinal: 1 },
+    });
+    assert.equal(audio.getPresentation().triggerCount, 1);
+    if (cancel === 'pause') audio.update(state, 0.5, false);
+    if (cancel === 'mute') audio.update(state, 0, true);
+    if (cancel === 'reset') audio.resetEnvironment();
+    assert.equal(audio.getPresentation().activeVoices, 0, cancel);
+    audio.update(state, 0.5, true);
+    context.currentTime += 0.2;
+    audio.setEnvironment(frame(900, 2));
+    assert.equal(audio.getPresentation().triggerCount, 1, cancel);
+    audio.setEnvironment(frame(1000, 2.125));
+    assert.equal(audio.getPresentation().triggerCount, 2, cancel);
+    audio.setEnvironment({
+      mode: 'racing',
+      motion: { freestyle: { clock: 3 } },
+    });
+    assert.equal(audio.getPresentation().activeVoices, 0);
+    await audio.dispose();
+  }
+});
+
 test('completed-transfer feedback releases existing voices over frozen practice without admitting new cues', async () => {
   const context = sampleContext({
     [LANDING_SAMPLE_URL]: 1,
@@ -1640,7 +1689,7 @@ test('every Sounds entry reaches a live cue or bed, using the current sample whe
         assert.equal(
           source.buffer.sampleUrl,
           sound.freestyle
-            ? FREESTYLE_SAMPLES[cue.startsWith('trick:') ? 'trick' : cue]
+            ? FREESTYLE_SAMPLES[cue === 'score-tick' ? 'trick' : cue]
             : LANDING_SAMPLE_URL,
           sound.id,
         );

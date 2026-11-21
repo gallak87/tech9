@@ -382,10 +382,7 @@ try {
         await page.locator('.fs-trick').innerText(),
         /Corkscrew.*\+/,
       );
-      assert.equal(
-        (await read()).environment.thunder.lastCue,
-        'trick:corkscrew',
-      );
+      assert.equal((await read()).environment.thunder.lastCue, 'score-tick');
       const beforePause = await read();
       const pausedReadout = await page
         .locator('.fs-air-score strong')

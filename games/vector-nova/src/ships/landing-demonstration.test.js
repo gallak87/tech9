@@ -131,17 +131,20 @@ test('common and Freestyle studio hulls use the gameplay magnetic seat, with red
   }
 });
 
-test('the completed-roll example produces one trick tick before contact and a Perfect reward after it', () => {
-  const tick = landingDemonstration('freestyle-trick', 0.32, 0.31);
-  assert.deepEqual(
-    tick.events.map(({ type }) => type),
-    ['freestyle-trick'],
-  );
-  assert.equal(tick.events[0].payload.kind, 'roll');
+test('the roll example feeds continuous tally points without a completed-rotation cue, then rewards the landing', () => {
+  const before = landingDemonstration('freestyle-trick', 0.125, 0);
+  const tick = landingDemonstration('freestyle-trick', 0.25, 0.125);
+  const completed = landingDemonstration('freestyle-trick', 0.32, 0.31);
+  assert.equal(before.freestyle.flight.rotationPoints, 100);
+  assert.equal(tick.freestyle.flight.rotationPoints, 200);
+  assert.equal(completed.freestyle.flight.rotationPoints, 256);
+  assert.deepEqual(completed.events, []);
   assert.equal(tick.airborne, true);
   assert.equal(
-    landingDemonstration('freestyle-trick', 0.33, 0.32).events.length,
-    0,
+    landingDemonstration('freestyle-trick', 0.5, 0.32).freestyle.flight
+      .rotationPoints,
+    256,
+    'the tally stops when the staged roll ends',
   );
   const reward = landingDemonstration(
     'freestyle-trick',

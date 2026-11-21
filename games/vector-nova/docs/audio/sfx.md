@@ -72,4 +72,4 @@ Runtime code is MIT. The model weights use the [Stability AI Community License](
 
 ## Landing and Freestyle
 
-Gameplay, Sounds and Ship inspector → Powerups, equipment & contact → Landing & Freestyle share `landing-catch.wav`, the four `freestyle-bank-*.wav` recordings and `freestyle-trick.wav`. Touchdown plays on confirmed support; Good/Great/Perfect follows the 0.3 s grading window. Miss plays only on a confirmed failed bank. Completed tricks have a separate click. Jump Drive retains its dedicated landing sample.
+Gameplay, Sounds and Ship inspector → Powerups, equipment & contact → Landing & Freestyle share `landing-catch.wav`, the four `freestyle-bank-*.wav` recordings and `freestyle-trick.wav`. Touchdown plays on confirmed support; Good/Great/Perfect follows the 0.3 s grading window. Miss plays only on a confirmed failed bank. The click tallies each 25 continuous rotation points, capped at 32 ticks per second; completed rotations have no separate cue. Jump Drive retains its dedicated landing sample.

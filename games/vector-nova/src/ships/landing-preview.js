@@ -107,6 +107,7 @@ export function createLandingPreview({
         common?.update(renderFrame, demo.landing);
       }
       audio?.update({}, effectsVolume(settings), !paused);
+      audio?.setEnvironment(renderFrame);
       if (!paused)
         for (const event of demo.events) {
           audio?.event(event);

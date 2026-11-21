@@ -9,6 +9,11 @@ export async function openEditorSection(page, name) {
   await continueRecovery(page);
   const section = page.locator(`[data-editor-section="${name}"]`);
   if (!(await section.isVisible())) {
+    if (name === 'warnings') {
+      await page.locator('[data-editor-action="toggle-warnings"]').click();
+      await section.waitFor({ state: 'visible' });
+      return section;
+    }
     if (name !== 'library') {
       const context = page.locator(
         `[data-editor-action="context-${name === 'world' ? 'environment' : 'road'}"]`,
@@ -49,7 +54,8 @@ export async function revealEditorControl(control, label = 'editor control') {
     if (!(await panel.evaluate((element) => element.open)))
       await panel.locator(':scope > summary').click();
   }
-  await control.scrollIntoViewIfNeeded();
+  await control.waitFor({ state: 'visible' });
+  await control.evaluate((el) => el.scrollIntoView({ block: 'nearest' }));
   return control;
 }
 

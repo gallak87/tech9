@@ -203,7 +203,7 @@ test('Draw guidance has a bounded 100m grid, follows the editing height, clips t
   assert.equal(scene.children.length, 0);
 });
 
-test('a diagnosed road point stays red when selected and nearby healthy points retain their normal colour', () => {
+test('a diagnosed road point stays amber when selected and nearby healthy points retain their normal colour', () => {
   const scene = new T.Scene(),
     handles = createEditorHandles(scene);
   handles.setDocument(draft(), { selectedPoint: 1, problemPoint: 1 });
@@ -213,7 +213,7 @@ test('a diagnosed road point stays red when selected and nearby healthy points r
     healthy = new T.Color();
   dots.getColorAt(1, bad);
   dots.getColorAt(0, healthy);
-  assert.equal(bad.getHexString(), 'ff5a55');
+  assert.equal(bad.getHexString(), 'e4c18a');
   assert.equal(healthy.getHexString(), 'e7f2f4');
   assert.equal(handles.getState().problemPoint, 1);
   handles.dispose();

@@ -250,6 +250,19 @@ try {
       if (digest(JSON.stringify(applied.points)) !== roadFingerprint)
         throw new Error(`${key}: applying scenery changed the fixed road`);
       await action('global-close');
+      const hiding = await page.addStyleTag({
+        content: `
+          .workshop-strip-editor .workshop-layout {
+            grid-template-columns: minmax(0, 1fr);
+            grid-template-rows: auto minmax(0, 1fr);
+          }
+          .workshop-strip-editor .workshop-main { grid-column: 1; grid-row: 2; }
+          .workshop-global-nav { display: flex; }
+          .workshop-global-panel, .workshop-inspector { display: none; }
+          .workshop-preview-status, .workshop-status, .workshop-empty-hint, .workshop-fly-badge { visibility: hidden; }
+        `,
+      });
+      await ready();
       const canvas = page.locator('[data-editor-world] canvas');
       const box = await canvas.boundingBox();
       await page.setViewportSize({
@@ -301,10 +314,6 @@ try {
         throw new Error(
           `${key}: unexpected preview size ${editor.preview.viewport}`,
         );
-      const hiding = await page.addStyleTag({
-        content:
-          '.workshop-authoring-strip,.workshop-preview-status,.workshop-empty-hint,.workshop-fly-badge{visibility:hidden!important}',
-      });
       const png = await canvas.screenshot({
         type: 'png',
         animations: 'disabled',

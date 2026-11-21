@@ -617,6 +617,7 @@ async function warningRepair(page, fixture) {
     'the imported generated road has a tight-corner warning',
   );
   assert.equal(await action(page, 'test').isEnabled(), false);
+  await openEditorSection(page, 'warnings');
   assert.match(
     await action(page, 'show-issue').innerText(),
     new RegExp(`Point ${issue.pointIndex + 1}.*Tight corner`),
@@ -652,7 +653,7 @@ async function warningRepair(page, fixture) {
   assert.equal(
     focused.preview.interaction.problemMarker.number,
     issue.pointIndex + 1,
-    'the red marker identifies the same numbered point',
+    'the warning marker identifies the same numbered point',
   );
   assert(
     focused.preview.interaction.problemMarker.visible,
@@ -734,9 +735,32 @@ async function trackChecks(page) {
 
   await importTrack(page, clean);
   assert(await action(page, 'test').isEnabled());
+  const warnings = action(page, 'toggle-warnings');
+  const panel = page.locator('[data-editor-validation]');
+  assert.match(await warnings.innerText(), /^Warnings\s+0$/);
+  assert(await panel.isHidden(), 'clean tracks keep the warning panel closed');
   await importTrack(page, obstructed);
   assert(await action(page, 'test').isDisabled());
   assert.equal((await state(page)).primaryIssue?.kind, 'clearance');
+  assert.match(await warnings.innerText(), /Warnings\s+[1-9]/);
+  assert.equal(await warnings.getAttribute('aria-expanded'), 'false');
+  await warnings.focus();
+  await page.keyboard.press('Enter');
+  assert(await panel.isVisible());
+  assert.match(await panel.innerText(), /Before driving.*Move this road away/s);
+  assert(
+    await action(page, 'show-issue').evaluate(
+      (el) => el === document.activeElement,
+    ),
+  );
+  await page.keyboard.press('Enter');
+  assert.equal(
+    (await state(page)).selectedPoint,
+    (await state(page)).primaryIssue.pointIndex,
+  );
+  await page.keyboard.press('Escape');
+  assert(await panel.isHidden());
+  assert(await warnings.evaluate((el) => el === document.activeElement));
 
   await action(page, 'undo').click();
   assert(await action(page, 'test').isEnabled());
@@ -747,7 +771,7 @@ async function trackChecks(page) {
   assert(await action(page, 'test').isEnabled());
   assert.equal((await state(page)).primaryIssue, null);
   console.log(
-    'PASS Track Checks update when an unchanged road gains or loses an obstructing prop',
+    'PASS Track Warnings disclose and locate an obstruction, with keyboard focus restored and the drive gate updated',
   );
 }
 

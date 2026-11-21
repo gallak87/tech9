@@ -203,7 +203,7 @@ async function stableContext(
   );
   assert.equal(
     await action(page, 'open-environment').isVisible(),
-    id === 'environment',
+    id === 'environment' && !current.globalGroup,
   );
   assert.equal(await action(page, 'draw-mode').isVisible(), id === 'road');
   for (const key of ['tab-generate', 'tab-pickups'])

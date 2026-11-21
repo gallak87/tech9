@@ -5,7 +5,7 @@ import { createEditorDrawGuide } from './viewport-draw.js';
 const white = new T.Color('#e7f2f4');
 const gold = new T.Color('#ffcf79');
 const blue = new T.Color('#76d9ff');
-const red = new T.Color('#ff5a55');
+const warningAmber = new T.Color('#e4c18a');
 
 export function projectEditorHandle(position, camera, width, height) {
   camera.updateMatrixWorld();
@@ -224,9 +224,7 @@ export function createEditorHandles(scene) {
       dots.setColorAt(
         i,
         i === selection.problemPoint
-          ? selection.problemSeverity === 'warning'
-            ? gold
-            : red
+          ? warningAmber
           : i === selection.selectedPoint
             ? gold
             : hover?.kind === 'point' && hover.index === i
@@ -263,9 +261,7 @@ export function createEditorHandles(scene) {
         pointId: doc.points[problemIndex]?.id ?? null,
         severity: selection.problemSeverity,
       };
-      problemHalo.material.color.copy(
-        selection.problemSeverity === 'warning' ? gold : red,
-      );
+      problemHalo.material.color.copy(warningAmber);
       problemHalo.visible = problemProjection.visible;
       if (problemHalo.visible) {
         problemHalo.position.set(problem.x, problem.y, problem.z);

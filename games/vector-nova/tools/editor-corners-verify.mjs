@@ -154,6 +154,7 @@ async function browserCheck() {
     }, index);
   }
   async function activateIssue(page, kind, input) {
+    await openEditorSection(page, 'warnings');
     const target = action(page, `show-issue-${kind}`);
     await action(page, 'show-issue').focus();
     for (let step = 0; step < 25; step++) {
@@ -214,13 +215,13 @@ async function browserCheck() {
     await ready(page);
     if ((await state(page)).globalGroup) await choose(page, 'global-close');
   }
-  async function footerFits(page) {
-    const bounds = await page.locator('.workshop-footer').boundingBox();
+  async function warningsFit(page) {
+    const panel = await openEditorSection(page, 'warnings');
+    const bounds = await panel.boundingBox();
     const viewport = page.viewportSize();
     assert(bounds.x >= 0 && bounds.x + bounds.width <= viewport.width + 1);
-    for (const control of await page
-      .locator('.workshop-footer button:visible')
-      .all()) {
+    for (const control of await panel.locator('button:visible').all()) {
+      await control.scrollIntoViewIfNeeded();
       const box = await control.boundingBox();
       assert(
         box.x >= 0 && box.x + box.width <= viewport.width + 1,
@@ -309,10 +310,10 @@ async function browserCheck() {
         stroke: getComputedStyle(circle).stroke,
       })),
       {
-        fill: 'rgb(102, 81, 43)',
-        stroke: 'rgb(255, 225, 162)',
+        fill: 'rgb(100, 82, 48)',
+        stroke: 'rgb(228, 193, 138)',
       },
-      'the actual Map warning is amber despite the later red problem rule',
+      'the Map uses the shared amber warning palette',
     );
     await page.keyboard.press('Escape');
     await frames(page);
@@ -402,7 +403,7 @@ async function browserCheck() {
       'measured advisories do not block Test drive',
     );
     await choose(page, 'show-issue');
-    await footerFits(page);
+    await warningsFit(page);
     await nativeDragAndUndo(page, baseline);
     if (dragOnly) {
       assert.deepEqual(
@@ -445,7 +446,7 @@ async function browserCheck() {
         await page.locator('[data-editor-validation]').textContent(),
         /102%/,
       );
-      await footerFits(page);
+      await warningsFit(page);
       if (input === 'keyboard') await capture(page, 'climb-focused.png');
       await activateIssue(page, 'bend', input);
       assert.equal((await state(page)).focusedIssue.kind, 'bend');
@@ -506,7 +507,7 @@ async function browserCheck() {
       moved.every((index) => Math.abs(index - 8) <= 1),
       'repair stays local to the tight bend',
     );
-    await footerFits(page);
+    await warningsFit(page);
     await capture(page, 'corner-fixed-climb-remains.png');
     await choose(page, 'undo');
     assert.deepEqual(
@@ -536,7 +537,7 @@ async function browserCheck() {
       await page.locator('[data-editor-validation]').textContent(),
       /Ready to (?:test )?drive|Road checks passed/,
     );
-    await footerFits(page);
+    await warningsFit(page);
     await capture(page, 'hard-climb-blocked.png');
     console.log('PASS genuinely unsafe climb still blocks Test drive');
 
@@ -545,7 +546,7 @@ async function browserCheck() {
       await page.setViewportSize({ width: 390, height: 844 });
       await ready(page);
       assert(await action(page, 'test').isEnabled());
-      await footerFits(page);
+      await warningsFit(page);
       await capture(page, 'portrait-diagnostics.png');
       console.log('PASS targeted final portrait warning layout');
     }

@@ -374,6 +374,7 @@ try {
         ?.textContent.includes('Track imported'),
     );
     await ready(page);
+    await openEditorSection(page, 'warnings');
     for (const name of ['show-issue', 'spread-road']) {
       const box = await action(page, name).boundingBox();
       assert(box && box.x >= 0 && box.x + box.width <= 390, `${name} fits`);

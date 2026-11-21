@@ -364,9 +364,9 @@ export function createEditorViewport(
       if (issueLabel) {
         const warning = selection.problemSeverity === 'warning';
         issueLabel.dataset.severity = warning ? 'warning' : 'error';
-        issueLabel.style.background = warning ? '#352b15ee' : '#3c1215ee';
-        issueLabel.style.color = warning ? '#ffe5aa' : '#ffceca';
-        issueLabel.style.borderColor = warning ? '#b88d37' : '#ff7067';
+        issueLabel.style.background = '#30291fee';
+        issueLabel.style.color = '#f5dfba';
+        issueLabel.style.borderColor = '#a3875b';
       }
       if (issueLabel && state?.problemMarker?.visible)
         issueLabel.style.top = `${Math.min(height - 32, Math.max(4, state.problemMarker.y + 20))}px`;

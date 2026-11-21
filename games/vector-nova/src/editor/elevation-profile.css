@@ -1,0 +1,119 @@
+.workshop-profile {
+  position: absolute;
+  z-index: 7;
+  inset: 12px 0 auto;
+  margin-inline: auto;
+  width: min(660px, calc(100% - 24px));
+  max-height: calc(100% - 24px);
+  overflow: auto;
+  color: #ebeff0;
+  background: #10191ff7;
+  border: 1px solid #4d585e;
+  border-radius: 5px;
+  box-shadow: 0 6px 24px #0007;
+}
+.workshop-profile header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 10px 7px 13px;
+  border-bottom: 1px solid #38424a;
+  background: #171a1d;
+}
+.workshop-profile h2 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+}
+.track-workshop [data-editor-action='profile-close'] {
+  min-height: 25px;
+  width: 26px;
+  padding: 1px;
+  border-radius: 3px;
+  font-size: 18px;
+}
+.workshop-profile svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 210px;
+}
+.workshop-profile svg text {
+  font-size: 12px;
+  fill: #bbc6ca;
+}
+.workshop-profile [data-profile-geometry] > path {
+  fill: none;
+  stroke: #35434a;
+  stroke-width: 1;
+}
+.workshop-profile [data-profile-geometry] > .workshop-profile-road {
+  stroke: #a8dce9;
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+.workshop-profile-gap {
+  fill: #bb894837;
+}
+.workshop-profile-runout {
+  fill: #6ab1be2e;
+}
+.workshop-profile-point circle {
+  fill: #d4e7ed;
+}
+.workshop-profile-point.selected circle {
+  fill: #fff;
+}
+.workshop-profile-point line {
+  stroke: #c1e7f3;
+  stroke-width: 1;
+  stroke-dasharray: 3 5;
+  pointer-events: none;
+}
+.workshop-profile-point circle.workshop-profile-warning {
+  fill: #15191b;
+  stroke: #efb165;
+  stroke-width: 2;
+}
+.workshop-profile-point circle.workshop-profile-hit {
+  fill: transparent;
+}
+.workshop-profile-point[data-profile-point] {
+  cursor: pointer;
+}
+.workshop-profile-empty {
+  padding: 12px 13px;
+  margin: 0;
+  color: #aebdc1;
+  font-size: 12px;
+}
+.workshop-profile-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 6px 13px 10px;
+  font-size: 11px;
+}
+.workshop-profile-controls label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.workshop-profile-controls input {
+  width: clamp(85px, 15vw, 150px);
+  accent-color: #a8dce9;
+}
+.workshop-profile-controls output {
+  flex: 1 0 auto;
+  color: #c4d0d4;
+  font-variant-numeric: tabular-nums;
+}
+.track-workshop [data-editor-action='profile-issue'] {
+  min-height: 28px;
+  padding: 5px 7px;
+  color: #f5c891;
+  border-color: #8c6540;
+  border-radius: 3px;
+}

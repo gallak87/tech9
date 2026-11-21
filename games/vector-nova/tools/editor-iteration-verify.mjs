@@ -28,7 +28,7 @@ const landscapeOnly = process.argv.includes('--landscape-only');
 const incompleteRecoveryOnly = process.argv.includes(
   '--incomplete-recovery-only',
 );
-const testDriveMenuOnly = process.argv.includes('--test-drive-menu');
+const testDriveControlsOnly = process.argv.includes('--test-drive-controls');
 const name = 'Sparse road iteration verification';
 const browser = await launchVerificationBrowser();
 const context = await browser.newContext({
@@ -729,42 +729,45 @@ async function localPractice(page, document) {
   });
 }
 
-async function testDriveMenu(page) {
-  const menu = page.locator('#workshop-test-menu');
-  const launcher = action(page, 'test-options');
+async function testDriveControls(page) {
+  const file = action(page, 'tab-library');
+  const menu = page.locator('#workshop-file-panel');
+  const drive = action(page, 'test');
   const focused = () =>
     page.evaluate(() => document.activeElement?.dataset.editorAction);
-  await launcher.focus();
+  const commands = page.getByRole('group', { name: 'Track commands' });
+  assert.deepEqual(
+    await commands
+      .locator('button:visible')
+      .evaluateAll((buttons) =>
+        buttons.map((node) => node.dataset.editorAction),
+      ),
+    ['tab-library', 'save', 'test'],
+  );
+  assert(await drive.isDisabled(), 'an empty document cannot be driven');
+  assert.equal(await action(page, 'test-options').count(), 0);
+
+  await file.focus();
   await page.keyboard.press('Enter');
-  assert.match(await menu.innerText(), /Resolve Track checks/);
-  for (const id of ['test-selected-point', 'test-selected-jump', 'test-retry'])
-    assert(await action(page, id).isDisabled());
-  await page.keyboard.press('Escape');
-  assert(await menu.isHidden());
-  assert.equal(await focused(), 'test-options');
+  assert(await menu.isVisible());
+  assert(await menu.evaluate((node) => node.contains(document.activeElement)));
+  await pad(page, 1);
+  assert(await menu.isHidden(), 'controller B dismisses File');
+  assert.equal(await focused(), 'tab-library');
 
   const fixture = generateDocument({ seed: 42017, length: 5000 });
-  await openEditorSection(page, 'library');
+  await pad(page, 0);
   const chooser = page.waitForEvent('filechooser');
   await choose(page, 'import');
   await (
     await chooser
   ).setFiles({
-    name: 'test-drive-menu.vntrack.json',
+    name: 'test-drive-controls.vntrack.json',
     mimeType: 'application/json',
     buffer: Buffer.from(JSON.stringify(fixture)),
   });
   await ready(page);
-  await action(page, 'test').focus();
-  await page.keyboard.press('Tab');
-  assert.equal(await focused(), 'test-options');
-  await pad(page, 0);
-  assert.equal(await focused(), 'test-selected-point');
-  await pad(page, 13);
-  assert.equal(await focused(), 'test-selected-jump');
-  await pad(page, 1);
-  assert(await menu.isHidden(), 'controller B dismisses Test Drive options');
-  assert.equal(await focused(), 'test-options');
+  assert(await menu.isHidden());
 
   async function readAttempt(kind) {
     await page.waitForFunction(
@@ -776,47 +779,59 @@ async function testDriveMenu(page) {
     );
     return page.evaluate(() => window.__VN.getEditorTestAttempt());
   }
-  async function returnToEditor() {
+  async function returnToEditor(origin) {
     await page.keyboard.press('Escape');
-    await page.locator('#home').click();
+    const back = page.locator('#home');
+    await back.waitFor({ state: 'visible' });
+    await back.focus();
+    await page.keyboard.press('Enter');
     await ready(page);
-    assert.equal(await focused(), 'test-options');
+    assert.equal(await focused(), origin);
+    assert.equal(await page.locator('[data-editor-test-feedback]').count(), 0);
   }
-  await page.keyboard.press('Enter');
-  assert(await action(page, 'test-retry').isDisabled());
+
+  await file.focus();
   await page.keyboard.press('Tab');
-  assert.equal(await focused(), 'test-selected-jump');
+  assert.equal(await focused(), 'save');
+  await page.keyboard.press('Tab');
+  assert.equal(await focused(), 'test');
   await page.keyboard.press('Enter');
-  const initial = await readAttempt('jump');
-  assert.equal(initial.request.jumpId, fixture.jumps[0].id);
-  assert(initial.start.distance > 0);
-  await returnToEditor();
-  await pad(page, 0);
-  assert.match(await menu.innerText(), /Last test/);
-  await pad(page, 13);
-  await pad(page, 13);
-  assert.equal(await focused(), 'test-retry');
-  await pad(page, 0);
+  const course = await readAttempt('course');
+  assert.equal(course.start.distance, 0);
+  await returnToEditor('test');
+
+  await openEditorSection(page, 'jumps');
+  await change(page, 'test-entry-speed', 'boost');
+  await change(page, 'test-reserve', 'half');
+  await choose(page, 'test-jump', 'keyboard');
+  const jump = await readAttempt('jump');
+  assert.equal(jump.request.jumpId, fixture.jumps[0].id);
+  assert.equal(jump.request.speed, 'boost');
+  assert.equal(jump.request.reserve, 'half');
+  assert(jump.start.distance > 0);
+  await page.keyboard.press('r');
+  await frames(page);
   const retry = await readAttempt('jump');
-  assert.deepEqual(retry.request, initial.request);
-  assert.deepEqual(retry.start, initial.start);
-  await returnToEditor();
+  assert.deepEqual(retry.request, jump.request);
+  assert.deepEqual(retry.start, jump.start);
+  await returnToEditor('test-jump');
 
   await choose(page, 'context-next');
-  await launcher.click();
-  await action(page, 'test-selected-point').click();
+  await openEditorSection(page, 'route');
+  await change(page, 'point-test-entry-speed', 'standing');
+  await change(page, 'point-test-reserve', 'empty');
+  const pointControl = await revealEditorAction(page, 'test-point');
+  await action(page, 'tab-route').focus();
+  await reach(page, pointControl, 'controller');
+  await pad(page, 0);
   const point = await readAttempt('point');
   assert.equal(point.request.pointId, fixture.points[1].id);
+  assert.equal(point.request.speed, 'standing');
+  assert.equal(point.request.reserve, 'empty');
   assert(point.start.distance > 0);
-  await returnToEditor();
-  await choose(page, 'context-raise');
-  await launcher.click();
-  assert(await action(page, 'test-retry').isDisabled());
-  assert.match(await menu.innerText(), /Previous track version/);
-  await field(page, 'name').focus();
-  assert(await menu.isHidden(), 'moving focus out dismisses the options');
+  await returnToEditor('test-point');
   console.log(
-    'PASS Test Drive split controls, keyboard/B, exact retry and stale result',
+    'PASS File, direct Test Drive, point and jump tests, exact Practice retry and focus return',
   );
 }
 
@@ -859,9 +874,9 @@ try {
   await page.goto(new URL('?intro=0&music=0&editor=1', base).href);
   await field(page, 'name').waitFor({ timeout: 90000 });
   await ready(page);
-  if (testDriveMenuOnly) {
-    await testDriveMenu(page);
-    assert.deepEqual(errors, [], 'Test Drive options raise no page errors');
+  if (testDriveControlsOnly) {
+    await testDriveControls(page);
+    assert.deepEqual(errors, [], 'Test Drive controls raise no page errors');
   } else if (incompleteRecoveryOnly) {
     await incompleteRecovery(page);
     assert.deepEqual(errors, [], 'incomplete recovery raises no page errors');

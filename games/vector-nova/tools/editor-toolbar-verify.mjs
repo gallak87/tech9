@@ -16,10 +16,15 @@ import {
 const base = process.env.VN_URL;
 if (!base) throw new Error('Set VN_URL to the isolated editor server.');
 const responsive = process.argv.includes('--responsive');
-const name = 'Preview strip verification';
+const name = 'Track Workshop verification';
 const authorGroups = ['route', 'shape', 'jumps'];
-const globalGroups = ['generate', 'world', 'pickups', 'library'];
-const modeIds = ['draw', 'move', 'height'];
+const globalGroups = [
+  'tab-generate',
+  'context-environment',
+  'tab-pickups',
+  'tab-library',
+];
+const modeIds = ['draw', 'move', 'height', 'pan'];
 const cameraActions = [
   'focus-selection',
   'fit',
@@ -27,17 +32,10 @@ const cameraActions = [
   'zoom-in',
   'fly-camera',
   'view-map',
+  'view-profile',
 ];
 const cameraOnly = process.argv.includes('--map-camera');
-const primary = [
-  'undo',
-  'redo',
-  'reset-track',
-  'save',
-  'tunes',
-  'test',
-  'exit',
-];
+const primary = ['undo', 'redo', 'save', 'tunes', 'test', 'exit'];
 const storage = createMemoryStorage();
 createCareerSlots({ storage: () => storage, now: () => 1 }).create(1);
 const entries = Array.from({ length: storage.length }, (_, i) => {
@@ -54,7 +52,8 @@ const context = await browser.newContext({
 const faults = [];
 const action = (page, key) => page.locator(`[data-editor-action="${key}"]`);
 const section = (page, key) => page.locator(`[data-editor-section="${key}"]`);
-const strip = (page) => page.locator('[data-editor-authoring]');
+const inspector = (page) => page.locator('[data-editor-authoring]');
+const toolbar = (page) => page.getByRole('group', { name: 'Viewport tools' });
 const state = (page) =>
   page.evaluate(() => window.__VN_FRONTEND.getState().editor);
 const tapOrClick = (control) => (responsive ? control.tap() : control.click());
@@ -136,31 +135,30 @@ async function closeGroups(page) {
 }
 async function structure(page) {
   const root = page.locator('.track-workshop');
-  assert.equal(
-    await strip(page).count(),
-    1,
-    'exactly one preview authoring strip',
-  );
+  assert.equal(await inspector(page).count(), 1, 'exactly one Inspector');
   assert(
-    await strip(page).evaluate((el) => !!el.closest('.workshop-canvas')),
-    'the strip overlays the preview',
+    await inspector(page).evaluate((el) => !el.closest('.workshop-canvas')),
+    'the Inspector leaves the viewport clear',
   );
   assert.equal(
     await root
       .locator(
-        'details, summary, [data-editor-action="context-more"], .workshop-context-popup',
+        '[data-editor-action="context-more"], .workshop-context-popup, .workshop-footer, [data-editor-test-feedback]',
       )
       .count(),
     0,
-    'no nested menus or More popup',
+    'no redundant More menu or permanent feedback bars',
   );
-  assert.equal(await strip(page).locator('[data-editor-tool]').count(), 3);
+  assert.equal(
+    await toolbar(page).locator('[data-editor-tool]').count(),
+    modeIds.length,
+  );
   for (const id of modeIds)
     await uncovered(
-      strip(page).locator(`[data-editor-tool="${id}"]`),
+      toolbar(page).locator(`[data-editor-tool="${id}"]`),
       `${id} mode`,
     );
-  const cameras = strip(page).getByRole('group', { name: 'Camera controls' });
+  const cameras = toolbar(page).getByRole('group', { name: 'Camera controls' });
   assert.equal(
     await cameras.count(),
     1,
@@ -174,7 +172,7 @@ async function structure(page) {
   assert.equal(
     await root
       .locator(
-        '[data-editor-action="tab-view"], [data-editor-action="view-world"], [data-editor-action^="pan-"], [data-editor-action^="orbit-"], [data-editor-action^="tilt-"], [data-editor-action="reset-view"]',
+        '[data-editor-action="tab-view"], [data-editor-action="view-world"], [data-editor-action^="orbit-"], [data-editor-action^="tilt-"], [data-editor-action="reset-view"]',
       )
       .count(),
     0,
@@ -182,14 +180,16 @@ async function structure(page) {
   );
   for (const key of authorGroups) {
     assert.equal(
-      await strip(page).locator(`[data-editor-action="tab-${key}"]`).count(),
+      await inspector(page)
+        .locator(`[data-editor-action="tab-${key}"]`)
+        .count(),
       1,
     );
     assert(
       await section(page, key).evaluate(
         (el) => !!el.closest('[data-editor-authoring]'),
       ),
-      `${key} options expand inside that same strip`,
+      `${key} opens in the Inspector`,
     );
     assert.equal(
       await section(page, key).locator('[data-editor-section]').count(),
@@ -220,9 +220,7 @@ async function structure(page) {
     );
   for (const key of globalGroups)
     assert(
-      await action(page, `tab-${key}`).evaluate(
-        (el) => !el.closest('.workshop-canvas'),
-      ),
+      await action(page, key).evaluate((el) => !el.closest('.workshop-canvas')),
       `${key} belongs outside the preview`,
     );
   for (const attr of ['data-editor-action', 'data-editor-field']) {
@@ -238,12 +236,6 @@ async function structure(page) {
       }, attr);
     assert.deepEqual(duplicates, [], `unique ${attr} controls`);
   }
-  assert.equal(
-    await strip(page).evaluate((el) =>
-      parseFloat(getComputedStyle(el).borderTopLeftRadius),
-    ),
-    6,
-  );
   assert.equal(
     await action(page, 'draw-mode').evaluate((el) =>
       parseFloat(getComputedStyle(el).borderTopLeftRadius),
@@ -262,6 +254,22 @@ async function mapCameraChecks(page) {
   const map = page.locator('[data-editor-map-wrap]');
   const canvas = page.locator('[data-editor-world] canvas');
   const ownedCanvas = await canvas.elementHandle();
+  if (!responsive) {
+    await choose(page, 'pan-mode');
+    const before = (await state(page)).preview.camera.position;
+    const box = await canvas.boundingBox();
+    const x = box.x + box.width / 2;
+    const y = box.y + box.height / 2;
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x + 75, y + 30, { steps: 5 });
+    await page.mouse.up();
+    const after = (await state(page)).preview.camera.position;
+    assert.notDeepEqual(after, before, 'Pan moves the camera');
+    assert.equal(after[1], before[1], 'Pan preserves camera elevation');
+    assert.deepEqual(await save(page), original, 'Pan only changes the view');
+    await choose(page, 'select-mode');
+  }
   const openMap = async () => {
     if (!(await state(page)).mapOpen) await choose(page, 'view-map');
     await map.waitFor({ state: 'visible' });
@@ -352,6 +360,31 @@ async function mapCameraChecks(page) {
     false,
     'outside focus dismisses Map',
   );
+  const profile = page.getByRole('dialog', { name: 'Elevation profile' });
+  await openMap();
+  await choose(page, 'view-profile');
+  assert.equal((await state(page)).mapOpen, false);
+  assert(await profile.isVisible());
+  assert(await profile.locator('.workshop-profile-road').count());
+  const profilePoint = profile.locator('[data-editor-field="profile-point"]');
+  await profilePoint.press('Home');
+  await profilePoint.press('ArrowRight');
+  await profilePoint.press('ArrowRight');
+  assert.equal((await state(page)).selectedPoint, 1);
+  await choose(page, 'view-map');
+  assert.equal(await profile.isVisible(), false);
+  await choose(page, 'view-profile');
+  await page.keyboard.press('Escape');
+  assert.equal(await profile.isVisible(), false);
+  assert(
+    await action(page, 'view-profile').evaluate(
+      (el) => el === document.activeElement,
+    ),
+  );
+  console.log(
+    'PASS Profile samples the route, shares point selection and restores focus',
+  );
+
   await page.evaluate(() => {
     const button = document.createElement('button');
     button.id = 'outside-editor-map-check';
@@ -489,6 +522,9 @@ try {
   await nameField.fill(name);
   await nameField.press('Tab');
   await ready(page);
+  await choose(page, 'quick-start');
+  await ready(page);
+  await choose(page, 'draw-mode');
 
   for (const [width, height] of responsive
     ? [[390, 844]]
@@ -501,29 +537,33 @@ try {
     await ready(page);
     await closeGroups(page);
     await structure(page);
-    const collapsed = await strip(page).boundingBox();
+    const collapsed = await inspector(page).boundingBox();
     const canvasBefore = await page.locator('.workshop-canvas').boundingBox();
-    assert(collapsed.width <= 150, 'closed strip stays compact');
-    assert(
-      collapsed.x >= canvasBefore.x + canvasBefore.width / 2,
-      'strip is in the preview top right',
-    );
+    if (!responsive)
+      assert(
+        collapsed.x >= canvasBefore.x + canvasBefore.width - 1,
+        'the Inspector sits to the right of the viewport',
+      );
+
     for (const key of authorGroups) {
       await tapOrClick(action(page, `tab-${key}`));
       assert(await section(page, key).isVisible());
       assert.equal((await state(page)).authorGroup, key);
       for (const other of authorGroups.filter((id) => id !== key))
         assert.equal(await section(page, other).isVisible(), false);
-      const expanded = await strip(page).boundingBox();
-      assert(
-        expanded.width >= collapsed.width + 70 && expanded.width <= 320,
-        'options expand the one strip inline',
-      );
-      assert.deepEqual(
-        await page.locator('.workshop-canvas').boundingBox(),
-        canvasBefore,
-        'authoring group does not create an adjacent panel or resize the preview',
-      );
+      const expanded = await inspector(page).boundingBox();
+      const canvasAfter = await page.locator('.workshop-canvas').boundingBox();
+      if (responsive) {
+        assert(expanded.height <= 300, 'the touch Inspector stays bounded');
+        assert(canvasAfter.height >= 220, 'the touch viewport remains usable');
+      } else {
+        assert.equal(expanded.width, collapsed.width);
+        assert.deepEqual(
+          canvasAfter,
+          canvasBefore,
+          'the desktop viewport stays put',
+        );
+      }
       assert.equal(
         (await state(page)).tool,
         'draw',
@@ -531,7 +571,7 @@ try {
       );
       for (const id of modeIds)
         await uncovered(
-          strip(page).locator(`[data-editor-tool="${id}"]`),
+          toolbar(page).locator(`[data-editor-tool="${id}"]`),
           `${id} remains available with ${key} open`,
         );
     }
@@ -562,7 +602,7 @@ try {
     await closeGroups(page);
   }
   console.log(
-    'PASS compact rounded preview strip, one inline group, persistent modes and separate globals',
+    'PASS palette, viewport toolbar and single-group Inspector at all tested sizes',
   );
 
   if (!cameraOnly) {
@@ -570,7 +610,7 @@ try {
       await page.setViewportSize({ width: 1440, height: 900 });
       await action(page, 'draw-mode').focus();
       for (let i = 0; i < modeIds.length; i++) {
-        if (i) await pad(page, 13);
+        if (i) await pad(page, 15);
         assert.equal(
           await page.evaluate(() => document.activeElement.dataset.editorTool),
           modeIds[i],
@@ -592,7 +632,7 @@ try {
       await page.keyboard.type('dvhpo');
       assert.equal(
         (await state(page)).tool,
-        'height',
+        'pan',
         'typing in a global field excludes preview shortcuts',
       );
       await nameField.fill(name);

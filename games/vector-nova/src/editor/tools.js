@@ -14,7 +14,7 @@ export const EDITOR_TOOLS = [
     label: 'Select / move',
     key: 'V',
     icon: '<path d="m5 3 13 10-7 1-3 7-3-18Z"/>',
-    hint: 'Drag points to move · Shift-drag for height · Drag empty ground to pan',
+    hint: 'Drag to move · Shift-click a span · Shift-drag for height · Drag empty ground to pan',
   },
   {
     id: 'height',

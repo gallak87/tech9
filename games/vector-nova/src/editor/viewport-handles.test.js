@@ -47,6 +47,12 @@ test('3D handles remain pickable on incomplete drafts and their visible elevatio
     view,
   );
   assert.deepEqual(handles.pick(ray), { kind: 'height', index: 0 });
+  assert.ok(state.bankHandle.visible);
+  ray.setFromCamera(
+    new T.Vector2(state.bankHandle.x / 500 - 1, 1 - state.bankHandle.y / 300),
+    view,
+  );
+  assert.deepEqual(handles.pick(ray), { kind: 'bank', index: 0 });
   handles.setVisible(false);
   assert.equal(handles.pick(ray), null);
   handles.dispose();
@@ -147,9 +153,10 @@ test('finishing a drag rebuilds selected-span geometry from the edited route and
     section: { start: 0, end: 0.6 },
   });
   handles.setDragging(false);
-  const selectedLine = scene.children[0].children[5];
+  const selectedLine = scene.getObjectByName('Workshop / selected road spans');
   assert.ok(
-    Math.abs(selectedLine.geometry.attributes.position.getX(0) - 150) < 0.001,
+    Math.abs(selectedLine.geometry.attributes.instanceStart.getX(0) - 150) <
+      0.001,
   );
   assert.deepEqual(constrainEditorPoint({ x: 99999, y: 99999, z: -99999 }), {
     x: 25000,
@@ -291,4 +298,24 @@ test('a numbered problem halo stays readable above other handles at both overvie
   handles.dispose();
   handles.dispose();
   assert.equal(disposed, 1);
+});
+
+test('selected handles and measured twist overlays are independent and limited to the affected route', () => {
+  const scene = new T.Scene(),
+    handles = createEditorHandles(scene);
+  handles.setDocument(draft(), { selectedPoint: 1, selectedPoints: [0, 1] });
+  handles.update(camera(), 1000, 600);
+  assert.deepEqual(
+    handles.getState().points.map(({ selected }) => selected),
+    [true, true, false],
+  );
+  const twist = scene.getObjectByName('Workshop / excessive roll rate');
+  assert.equal(twist.visible, false);
+  handles.setDocument(draft(), {
+    rollRateSections: [{ start: 0.3, end: 0.42 }],
+  });
+  assert.equal(twist.visible, true);
+  assert.equal(twist.material.color.getHexString(), 'ff6864');
+  assert.ok(twist.geometry.attributes.instanceStart.count < 40);
+  handles.dispose();
 });

@@ -1,5 +1,6 @@
 import * as T from 'three';
 import { routeCurve } from './route.js';
+import { dragPointRoll, pointSelectionModifiers } from './point-gestures.js';
 import {
   constrainEditorPoint,
   projectEditorHandle,
@@ -26,6 +27,9 @@ export function bindEditorViewportInput(
     onDragPoint,
     onDragEnd,
     onDragCancel,
+    onBankDrag,
+    onBankDragEnd,
+    onBankDragCancel,
     onInteractionEnd,
     draw,
   },
@@ -33,6 +37,7 @@ export function bindEditorViewportInput(
   const life = new AbortController();
   const raycaster = new T.Raycaster();
   const clickSlop = 4;
+  const pointDragKinds = new Set(['point', 'height', 'bank']);
   const tools = new Set(['select', 'draw', 'move', 'height', 'orbit', 'pan']);
   const currentTool = () => {
     const selection = getSelection();
@@ -83,15 +88,21 @@ export function bindEditorViewportInput(
   function flush() {
     cancelAnimationFrame(pendingFrame);
     pendingFrame = null;
-    if (!pending || !gesture) return;
+    if (pending === null || !gesture) return;
     const move = pending;
     pending = null;
-    if (gesture.deferredSelect) {
-      selectPoint(gesture.index, { extendRange: false, shiftKey: false });
-      gesture.deferredSelect = false;
+    if (!gesture.moved) {
+      gesture.moved = true;
+      getHandles()?.setDragging(true);
+      if (gesture.kind !== 'bank')
+        selectPoint(gesture.index, {
+          preserveSelection: true,
+          extendRange: false,
+          shiftKey: false,
+        });
     }
-    gesture.moved = true;
-    onDragPoint?.(gesture.index, move);
+    if (gesture.kind === 'bank') onBankDrag?.(gesture.index, move);
+    else onDragPoint?.(gesture.index, move);
     draw();
   }
   function finish(cancel = false) {
@@ -105,10 +116,12 @@ export function bindEditorViewportInput(
     gesture = null;
     if (canvas.hasPointerCapture(ended.pointerId))
       canvas.releasePointerCapture(ended.pointerId);
-    if (['point', 'height'].includes(ended.kind))
+    if (pointDragKinds.has(ended.kind) && ended.moved) {
       getHandles()?.setDragging(false);
-    if (['point', 'height'].includes(ended.kind) && ended.moved) {
-      if (cancel) onDragCancel?.();
+      if (ended.kind === 'bank') {
+        if (cancel) onBankDragCancel?.();
+        else onBankDragEnd?.();
+      } else if (cancel) onDragCancel?.();
       else onDragEnd?.();
     }
     canvas.style.cursor = '';
@@ -144,6 +157,7 @@ export function bindEditorViewportInput(
         startX: event.clientX,
         startY: event.clientY,
         moved: false,
+        modifiers: pointSelectionModifiers(event),
       };
       const tool = currentTool();
       if (
@@ -174,7 +188,16 @@ export function bindEditorViewportInput(
       } else {
         const handles = getHandles(),
           hit = handles?.pick(ray);
-        if (hit?.kind === 'point' || hit?.kind === 'height') {
+        if (hit?.kind === 'bank') {
+          gesture = {
+            ...common,
+            kind: 'bank',
+            index: hit.index,
+            roll: getDocument().points[hit.index].roll ?? 0,
+            lastX: event.clientX,
+          };
+          canvas.style.cursor = 'ew-resize';
+        } else if (hit?.kind === 'point' || hit?.kind === 'height') {
           const position = handles.point(hit.index);
           const canDrag = ['move', 'height', 'draw'].includes(tool);
           const vertical =
@@ -183,6 +206,7 @@ export function bindEditorViewportInput(
             ...common,
             kind: canDrag ? (vertical ? 'height' : 'point') : 'select',
             index: hit.index,
+            selectsOnClick: hit.kind === 'point',
             position,
             plane: planeAt(ray.ray, position),
             units: projectEditorHandle(
@@ -196,19 +220,15 @@ export function bindEditorViewportInput(
             gesture.plane,
             new T.Vector3(),
           );
-          gesture.rangeExtend =
-            hit.kind === 'point' && event.shiftKey && tool !== 'height';
           gesture.finishDrawing =
             hit.kind === 'point' &&
             hit.index === 0 &&
             !vertical &&
+            !event.metaKey &&
+            !event.ctrlKey &&
             tool === 'draw' &&
             getDocument()?.courseType !== 'downhill' &&
             getDocument()?.points.length >= 4;
-          gesture.deferredSelect = gesture.rangeExtend || gesture.finishDrawing;
-          if (!gesture.deferredSelect)
-            selectPoint(hit.index, { extendRange: false, shiftKey: false });
-          if (canDrag) handles.setDragging(true);
           canvas.style.cursor = canDrag
             ? vertical
               ? 'ns-resize'
@@ -280,11 +300,15 @@ export function bindEditorViewportInput(
             : hover
               ? tool === 'select'
                 ? 'pointer'
-                : tool === 'height' || hover.kind === 'height' || event.shiftKey
-                  ? 'ns-resize'
-                  : tool === 'move' || tool === 'draw'
-                    ? 'grab'
-                    : 'pointer'
+                : hover.kind === 'bank'
+                  ? 'ew-resize'
+                  : tool === 'height' ||
+                      hover.kind === 'height' ||
+                      event.shiftKey
+                    ? 'ns-resize'
+                    : tool === 'move' || tool === 'draw'
+                      ? 'grab'
+                      : 'pointer'
               : tool === 'draw'
                 ? 'crosshair'
                 : 'grab';
@@ -308,23 +332,38 @@ export function bindEditorViewportInput(
         draw();
         return;
       }
-      if (!['point', 'height'].includes(gesture.kind) || Math.hypot(dx, dy) < 3)
+      if (
+        !pointDragKinds.has(gesture.kind) ||
+        (!gesture.moved && pending === null && Math.hypot(dx, dy) < clickSlop)
+      )
         return;
-      if (gesture.kind === 'height')
-        pending = constrainEditorPoint({
-          ...gesture.position,
-          y: gesture.position.y - dy * gesture.units * (event.altKey ? 0.2 : 1),
-        });
-      else {
+      if (gesture.kind === 'bank') {
+        if (event.clientX === gesture.lastX) return;
+        gesture.roll = dragPointRoll(
+          gesture.roll,
+          event.clientX - gesture.lastX,
+          event.altKey,
+        );
+        gesture.lastX = event.clientX;
+        pending = gesture.roll;
+      } else if (gesture.kind === 'height') {
+        pending = {
+          y: Math.round(
+            gesture.position.y - dy * gesture.units * (event.altKey ? 0.2 : 1),
+          ),
+        };
+      } else {
         const hit = ray.ray.intersectPlane(gesture.plane, new T.Vector3());
         if (!hit || !gesture.startHit) return;
         const position = gesture.position
           .clone()
           .add(hit.sub(gesture.startHit));
-        position.y = gesture.position.y;
-        pending = constrainEditorPoint(position);
+        pending = {
+          x: Math.round(position.x / 5) * 5,
+          z: Math.round(position.z / 5) * 5,
+        };
       }
-      if (pending && !pendingFrame) pendingFrame = requestAnimationFrame(flush);
+      if (!pendingFrame) pendingFrame = requestAnimationFrame(flush);
     },
     { signal: life.signal },
   );
@@ -351,8 +390,8 @@ export function bindEditorViewportInput(
       finish(false);
       if (click && ended.finishDrawing && !ended.moved)
         selectPoint(ended.index, { finishDrawing: true });
-      else if (click && ended.rangeExtend && !ended.moved)
-        selectPoint(ended.index, { extendRange: true, shiftKey: true });
+      else if (click && ended.selectsOnClick && !ended.moved)
+        selectPoint(ended.index, ended.modifiers);
       if (
         click &&
         !ended.moved &&
@@ -379,11 +418,7 @@ export function bindEditorViewportInput(
             index = i;
           }
         }
-        if (index >= 0)
-          selectPoint(index, {
-            extendRange: event.shiftKey,
-            shiftKey: event.shiftKey,
-          });
+        if (index >= 0) selectPoint(index, ended.modifiers);
       }
       if (canvas.hasPointerCapture(event.pointerId))
         canvas.releasePointerCapture(event.pointerId);
@@ -496,8 +531,7 @@ export function bindEditorViewportInput(
   );
   return {
     syncTool,
-    isDragging: () =>
-      Boolean(gesture && ['point', 'height'].includes(gesture.kind)),
+    isDragging: () => Boolean(gesture && pointDragKinds.has(gesture.kind)),
     cancel: () => finish(true),
     dispose() {
       finish(true);

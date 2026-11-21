@@ -1,4 +1,7 @@
 import * as T from 'three';
+import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
+import { LineSegments2 } from 'three/addons/lines/LineSegments2.js';
+import { LineSegmentsGeometry } from 'three/addons/lines/LineSegmentsGeometry.js';
 import { routeCurve } from './route.js';
 import { createEditorDrawGuide } from './viewport-draw.js';
 
@@ -68,18 +71,43 @@ export function createEditorHandles(scene) {
   );
   heightHandle.renderOrder = 2001;
   group.add(heightHandle);
-  const heightStem = new T.Line(
-    new T.BufferGeometry(),
-    new T.LineBasicMaterial({
-      color: '#ffcf79',
-      depthTest: false,
-      depthWrite: false,
-      toneMapped: false,
-      fog: false,
-    }),
+  const bankHandle = new T.Group();
+  bankHandle.name = 'Workshop / roll handle';
+  const bankArc = new T.Mesh(
+    new T.RingGeometry(0.73, 1, 28, 1, Math.PI * 0.3, Math.PI * 1.55),
+    material('#82e5ff'),
   );
-  heightStem.renderOrder = 2000;
-  group.add(heightStem);
+  const bankTip = new T.Mesh(
+    new T.CircleGeometry(0.27, 14),
+    material('#82e5ff'),
+  );
+  bankTip.position.set(
+    0.86 * Math.cos(Math.PI * 0.3),
+    0.86 * Math.sin(Math.PI * 0.3),
+    0,
+  );
+  for (const piece of [bankArc, bankTip]) {
+    piece.renderOrder = 2002;
+    bankHandle.add(piece);
+  }
+  group.add(bankHandle);
+  function createStem(color) {
+    const stem = new T.Line(
+      new T.BufferGeometry(),
+      new T.LineBasicMaterial({
+        color,
+        depthTest: false,
+        depthWrite: false,
+        toneMapped: false,
+        fog: false,
+      }),
+    );
+    stem.renderOrder = 2000;
+    group.add(stem);
+    return stem;
+  }
+  const heightStem = createStem('#ffcf79');
+  const bankStem = createStem('#82e5ff');
   const guide = new T.Line(
     new T.BufferGeometry(),
     new T.LineBasicMaterial({
@@ -94,18 +122,38 @@ export function createEditorHandles(scene) {
   );
   guide.renderOrder = 1998;
   group.add(guide);
-  const span = new T.Line(
-    new T.BufferGeometry(),
-    new T.LineBasicMaterial({
-      color: '#ffcf79',
-      depthTest: false,
-      depthWrite: false,
-      toneMapped: false,
-      fog: false,
-    }),
+  function routeStroke(color, linewidth, renderOrder, name) {
+    const stroke = new LineSegments2(
+      new LineSegmentsGeometry(),
+      new LineMaterial({
+        color,
+        linewidth,
+        depthTest: false,
+        depthWrite: false,
+        toneMapped: false,
+        fog: false,
+        transparent: true,
+        opacity: 0.86,
+      }),
+    );
+    stroke.name = name;
+    stroke.visible = false;
+    stroke.renderOrder = renderOrder;
+    group.add(stroke);
+    return stroke;
+  }
+  const span = routeStroke(
+    '#ffcf79',
+    5,
+    1999,
+    'Workshop / selected road spans',
   );
-  span.renderOrder = 1999;
-  group.add(span);
+  const fastTwist = routeStroke(
+    '#ff6864',
+    4,
+    1999.25,
+    'Workshop / excessive roll rate',
+  );
   // Separate from the instanced dots so overlapping ordinary points cannot
   // cover the warning, and keep its screen size independent of route length.
   const problemHalo = new T.Mesh(
@@ -122,10 +170,13 @@ export function createEditorHandles(scene) {
     curve,
     curveKey,
     pointKey,
+    strokeKey,
+    selectedIndices = new Set(),
     selection = {},
     hover = null;
   let projected = [],
     heightScreen = null,
+    bankScreen = null,
     problemScreen = null,
     dragging = false,
     visible = true,
@@ -139,27 +190,67 @@ export function createEditorHandles(scene) {
     line.geometry = new T.BufferGeometry().setFromPoints(points);
     line.geometry.computeBoundingSphere();
   }
+  function updateStem(stem, from, to) {
+    const points = stem.geometry.getAttribute('position');
+    if (!points) {
+      replaceGeometry(stem, [from, to]);
+      return;
+    }
+    points.setXYZ(0, from.x, from.y, from.z);
+    points.setXYZ(1, to.x, to.y, to.z);
+    points.needsUpdate = true;
+    stem.geometry.computeBoundingSphere();
+  }
+  function updateStroke(stroke, spans) {
+    const positions = [];
+    if (curve)
+      for (const { start, end } of spans) {
+        if (!(end > start)) continue;
+        const count = Math.max(
+          1,
+          Math.min(384, Math.ceil(((end - start) * curve.getLength()) / 13)),
+        );
+        let a = curve.getPointAt(start);
+        for (let i = 1; i <= count; i++) {
+          const b = curve.getPointAt(start + ((end - start) * i) / count);
+          positions.push(a.x, a.y, a.z, b.x, b.y, b.z);
+          a = b;
+        }
+      }
+    stroke.visible = positions.length > 0;
+    if (stroke.visible) {
+      stroke.geometry.dispose();
+      stroke.geometry = new LineSegmentsGeometry().setPositions(positions);
+    }
+  }
   function setDocument(next, options = {}) {
     doc = next;
     selection = {
       selectedPoint: -1,
+      selectedPoints: [],
       selectedProp: -1,
       section: null,
+      rollRateSections: [],
       drawMode: false,
       problemPoint: null,
       problemPosition: null,
       problemSeverity: 'error',
       ...options,
     };
+    selectedIndices = new Set(selection.selectedPoints);
+    if (selection.selectedPoint >= 0)
+      selectedIndices.add(selection.selectedPoint);
     drawing.setDocument(doc, selection);
-    const key = JSON.stringify([doc.courseType, doc.points]);
+    const key = JSON.stringify([
+      doc.courseType,
+      doc.points.map(({ x, y, z }) => [x, y, z]),
+    ]);
     if (key !== curveKey && !dragging) {
       curveKey = key;
       curve = doc.points.length >= 3 ? routeCurve(doc) : null;
     }
-    const guideKey = JSON.stringify([doc.points, selection.section]);
-    if (guideKey !== pointKey) {
-      pointKey = guideKey;
+    if (key !== pointKey) {
+      pointKey = key;
       const path =
         doc.points.length >= 3
           ? new T.CatmullRomCurve3(
@@ -174,22 +265,24 @@ export function createEditorHandles(scene) {
           ? path.getPoints(Math.min(600, Math.max(64, doc.points.length * 6)))
           : doc.points.map((p) => new T.Vector3(p.x, p.y, p.z)),
       );
-      if (
-        selection.section &&
-        curve &&
-        selection.section.end > selection.section.start
-      )
-        replaceGeometry(
-          span,
-          Array.from({ length: 97 }, (_, i) =>
-            curve.getPointAt(
-              selection.section.start +
-                ((selection.section.end - selection.section.start) * i) / 96,
-            ),
-          ),
-        );
-      else replaceGeometry(span, []);
     }
+    const selections = Array.isArray(selection.section)
+      ? selection.section
+      : selection.section
+        ? [selection.section]
+        : [];
+    const strokes = JSON.stringify([
+      curveKey,
+      selections,
+      selection.rollRateSections,
+    ]);
+    if (strokes !== strokeKey) {
+      strokeKey = strokes;
+      updateStroke(span, selections);
+      updateStroke(fastTwist, selection.rollRateSections);
+    }
+    // Don't leave a selected path at its previous location during a point move.
+    if (dragging && key !== curveKey) span.visible = fastTwist.visible = false;
   }
   function update(camera, width, height) {
     viewCamera = camera;
@@ -210,13 +303,14 @@ export function createEditorHandles(scene) {
         doc.points[i].z,
       );
       const screen = projectEditorHandle(p, camera, width, height);
-      projected.push({ index: i, ...screen });
+      const isSelected = selectedIndices.has(i);
+      projected.push({ index: i, selected: isSelected, ...screen });
       const scale = screen.visible
         ? screen.units *
           (i === selection.selectedPoint
             ? 8
-            : hover?.kind === 'point' && hover.index === i
-              ? 8
+            : isSelected || (hover?.kind === 'point' && hover.index === i)
+              ? 7
               : Math.max(
                   1.75,
                   Math.min(6, (doc.width ?? 40) / (5 * screen.units)),
@@ -228,7 +322,7 @@ export function createEditorHandles(scene) {
         i,
         i === selection.problemPoint
           ? warningAmber
-          : i === selection.selectedPoint
+          : isSelected
             ? gold
             : hover?.kind === 'point' && hover.index === i
               ? blue
@@ -274,16 +368,23 @@ export function createEditorHandles(scene) {
     }
     const selected = doc.points[selection.selectedPoint];
     const screen = projected[selection.selectedPoint];
-    ring.visible =
-      heightHandle.visible =
+    ring.visible = Boolean(selected && screen?.visible);
+    const editable =
+      ring.visible && !['pan', 'orbit', 'select'].includes(selection.tool);
+    heightHandle.visible =
       heightStem.visible =
-        Boolean(selected && screen?.visible);
-    heightScreen = null;
+      bankHandle.visible =
+      bankStem.visible =
+        editable;
+    heightScreen = bankScreen = null;
     if (ring.visible) {
       const position = new T.Vector3(selected.x, selected.y, selected.z);
       ring.position.copy(position);
       ring.quaternion.copy(camera.quaternion);
       ring.scale.setScalar(screen.units * 13);
+    }
+    if (editable) {
+      const position = ring.position;
       const up = new T.Vector3(0, 1, 0).applyQuaternion(camera.quaternion),
         right = new T.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
       heightHandle.position
@@ -292,25 +393,24 @@ export function createEditorHandles(scene) {
         .addScaledVector(right, screen.units * 24);
       heightHandle.quaternion.copy(camera.quaternion);
       heightHandle.scale.setScalar(screen.units * 6);
-      const at = heightStem.geometry.getAttribute('position');
-      if (at?.count === 2) {
-        at.setXYZ(0, position.x, position.y, position.z);
-        at.setXYZ(
-          1,
-          heightHandle.position.x,
-          heightHandle.position.y,
-          heightHandle.position.z,
-        );
-        at.needsUpdate = true;
-        heightStem.geometry.computeBoundingSphere();
-      } else
-        replaceGeometry(heightStem, [position, heightHandle.position.clone()]);
+      updateStem(heightStem, position, heightHandle.position);
       heightScreen = projectEditorHandle(
         heightHandle.position,
         camera,
         width,
         height,
       );
+      bankHandle.position
+        .copy(position)
+        .addScaledVector(up, screen.units * 30)
+        .addScaledVector(right, -screen.units * 42);
+      bankHandle.quaternion.copy(camera.quaternion);
+      bankHandle.scale.setScalar(screen.units * 11);
+      updateStem(bankStem, position, bankHandle.position);
+      bankScreen = {
+        ...projectEditorHandle(bankHandle.position, camera, width, height),
+        roll: selected.roll ?? 0,
+      };
     }
     group.updateMatrixWorld(true);
   }
@@ -321,7 +421,7 @@ export function createEditorHandles(scene) {
     setDragging(value) {
       dragging = value;
       if (!value && doc) {
-        curveKey = pointKey = null;
+        curveKey = pointKey = strokeKey = null;
         setDocument(doc, selection);
       }
     },
@@ -344,12 +444,17 @@ export function createEditorHandles(scene) {
       const screen = raycaster.ray.at(100, new T.Vector3()).project(viewCamera);
       const x = ((screen.x + 1) * viewWidth) / 2,
         y = ((1 - screen.y) * viewHeight) / 2;
+      if (
+        bankScreen?.visible &&
+        Math.hypot(x - bankScreen.x, y - bankScreen.y) <= 13
+      )
+        return { kind: 'bank', index: selection.selectedPoint };
       // Keep the full pointer target when zoomed-out dots shrink to reveal the deck.
       let nearest = null;
       let best = Infinity;
       for (const point of projected) {
         if (!point.visible) continue;
-        const radius = point.index === selection.selectedPoint ? 8 : 6;
+        const radius = point.selected ? 8 : 6;
         const distance = (point.x - x) ** 2 + (point.y - y) ** 2;
         if (distance > radius ** 2) continue;
         if (
@@ -381,6 +486,13 @@ export function createEditorHandles(scene) {
             ),
           ),
         );
+      if (selectedIndices.size > 1) {
+        const points = [...selectedIndices]
+          .map((index) => this.point(index))
+          .filter(Boolean);
+        if (points.length)
+          return new T.Box3().setFromPoints(points).expandByScalar(30);
+      }
       return doc?.points[selection.selectedPoint]
         ? new T.Box3().setFromCenterAndSize(
             this.point(selection.selectedPoint),
@@ -400,6 +512,8 @@ export function createEditorHandles(scene) {
         hover,
         points: projected,
         heightHandle: heightScreen,
+        bankHandle: bankScreen,
+        twistSections: selection.rollRateSections,
         span: Boolean(selection.section),
       };
     },

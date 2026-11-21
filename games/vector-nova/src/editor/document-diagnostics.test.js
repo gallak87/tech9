@@ -224,6 +224,21 @@ test('grade, rotated-deck clearance, rotation and crossing errors each identify 
   const rotation = analyzeDocument(rolled);
   assert.equal(rotation.primaryIssue.kind, 'rotation');
   assertSpan(rotation.primaryIssue, rotation.length);
+  assert(rotation.rollRateSections.length > 0);
+  const measuredRoll = rotation.primaryIssue.distance / rotation.length;
+  assert(
+    rotation.rollRateSections.some(
+      ({ start, end }) => start <= measuredRoll && measuredRoll <= end,
+    ),
+  );
+  rotation.rollRateSections.forEach(({ start, end }, index, ranges) => {
+    assert(start >= 0 && end <= 1 && end > start);
+    if (index)
+      assert(
+        ranges[index - 1].end < start,
+        'consecutive measured samples are merged',
+      );
+  });
   const crossed = loop();
   crossed.points = Array.from({ length: 16 }, (_, index) => {
     const t = (index / 16) * Math.PI * 2;

@@ -6,9 +6,13 @@ import { createEditorBackdrop } from './biome-backdrop.js';
 import { textureMemory } from '../renderer/texture-memory.js';
 import { routeCurve } from './route.js';
 import { readGamepad, steeringAxis } from '../input/gamepad.js';
-import { createEditorHandles } from './viewport-handles.js';
+import {
+  createEditorHandles,
+  projectEditorHandle,
+} from './viewport-handles.js';
 import { bindEditorViewportInput } from './viewport-input.js';
 import { createPreviewGuides } from './preview-guides.js';
+import { signedPointRoll } from './point-gestures.js';
 
 // Road generation preferences do not rebuild resolved geometry or scenery.
 export function editorWorldFingerprint(value) {
@@ -38,12 +42,22 @@ export function createEditorViewport(
     onDragPoint,
     onDragEnd,
     onDragCancel,
+    onBankDrag,
+    onBankDragEnd,
+    onBankDragCancel,
     navigationRoot = host.closest('.track-editor-host'),
   } = {},
 ) {
   let renderer;
   let rendererLife;
-  let handles, editingInput, heightLabel, drawLabel, xLabel, zLabel, issueLabel;
+  let handles,
+    editingInput,
+    heightLabel,
+    bankLabel,
+    drawLabel,
+    xLabel,
+    zLabel,
+    issueLabel;
   let selection = {
     selectedPoint: -1,
     selectedProp: -1,
@@ -75,6 +89,7 @@ export function createEditorViewport(
   let camera;
   let world;
   let latest;
+  let committedDocument;
   let visible = false;
   let disposed = false;
   let build = 0;
@@ -136,7 +151,7 @@ export function createEditorViewport(
     renderer.toneMappingExposure = 1.15;
     renderer.domElement.setAttribute(
       'aria-label',
-      'Editable three-dimensional track. Drag a point to move it, or drag its height arrow to raise it. Right drag or Space and drag orbits; middle drag pans; wheel zooms. Enter starts free camera. F focuses the selection.',
+      'Editable three-dimensional track. Drag a point to move it, its yellow arrow to change height, or its blue Roll handle left or right to rotate the road. Shift-click selects a range. Alt makes handle drags finer. Right drag or Space and drag orbits; middle drag pans; wheel zooms. Enter starts free camera. F focuses the selection.',
     );
     renderer.domElement.setAttribute('role', 'application');
     renderer.domElement.tabIndex = 0;
@@ -158,13 +173,22 @@ export function createEditorViewport(
     if (latest) handles.setDocument(latest, selection);
     heightLabel = document.createElement('span');
     heightLabel.dataset.editorHeightHandleLabel = '';
+    bankLabel = document.createElement('span');
+    bankLabel.dataset.editorBankHandleLabel = '';
     issueLabel = document.createElement('span');
     issueLabel.dataset.editorProblemLabel = '';
     drawLabel = document.createElement('span');
     drawLabel.dataset.editorDrawGuide = '';
     xLabel = document.createElement('span');
     zLabel = document.createElement('span');
-    for (const label of [heightLabel, drawLabel, xLabel, zLabel, issueLabel]) {
+    for (const label of [
+      heightLabel,
+      bankLabel,
+      drawLabel,
+      xLabel,
+      zLabel,
+      issueLabel,
+    ]) {
       label.style.cssText =
         'position:absolute;z-index:4;pointer-events:none;padding:4px 7px;border-radius:4px;background:#10212be8;color:#dcf5ff;font:12px system-ui,sans-serif;white-space:nowrap;border:1px solid #76d9ff88;';
       label.hidden = true;
@@ -253,6 +277,9 @@ export function createEditorViewport(
       onDragPoint,
       onDragEnd,
       onDragCancel,
+      onBankDrag,
+      onBankDragEnd,
+      onBankDragCancel,
       onInteractionEnd() {
         if (visible && fingerprint !== builtFingerprint) {
           clearTimeout(timer);
@@ -352,10 +379,21 @@ export function createEditorViewport(
       placeLabel(
         heightLabel,
         guideData.candidate ? null : state?.heightHandle,
-        selection.heightDelta == null
-          ? '↕ Height · Alt for fine'
+        !selection.heightDelta
+          ? '↕ Height'
           : `${selection.heightDelta >= 0 ? '+' : ''}${selection.heightDelta.toFixed(1)} m · Alt for fine`,
       );
+      placeLabel(
+        bankLabel,
+        state?.bankHandle,
+        `Roll ${signedPointRoll(state?.bankHandle?.roll)}`,
+      );
+      if (bankLabel && !bankLabel.hidden) {
+        const at = state.bankHandle;
+        const toLeft = at.x >= 98;
+        bankLabel.style.left = `${toLeft ? at.x - 15 : at.x + 15}px`;
+        bankLabel.style.transform = toLeft ? 'translateX(-100%)' : '';
+      }
       placeLabel(
         issueLabel,
         state?.problemMarker,
@@ -517,7 +555,7 @@ export function createEditorViewport(
     renderer?.domElement.setAttribute('role', 'application');
     renderer?.domElement.setAttribute(
       'aria-label',
-      'Editable three-dimensional track. Drag points or their height arrow; right drag orbits; middle drag pans; F focuses the selection. Enter starts free camera.',
+      'Editable three-dimensional track. Drag points, their yellow height arrow or their blue Roll handle. Shift-click selects a range; right drag orbits; middle drag pans; F focuses the selection. Enter starts free camera.',
     );
     onFlyChange?.(false, { restoreFocus });
     draw();
@@ -705,14 +743,14 @@ export function createEditorViewport(
     return Math.round(bytes);
   }
   async function rebuild() {
-    if (!visible || disposed || !latest) return;
+    if (!visible || disposed || !committedDocument) return;
     const revision = ++build;
     let next;
     try {
       init();
       const buildingScene = scene;
       const buildingRenderer = renderer;
-      const buildingDocument = latest,
+      const buildingDocument = committedDocument,
         buildingFingerprint = fingerprint;
       const skyKey = JSON.stringify([
         buildingDocument.biome,
@@ -841,9 +879,16 @@ export function createEditorViewport(
     editingInput = null;
     handles?.dispose();
     handles = null;
-    for (const label of [heightLabel, drawLabel, xLabel, zLabel, issueLabel])
+    for (const label of [
+      heightLabel,
+      bankLabel,
+      drawLabel,
+      xLabel,
+      zLabel,
+      issueLabel,
+    ])
       label?.remove();
-    heightLabel = drawLabel = xLabel = zLabel = issueLabel = null;
+    heightLabel = bankLabel = drawLabel = xLabel = zLabel = issueLabel = null;
     rendererLife?.abort();
     world?.dispose();
     world = undefined;
@@ -884,11 +929,37 @@ export function createEditorViewport(
     enterFly,
     exitFly: () => exitFly(true),
     cancelInteraction: () => editingInput?.cancel(),
+    revealPoint(index) {
+      const point = latest?.points[index];
+      if (!point || !camera || flying || !renderWidth || !renderHeight)
+        return false;
+      const position = new T.Vector3(point.x, point.y, point.z);
+      const at = projectEditorHandle(
+        position,
+        camera,
+        renderWidth,
+        renderHeight,
+      );
+      if (
+        at.visible &&
+        at.x >= 0 &&
+        at.x <= renderWidth &&
+        at.y >= 0 &&
+        at.y <= renderHeight
+      )
+        return false;
+      target.copy(position);
+      draw();
+      return true;
+    },
     setDocument(
       document,
       {
         frame = false,
+        previewOnly = false,
         selectedPoint = -1,
+        selectedPoints = [],
+        rollRateSections = [],
         selectedProp = -1,
         section = null,
         drawMode = false,
@@ -901,11 +972,14 @@ export function createEditorViewport(
         readOnly = false,
       } = {},
     ) {
-      const next = editorWorldFingerprint(document);
+      const next = previewOnly ? fingerprint : editorWorldFingerprint(document);
       const changed = next !== fingerprint;
       latest = document;
+      if (!previewOnly) committedDocument = document;
       selection = {
         selectedPoint,
+        selectedPoints,
+        rollRateSections,
         selectedProp,
         section,
         drawMode,

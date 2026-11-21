@@ -378,7 +378,7 @@ test('the Harbor braid starter stacks two separated crossings and a variation ch
   ).options;
   for (const [seed, expectedCrossings] of [
     [options.seed, 2],
-    [6103, 1],
+    [7, 1],
   ]) {
     const doc = generateDocument({ ...options, seed });
     const { crossings } = assertWovenCourse(doc, { ...options, seed });
@@ -1001,6 +1001,7 @@ test('v5 fitting holds geometry limits at short, steep and long road budgets', (
     [42, 'downhill', 20000],
   ]) {
     const options = {
+      generatorVersion: 5,
       seed,
       courseType,
       length,
@@ -1023,4 +1024,63 @@ test('v5 fitting holds geometry limits at short, steep and long road budgets', (
       assert.equal(document.points.at(-1).roll, 0);
     }
   }
+});
+
+test('v6 high rhythm creates sustained turns and two playable jump rhythms within the same length', () => {
+  const options = {
+    seed: 42,
+    length: 7500,
+    width: 44,
+    bendiness: 0.92,
+    elevation: 0.92,
+    crossovers: 1,
+    rhythm: 0.94,
+    banking: 1,
+    jumpFrequency: 'many',
+    jumpSize: 'mixed',
+  };
+  const v5 = generateDocument({ ...options, generatorVersion: 5 });
+  const v6 = generateDocument(options);
+  assert.equal(v5.jumps.length, 1);
+  assert.equal(v6.jumps.length, 2);
+  const { track } = assertWovenCourse(v6, options);
+  const strict = analyzeDocument(v6, { strict: true });
+  assert(strict.valid, strict.errors.join(' '));
+  assert(strict.minRadius <= 72);
+  assert(shapeMetrics(v6).turning > shapeMetrics(v5).turning * 1.2);
+  const gaps = track.jumps.map(
+    ({ takeoff, landingStart }) => landingStart - takeoff,
+  );
+  assert(Math.abs(gaps[1] - gaps[0]) > 35);
+  let wallMetres = 0;
+  let longestWall = 0;
+  for (let station = 0; station < track.length; station += 20) {
+    wallMetres =
+      Math.abs(track.sample(station).authoredRoll) > (80 * Math.PI) / 180
+        ? wallMetres + 20
+        : 0;
+    longestWall = Math.max(longestWall, wallMetres);
+  }
+  assert(longestWall >= 240, `80° deck hold lasts only ${longestWall} m`);
+  for (const { id } of track.jumps) {
+    const start = resolveEditorTestStart(
+      v6,
+      { kind: 'jump', jumpId: id },
+      { track, shipId: 'shrike' },
+    );
+    assert.equal(start.approachMetres, 240);
+    assert.deepEqual(start.warnings, []);
+  }
+  const broad = generateDocument({ ...options, rhythm: 0.3 });
+  assert.notDeepEqual(
+    shapeMetrics(broad).signature,
+    shapeMetrics(v6).signature,
+  );
+  assert(broad.jumps.length < v6.jumps.length);
+  const upright = generateDocument({ ...options, banking: 0 });
+  assert(upright.points.every(({ roll }) => roll === 0));
+  assert.deepEqual(
+    upright.points.map(({ x, y, z }) => [x, y, z]),
+    v6.points.map(({ x, y, z }) => [x, y, z]),
+  );
 });

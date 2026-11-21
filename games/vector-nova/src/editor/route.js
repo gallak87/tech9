@@ -49,6 +49,85 @@ export function routeCurve(doc, arcDivisions = null) {
   return curve;
 }
 
+function resolveRollClosure(doc, points, curve, length) {
+  if (doc.courseType === 'downhill' || !doc.autoCloseRoll) return null;
+  const first = points[0].roll ?? 0,
+    last = points.at(-1).roll ?? 0;
+  const winding = (last - first) / TAU;
+  let turns = Math.round(winding);
+  if (Math.abs(Math.abs(winding - turns) - 0.5) < 1e-8)
+    turns = winding < 0 ? Math.floor(winding) : Math.ceil(winding);
+  const correction = first + turns * TAU - last;
+  if (Math.abs(correction) > 1e-7) {
+    let changed = 0;
+    for (let i = 1; i < points.length; i++)
+      if (Math.abs((points[i].roll ?? 0) - (points[i - 1].roll ?? 0)) > 1e-7)
+        changed = i;
+    const lengths = curve.getLengths(),
+      parameter = (changed / points.length) * (lengths.length - 1),
+      low = Math.floor(parameter);
+    const authoredEnd = T.MathUtils.lerp(
+      lengths[low],
+      lengths[Math.min(low + 1, lengths.length - 1)],
+      parameter - low,
+    );
+    const required = Math.ceil((Math.abs(correction) * 1.875) / 0.022),
+      desired = Math.max(160, (Math.abs(correction) * 1.875) / 0.018);
+    const jumpEnd = Math.max(
+      0,
+      ...(doc.jumps ?? []).map((j) => j.end * length + j.receiving + 80),
+    );
+    const start = Math.min(
+      length,
+      Math.max(authoredEnd, jumpEnd, length - desired),
+    );
+    const valid = length - start >= required;
+    const reason =
+      jumpEnd >= authoredEnd && jumpEnd > length - desired
+        ? `Not enough clear road after the final jump for a smooth circuit return. Leave at least ${required} m after its receiving corridor, or complete another rotation before it.`
+        : `This circuit return needs at least ${required} m after the shaped section. End the section earlier or add the next chunk to complete a full turn.`;
+    return Object.freeze({
+      start,
+      end: length,
+      angle: correction,
+      required,
+      valid,
+      reason: valid ? null : reason,
+    });
+  }
+  return null;
+}
+
+function authoredRollAt(
+  points,
+  node,
+  weight,
+  distance,
+  length,
+  closed,
+  closure,
+) {
+  const firstRoll = points[node].roll ?? 0;
+  // The closing edge reaches the equivalent first angle nearest the final
+  // authored angle, unless an explicit automatic return handles the winding.
+  let nextRoll = points[(node + 1) % points.length].roll ?? 0;
+  if (closed && node === points.length - 1) {
+    if (closure) nextRoll = firstRoll;
+    else nextRoll += TAU * Math.round((firstRoll - nextRoll) / TAU);
+  }
+  const roll = T.MathUtils.lerp(firstRoll, nextRoll, weight);
+  if (!closure) return roll;
+  const progress =
+    (distance - closure.start) / Math.max(1e-6, length - closure.start);
+  return roll + closure.angle * smoother(T.MathUtils.clamp(progress, 0, 1));
+}
+
+function featureRollAt(feature, distance, length) {
+  const progress =
+    (distance / length - feature.start) / (feature.end - feature.start);
+  return feature.turns * TAU * smoother(T.MathUtils.clamp(progress, 0, 1));
+}
+
 /** One pure CPU sampler shared by authoring validation, rendering and physics. */
 export function createRouteSampler(doc) {
   const key = JSON.stringify([
@@ -126,57 +205,8 @@ export function createRouteSampler(doc) {
     }
     return value / weight;
   });
-  let rollClosure = null;
-  if (closed && doc.autoCloseRoll) {
-    const first = doc.points[0].roll ?? 0,
-      last = doc.points.at(-1).roll ?? 0;
-    const winding = (last - first) / TAU;
-    let turns = Math.round(winding);
-    if (Math.abs(Math.abs(winding - turns) - 0.5) < 1e-8)
-      turns = winding < 0 ? Math.floor(winding) : Math.ceil(winding);
-    const correction = first + turns * TAU - last;
-    if (Math.abs(correction) > 1e-7) {
-      let changed = 0;
-      for (let i = 1; i < doc.points.length; i++)
-        if (
-          Math.abs((doc.points[i].roll ?? 0) - (doc.points[i - 1].roll ?? 0)) >
-          1e-7
-        )
-          changed = i;
-      const lengths = curve.getLengths(),
-        parameter = (changed / doc.points.length) * (lengths.length - 1),
-        low = Math.floor(parameter);
-      const authoredEnd = T.MathUtils.lerp(
-        lengths[low],
-        lengths[Math.min(low + 1, lengths.length - 1)],
-        parameter - low,
-      );
-      const required = Math.ceil((Math.abs(correction) * 1.875) / 0.022),
-        desired = Math.max(160, (Math.abs(correction) * 1.875) / 0.018);
-      const jumpEnd = Math.max(
-        0,
-        ...(doc.jumps ?? []).map((j) => j.end * length + j.receiving + 80),
-      );
-      const start = Math.min(
-        length,
-        Math.max(authoredEnd, jumpEnd, length - desired),
-      );
-      const valid = length - start >= required;
-      const reason =
-        jumpEnd >= authoredEnd && jumpEnd > length - desired
-          ? `Not enough clear road after the final jump for a smooth circuit return. Leave at least ${required} m after its receiving corridor, or complete another rotation before it.`
-          : `This circuit return needs at least ${required} m after the shaped section. End the section earlier or add the next chunk to complete a full turn.`;
-      rollClosure = Object.freeze({
-        start,
-        end: length,
-        angle: correction,
-        required,
-        valid,
-        reason: valid ? null : reason,
-      });
-    }
-  }
-  function anglesAt(s) {
+  const rollClosure = resolveRollClosure(doc, doc.points, curve, length);
+  function rollInputsAt(s) {
     const distance = wrap(s),
       index = distance / step,
       low = Math.min(count - 1, Math.floor(index)),
@@ -187,10 +217,10 @@ export function createRouteSampler(doc) {
         closed ? doc.points.length - 1 : doc.points.length - 2,
         Math.floor(p),
       ),
-      fraction = p - node,
-      first = doc.points[node % doc.points.length],
+      weight = smooth(p - node),
+      first = doc.points[node],
       next = doc.points[(node + 1) % doc.points.length];
-    const bankTrim = T.MathUtils.lerp(first.bank, next.bank, smooth(fraction));
+    const bankTrim = T.MathUtils.lerp(first.bank, next.bank, weight);
     const bank = T.MathUtils.clamp(
       T.MathUtils.lerp(
         banks[low % count],
@@ -200,35 +230,56 @@ export function createRouteSampler(doc) {
       -0.6,
       0.6,
     );
-    const firstRoll = first.roll ?? 0;
-    // Ordinary edges preserve intentional unwrapped turns. The closing edge
-    // reaches the equivalent first angle nearest the final authored angle.
-    let nextRoll = next.roll ?? 0;
-    if (closed && node === doc.points.length - 1) {
-      if (rollClosure) nextRoll = firstRoll;
-      else nextRoll += TAU * Math.round((firstRoll - nextRoll) / TAU);
-    }
-    let authoredRoll = T.MathUtils.lerp(firstRoll, nextRoll, smooth(fraction));
-    if (rollClosure)
-      authoredRoll +=
-        rollClosure.angle *
-        smoother(
-          T.MathUtils.clamp(
-            (distance - rollClosure.start) /
-              Math.max(1e-6, length - rollClosure.start),
-            0,
-            1,
-          ),
-        );
-    for (const feature of doc.rolls ?? []) {
-      const u = T.MathUtils.clamp(
-        (distance / length - feature.start) / (feature.end - feature.start),
-        0,
-        1,
-      );
-      authoredRoll += feature.turns * TAU * smoother(u);
-    }
+    return { distance, node, weight, bank, bankTrim };
+  }
+  function anglesAt(s) {
+    const { bank, bankTrim, distance, node, weight } = rollInputsAt(s);
+    let authoredRoll = authoredRollAt(
+      doc.points,
+      node,
+      weight,
+      distance,
+      length,
+      closed,
+      rollClosure,
+    );
+    for (const feature of doc.rolls)
+      authoredRoll += featureRollAt(feature, distance, length);
     return { bank, bankTrim, authoredRoll, roll: bank + authoredRoll };
+  }
+  function prepareRollSamples(count, step) {
+    const stations = Array.from({ length: count }, (_, i) => {
+      const inputs = rollInputsAt(i * step);
+      return {
+        ...inputs,
+        offsets: doc.rolls.map((feature) =>
+          featureRollAt(feature, inputs.distance, length),
+        ),
+      };
+    });
+    return {
+      stations,
+      reader(points) {
+        const closure = resolveRollClosure(doc, points, curve, length);
+        return {
+          closure,
+          at(index) {
+            const { bank, distance, node, offsets, weight } = stations[index];
+            let roll = authoredRollAt(
+              points,
+              node,
+              weight,
+              distance,
+              length,
+              closed,
+              closure,
+            );
+            for (const offset of offsets) roll += offset;
+            return bank + roll;
+          },
+        };
+      },
+    };
   }
   function sample(s) {
     const distance = wrap(s),
@@ -271,6 +322,7 @@ export function createRouteSampler(doc) {
     closed,
     sample,
     anglesAt,
+    prepareRollSamples,
     positionAt,
     frameStep: step,
     rollClosure,

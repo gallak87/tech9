@@ -15,7 +15,7 @@ import { createEditorTrack } from './track.js';
 import { prepareJumpEdit } from './jump-authoring.js';
 
 const starter = () =>
-  generateDocument({ seed: 42017, length: 5000, seedJumps: false });
+  generateDocument({ seed: 42017, length: 5000, banking: 0, seedJumps: false });
 
 test('road finishes replace overlapping ranges, merge neighbours and clear only the chosen interval', () => {
   const source = starter(),

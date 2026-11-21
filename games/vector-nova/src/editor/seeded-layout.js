@@ -1,7 +1,9 @@
 import * as T from 'three';
 import { routeCurve } from './route.js';
 import { createHighOctaneProfile } from './high-octane-profile.js';
+import { createSectionProfile } from './section-profile.js';
 import { createOctaneRoutePlan } from './octane-route-plan.js';
+import { SECTION_DEFAULTS } from './generation-version.js';
 
 const TAU = Math.PI * 2;
 const clamp = T.MathUtils.clamp;
@@ -54,9 +56,20 @@ function jumpDefinitions(options, random) {
   const short = length < 2400;
   const launchGrid = length < 2400 ? 80 : 200;
   const mountain = courseType === 'downhill' && options.version >= 4;
+  const mountainRhythm = mountain && options.version >= 6;
   const reserve =
     courseType === 'downhill'
-      ? 650 + launchGrid + Math.max(60, length * (mountain ? 0.25 : 0.12))
+      ? 650 +
+        launchGrid +
+        Math.max(
+          60,
+          length *
+            (mountainRhythm
+              ? 0.32 + options.elevation * 0.08
+              : mountain
+                ? 0.25
+                : 0.12),
+        )
       : Math.max(
           500,
           length *
@@ -81,8 +94,17 @@ function jumpDefinitions(options, random) {
           ? 100
           : Math.max(180, -shape.delta * 6)
         : 0;
-    const preFlat = courseType === 'circuit' && !short ? 80 : 0,
-      postReceiver = courseType === 'circuit' && !short ? 80 : 0;
+    const stockRunup =
+      options.version >= 6 &&
+      options.attempt < 3 &&
+      (length >= 5000 ||
+        (length >= 3000 && courseType === 'circuit' && jumpSize === 'small'));
+    const preFlat = stockRunup
+      ? 240
+      : courseType === 'circuit' && !short
+        ? 80
+        : 0;
+    const postReceiver = courseType === 'circuit' && !short ? 80 : 0;
     return {
       ...shape,
       recovery,
@@ -103,6 +125,14 @@ function jumpDefinitions(options, random) {
         Math.max(2, shapes.length + (shapes.length % 2)) *
           Math.max(...shapes.map((s) => s.length))
       : shapes.reduce((sum, s) => sum + s.length, 0);
+  // On a short mountain, dropping an extra gap leaves room for both a full
+  // launch lane and a sustained descent instead of levelling the whole road.
+  if (mountainRhythm && length < 8000 && options.elevation > 0.65)
+    while (count > 1 && budget() > length - reserve) {
+      gaps.pop();
+      count--;
+      shapes.pop();
+    }
   if (jumpSize === 'large') {
     while (count > 1 && budget() > length - reserve) {
       const next = count - 1;
@@ -436,7 +466,16 @@ function createCircuitBuilder(options, random, shapes) {
     return output;
   };
 }
-function appendWovenConnector(output, a, b, ta, tb, radius, omitEnd) {
+function appendWovenConnector(
+  output,
+  a,
+  b,
+  ta,
+  tb,
+  radius,
+  omitEnd,
+  { straightStep = 85, arcStep = 42 } = {},
+) {
   const normal = (t) => new T.Vector3(-t.z, 0, t.x);
   const angle = (p, center) => Math.atan2(p.z - center.z, p.x - center.x);
   const wrap = (r) => T.MathUtils.euclideanModulo(r, TAU);
@@ -497,7 +536,7 @@ function appendWovenConnector(output, a, b, ta, tb, radius, omitEnd) {
   };
   const arc = (center, from, radians, turn, final) => {
     const distance = radians * radius;
-    const count = Math.max(1, Math.floor(distance / 42));
+    const count = Math.max(1, Math.floor(distance / arcStep));
     for (let i = 1; i <= count; i++) {
       const phi = from + (turn * radians * i) / count;
       add(
@@ -513,7 +552,7 @@ function appendWovenConnector(output, a, b, ta, tb, radius, omitEnd) {
     station += distance;
   };
   arc(best.firstCenter, best.firstAngle, best.firstArc, best.firstTurn, false);
-  const count = Math.max(1, Math.floor(best.straight / 85));
+  const count = Math.max(1, Math.floor(best.straight / straightStep));
   for (let i = 1; i <= count; i++)
     add(
       best.firstJoin.clone().lerp(best.lastJoin, i / count),
@@ -548,7 +587,8 @@ function createWovenCircuitBuilder(
   const flip = random() < 0.5 ? -1 : 1;
   const clearanceHeight = 80 / Math.sin(Math.PI / waves);
   const hill = Math.min(35, length * 0.002) * elevation;
-  const shapes = requestedShapes.map((original) => {
+  const sectioned = options.version >= 6;
+  const shapes = requestedShapes.map((original, index) => {
     const cap =
       options.jumpSize === 'large'
         ? clamp(length * 0.012, 140, 280)
@@ -557,8 +597,21 @@ function createWovenCircuitBuilder(
           : 135;
     const variation =
       options.version >= 5 && length >= 5000 ? 0.87 + 0.26 * jumpRandom() : 1;
+    // Alternate a long launch with a quicker second gap. Both retain a
+    // complete acceleration lane and receiver in the two outer districts.
+    const sectionGap =
+      index % 2
+        ? clamp(length * 0.0145, 105, 150)
+        : options.jumpSize === 'small'
+          ? 126
+          : clamp(
+              length * (options.jumpSize === 'large' ? 0.027 : 0.021),
+              128,
+              285,
+            );
+    const target = sectioned && options.attempt < 3 ? sectionGap : cap;
     const shape = shapeFor(
-      Math.min(original.gap, cap * variation),
+      Math.min(original.gap, target * variation),
       length < 5000,
     );
     const recovery = length < 5000 ? 120 : Math.max(180, -shape.delta * 6);
@@ -581,7 +634,11 @@ function createWovenCircuitBuilder(
   });
   // Reserve broad, supported approaches at the two outer turnarounds. Crossing
   // districts never contain a jump or its flight/receiving envelope.
-  const districtBudget = Math.max(480, length * 0.21);
+  const districtBudget = Math.max(
+    480,
+    length *
+      (sectioned && options.attempt < 3 ? 0.24 + options.rhythm * 0.075 : 0.21),
+  );
   while (
     shapes.length > 1 &&
     shapes.reduce((n, s) => n + s.length, 0) > districtBudget
@@ -615,6 +672,13 @@ function createWovenCircuitBuilder(
   const leftLength = leftShapes.reduce((n, s) => n + s.length, 0);
   const rightLength =
     gridLength + rightShapes.reduce((n, s) => n + s.length, 0);
+  const connectorSteps =
+    sectioned && options.attempt < 3
+      ? {
+          straightStep: Math.max(52, length / (206 - shapes.length * 11)),
+          arcStep: Math.max(42, length / (390 - shapes.length * 18)),
+        }
+      : undefined;
   const base =
     120 + clearanceHeight + hill + Math.max(0, ...shapes.map((s) => -s.delta));
   const rotate = (x, z) =>
@@ -635,8 +699,15 @@ function createWovenCircuitBuilder(
       .normalize();
   const height = (u) =>
     base + clearanceHeight * Math.sin(TAU * u) + hill * Math.cos(TAU * 2 * u);
+  // Retry a tighter recipe on the same crossing family once before falling
+  // back to the opposite shape or to the broad long-course connectors.
+  const planAttempt = sectioned
+    ? Math.max(0, options.attempt - 1)
+    : options.attempt;
   const octanePlan =
-    options.version >= 5 ? createOctaneRoutePlan({ ...options, waves }) : null;
+    options.version >= 5
+      ? createOctaneRoutePlan({ ...options, waves, attempt: planAttempt })
+      : null;
   const anchors = (octanePlan ?? []).filter(({ u }) => u !== 0 && u !== 0.5);
   const count = waves * 8;
   for (let i = 1; !octanePlan && i < count; i++) {
@@ -697,7 +768,15 @@ function createWovenCircuitBuilder(
       }
       for (const shape of a.shapes ?? [])
         end = appendBlock(output, shape, end, a.tangent, 'circuit');
-      const tightRadius = length < 5000 ? (shapes.length ? 90 : 112) : 110;
+      const tightRadius =
+        length < 5000
+          ? shapes.length
+            ? 90
+            : 112
+          : 110 -
+            (sectioned && options.attempt < 3
+              ? options.rhythm * 10 * 0.76 ** options.attempt
+              : 0);
       const broadening = shapes.length
         ? length < 5000
           ? 0.05
@@ -713,6 +792,7 @@ function createWovenCircuitBuilder(
         b.tangent,
         tightRadius * (1 + broadening * (1 - bendiness)),
         i === positioned.length - 1,
+        connectorSteps,
       );
     }
     return output;
@@ -755,14 +835,20 @@ function createDownhillBuilder(options, random, shapes) {
   // Mountain courses spend their ordinary road budget descending, rather than
   // relying on the gaps for almost all height loss. Short jump-heavy courses
   // retain enough connector length to flatten safely into each rigid receiver.
-  const targetDrop = Math.min(2700, (length - 650) * (0.12 + 0.06 * elevation));
+  const targetDrop = Math.min(
+    2700,
+    (length - 650) *
+      (options.version >= 6
+        ? 0.14 + 0.075 * elevation
+        : 0.12 + 0.06 * elevation),
+  );
   const radiusBudget = (free * free * Math.min(...weights)) / sum / (6 * 85);
   const extra = mountain
     ? Math.max(
         0,
         Math.min(
           Math.max(free * 0.08, targetDrop - jumpDrop),
-          free * (0.16 + 0.03 * elevation),
+          free * (0.16 + (options.version >= 6 ? 0.063 : 0.03) * elevation),
           radiusBudget,
           2700 - jumpDrop,
         ),
@@ -943,6 +1029,7 @@ export function createSeededLayoutGeometry(options) {
     elevation: 0.35,
     width: 40,
     waterLevel: 0,
+    ...SECTION_DEFAULTS,
     jumpFrequency: 'normal',
     jumpSize: 'mixed',
     attempt: 0,
@@ -962,13 +1049,13 @@ export function createSeededLayoutGeometry(options) {
       : normalized.crossovers > 0
         ? createWovenCircuitBuilder(normalized, random, shapes, jumpRandom)
         : createCircuitBuilder(normalized, random, shapes);
+  const profileRandom = randomFor((normalized.seed ^ 0xd1b54a35) >>> 0);
   const shapeProfile =
-    normalized.version >= 5
-      ? createHighOctaneProfile(
-          normalized,
-          randomFor((normalized.seed ^ 0xd1b54a35) >>> 0),
-        )
-      : null;
+    normalized.version >= 6
+      ? createSectionProfile(normalized, profileRandom)
+      : normalized.version >= 5
+        ? createHighOctaneProfile(normalized, profileRandom)
+        : null;
   const measure = (scale, coarse = true) => {
     const generated = build(scale);
     shapeProfile?.(generated);
@@ -994,13 +1081,15 @@ export function createSeededLayoutGeometry(options) {
     else low = scale;
   }
   let scale = best.scale;
-  for (let i = 0; i < 6; i++) {
+  const precision = normalized.version >= 6 ? 0.0002 : 0.001;
+  const iterations = normalized.version >= 6 ? 10 : 6;
+  for (let i = 0; i < iterations; i++) {
     const value = measure(scale, false);
     best = { ...value, scale };
     const error = normalized.length - value.length;
     if (Math.abs(error) < 0.00001) break;
-    const shifted = measure(scale * 1.001, false);
-    const derivative = (shifted.length - value.length) / (scale * 0.001);
+    const shifted = measure(scale * (1 + precision), false);
+    const derivative = (shifted.length - value.length) / (scale * precision);
     if (!Number.isFinite(derivative) || derivative <= 0)
       throw new Error(
         'This route could not reserve enough clear connector space. Try another variation.',

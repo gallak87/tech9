@@ -4,7 +4,7 @@ const fade = (distance) => {
   return t * t * (3 - 2 * t);
 };
 
-function crossoverLimits(points, stations, trackLength, width) {
+export function crossoverLimits(points, stations, trackLength, width) {
   const clearance = width + 72;
   const near = [];
   for (let i = 0; i < points.length; i++)
@@ -22,7 +22,7 @@ function crossoverLimits(points, stations, trackLength, width) {
   return near;
 }
 
-function clearanceFade(at, height, pairs, length) {
+export function clearanceFade(at, height, pairs, length) {
   let nearest = Infinity;
   for (const pair of pairs) {
     const distance = Math.abs(at - (height < 0 ? pair.upper : pair.lower));

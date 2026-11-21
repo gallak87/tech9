@@ -109,7 +109,7 @@ async function expectTool(page, id) {
   assert.equal((await state(page)).tool, id, `${id} stays the active tool`);
   assert.equal((await state(page)).drawMode, id === 'draw');
   const active = page.locator(
-    '[data-editor-authoring] [data-editor-tool][aria-pressed="true"]',
+    '[data-editor-tool-palette] [data-editor-tool][aria-pressed="true"]',
   );
   assert.equal(await active.count(), 1, 'exactly one palette tool is pressed');
   assert.equal(await active.getAttribute('data-editor-tool'), id);

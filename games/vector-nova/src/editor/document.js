@@ -4,15 +4,24 @@ import {
   createRouteSampler,
   isProtectedJumpRotation,
 } from './route.js';
+import {
+  appendFastRollEdge,
+  editorRollRate,
+  EDITOR_ROLL_RATE_LIMIT,
+  measuresRollEdge,
+  rollRateGrid,
+} from './roll-rate.js';
 import { createSeededCourseGeometry } from './seeded-course.js';
 import { createSeededLayoutGeometry } from './seeded-layout.js';
-import { analyzeEditorJumps } from './jumps.js';
+import { analyzeEditorJumps, predictEditorJumpTrajectory } from './jumps.js';
+import { getShip } from '../ships/catalog.js';
 import { createEditorTrack } from './track.js';
 import { worldPreset, REGIONAL_LAYOUT_VERSION } from './world-presets.js';
 import { editorBiome, isEditorBiome, editorWorldPreset } from './biomes.js';
 import {
   GENERATOR_VERSION,
   GENERATOR_VERSIONS,
+  SECTION_DEFAULTS,
   usesSeededLayout,
 } from './generation-version.js';
 import {
@@ -141,6 +150,20 @@ export function validateDocument(value) {
     generator.jumpFrequency = jumpFrequency;
     generator.jumpSize = jumpSize;
     generator.crossovers = number(g.crossovers ?? 0, 0, 1, 'Crossovers');
+  }
+  if (g.version >= 6) {
+    generator.rhythm = number(
+      g.rhythm ?? SECTION_DEFAULTS.rhythm,
+      0,
+      1,
+      'Section rhythm',
+    );
+    generator.banking = number(
+      g.banking ?? SECTION_DEFAULTS.banking,
+      0,
+      1,
+      'Banking',
+    );
   }
   const e =
     value.environment === undefined
@@ -586,7 +609,10 @@ function generateLegacyDocument({
   return validateDocument(doc);
 }
 
-const GENERATION_ATTEMPTS = 4;
+function generationAttempts(version) {
+  if (!usesSeededLayout(version)) return 1;
+  return version >= 6 ? 6 : 4;
+}
 
 function generationDraft({
   seed = 7,
@@ -594,6 +620,8 @@ function generationDraft({
   bendiness = 0.45,
   elevation = 0.35,
   crossovers = 0,
+  rhythm = SECTION_DEFAULTS.rhythm,
+  banking = SECTION_DEFAULTS.banking,
   width = 40,
   density,
   waterLevel,
@@ -636,6 +664,8 @@ function generationDraft({
       bendiness,
       elevation,
       crossovers,
+      rhythm,
+      banking,
       jumpFrequency: seedJumps ? jumpFrequency : 'none',
       jumpSize,
     },
@@ -689,21 +719,51 @@ function generationCandidate(draft, attempt) {
       waterLevel: draft.settings.waterLevel,
       attempt,
     });
-    const document = validateDocument({ ...draft, ...geometry });
-    const analysis = analyzeDocument(document, { strict: true });
+    let document = validateDocument({ ...draft, ...geometry });
+    let analysis = analyzeDocument(document, { strict: true });
+    if (document.generator.version >= 6 && analysis.maxRollRate > 0.025) {
+      // Centreline bank and authored tilt can peak on the same edge. Reduce
+      // only the optional deck tilt so the fitted course length stays exact.
+      const scale = 0.0244 / analysis.maxRollRate;
+      document = {
+        ...document,
+        points: document.points.map((point) => ({
+          ...point,
+          roll: point.roll * scale,
+        })),
+      };
+      analysis = analyzeDocument(document, { strict: true });
+    }
     if (!analysis.valid)
       return { document: null, reason: analysis.errors.join(' ') };
     if (document.generator.version >= 5 && document.jumps.length) {
       // The strict geometry pass has already built these cached route frames.
       // Forecast the actual launch/receiver after the connector length fit.
-      const { jumps } = analyzeEditorJumps(createEditorTrack(document));
-      const missed = jumps.find(
+      const track = createEditorTrack(document);
+      const { jumps } = analyzeEditorJumps(track);
+      let missed = jumps.findIndex(
         ({ cruise, boost }) => !cruise.landed || !boost.landed,
       );
-      if (missed)
+      if (missed < 0 && document.generator.version >= 6) {
+        const slow = getShip('shrike'),
+          fast = getShip('needle');
+        missed = track.jumps.findIndex(
+          (jump) =>
+            !predictEditorJumpTrajectory(track, jump, {
+              shipId: slow.id,
+              speed: slow.handling.cruiseSpeed - 2,
+            }).landed ||
+            !predictEditorJumpTrajectory(track, jump, {
+              shipId: fast.id,
+              speed: fast.handling.boostSpeed,
+              boost: true,
+            }).landed,
+        );
+      }
+      if (missed >= 0)
         return {
           document: null,
-          reason: `The receiver for jump ${jumps.indexOf(missed) + 1} does not catch both cruise and boost approaches.`,
+          reason: `The receiver for jump ${missed + 1} does not catch both cruise and boost approaches.`,
         };
     }
     return { document, reason: '' };
@@ -724,7 +784,11 @@ export function generateDocument(options = {}) {
   if (!usesSeededLayout(draft.generator.version))
     return legacyGeneration(draft);
   let reason;
-  for (let attempt = 0; attempt < GENERATION_ATTEMPTS; attempt++) {
+  for (
+    let attempt = 0;
+    attempt < generationAttempts(draft.generator.version);
+    attempt++
+  ) {
     const candidate = generationCandidate(draft, attempt);
     if (candidate.document) return candidate.document;
     reason = candidate.reason;
@@ -741,9 +805,7 @@ export async function generateDocumentAsync(
   } = {},
 ) {
   const draft = generationDraft(options);
-  const total = usesSeededLayout(draft.generator.version)
-    ? GENERATION_ATTEMPTS
-    : 1;
+  const total = generationAttempts(draft.generator.version);
   let reason;
   for (let attempt = 0; attempt < total; attempt++) {
     onProgress?.({ attempt: attempt + 1, total });
@@ -1137,8 +1199,9 @@ function analyzeCourse(value, { strict, practice }) {
   }
   if (route.rollClosure && !route.rollClosure.valid)
     errors.push(route.rollClosure.reason);
-  const frameCount = Math.ceil(length / 3),
-    frameStep = length / frameCount;
+  const grid = rollRateGrid(length);
+  const { count: frameCount, step: frameStep } = grid;
+  const rollRateSections = [];
   const frames = Array.from({ length: frameCount }, (_, i) =>
     route.sample(i * frameStep),
   );
@@ -1149,11 +1212,7 @@ function analyzeCourse(value, { strict, practice }) {
     worstRotation = 0,
     worstFrame = 0;
   for (let i = 0; i < frames.length; i++) {
-    if (
-      isGap(i * frameStep) ||
-      (doc.courseType === 'downhill' && i === frames.length - 1)
-    )
-      continue;
+    if (!measuresRollEdge(i, grid, route.closed, isGap)) continue;
     const frame = frames[i],
       next = frames[(i + 1) % frames.length];
     const deckHeight =
@@ -1162,9 +1221,9 @@ function analyzeCourse(value, { strict, practice }) {
       minDeckHeight = deckHeight;
       worstClearance = i * frameStep;
     }
-    const delta = next.roll - frame.roll;
-    const rollRate =
-      Math.abs(Math.atan2(Math.sin(delta), Math.cos(delta))) / frameStep;
+    const rollRate = editorRollRate(frame.roll, next.roll, frameStep);
+    if (rollRate > EDITOR_ROLL_RATE_LIMIT)
+      appendFastRollEdge(rollRateSections, i, frameCount);
     const frameRate = frame.quaternion.angleTo(next.quaternion) / frameStep;
     if (rollRate > maxRollRate) {
       maxRollRate = rollRate;
@@ -1188,7 +1247,7 @@ function analyzeCourse(value, { strict, practice }) {
       ),
     );
   }
-  if (maxRollRate > 0.025) {
+  if (maxRollRate > EDITOR_ROLL_RATE_LIMIT) {
     issueAt(
       6,
       'rotation',
@@ -1365,6 +1424,7 @@ function analyzeCourse(value, { strict, practice }) {
     maxBankRate,
     minDeckHeight,
     maxRollRate,
+    rollRateSections,
     maxFrameRate,
     bounds: { min: bounds.min.toArray(), max: bounds.max.toArray() },
   };

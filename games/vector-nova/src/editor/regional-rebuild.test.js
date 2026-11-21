@@ -11,7 +11,12 @@ import { applyBiomeSpan } from './biome-spans.js';
 import { editorBiome } from './biomes.js';
 
 function document(length = 3000) {
-  const value = generateDocument({ seed: 42, length, jumpFrequency: 'none' });
+  const value = generateDocument({
+    seed: 42,
+    length,
+    banking: 0,
+    jumpFrequency: 'none',
+  });
   value.environment = { version: 1, seed: 7001, layoutVersion: 2 };
   return value;
 }

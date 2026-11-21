@@ -114,9 +114,18 @@ function harness(initialTool = 'move') {
   let doc = fixture(),
     tool = initialTool,
     selected = 0,
-    previous;
-  const calls = { select: [], drag: [], add: [], end: 0, cancel: 0 };
-  const sync = () => map.setDocument(doc, selected, { tool });
+    previous,
+    decorations = {};
+  const calls = {
+    select: [],
+    drag: [],
+    add: [],
+    end: 0,
+    cancel: 0,
+    bank: [],
+    bankEnd: 0,
+  };
+  const sync = () => map.setDocument(doc, selected, { tool, ...decorations });
   const map = createRouteMap(svg, {
     onSelect(index, meta) {
       calls.select.push({ index, meta });
@@ -141,6 +150,16 @@ function harness(initialTool = 'move') {
       calls.drag.push({ index, position, meta });
       Object.assign(doc.points[index], position);
       sync();
+    },
+    onBankDrag(index, roll) {
+      previous ??= clone(doc);
+      doc.points[index].roll = roll;
+      calls.bank.push({ index, roll });
+      sync();
+    },
+    onBankDragEnd() {
+      previous = null;
+      calls.bankEnd++;
     },
     onDragEnd() {
       calls.end++;
@@ -167,6 +186,10 @@ function harness(initialTool = 'move') {
     },
     setTool(next) {
       tool = next;
+      sync();
+    },
+    decorate(options) {
+      decorations = options;
       sync();
     },
   };
@@ -209,6 +232,12 @@ test('Select chooses points without moving them, while Move edits only X/Z', () 
     original = clone(selected.doc);
   gesture(selected, 1, 80, 40);
   assert.deepEqual(selected.doc, original);
+  assert.equal(
+    selected.calls.select.length,
+    0,
+    'a cancelled click never changes selection',
+  );
+  gesture(selected, 1, 0, 0);
   assert.equal(selected.calls.select.length, 1);
   assert.equal(selected.calls.select[0].meta.preserveTool, true);
   assert.equal(selected.calls.drag.length, 0);
@@ -350,4 +379,95 @@ test('explicit tools override legacy Draw and unrelated pointer releases do not 
   assert.equal(h.calls.add.length, 0);
   h.svg.emit('pointerup', { clientX: 80, clientY: 80, pointerId: 1 });
   assert.equal(h.calls.add.length, 1);
+});
+
+test('Map handles retain selection on drag, support modifiers on clicks and show the live signed roll', () => {
+  const h = harness();
+  gesture(h, 1, 0, 0, { shiftKey: true });
+  gesture(h, 2, 0, 0, { ctrlKey: true });
+  assert.equal(h.calls.select[0].meta.shiftKey, true);
+  assert.equal(h.calls.select[1].meta.ctrlKey, true);
+  gesture(h, 2, 12, 0);
+  assert.equal(h.calls.select[2].meta.preserveSelection, true);
+
+  h.decorate({
+    selectedPoints: [0, 2],
+    rollRateSections: [{ start: 0.2, end: 0.27 }],
+  });
+  assert.match(
+    h.svg.innerHTML,
+    /data-map-point="0" class="workshop-map-point selected/,
+  );
+  assert.match(
+    h.svg.innerHTML,
+    /data-map-point="2" class="workshop-map-point selected/,
+  );
+  assert.match(h.svg.innerHTML, /<title>Fast twist<\/title>/);
+  assert.match(h.svg.innerHTML, /data-map-handle="height"/);
+  const target = {
+    dataset: { mapHandle: 'bank' },
+    closest: (selector) => (selector === '[data-map-handle]' ? target : null),
+  };
+  h.svg.emit('pointerdown', { target, clientX: 500 });
+  h.svg.emit('pointermove', { target, clientX: 476 });
+  assert.match(h.svg.innerHTML, /Roll −30°/);
+  h.svg.emit('pointerup', { target, clientX: 476 });
+  assert.equal(h.calls.bankEnd, 1);
+  assert.equal(h.calls.bank[0].index, 2);
+  assert.equal(
+    h.calls.select.length,
+    3,
+    'the selected Roll handle never reselects the point',
+  );
+});
+
+test('dense maps keep distant points readable and hit the closest dot outside its small drawn circle', () => {
+  const h = harness();
+  h.doc.points = Array.from({ length: 126 }, (_, index) => ({
+    id: `dense-point-${index}`,
+    x: 650 * Math.cos((index * Math.PI) / 63),
+    y: 60,
+    z: 650 * Math.sin((index * Math.PI) / 63),
+    bank: 0,
+    roll: 0,
+  }));
+  h.decorate({});
+  assert.equal((h.svg.innerHTML.match(/data-map-point="/g) ?? []).length, 126);
+  assert((h.svg.innerHTML.match(/data-map-marker="badge"/g) ?? []).length < 24);
+  const match = h.svg.innerHTML.match(
+    /data-map-point="(\d+)" class="[^"]*" data-map-marker="dot"/,
+  );
+  assert(match);
+  const index = Number(match[1]);
+  const { x, y } = pointScreen(h.svg, index);
+  const radial = Math.hypot(x - 500, y - 340);
+  const offset = (pixels) => ({
+    clientX: x + (pixels * (x - 500)) / radial,
+    clientY: y + (pixels * (y - 340)) / radial,
+  });
+  h.svg.emit('pointermove', offset(8));
+  assert.match(
+    h.svg.innerHTML,
+    new RegExp(
+      `data-map-point="${index}" class="[^"]*" data-map-marker="badge"`,
+    ),
+  );
+  h.svg.emit('pointerleave');
+  const tap = { ...offset(16), pointerType: 'touch' };
+  h.svg.emit('pointerdown', tap);
+  h.svg.emit('pointerup', tap);
+  assert.equal(h.calls.select[0].index, index);
+  assert.equal(h.calls.drag.length, 0);
+});
+
+test('a hidden map updates its document without rebuilding markup', () => {
+  const h = harness();
+  const before = h.svg.innerHTML;
+  h.map.setDocument(h.doc, 2, { visible: false, frame: true });
+  assert.equal(h.svg.innerHTML, before);
+  h.map.setDocument(h.doc, 2, { visible: true });
+  assert.match(
+    h.svg.innerHTML,
+    /data-map-point="2" class="workshop-map-point selected/,
+  );
 });

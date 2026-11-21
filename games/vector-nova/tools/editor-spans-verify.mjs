@@ -54,6 +54,7 @@ function fixture(biome, spanBiome, seed) {
     length: 3000,
     density: 0.5,
     jumpFrequency: 'none',
+    banking: 0,
     seedJumps: false,
   });
   original.name = `Surface regression ${biome}`;

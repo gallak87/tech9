@@ -63,7 +63,19 @@
   fill: #d4e7ed;
 }
 .workshop-profile-point.selected circle {
-  fill: #fff;
+  fill: #ffcf79;
+}
+.workshop-profile-selection,
+.workshop-profile-fast-twist {
+  fill: none;
+  stroke: #ffcf79;
+  stroke-width: 4;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+.workshop-profile-fast-twist {
+  stroke: #ff6864;
+  stroke-width: 3;
 }
 .workshop-profile-point line {
   stroke: #c1e7f3;

@@ -1,4 +1,9 @@
 import * as T from 'three';
+import {
+  dragPointRoll,
+  pointSelectionModifiers,
+  signedPointRoll,
+} from './point-gestures.js';
 import { deviceCSSColor } from '../pickups/theme.js';
 import { routeCurve } from './route.js';
 import { DOWNHILL_RUNOUT } from './document.js';
@@ -8,10 +13,23 @@ const H = 680;
 const number = (value) => Number(value.toFixed(2));
 export function createRouteMap(
   svg,
-  { onSelect, onAdd, onDrag, onDragEnd, onDragCancel = () => {} },
+  {
+    onSelect,
+    onAdd,
+    onDrag,
+    onDragEnd,
+    onDragCancel = () => {},
+    onBankDrag,
+    onBankDragEnd,
+    onBankDragCancel,
+  },
 ) {
   let document;
   let selection = -1;
+  let selectedIndices = new Set();
+  let rollRateSections = [];
+  let curveKey;
+  let curve;
   let problem = null;
   let problemSeverity = 'error';
   let selectedSection = null;
@@ -21,6 +39,12 @@ export function createRouteMap(
   let bounds;
   let drag;
   let suppressClick = false;
+  let visible = true;
+  let hovered = -1;
+  let projectedPoints = [];
+  let layoutKey = '';
+  let sceneryKey = '';
+  let scenery;
   const life = new AbortController();
   function fit() {
     const points = document.points;
@@ -81,23 +105,64 @@ export function createRouteMap(
         ) * 5,
     };
   }
-  function render() {
-    if (!document) return;
-    if (!bounds) fit();
+  function screenScale() {
+    return Math.max(0.001, Math.abs(svg.getScreenCTM()?.a || 1));
+  }
+  function renderHandles(point) {
+    if (!point || !['draw', 'move', 'height'].includes(tool)) return '';
+    const [x, y] = project(point);
+    if (x < 0 || x > W || y < 0 || y > H) return '';
+    const gold = '#ffcf79',
+      blue = '#82e5ff';
+    // Keep the same physical hit target and text size at each map dialog size.
+    const viewScale = Math.min(3, Math.max(1, 1 / screenScale()));
+    const side = x > W - 150 * viewScale ? -1 : 1;
+    const vertical = y < 90 * viewScale ? 1 : -1;
+    const height = [side * 26, vertical * 52];
+    const bank = [x < 150 * viewScale ? 38 : -38, vertical * 19];
+    const label = ([x, y], text, color, side) => {
+      const offset = side > 0 ? 15 : -91;
+      return `<g transform="translate(${x + offset} ${y})" pointer-events="none"><rect x="0" y="-10" width="76" height="20" rx="3" fill="#12202b" stroke="${color}"/><text x="38" y="0" text-anchor="middle" dominant-baseline="central" fill="${color}" font-size="12" font-family="system-ui,sans-serif">${text}</text></g>`;
+    };
+    const hit = (kind, offset, cursor, graphic, description) =>
+      `<g data-map-handle="${kind}" transform="translate(${offset[0]} ${offset[1]})" style="cursor:${cursor}"><circle r="15" fill="transparent"/>${graphic}<title>${description}</title></g>`;
+    return `<g transform="translate(${x} ${y}) scale(${viewScale})" data-map-gizmos>
+      <path d="M0,0L${height.join(',')}" stroke="${gold}" stroke-width="1.5" pointer-events="none"/>
+      <path d="M0,0L${bank.join(',')}" stroke="${blue}" stroke-width="1.5" pointer-events="none"/>
+      ${hit('height', height, 'ns-resize', `<path d="M0,-10 L-7,6 H7 Z" fill="${gold}"/>`, 'Drag up or down to change height. Hold Alt for finer control.')}
+      ${hit('bank', bank, 'ew-resize', `<path d="M6,-7 A9,9 0 1 0 8,4" fill="none" stroke="${blue}" stroke-width="3.5"/><circle cx="6" cy="-7" r="3" fill="${blue}"/>`, 'Drag left or right to roll. Hold Alt for finer control.')}
+      ${label(height, `Height ${Math.round(point.y)} m`, gold, side)}
+      ${label(bank, `Roll ${signedPointRoll(point.roll)}`, blue, Math.sign(bank[0]))}
+    </g>`;
+  }
+  const lineFor = (
+    start,
+    end,
+    samples = Math.max(2, Math.ceil((end - start) * 300)),
+  ) =>
+    Array.from(
+      { length: samples + 1 },
+      (_, i) =>
+        `${i ? 'L' : 'M'}${project(curve.getPointAt(start + ((end - start) * i) / samples)).join(',')}`,
+    ).join(' ');
+
+  function renderScenery(closed) {
     const points = document.points;
-    const closed = document.courseType !== 'downhill';
-    const curve = points.length >= 3 ? routeCurve(document) : null;
+    const key = JSON.stringify([
+      curveKey,
+      bounds,
+      points.map(({ roll }) => roll),
+      document.width,
+      document.jumps,
+      document.pickups,
+      document.props,
+      inspectedJump,
+      rollRateSections,
+      trajectories,
+    ]);
+    if (key === sceneryKey) return scenery;
+    sceneryKey = key;
     const gaps = [...(document.jumps ?? [])].sort((a, b) => a.start - b.start);
-    const pathFor = (
-      start,
-      end,
-      samples = Math.max(2, Math.ceil((end - start) * 300)),
-    ) =>
-      Array.from(
-        { length: samples + 1 },
-        (_, i) =>
-          `${i ? 'L' : 'M'}${project(curve.getPointAt(start + ((end - start) * i) / samples)).join(',')}`,
-      ).join(' ');
     let cursor = 0;
     const runs = [];
     for (const gap of gaps) {
@@ -106,7 +171,7 @@ export function createRouteMap(
     }
     if (cursor < 1) runs.push([cursor, 1]);
     const path = curve
-      ? runs.map(([start, end]) => pathFor(start, end)).join(' ')
+      ? runs.map(([start, end]) => lineFor(start, end)).join(' ')
       : points
           .map((p, i) => `${i ? 'L' : 'M'}${project(p).join(',')}`)
           .join(' ');
@@ -115,14 +180,18 @@ export function createRouteMap(
         ? gaps
             .map(
               (gap) =>
-                `<path d="${pathFor(gap.start, gap.end)}" class="workshop-map-gap-guide"/>`,
+                `<path d="${lineFor(gap.start, gap.end)}" class="workshop-map-gap-guide"/>`,
             )
             .join('')
         : '';
-    const sectionPath =
-      curve && selectedSection
-        ? pathFor(selectedSection.start, selectedSection.end)
-        : '';
+    const twistSegments = curve
+      ? rollRateSections
+          .map(
+            ({ start, end }) =>
+              `<path d="${lineFor(start, end)}" fill="none" stroke="#ff6864" stroke-width="5" stroke-linecap="round" pointer-events="none"><title>Fast twist</title></path>`,
+          )
+          .join('')
+      : '';
     const arcs = curve?.getLengths();
     const fractionAt = (t) => {
       const value = t * (arcs.length - 1),
@@ -230,32 +299,152 @@ export function createRouteMap(
         return `<path data-map-flight="${flight.id}" d="${path}" class="workshop-map-flight" stroke="${flight.color}"/>`;
       })
       .join('');
-    svg.innerHTML = `<defs><pattern id="${gridId}" x="${gridX}" y="${gridY}" width="${spacing}" height="${spacing}" patternUnits="userSpaceOnUse"><path d="M ${spacing} 0 L 0 0 0 ${spacing}" fill="none" stroke="#34414a" stroke-width="1"/></pattern></defs><rect width="${W}" height="${H}" fill="#10191f"/><rect width="${W}" height="${H}" fill="url(#${gridId})"/>${ghost}<path d="${sectionPath}" class="workshop-map-section" stroke-width="${Math.max(9, document.width * bounds.scale + 6)}"/><path d="${path}" fill="none" stroke="#71858b" stroke-width="${Math.max(5, document.width * bounds.scale)}" stroke-linejoin="round"/><path d="${path}" fill="none" stroke="#b2cbd0" stroke-width="1.5" stroke-dasharray="7 8"/>${rollSections}${props}${pickups}${gapMarkers}${flightPaths}${finishMarker}${points
-      .map((p, i) => {
-        const [x, y] = project(p),
-          roll = Math.round(((p.roll ?? 0) * 180) / Math.PI);
-        const rollLabel =
-          roll && i === selection
-            ? `<text class="workshop-map-angle" x="20" y="22">ROLL ${roll}°</text>`
+    const markup = `<defs><pattern id="${gridId}" x="${gridX}" y="${gridY}" width="${spacing}" height="${spacing}" patternUnits="userSpaceOnUse"><path d="M ${spacing} 0 L 0 0 0 ${spacing}" fill="none" stroke="#34414a" stroke-width="1"/></pattern></defs><rect width="${W}" height="${H}" fill="#10191f"/><rect width="${W}" height="${H}" fill="url(#${gridId})"/>${ghost}<path d="${path}" fill="none" stroke="#71858b" stroke-width="${Math.max(5, document.width * bounds.scale)}" stroke-linejoin="round"/><path d="${path}" fill="none" stroke="#b2cbd0" stroke-width="1.5" stroke-dasharray="7 8"/>${rollSections}${props}${pickups}${gapMarkers}${flightPaths}${finishMarker}<text x="24" y="647" class="workshop-map-scale">GRID 100 m · NORTH ↑</text>${trajectories.length ? '<text x="24" y="605" class="workshop-map-cruise-key">CYAN / CRUISE</text><text x="24" y="625" class="workshop-map-boost-key">AMBER / BOOST</text>' : points.some((p) => Math.abs(p.roll ?? 0) > 0.001) ? '<text x="24" y="625" class="workshop-map-roll-key">VIOLET / ROLLED ROAD</text>' : ''}`;
+    scenery = { markup, runs, twistSegments };
+    return scenery;
+  }
+
+  function updateMarkerLayout(scale) {
+    const key = JSON.stringify([curveKey, bounds, scale]);
+    if (key === layoutKey) return;
+    layoutKey = key;
+    const points = document.points.map(project);
+    projectedPoints = points.map(([x, y], index) => {
+      let clearance = Infinity;
+      for (let i = 0; i < points.length; i++) {
+        if (i === index) continue;
+        const [otherX, otherY] = points[i];
+        clearance = Math.min(clearance, (x - otherX) ** 2 + (y - otherY) ** 2);
+      }
+      return { x, y, index, clearance: Math.sqrt(clearance) * scale };
+    });
+  }
+
+  function renderMarkers(closed, scale) {
+    const points = projectedPoints;
+    const active = points[selection];
+    const over = points[hovered];
+    const numbered = new Set();
+    const reserved = [
+      active,
+      over,
+      points[0],
+      !closed ? points.at(-1) : null,
+    ].filter(Boolean);
+    const spacing = 36 / scale;
+    const stride = Math.max(1, Math.ceil(points.length / 12));
+    for (const point of points) {
+      const { index, x, y, clearance } = point;
+      if (
+        index === selection ||
+        index === hovered ||
+        index === 0 ||
+        (!closed && index === points.length - 1)
+      )
+        continue;
+      if (x < 0 || x > W || y < 0 || y > H) continue;
+      if (clearance < 28 && index % stride !== 0) continue;
+      if (
+        reserved.some(
+          ({ x: otherX, y: otherY }) =>
+            Math.hypot(x - otherX, y - otherY) < spacing,
+        )
+      )
+        continue;
+      numbered.add(index);
+      reserved.push(point);
+    }
+    const marker = ({ x, y, index, clearance }) => {
+      const current = index === selection;
+      const hover = index === hovered;
+      const picked = selectedIndices.has(index);
+      const issue = index === problem;
+      const tag =
+        index === 0
+          ? closed
+            ? 'START / FINISH'
+            : 'START'
+          : !closed && index === points.length - 1
+            ? 'RUNOUT END'
             : '';
-        const tag =
-          i === 0
-            ? closed
-              ? 'START / FINISH'
-              : 'START'
-            : !closed && i === points.length - 1
-              ? 'RUNOUT END'
-              : '';
-        return `<g data-map-point="${i}" class="workshop-map-point ${i === selection ? 'selected' : ''} ${i === problem ? (problemSeverity === 'warning' ? 'problem problem-warning' : 'problem') : ''}" transform="translate(${x} ${y})"><circle r="${i === selection ? 16 : 12}"/><text text-anchor="middle" dominant-baseline="central">${i + 1}</text>${tag ? `<text class="workshop-map-start" x="21" y="-19">${tag}</text>` : ''}${rollLabel}</g>`;
-      })
-      .join(
-        '',
-      )}<text x="24" y="647" class="workshop-map-scale">GRID 100 m · NORTH ↑</text>${trajectories.length ? '<text x="24" y="605" class="workshop-map-cruise-key">CYAN / CRUISE</text><text x="24" y="625" class="workshop-map-boost-key">AMBER / BOOST</text>' : points.some((p) => Math.abs(p.roll ?? 0) > 0.001) ? '<text x="24" y="625" class="workshop-map-roll-key">VIOLET / ROLLED ROAD</text>' : ''}`;
+      const badge = current || hover || numbered.has(index);
+      const radius =
+        (current
+          ? 11
+          : hover
+            ? 10
+            : badge
+              ? 7.5
+              : picked || tag || issue
+                ? 4.5
+                : clearance < 15
+                  ? 2.15
+                  : 3.1) / scale;
+      const variant = badge ? 'badge' : 'dot';
+      const label = badge
+        ? `<text text-anchor="middle" dominant-baseline="central" style="font-size:${(current || hover ? 11 : 9) / scale}px">${index + 1}</text>`
+        : '';
+      const tagInward = x > W - 100 / scale;
+      const landmark = tag
+        ? `<text class="workshop-map-start" x="${(tagInward ? -15 : 15) / scale}" y="${-14 / scale}" style="font-size:${9 / scale}px;text-anchor:${tagInward ? 'end' : 'start'}">${tag}</text>`
+        : '';
+      return `<g data-map-point="${index}" class="workshop-map-point ${picked ? 'selected' : ''} ${issue ? (problemSeverity === 'warning' ? 'problem problem-warning' : 'problem') : ''}" data-map-marker="${variant}" transform="translate(${x} ${y})"><circle r="${radius}"/>${label}${landmark}<title>Point ${index + 1}</title></g>`;
+    };
+    return points
+      .filter(({ index }) => index !== hovered && index !== selection)
+      .concat(over && over !== active ? [over] : [], active ? [active] : [])
+      .map(marker)
+      .join('');
+  }
+
+  function render() {
+    if (!document || !visible) return;
+    if (!bounds) fit();
+    const points = document.points;
+    const closed = document.courseType !== 'downhill';
+    const key = JSON.stringify([
+      closed,
+      points.map(({ x, y, z }) => [x, y, z]),
+    ]);
+    if (key !== curveKey) {
+      curveKey = key;
+      curve = points.length >= 3 ? routeCurve(document) : null;
+    }
+    const scale = screenScale();
+    updateMarkerLayout(scale);
+    const { markup, runs, twistSegments } = renderScenery(closed);
+    const sectionPath =
+      curve && selectedSection
+        ? runs
+            .map(([start, end]) => {
+              const from = Math.max(start, selectedSection.start);
+              const to = Math.min(end, selectedSection.end);
+              return from < to ? lineFor(from, to) : '';
+            })
+            .join(' ')
+        : '';
+    const selectedRoad = sectionPath
+      ? `<path d="${sectionPath}" class="workshop-map-section" stroke-width="${5 / scale}"/>`
+      : '';
+    svg.innerHTML = `${markup}${selectedRoad}${twistSegments}${renderMarkers(closed, scale)}${renderHandles(points[selection])}`;
+  }
+
+  function nearestPoint(position, pointerType) {
+    const radius = (pointerType === 'touch' ? 20 : 10) / screenScale();
+    let nearest = -1;
+    let best = radius ** 2;
+    for (const { index, x, y } of projectedPoints) {
+      const distance = (position.x - x) ** 2 + (position.y - y) ** 2;
+      if (distance < best || (distance === best && index === selection)) {
+        nearest = index;
+        best = distance;
+      }
+    }
+    return nearest;
   }
   const selectionMeta = (event) => ({
     preserveTool: true,
-    extendRange: Boolean(event.shiftKey),
-    shiftKey: Boolean(event.shiftKey),
+    ...pointSelectionModifiers(event),
   });
   function release(pointerId) {
     if (svg.hasPointerCapture?.(pointerId))
@@ -271,6 +460,9 @@ export function createRouteMap(
         bounds = gesture.bounds;
         render();
       }
+    } else if (gesture.moved && gesture.kind === 'bank') {
+      if (cancel) onBankDragCancel?.();
+      else onBankDragEnd?.();
     } else if (gesture.moved && ['move', 'height'].includes(gesture.kind)) {
       if (cancel) onDragCancel();
       else onDragEnd();
@@ -280,7 +472,8 @@ export function createRouteMap(
       else if (gesture.kind === 'draw' && document.points.length < 256) {
         const point = screenPoint(event ?? gesture.event);
         if (point) onAdd(point, { preserveTool: true });
-      } else if (gesture.kind === 'empty') onSelect(-1, gesture.meta);
+      } else if (gesture.selectsOnClick || gesture.kind === 'empty')
+        onSelect(gesture.index, gesture.meta);
     }
     release(gesture.pointerId);
   }
@@ -291,25 +484,37 @@ export function createRouteMap(
       const origin = mapPosition(event);
       if (!origin) return;
       suppressClick = false;
+      const handle =
+        event.target.closest('[data-map-handle]')?.dataset.mapHandle;
       const node = event.target.closest('[data-map-point]');
-      const index = node ? Number(node.dataset.mapPoint) : -1;
+      const nearest = nearestPoint(origin, event.pointerType);
+      const index = handle
+        ? selection
+        : nearest >= 0
+          ? nearest
+          : node
+            ? Number(node.dataset.mapPoint)
+            : -1;
+      const point = document.points[index];
       const meta = selectionMeta(event);
       const kind =
         tool === 'pan'
           ? 'pan'
-          : index >= 0
-            ? tool === 'select'
-              ? 'select'
-              : tool === 'height' || event.shiftKey
-                ? 'height'
-                : 'move'
-            : tool === 'draw'
-              ? 'draw'
-              : 'empty';
+          : (handle ??
+            (index >= 0
+              ? tool === 'select'
+                ? 'select'
+                : tool === 'height' || event.shiftKey
+                  ? 'height'
+                  : 'move'
+              : tool === 'draw'
+                ? 'draw'
+                : 'empty'));
       drag = {
         kind,
         index,
         meta,
+        selectsOnClick: !handle && index >= 0 && kind !== 'pan',
         pointerId: event.pointerId,
         moved: false,
         x: event.clientX,
@@ -317,37 +522,51 @@ export function createRouteMap(
         origin,
         event,
         bounds: { ...bounds },
-        height: document.points[index]?.y ?? 52,
+        point: { ...point },
+        roll: point?.roll ?? 0,
+        lastX: event.clientX,
         finishDrawing:
+          !handle &&
           tool === 'draw' &&
           index === 0 &&
           document.points.length >= 4 &&
           document.courseType !== 'downhill' &&
-          !event.shiftKey,
+          !event.shiftKey &&
+          !event.metaKey &&
+          !event.ctrlKey,
       };
       svg.setPointerCapture(event.pointerId);
       event.preventDefault();
-      if (index >= 0 && kind !== 'pan' && !drag.finishDrawing)
-        onSelect(index, meta);
     },
     { signal: life.signal },
   );
   svg.addEventListener(
     'pointermove',
     (event) => {
-      if (!drag || event.pointerId !== drag.pointerId) return;
+      if (!drag) {
+        if (event.pointerType === 'touch' || tool === 'pan' || tool === 'orbit')
+          return;
+        const p = mapPosition(event);
+        const next = p ? nearestPoint(p, event.pointerType) : -1;
+        if (next !== hovered) {
+          hovered = next;
+          render();
+        }
+        return;
+      }
+      if (event.pointerId !== drag.pointerId) return;
       if (
         !drag.moved &&
-        Math.hypot(event.clientX - drag.x, event.clientY - drag.y) < 3
+        Math.hypot(event.clientX - drag.x, event.clientY - drag.y) < 4
       )
         return;
       const p = mapPosition(event);
       if (!p) return;
-      if (!drag.moved && drag.finishDrawing) {
-        drag.finishDrawing = false;
-        onSelect(drag.index, drag.meta);
-      }
+      if (drag.kind === 'bank' && event.clientX === drag.lastX) return;
+      const firstMove = !drag.moved;
       drag.moved = true;
+      if (firstMove && ['move', 'height'].includes(drag.kind))
+        onSelect(drag.index, { preserveTool: true, preserveSelection: true });
       event.preventDefault();
       if (drag.kind === 'pan') {
         bounds = {
@@ -356,19 +575,52 @@ export function createRouteMap(
           minZ: drag.bounds.minZ - (p.y - drag.origin.y) / drag.bounds.scale,
         };
         render();
+      } else if (drag.kind === 'bank') {
+        drag.roll = dragPointRoll(
+          drag.roll,
+          event.clientX - drag.lastX,
+          event.altKey,
+        );
+        drag.lastX = event.clientX;
+        onBankDrag?.(drag.index, drag.roll);
       } else if (drag.kind === 'height') {
-        const y =
-          Math.round(
-            T.MathUtils.clamp(
-              drag.height - (p.y - drag.origin.y) / drag.bounds.scale,
-              0,
-              3000,
-            ) / 5,
-          ) * 5;
-        onDrag(drag.index, { y }, { preserveTool: true });
+        const dy = (p.y - drag.origin.y) / drag.bounds.scale;
+        const step = event.altKey ? 1 : 5;
+        onDrag(
+          drag.index,
+          {
+            y:
+              Math.round(
+                (drag.point.y - dy * (event.altKey ? 0.2 : 1)) / step,
+              ) * step,
+          },
+          { preserveTool: true },
+        );
       } else if (drag.kind === 'move') {
-        const point = screenPoint(event);
-        if (point) onDrag(drag.index, point, { preserveTool: true });
+        onDrag(
+          drag.index,
+          {
+            x:
+              Math.round(
+                (drag.point.x + (p.x - drag.origin.x) / drag.bounds.scale) / 5,
+              ) * 5,
+            z:
+              Math.round(
+                (drag.point.z + (p.y - drag.origin.y) / drag.bounds.scale) / 5,
+              ) * 5,
+          },
+          { preserveTool: true },
+        );
+      }
+    },
+    { signal: life.signal },
+  );
+  svg.addEventListener(
+    'pointerleave',
+    () => {
+      if (hovered >= 0 && !drag) {
+        hovered = -1;
+        render();
       }
     },
     { signal: life.signal },
@@ -413,12 +665,25 @@ export function createRouteMap(
   view?.addEventListener('blur', () => finish(true), { signal: life.signal });
   return {
     cancelInteraction: () => finish(true),
+    revealPoint(index) {
+      const point = document?.points[index];
+      if (!bounds || !point) return false;
+      const [x, y] = project(point);
+      if (x >= 0 && x <= W && y >= 0 && y <= H) return false;
+      bounds.minX = point.x - W / (2 * bounds.scale);
+      bounds.minZ = point.z - H / (2 * bounds.scale);
+      render();
+      return true;
+    },
     setDocument(
       next,
       selected,
       {
         frame = false,
+        visible: shown = true,
         section = null,
+        selectedPoints = [],
+        rollRateSections: measured = [],
         trajectories: flights = [],
         selectedJumpId = null,
         problemPoint = null,
@@ -428,7 +693,12 @@ export function createRouteMap(
       } = {},
     ) {
       document = next;
+      visible = shown;
+      if (!visible) hovered = -1;
       selection = selected;
+      selectedIndices = new Set(selectedPoints);
+      if (selection >= 0) selectedIndices.add(selection);
+      rollRateSections = measured;
       problem = problemPoint;
       problemSeverity = severity;
       selectedSection = section;

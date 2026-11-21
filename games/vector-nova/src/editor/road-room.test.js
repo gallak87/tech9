@@ -67,6 +67,6 @@ test('spreading refuses feature-bearing or overlapping drafts and leaves already
     z: duplicate.points[0].z,
   };
   assert.throws(() => spreadRoad(duplicate), /overlapping points/);
-  const valid = generateDocument({ seed: 7, seedJumps: false });
+  const valid = generateDocument({ seed: 7, banking: 0, seedJumps: false });
   assert.deepEqual(spreadRoad(valid), valid);
 });

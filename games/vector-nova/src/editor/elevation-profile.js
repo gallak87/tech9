@@ -1,5 +1,6 @@
 import { DOWNHILL_RUNOUT } from './document.js';
 import { routeCurve } from './route.js';
+import { pointSelectionModifiers } from './point-gestures.js';
 
 const WIDTH = 720;
 const HEIGHT = 220;
@@ -157,14 +158,57 @@ export function bindElevationProfile(panel, onSelect, signal) {
     'click',
     (event) => {
       const point = event.target.closest('[data-profile-point]');
-      if (point) onSelect(Number(point.dataset.profilePoint));
+      if (point)
+        onSelect(
+          Number(point.dataset.profilePoint),
+          pointSelectionModifiers(event),
+        );
     },
     { signal },
   );
+  function intervalPath(start, end) {
+    const paths = [];
+    for (const run of chart.runs) {
+      const from = Math.max(start, run[0].fraction);
+      const to = Math.min(end, run.at(-1).fraction);
+      if (to <= from) continue;
+      const heightAt = (fraction) => {
+        const next = run.findIndex((point) => point.fraction >= fraction);
+        const b = run[next] ?? run.at(-1);
+        const a = run[Math.max(0, next - 1)];
+        const span = b.fraction - a.fraction;
+        return span > 0
+          ? a.elevation +
+              ((b.elevation - a.elevation) * (fraction - a.fraction)) / span
+          : b.elevation;
+      };
+      const points = [
+        { fraction: from, elevation: heightAt(from) },
+        ...run.filter(({ fraction }) => fraction > from && fraction < to),
+        { fraction: to, elevation: heightAt(to) },
+      ];
+      paths.push(
+        points
+          .map(
+            ({ fraction, elevation }, i) =>
+              `${i ? 'L' : 'M'}${x(fraction)},${y(elevation)}`,
+          )
+          .join(' '),
+      );
+    }
+    return paths.join(' ');
+  }
   return function update(
     doc,
     fractions,
-    { selected, issuePoint, editable, issueLabel },
+    {
+      selected,
+      selectedPoints = [],
+      rollRateSections = [],
+      issuePoint,
+      editable,
+      issueLabel,
+    },
   ) {
     if (doc !== revision) {
       revision = doc;
@@ -181,7 +225,16 @@ export function bindElevationProfile(panel, onSelect, signal) {
       marked = '';
     }
     if (!chart) return;
-    const markerKey = `${selected}:${issuePoint}:${editable}:${issueLabel}`;
+    const picked = new Set(selectedPoints);
+    if (selected >= 0) picked.add(selected);
+    const markerKey = JSON.stringify([
+      selected,
+      selectedPoints,
+      issuePoint,
+      editable,
+      issueLabel,
+      rollRateSections,
+    ]);
     if (markerKey === marked) return;
     marked = markerKey;
     controls.hidden = !editable;
@@ -198,20 +251,32 @@ export function bindElevationProfile(panel, onSelect, signal) {
       : 'Choose a road point';
     issueButton.hidden = !chart.points[issuePoint];
     if (!issueButton.hidden) issueButton.title = issueLabel;
-    markers.innerHTML = chart.points
-      .map(({ fraction, elevation }, index) => {
+    const selectedSpans = [];
+    for (let i = 1; i < chart.points.length; i++)
+      if (picked.has(i - 1) && picked.has(i))
+        selectedSpans.push(
+          intervalPath(chart.points[i - 1].fraction, chart.points[i].fraction),
+        );
+    const twistPaths = rollRateSections.map(({ start, end }) =>
+      intervalPath(start, end),
+    );
+    markers.innerHTML = [
+      `<path class="workshop-profile-selection" d="${selectedSpans.join(' ')}"/>`,
+      `<path class="workshop-profile-fast-twist" d="${twistPaths.join(' ')}"/>`,
+      ...chart.points.map(({ fraction, elevation }, index) => {
         const px = x(fraction);
         const py = y(elevation);
         const isIssue = index === issuePoint;
-        const isSelected = index === selected;
+        const isSelected = picked.has(index);
+        const primary = index === selected;
         return `<g class="workshop-profile-point${isIssue ? ' warning' : ''}${isSelected ? ' selected' : ''}" ${editable ? `data-profile-point="${index}"` : ''}>
-        ${isSelected ? `<line x1="${px}" y1="${TOP}" x2="${px}" y2="${BOTTOM}"/>` : ''}
+        ${primary ? `<line x1="${px}" y1="${TOP}" x2="${px}" y2="${BOTTOM}"/>` : ''}
         ${isIssue ? `<circle class="workshop-profile-warning" cx="${px}" cy="${py}" r="7"/>` : ''}
         <circle cx="${px}" cy="${py}" r="${isSelected ? 4 : 2.5}"/>
         <circle class="workshop-profile-hit" cx="${px}" cy="${py}" r="7"/>
         <title>Point ${index + 1} · ${meters(elevation)}${isIssue ? ' · Warning' : ''}</title>
       </g>`;
-      })
-      .join('');
+      }),
+    ].join('');
   };
 }

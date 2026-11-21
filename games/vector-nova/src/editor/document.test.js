@@ -421,10 +421,12 @@ test('current generator preferences have strict canonical enums and blank drafts
     blank: true,
   });
   assert.equal(blank.generator.version, GENERATOR_VERSION);
-  assert.equal(blank.generator.version, 5);
+  assert.equal(blank.generator.version, 6);
   assert.equal(blank.generator.jumpFrequency, 'normal');
   assert.equal(blank.generator.jumpSize, 'mixed');
   assert.equal(blank.generator.crossovers, 0);
+  assert.equal(blank.generator.rhythm, 0.55);
+  assert.equal(blank.generator.banking, 0.55);
   assert.deepEqual(blank.points, []);
   assert.deepEqual(blank.jumps, []);
   assert.deepEqual(JUMP_FREQUENCIES, ['none', 'few', 'normal', 'many']);
@@ -433,6 +435,8 @@ test('current generator preferences have strict canonical enums and blank drafts
   delete missing.generator.jumpFrequency;
   delete missing.generator.jumpSize;
   delete missing.generator.crossovers;
+  delete missing.generator.rhythm;
+  delete missing.generator.banking;
   assert.deepEqual(validateDocument(missing).generator, blank.generator);
   for (const [field, value] of [
     ['jumpFrequency', 'constant'],
@@ -442,7 +446,13 @@ test('current generator preferences have strict canonical enums and blank drafts
     ['crossovers', '0.5'],
     ['crossovers', NaN],
     ['crossovers', Infinity],
-    ['version', 6],
+    ['rhythm', -0.1],
+    ['rhythm', 1.01],
+    ['rhythm', '0.5'],
+    ['banking', NaN],
+    ['banking', Infinity],
+    ['banking', 1.01],
+    ['version', 7],
   ]) {
     const invalid = structuredClone(blank);
     invalid.generator[field] = value;
@@ -522,13 +532,13 @@ test('current sync and yielding async generation produce identical validated res
     onProgress: (status) => progress.push(status),
   });
   assert.deepEqual(actual, expected);
-  assert.ok(yields >= 1 && yields <= 4);
+  assert.ok(yields >= 1 && yields <= 6);
   assert.equal(progress.length, yields);
   assert.deepEqual(
     progress.map((p) => p.attempt),
     Array.from({ length: yields }, (_, i) => i + 1),
   );
-  assert.ok(progress.every((p) => p.total === 4));
+  assert.ok(progress.every((p) => p.total === 6));
   const noJumps = generateDocument({ seed: 7, seedJumps: false });
   assert.equal(noJumps.generator.version, GENERATOR_VERSION);
   assert.equal(noJumps.generator.jumpFrequency, 'none');

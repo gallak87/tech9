@@ -585,7 +585,7 @@ try {
       'selected section is highlighted in 3D',
     );
     await openEditorSection(page, 'shape');
-    await (await revealEditorAction(page, 'quick-90')).click();
+    await page.getByRole('button', { name: 'Twist section right' }).click();
     const shapeStatus = await page.locator('[data-editor-status]').innerText();
     const shaped = await save(page);
     assert(

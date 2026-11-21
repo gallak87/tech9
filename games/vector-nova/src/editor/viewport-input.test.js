@@ -77,6 +77,9 @@ function harness(t, { tool = 'draw', courseType = 'downhill', points } = {}) {
     selected: [],
     added: [],
     moved: [],
+    rolled: [],
+    bankEnded: 0,
+    bankCancelled: 0,
     ended: 0,
     cancelled: 0,
     orbit: 0,
@@ -143,6 +146,20 @@ function harness(t, { tool = 'draw', courseType = 'downhill', points } = {}) {
       if (h.before) h.doc = h.before;
       h.before = null;
       h.cancelled++;
+    },
+    onBankDrag(index, roll) {
+      h.before ??= structuredClone(h.doc);
+      h.doc.points[index].roll = roll;
+      h.rolled.push({ index, roll });
+    },
+    onBankDragEnd() {
+      h.before = null;
+      h.bankEnded++;
+    },
+    onBankDragCancel() {
+      if (h.before) h.doc = h.before;
+      h.before = null;
+      h.bankCancelled++;
     },
     draw() {},
   });
@@ -288,6 +305,9 @@ test('Select is click-only; Orbit and Pan primary drags never select or modify a
   h.event('pointermove', { clientX: 550 });
   h.frame();
   h.event('pointerup', { clientX: 550 });
+  assert.equal(h.selected.length, 0);
+  h.event('pointerdown');
+  h.event('pointerup');
   assert.equal(h.selected.length, 1);
   assert.equal(h.moved.length, 0);
   h.setTool('orbit');
@@ -489,4 +509,51 @@ test('Draw can drag ordinary nodes in XZ, including its start, without finishing
   h.event('pointerup');
   assert.equal(h.added.length, 1, 'drawing continues after an XZ adjustment');
   assert.equal(h.doc.points.length, 5);
+});
+
+test('plain drags preserve group membership while Shift and Command/Ctrl clicks keep their modifiers', (t) => {
+  const h = harness(t, { tool: 'move' });
+  h.hit = { kind: 'point', index: 1 };
+  h.event('pointerdown');
+  assert.equal(h.selected.length, 0);
+  h.event('pointermove', { clientX: 555 });
+  h.frame();
+  h.event('pointerup', { clientX: 555 });
+  assert.equal(h.selected[0].meta.preserveSelection, true);
+  for (const flag of ['shiftKey', 'metaKey', 'ctrlKey']) {
+    h.event('pointerdown', { [flag]: true });
+    h.event('pointerup');
+    assert.equal(h.selected.at(-1).meta[flag], true);
+    assert.equal(h.selected.at(-1).meta.extendRange, flag === 'shiftKey');
+  }
+});
+
+test('the Roll handle reports signed unwrapped radians, supports Alt and rolls back cancellation', (t) => {
+  const h = harness(t, { tool: 'move' });
+  const start = Math.PI * 2;
+  h.doc.points[1].roll = start;
+  h.hit = { kind: 'bank', index: 1 };
+  h.event('pointerdown');
+  h.event('pointermove', { clientX: 540 });
+  h.frame();
+  assert.ok(
+    Math.abs(h.rolled.at(-1).roll - (start + (50 * Math.PI) / 180)) < 1e-10,
+  );
+  h.event('pointermove', { clientX: 520, altKey: true });
+  h.frame();
+  assert.ok(
+    Math.abs(h.rolled.at(-1).roll - (start + (45 * Math.PI) / 180)) < 1e-10,
+  );
+  h.event('pointerup', { clientX: 520 });
+  assert.equal(h.bankEnded, 1);
+  assert.equal(h.selected.length, 0);
+  const previous = h.doc.points[1].roll;
+  h.event('pointerdown');
+  h.event('pointermove', { clientX: 560 });
+  h.frame();
+  h.event('pointercancel');
+  h.event('lostpointercapture');
+  assert.equal(h.bankCancelled, 1);
+  assert.equal(h.doc.points[1].roll, previous);
+  assert.equal(h.moved.length, 0);
 });

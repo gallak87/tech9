@@ -24,7 +24,7 @@
   "prototypes": [
     {
       "name": "nomad_carrier",
-      "triangles": 61012,
+      "triangles": 60364,
       "materialBatches": 6,
       "bounds": {
         "min": [-157.89999389648438, 18.423892974853516, -376.7200012207031],
@@ -342,7 +342,7 @@
     },
     {
       "name": "nomad_carrier_mid",
-      "triangles": 18858,
+      "triangles": 18690,
       "materialBatches": 6,
       "bounds": {
         "min": [-157.9807891845703, 18.404335021972656, -376.7200622558594],
@@ -350,19 +350,19 @@
       },
       "dimensions": [315.88780212402344, 160.6637954711914, 744.6108093261719],
       "anchors": [],
-      "evaluatedSourceTriangles": 19134
+      "evaluatedSourceTriangles": 18966
     },
     {
       "name": "nomad_carrier_far",
-      "triangles": 7591,
+      "triangles": 7560,
       "materialBatches": 6,
       "bounds": {
         "min": [-158.29881286621094, 16.91421890258789, -376.7200622558594],
-        "max": [158.32003784179688, 179.02200317382812, 368.5762023925781]
+        "max": [158.32003784179688, 179.02200317382812, 368.2828674316406]
       },
-      "dimensions": [316.6188507080078, 162.10778427124023, 745.2962646484375],
+      "dimensions": [316.6188507080078, 162.10778427124023, 745.0029296875],
       "anchors": [],
-      "evaluatedSourceTriangles": 8710
+      "evaluatedSourceTriangles": 8622
     },
     {
       "name": "nomad_wheel_mid",
@@ -465,7 +465,7 @@
       }
     ]
   },
-  "totalTriangles": 95296,
+  "totalTriangles": 94449,
   "collision": {
     "file": "carrier-collision.json",
     "prototypes": [
@@ -517,9 +517,9 @@
     ]
   },
   "hashes": {
-    "build_nomad_carrier.py": "2990af68a5bb339c03ca790a90993350008fa628813500e4d4e9663b1943a815",
-    "nomad-carrier-kit.blend": "5e266bc8c0593e12c77e3e40d21159e07c436793070ef87b223be7d23cb6baf7",
-    "carrier-kit.glb": "96eedefb4027de9d594efcbcb54b6614970b181861ec45583a68e3c17b84b753",
+    "build_nomad_carrier.py": "46f0271a56815636ee589d22fc4a0876896fa35dc30e75b03b2a2a5f51e71788",
+    "nomad-carrier-kit.blend": "b5af6f69e5da4427e7119941fb0f5a57d3db47a35bccf45e61c8895afce5a8c5",
+    "carrier-kit.glb": "1f17fd62f7421808dd7c3daa19633d268d8f555644e167e1c5ac55df47c85182",
     "carrier-collision.json": "550021843249dcda8199c0727a058c80a59dbefe68d79cd77315484dc4281204"
   }
 }

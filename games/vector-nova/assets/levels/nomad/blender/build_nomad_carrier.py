@@ -374,7 +374,8 @@ def build_carrier():
         for i, (start, end) in enumerate(packets):
             profile = [(side * 71, 68), (side * 82, 66), (side * 90, 79), (side * 90, 104), (side * 76, 126), (side * 71, 126)]
             prism('formed shoulder armour %02d' % i, profile, start, end, 'ivory', parent, .95)
-            box('recessed shoulder gasket', (side * 89.1, 88, (start + end) / 2), (.9, 17, end - start - 10), 'navy', parent, .25)
+            # Keep the broad outside face clear. Hardware buried just behind
+            # this panel leaks through its depth at convoy viewing distances.
             # The armoured outside and load-bearing inside are different skins.
             # A recessed navy liner gives the cargo hall actual manufactured
             # depth instead of presenting the back of a blank ivory slab.
@@ -388,8 +389,6 @@ def build_carrier():
             for station in [start + 7, end - 7]:
                 box('inner liner seated retaining strap', (side * 68.9, 96, station),
                     (.9, 39, 2.0), 'alloy', parent, .18)
-            for station in [start + 8, end - 8]:
-                box('shoulder inset service latch', (side * 89.4, 91, station), (.65, 7, 3.5), 'alloy', parent, .15)
             # Upper plate offsets reveal a dark manufactured overlap at the crown.
             box('shoulder crown lap', (side * 73, 126.4, (start + end) / 2), (10, 2.3, end - start - 5), 'alloy', parent, .3)
         for station in [-284, -156, 156, 284]:

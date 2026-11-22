@@ -393,6 +393,33 @@ for (const [name, manifest] of assets)
           `${prototype.name}: provenance counts actual exported triangles`,
         );
       }
+      // The broad flank used to hide navy fittings a fraction of a metre
+      // under its ivory face. The depth buffer exposed them at range, and the
+      // far mesh even decimated the armour behind them. Probe the real exports.
+      for (const hull of [
+        'nomad_carrier',
+        'nomad_carrier_mid',
+        'nomad_carrier_far',
+        'nomad_saltwind_hull',
+      ]) {
+        const root = scene.getObjectByName(hull);
+        if (!root) continue;
+        for (const side of [-1, 1]) {
+          const ray = new T.Raycaster(
+            new T.Vector3(side * 135, 89, 320),
+            new T.Vector3(-side, 0, 0),
+          );
+          const hits = ray.intersectObject(root, true);
+          assert.match(hits[0]?.object.material.name ?? '', /ivory/, hull);
+          const steel = hits.find((hit) =>
+            /navy/.test(hit.object.material.name),
+          );
+          assert.ok(
+            steel && steel.distance - hits[0].distance > 2,
+            `${hull}: recessed steel must clear the exposed flank`,
+          );
+        }
+      }
       for (const prototype of native?.prototypes ?? []) {
         assert.ok(
           declared.has(prototype.name),

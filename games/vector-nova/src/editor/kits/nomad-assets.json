@@ -11,9 +11,9 @@
     ],
     "triangles": [],
     "node": "nomad_carrier_mid",
-    "visualTriangles": 18858,
+    "visualTriangles": 18690,
     "proxy": "none",
-    "sourceHash": "96eedefb4027de9d594efcbcb54b6614970b181861ec45583a68e3c17b84b753"
+    "sourceHash": "1f17fd62f7421808dd7c3daa19633d268d8f555644e167e1c5ac55df47c85182"
   },
   "freight": {
     "url": "assets/levels/nomad/carrier-kit.glb",
@@ -35,7 +35,7 @@
     },
     "visualTriangles": 464,
     "proxy": "exact-rendered-indexed",
-    "sourceHash": "96eedefb4027de9d594efcbcb54b6614970b181861ec45583a68e3c17b84b753"
+    "sourceHash": "1f17fd62f7421808dd7c3daa19633d268d8f555644e167e1c5ac55df47c85182"
   },
   "receiver": {
     "url": "assets/levels/nomad/receiver-crown.glb",
@@ -135,6 +135,6 @@
     "node": "nomad_wheel_mid",
     "visualTriangles": 1517,
     "proxy": "none",
-    "sourceHash": "96eedefb4027de9d594efcbcb54b6614970b181861ec45583a68e3c17b84b753"
+    "sourceHash": "1f17fd62f7421808dd7c3daa19633d268d8f555644e167e1c5ac55df47c85182"
   }
 }

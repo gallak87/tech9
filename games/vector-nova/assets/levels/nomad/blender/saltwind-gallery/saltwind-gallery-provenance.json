@@ -33,7 +33,7 @@
         "min": [-157.89999389648438, 18.423892974853516, -376.7200012207031],
         "max": [157.89999389648438, 179.19607543945312, 368.0]
       },
-      "triangles": 58966,
+      "triangles": 58318,
       "collisionTriangles": 31950
     },
     {
@@ -1938,10 +1938,10 @@
   ],
   "hashes": {
     "build_saltwind_gallery.py": "604f952d57699e58ce32a140f54f63c8b6afe05c36af5928ffa18e38fb442e0f",
-    "saltwind-gallery.blend": "bbed35a6dd1d7ef44309eaf209d8c740fe29364a11f29218fcfe53183a3de181",
-    "saltwind-gallery.glb": "934c116715f35125cbe8388e1a65d8a02b5b088f29547c198b3b4f02daa40338",
+    "saltwind-gallery.blend": "c91f0fd522e3115afa73b9e438bfb7945198dddf369554dd908336a3dc3b0f4b",
+    "saltwind-gallery.glb": "938c7f2a376e4c8ef6fcf96a5267b42e311f3d29fbaa0c7e5a4dc2942b50357f",
     "saltwind-gallery-collision.json": "cff494c4997b540c2814969a862850c1fc8af201f1c2fad77eabea9fab382f97",
     "carrier-collision.json": "550021843249dcda8199c0727a058c80a59dbefe68d79cd77315484dc4281204",
-    "nomad-carrier-kit.blend": "5e266bc8c0593e12c77e3e40d21159e07c436793070ef87b223be7d23cb6baf7"
+    "nomad-carrier-kit.blend": "b5af6f69e5da4427e7119941fb0f5a57d3db47a35bccf45e61c8895afce5a8c5"
   }
 }

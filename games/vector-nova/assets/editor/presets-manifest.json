@@ -744,24 +744,22 @@
       "preset": "salt-works-v1",
       "environmentSeed": 88103,
       "layoutVersion": 4,
-      "documentFingerprint": "14e55cb716941fbba08ff61775f1e03ef93706d0ff25f1f1a63934e41ec750d7",
+      "documentFingerprint": "a666b9effd4284da636911c3ed787905ffa711b58b8f5a02eb5add7a22743fba",
       "camera": {
         "mode": "orbit",
-        "position": [
-          -511.54708323859484, 266.92958173598237, 618.7480312341468
-        ],
+        "position": [-511.538288090164, 266.92958173598237, 618.7368667206131],
         "quaternion": [
-          -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
+          -0.20880453566143964, -0.34339484666878795, -0.07859462265875518,
           0.9123067085457927
         ],
         "fov": 48,
         "near": 0.5,
         "far": 200000
       },
-      "sha256": "6f57785d99ef6bf7a64b779211fd4ff534261ff18e4e7f2dcc313ea21a365a02",
+      "sha256": "ca528f36a950a0ccad73c50aa15a12187d4c1fffea6e69b59dc66d53fbe64cdb",
       "provenance": "Captured from the actual applied Vector Nova editor environment; no campaign image or generated illustration.",
-      "sourceRevision": "ad455bfec8f354619e197ca0b47e71e1d0fb6c6d",
-      "sourceDirty": true
+      "sourceRevision": "3602b6ea29e491186787fa52b5dfaf5bf44a539f",
+      "sourceDirty": false
     },
     "nomad/freight-yards-v1": {
       "file": "assets/editor/environments/nomad-freight-yards-v1.webp",
@@ -770,24 +768,22 @@
       "preset": "freight-yards-v1",
       "environmentSeed": 88103,
       "layoutVersion": 4,
-      "documentFingerprint": "f47fd8a736374787b11780c62704e86954bef14d59dd0c3bdb8ed2c325667afc",
+      "documentFingerprint": "5b8dc8664825b2f4481eb380bcf6bb2675d8eb98732cf358f7497a33e2dd425c",
       "camera": {
         "mode": "orbit",
-        "position": [
-          -511.54708323859484, 266.92958173598237, 618.7480312341468
-        ],
+        "position": [-511.538288090164, 266.92958173598237, 618.7368667206131],
         "quaternion": [
-          -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
+          -0.20880453566143964, -0.34339484666878795, -0.07859462265875518,
           0.9123067085457927
         ],
         "fov": 48,
         "near": 0.5,
         "far": 200000
       },
-      "sha256": "19d76df2f82ab5a15f7d045d72b5befffc022f4ab7b09cedc394ca248c648d6f",
+      "sha256": "76c048cbdd3c3013ba0331a9bc5c1fb624730cba777e889bc5d96783a0a8c756",
       "provenance": "Captured from the actual applied Vector Nova editor environment; no campaign image or generated illustration.",
-      "sourceRevision": "ad455bfec8f354619e197ca0b47e71e1d0fb6c6d",
-      "sourceDirty": true
+      "sourceRevision": "3602b6ea29e491186787fa52b5dfaf5bf44a539f",
+      "sourceDirty": false
     },
     "oriel/civic-gardens-v1": {
       "file": "assets/editor/environments/oriel-civic-gardens-v1.webp",

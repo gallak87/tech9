@@ -21,17 +21,17 @@
       "waterLevel": -50
     },
     "layoutVersion": 4,
-    "framing": "selected first road point, then two zoom-out steps"
+    "framing": "first-point vista, native orbit framing the road against the black hole"
   },
-  "documentFingerprint": "637a7556347c69ad1a5d4c78a0c83e8516c5fd802c5c0319d204c54e0e58273d",
-  "documentIdentity": "custom-umbra-v8-13bba8f3",
-  "roadFingerprint": "2b7294368ecd315c38b6188245c4ec8ba03d673a3412dae8e67b3ddf7e5ee9c2",
+  "documentFingerprint": "31224b2a5a6a536b1c7eb2e30076489301e64ae2f22e8e6237f994ebd25e72c9",
+  "documentIdentity": "custom-umbra-v8-80f66cee",
+  "roadFingerprint": "47340789e9d79ee331baf9d4fa9a21f6db081a1524e3246ac52f231842ac9285",
   "camera": {
     "mode": "orbit",
-    "position": [-511.54708323859484, 266.92958173598237, 618.7480312341468],
+    "position": [17.28015981695569, 108.57987574610112, 620.0551279481006],
     "quaternion": [
-      -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
-      0.9123067085457927
+      -0.017416665398061654, 0.3994541370311491, 0.007590542020798132,
+      0.9165562916956832
     ],
     "fov": 48,
     "near": 0.5,
@@ -45,10 +45,10 @@
     "height": 400,
     "format": "webp",
     "quality": 0.86,
-    "sha256": "14ad0208ed947aed54ece79257592ed6afe030efbed3325b31d2801b08ac480e"
+    "sha256": "efcb013deddc04c62f979dfbe258e8cbc4e4aa5bca5bc393f6711228c8b9948a"
   },
   "source": {
-    "revision": "ad455bfec8f354619e197ca0b47e71e1d0fb6c6d",
+    "revision": "09ee6511ed1264958395246ca190cd8c05c4e67f",
     "dirty": true
   }
 }

@@ -267,15 +267,6 @@ try {
       });
       await ready();
       const canvas = page.locator('[data-editor-world] canvas');
-      const box = await canvas.boundingBox();
-      await page.setViewportSize({
-        width: 1280,
-        height: page.viewportSize().height + 800 - Math.round(box.height),
-      });
-      await page.waitForFunction(
-        () =>
-          window.__VN_FRONTEND.getState().editor.preview?.viewport[1] === 800,
-      );
       await action('context-road');
       await action('fit');
       await action('focus-selection');
@@ -313,6 +304,16 @@ try {
       }
       await action('context-environment');
       await ready();
+      // Scenery closes the point ruler; measure the canvas in the final context.
+      const box = await canvas.boundingBox();
+      await page.setViewportSize({
+        width: 1280,
+        height: page.viewportSize().height + 800 - Math.round(box.height),
+      });
+      await page.waitForFunction(
+        () =>
+          window.__VN_FRONTEND.getState().editor.preview?.viewport[1] === 800,
+      );
       const editor = await page.evaluate(
         () => window.__VN_FRONTEND.getState().editor,
       );

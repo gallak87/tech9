@@ -6,6 +6,7 @@ import { createEditorBackdrop } from './biome-backdrop.js';
 import { textureMemory } from '../renderer/texture-memory.js';
 import { routeCurve } from './route.js';
 import { readGamepad, steeringAxis } from '../input/gamepad.js';
+import { loadSettings } from '../progression/index.js';
 import {
   createEditorHandles,
   projectEditorHandle,
@@ -29,7 +30,7 @@ export function editorWorldFingerprint(value) {
   });
 }
 
-/** A static, on-demand view of the same world used by Test Drive. */
+/** Interactive preview of the same world used by Test Drive. */
 export function createEditorViewport(
   host,
   {
@@ -96,6 +97,7 @@ export function createEditorViewport(
   let disposed = false;
   let build = 0;
   let timer;
+  let sceneryTimer;
   let raf;
   let yaw = -0.72;
   let pitch = 0.76;
@@ -135,6 +137,9 @@ export function createEditorViewport(
   function init() {
     if (renderer || disposed) return;
     rendererLife = new AbortController();
+    document.addEventListener('visibilitychange', draw, {
+      signal: rendererLife.signal,
+    });
     renderer = new T.WebGLRenderer({
       antialias: true,
       powerPreference: 'low-power',
@@ -333,7 +338,8 @@ export function createEditorViewport(
   }
   function draw() {
     if (!visible || !renderer || disposed || raf) return;
-    raf = requestAnimationFrame(() => {
+    clearTimeout(sceneryTimer);
+    raf = requestAnimationFrame((now) => {
       // Consume the latest pointer sample in the frame that actually draws it.
       // Nested draw requests during this flush belong to this same frame.
       editingInput?.flushPending();
@@ -433,11 +439,25 @@ export function createEditorViewport(
       );
       if (drawLabel && drawing?.cursor?.visible)
         drawLabel.style.top = `${Math.min(height - 28, Math.max(4, drawing.cursor.y + 18))}px`;
-      backdrop?.update?.({ camera });
+      const animateOcean =
+        world?.group.userData.editorBiome === 'nacre' &&
+        latest?.environment?.layoutVersion >= 4 &&
+        (selection.readOnly || flying) &&
+        !document.hidden &&
+        !loadSettings().reducedMotion &&
+        !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      settings.reducedMotion = !animateOcean;
+      const time = animateOcean ? now / 1000 : 0;
+      backdrop?.update?.({
+        camera,
+        time,
+        settings,
+        oceanWaterY: world?.track?.editorRegionPlan?.oceanWaterY,
+      });
       world?.update?.({
         camera,
         settings,
-        time: 0,
+        time,
         dt: 0,
         mode: 'paused',
         reviewing: false,
@@ -447,7 +467,9 @@ export function createEditorViewport(
       const started = performance.now();
       renderer.render(scene, camera);
       metrics = {
-        preset: 'Low / static editor preview',
+        preset: animateOcean
+          ? 'Low / animated ocean preview'
+          : 'Low / static editor preview',
         biome: world?.group.userData.editorBiome ?? null,
         environment: world?.group.userData.environment ?? null,
         incremental: world?.incremental ?? null,
@@ -464,6 +486,9 @@ export function createEditorViewport(
         renderer: gpuRenderer,
         camera: cameraState(),
       };
+      // Limit idle ocean animation to 15 Hz. User input and fly navigation
+      // continue to request their own immediate frames.
+      if (animateOcean) sceneryTimer = setTimeout(draw, 1000 / 15);
     });
   }
   function focusBounds(bounds) {
@@ -792,7 +817,7 @@ export function createEditorViewport(
               environmentScene,
               0.04,
               0.1,
-              80000,
+              Math.max(80000, nextBackdrop.far ?? 0),
             );
           } catch (error) {
             nextBackdrop.dispose();
@@ -843,6 +868,7 @@ export function createEditorViewport(
       next = await createEditorWorld(buildingDocument, {
         renderer,
         preview: true,
+        backdropAssets: backdrop?.assets,
         previous: world,
       });
       await next.ready;
@@ -890,6 +916,7 @@ export function createEditorViewport(
   function release() {
     exitFly(false);
     clearTimeout(timer);
+    clearTimeout(sceneryTimer);
     cancelAnimationFrame(raf);
     raf = null;
     ++build;

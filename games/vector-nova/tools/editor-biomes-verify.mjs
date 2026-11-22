@@ -481,6 +481,20 @@ async function roundtripAndDrive(expected) {
   );
 }
 
+async function checkRoadToolbar() {
+  const toolbar = page.locator('[data-editor-tool-palette]');
+  assert(await toolbar.isVisible());
+  assert.deepEqual(
+    await toolbar
+      .locator('[data-editor-tool]')
+      .evaluateAll((buttons) =>
+        buttons.map((button) => button.dataset.editorTool).sort(),
+      ),
+    ['draw', 'height', 'move', 'pan'],
+  );
+  assert.equal(await page.locator('[data-editor-authoring]').count(), 1);
+}
+
 async function responsiveFlow(common, canonicalRoad) {
   let previous = common;
   const fits = async (control, label) => {
@@ -510,6 +524,7 @@ async function responsiveFlow(common, canonicalRoad) {
     for (const id of families) {
       currentFamily = `${width}x${height}/${id}`;
       await section('world');
+      if (id === families[0]) await checkSceneryDock();
       const picker = await revealEditorField(page, 'biome');
       await fits(picker, 'native whole-family picker');
       await picker.selectOption(id);
@@ -548,13 +563,7 @@ async function responsiveFlow(common, canonicalRoad) {
       await choose('map-close');
       assert.equal((await state()).mapOpen, false);
       assert.equal((await state()).preview.biome, id);
-      assert.equal(
-        await page
-          .locator('[data-editor-authoring] [data-editor-tool]')
-          .count(),
-        3,
-      );
-      assert.equal(await page.locator('[data-editor-authoring]').count(), 1);
+      await checkRoadToolbar();
       await fits(action('save'), 'global Save');
       assert(
         await page.evaluate(
@@ -679,17 +688,7 @@ try {
       await action('view-map').evaluate((el) => el === document.activeElement),
     );
     await section('road-home');
-    const toolbar = page.locator('[data-editor-tool-palette]');
-    assert(await toolbar.isVisible());
-    assert.deepEqual(
-      await toolbar
-        .locator('[data-editor-tool]')
-        .evaluateAll((buttons) =>
-          buttons.map((button) => button.dataset.editorTool).sort(),
-        ),
-      ['draw', 'height', 'move', 'pan'],
-    );
-    assert.equal(await page.locator('[data-editor-authoring]').count(), 1);
+    await checkRoadToolbar();
     console.log(
       'PASS return to Nightweir, Map/controller Back and intact compact authoring strip',
     );

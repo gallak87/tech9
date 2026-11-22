@@ -610,7 +610,11 @@ test('Nacre owns real ocean waves below every driving reservation and rooted can
     plan,
     collectSolid: (solid) => solids.push(solid),
   });
+  const skyTexture = new T.Texture();
+  let skyDisposals = 0;
+  skyTexture.addEventListener('dispose', () => skyDisposals++);
   const visual = createProductionEnvironment(doc, track, {
+    backdropAssets: { skyTexture },
     descriptor,
     plan,
     preview: true,
@@ -626,6 +630,8 @@ test('Nacre owns real ocean waves below every driving reservation and rooted can
     if (mesh.userData.editorOcean) water = mesh;
   });
   assert(water);
+  assert.equal(water.material.uniforms.stormSky.value, skyTexture);
+  assert.equal(water.material.defines.NACRE_SKY_REFLECTION, 1);
   assert.equal(
     water.position.y,
     plan.oceanWaterY,
@@ -642,6 +648,24 @@ test('Nacre owns real ocean waves below every driving reservation and rooted can
     'low',
     'editing keeps its bounded Low water presentation',
   );
+  const camera = new T.PerspectiveCamera();
+  camera.position.set(17000, plan.oceanWaterY - 20, -12000);
+  visual.update({ camera, time: 28, settings: { reducedMotion: true } });
+  assert(Math.abs(camera.position.x - water.position.x) <= 6);
+  assert(Math.abs(camera.position.z - water.position.z) <= 6);
+  assert.equal(water.material.uniforms.time.value, 0);
+  assert.equal(water.material.uniforms.wetness.value, 1);
+  camera.position.y = plan.oceanWaterY + 1900;
+  const surfaceLookAt = new T.Vector3(17000, plan.oceanWaterY, -14200);
+  camera.lookAt(surfaceLookAt);
+  visual.update({ camera, time: 28, settings: {} });
+  assert(
+    Math.abs(water.position.z - surfaceLookAt.z) <= 6,
+    'overview resolves the water beneath its subject',
+  );
+  camera.position.y = plan.oceanWaterY;
+  visual.update({ camera, time: 29, settings: {} });
+  assert.equal(water.material.uniforms.nearSurface.value, 0);
   assert(
     solids.some(
       (solid) => solid.name.includes('headland') || solid.name.includes('reef'),
@@ -653,4 +677,6 @@ test('Nacre owns real ocean waves below every driving reservation and rooted can
   visual.dispose();
   visual.dispose();
   assert.equal(disposed, 1);
+  assert.equal(skyDisposals, 0);
+  skyTexture.dispose();
 });

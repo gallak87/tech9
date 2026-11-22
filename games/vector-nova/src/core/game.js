@@ -273,7 +273,9 @@ export async function createGame({
       await createRenderer(host, settings, {
         ...definition.renderer,
         shape: blockout,
-        createBackdrop: definition.createBackdrop,
+        createBackdrop: customCourse
+          ? (options) => definition.createBackdrop({ ...options, track })
+          : definition.createBackdrop,
         signal,
       }),
     );

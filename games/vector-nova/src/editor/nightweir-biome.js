@@ -1,6 +1,7 @@
 import * as T from 'three';
 import metadata from './kits/nightweir-assets.json' with { type: 'json' };
 import { assetURL } from '../assets/url.js';
+import { buildNightweirDistricts } from './nightweir-districts.js';
 import { instanceFinish } from './world-owner.js';
 import { createHelionCeramicMaps } from '../levels/helion/track/ceramic-maps.js';
 import {
@@ -65,7 +66,7 @@ export const nightweirBiomeDescriptor = {
   name: 'Nightweir occupied waterfront',
   id: 'nightweir-civic-production-v1',
   assets,
-  limit: 155,
+  limit: 640,
   grounded: true,
   waterEnabled: true,
   textures: {
@@ -129,91 +130,5 @@ nwWindowNormal=normalize(mat3(modelMatrix)*nwN);`,
       textures.scree,
     );
   },
-  plan(doc, track, region, placement) {
-    const random = placement.random;
-    const industrial = doc.settings.sceneryPreset === 'industrial';
-    const reclaimed = doc.settings.sceneryPreset === 'reclaimed';
-    const roles = industrial
-      ? [
-          'brick-pressureworks',
-          'generating-house',
-          'brick-pressureworks',
-          'public-gallery',
-        ]
-      : reclaimed
-        ? ['public-gallery', 'residential-court', 'municipal-wing']
-        : [
-            'residential-court',
-            'municipal-wing',
-            'residential-court',
-            'public-gallery',
-          ];
-    const target = Math.round(
-      (reclaimed ? 48 : 70) + doc.settings.density * 65,
-    );
-    let index = 0;
-    if (track) {
-      const stations = Math.min(70, Math.ceil(track.length / 210));
-      for (
-        let i = 0;
-        i < stations && placement.placements.length < target;
-        i++
-      ) {
-        const distance = ((i + 0.4) / stations) * track.length;
-        if (track.isJumpProtected?.(distance)) continue;
-        const frame = track.sample(distance);
-        const right = new T.Vector3(
-          frame.right.x,
-          0,
-          frame.right.z,
-        ).normalize();
-        const yaw = Math.atan2(frame.tangent.x, frame.tangent.z);
-        for (const side of [-1, 1]) {
-          const asset = roles[index++ % roles.length];
-          for (const offset of [115, 175, 235]) {
-            const p = frame.position
-              .clone()
-              .addScaledVector(right, side * offset);
-            if (
-              placement.place(asset, {
-                id: 'road-ward-' + i + '-' + side,
-                x: p.x,
-                z: p.z,
-                yaw: yaw + (side < 0 ? Math.PI : 0),
-                scale: 0.9 + random() * 0.2,
-                embed: 0.025,
-              })
-            )
-              break;
-          }
-        }
-      }
-    }
-    for (const parcel of region.parcels) {
-      if (placement.placements.length >= target) break;
-      if (parcel.type === 'trees' || (parcel.lod === 'far' && random() > 0.45))
-        continue;
-      placement.place(roles[index++ % roles.length], {
-        id: 'ward-' + parcel.id,
-        x: parcel.x,
-        z: parcel.z,
-        yaw: parcel.yaw,
-        scale: 0.9 + random() * 0.22,
-        embed: 0.025,
-      });
-    }
-    // Keep complete nearby structural contacts without repeating every detailed
-    // window, gutter and courtyard wall in the physics world. All buildings,
-    // including decorative ones, already clear the full driving/flight volume.
-    placement.placements.forEach((record, i) => {
-      record.solid = i < 4;
-      const accepted = placement.accepted.find((p) => p.id === record.id);
-      if (accepted)
-        Object.assign(accepted, {
-          solid: record.solid,
-          contactRole: record.solid ? 'structural' : 'decorative',
-        });
-    });
-    return placement.placements;
-  },
+  build: buildNightweirDistricts,
 };

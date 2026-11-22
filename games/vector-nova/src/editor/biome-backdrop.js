@@ -281,24 +281,13 @@ function celestial(source, id, preview) {
         node.scale.multiplyScalar(6);
       }
     }
-  } else {
-    const hole = source.group.children.find((node) =>
-      node.name.includes('black hole'),
-    );
-    hole.position.set(-0.65, 0.2, -0.7).normalize().multiplyScalar(80000);
-    hole.scale.setScalar(40);
-    hole.lookAt(0, 0, 0);
-    source.assets = {
-      ringCenter: hole.position.toArray(),
-      editorCelestial: true,
-    };
+    source.group.traverse((node) => {
+      for (const material of [node.material].flat().filter(Boolean)) {
+        material.depthWrite = false;
+        material.depthTest = false;
+      }
+    });
   }
-  source.group.traverse((node) => {
-    for (const material of [node.material].flat().filter(Boolean)) {
-      material.depthWrite = false;
-      material.depthTest = false;
-    }
-  });
   const update = source.update;
   source.update = (frame = {}) => {
     if (frame.camera) source.group.position.copy(frame.camera.position);
@@ -377,6 +366,7 @@ export async function createEditorBackdrop(
   document,
   {
     signal,
+    track = null,
     preview = false,
     settings = {},
     loadTexture = (url) => new T.TextureLoader().loadAsync(url),
@@ -390,6 +380,38 @@ export async function createEditorBackdrop(
       await import('../levels/nightweir/backdrop/index.js');
     abort(signal);
     source = await createNightweirBackdrop({ loadTexture });
+  } else if (id === 'nacre' && document.environment?.layoutVersion >= 4) {
+    const { createNacreBackdrop } =
+      await import('../levels/nacre/backdrop/index.js');
+    abort(signal);
+    const skyTexture = await loadTexture(
+      assetURL('assets/levels/nacre/nacre-storm-sky-v1.png'),
+    );
+    const storm = createNacreBackdrop({ settings, skyTexture });
+    const localCamera = new T.Vector3();
+    const direction = new T.Vector3();
+    // The campaign storm sky is defined relative to sea level. The seeded sea
+    // can move when road reservations change without requiring a new panorama.
+    source = {
+      ...storm,
+      assets: { skyTexture },
+      update(frame) {
+        const datum =
+          frame.oceanWaterY ??
+          track?.editorRegionPlan?.oceanWaterY ??
+          document.settings?.waterLevel ??
+          0;
+        storm.group.position.y = datum;
+        localCamera.copy(frame.camera.position).y -= datum;
+        frame.camera.getWorldDirection?.(direction);
+        storm.update(localCamera, frame.time, frame.settings, {
+          direction,
+          enabled:
+            !preview && (frame.mode === 'racing' || frame.mode === 'paused'),
+          reset: frame.reset,
+        });
+      },
+    };
   } else if (id === 'helion' || id === 'umbra') {
     const module =
       id === 'helion'
@@ -397,11 +419,13 @@ export async function createEditorBackdrop(
         : await import('../levels/umbra/backdrop/index.js');
     abort(signal);
     source = celestial(
-      await (
-        id === 'helion'
-          ? module.createHelionBackdrop
-          : module.createUmbraBackdrop
-      )({ settings, loadTexture }),
+      id === 'helion'
+        ? await module.createHelionBackdrop({ settings, loadTexture })
+        : await module.createUmbraBackdrop({
+            settings,
+            loadTexture,
+            distant: true,
+          }),
       id,
       preview,
     );

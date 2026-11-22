@@ -79,6 +79,7 @@ export function createBiomeEnvironment(
   track,
   {
     renderer = null,
+    backdropAssets,
     collectSolid = null,
     preview = false,
     plan = null,
@@ -96,6 +97,7 @@ export function createBiomeEnvironment(
     return createProductionEnvironment(doc, track, {
       descriptor: productionBiomeDescriptor(doc.biome),
       renderer,
+      backdropAssets,
       collectSolid,
       preview,
       plan,

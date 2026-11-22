@@ -12,7 +12,7 @@ import {
 export function createNacreWater(
   size,
   waterY,
-  { skyTexture = null, track = null } = {},
+  { skyTexture = null, track = null, horizon = size } = {},
 ) {
   const rippleTexture = createNacreOceanNormals();
   const material = new T.ShaderMaterial({
@@ -213,8 +213,8 @@ export function createNacreWater(
     `,
   });
   const geometries = {
-    high: createNacreOceanGeometry(size, track, 'high'),
-    low: createNacreOceanGeometry(size, track, 'low'),
+    high: createNacreOceanGeometry(size, track, 'high', horizon),
+    low: createNacreOceanGeometry(size, track, 'low', horizon),
   };
   const mesh = new T.Mesh(geometries.high, material);
   mesh.name = 'Nacre / ocean surface at y = ' + waterY;

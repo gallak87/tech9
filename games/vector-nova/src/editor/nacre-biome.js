@@ -7,6 +7,12 @@ import { createNacreMaterials } from '../levels/nacre/environment/materials.js';
 import { createNacreMineralSurface } from '../levels/nacre/environment/mineral-surface.js';
 import { createNacreWater } from '../levels/nacre/environment/water.js';
 import {
+  sampleNacreWater,
+  nacreWaterCrossingBlend,
+} from '../levels/nacre/environment/atmosphere.js';
+import { NACRE_OCEAN_PROFILE } from '../levels/nacre/environment/ocean-waves.js';
+import { createAmbientClock } from '../presentation/ambient-clock.js';
+import {
   createProceduralAssemblies,
   planManufacturedSites,
 } from './procedural-assemblies.js';
@@ -286,12 +292,14 @@ export const nacreBiomeDescriptor = {
       });
     }
     const group = new T.Group();
+    const oceanClock = createAmbientClock();
+    const viewDirection = new T.Vector3();
     let water = null;
     if (!context.collectSolid) {
-      const size =
-        Math.max(bounds.max.x - bounds.min.x, bounds.max.z - bounds.min.z) +
-        18000;
-      water = createNacreWater(size, waterY, { track: null });
+      water = createNacreWater(14000, waterY, {
+        skyTexture: context.backdropAssets?.skyTexture,
+        horizon: 400000,
+      });
       water.position.x = (bounds.min.x + bounds.max.x) / 2;
       water.position.z = (bounds.min.z + bounds.max.z) / 2;
       water.userData.editorOcean = true;
@@ -312,11 +320,37 @@ export const nacreBiomeDescriptor = {
       },
       update(frame) {
         kit.update(frame);
-        if (water) {
-          water.material.uniforms.time.value = frame.time ?? 0;
-          water.userData.setQuality(
-            context.preview ? 'low' : (frame.settings?.quality ?? 'high'),
-          );
+        if (!water) return;
+        const quality = context.preview
+          ? 'low'
+          : (frame.settings?.quality ?? 'high');
+        water.userData.setQuality(quality);
+        const u = water.material.uniforms;
+        u.time.value = frame.settings?.reducedMotion ? 0 : oceanClock(frame);
+        const camera = frame.camera?.position;
+        if (camera) {
+          // Wave phase is world-space. Snap the dense mesh by whole cells so
+          // short crests resolve around the viewer anywhere on a custom route.
+          const { lowSpacing, highSpacing } = NACRE_OCEAN_PROFILE.mesh;
+          const step = quality === 'low' ? lowSpacing : highSpacing;
+          // An overview camera can stand kilometres behind the visible road.
+          // Aim the fine grid at the visible sea, with bounded look-ahead at the horizon.
+          frame.camera.getWorldDirection(viewDirection);
+          const height = waterY - camera.y;
+          const reach =
+            Math.abs(viewDirection.y) > 0.01
+              ? T.MathUtils.clamp(
+                  height / viewDirection.y,
+                  0,
+                  Math.abs(height) * 2.5,
+                )
+              : 0;
+          water.position.x =
+            Math.round((camera.x + reach * viewDirection.x) / step) * step;
+          water.position.z =
+            Math.round((camera.z + reach * viewDirection.z) / step) * step;
+          u.wetness.value = sampleNacreWater(camera.y, waterY).submerged;
+          u.nearSurface.value = nacreWaterCrossingBlend(camera.y, waterY);
         }
       },
       dispose() {

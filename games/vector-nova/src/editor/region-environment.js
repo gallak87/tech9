@@ -80,6 +80,7 @@ export function buildRegionEnvironment(
     clears = () => true,
     placeAssembly = () => {},
     districtCourts = false,
+    roundedBlocks = true,
   } = {},
 ) {
   if (!owner?.solid || !owner?.block)
@@ -210,7 +211,7 @@ export function buildRegionEnvironment(
       new T.Vector3(width, height, depth),
       yaw ? new T.Quaternion().setFromAxisAngle(up, yaw) : identity,
       collision ? collectSolid : null,
-      true,
+      roundedBlocks,
     );
     return true;
   }
@@ -452,7 +453,7 @@ export function buildRegionEnvironment(
         transform.scale,
         transform.quaternion,
         collectSolid,
-        true,
+        roundedBlocks,
       );
       stats.paths++;
       if (bridge) {

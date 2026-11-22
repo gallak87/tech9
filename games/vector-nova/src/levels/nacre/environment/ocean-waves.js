@@ -233,13 +233,20 @@ export function createNacreWaveShelter(track) {
   };
 }
 
-function axisCoordinates(extent, detailedExtent, spacing) {
+function axisCoordinates(extent, detailedExtent, spacing, extended) {
   const positive = [0];
   let point = 0,
     step = spacing;
   while (point < extent) {
-    if (point > detailedExtent)
-      step = Math.min(profile.mesh.farSpacing, step * 1.18);
+    if (point > detailedExtent) {
+      // The fixed campaign grid concentrates detail across its whole route.
+      // The mobile editor grid needs a midrange band between exposed swell
+      // and haze. Jumping straight to 60 m leaves one aliased wave direction.
+      const farStep = extended
+        ? T.MathUtils.lerp(38, 210, T.MathUtils.smoothstep(point, 3100, 7000))
+        : profile.mesh.farSpacing;
+      step = Math.min(farStep, step * 1.18);
+    }
     point = Math.min(extent, point + step);
     positive.push(point);
   }
@@ -252,7 +259,12 @@ function axisCoordinates(extent, detailedExtent, spacing) {
   ];
 }
 
-export function createNacreOceanGeometry(size, track, quality = 'high') {
+export function createNacreOceanGeometry(
+  size,
+  track,
+  quality = 'high',
+  horizon = size,
+) {
   const center = track?.bounds.getCenter(new T.Vector3()) ?? new T.Vector3();
   const span =
     track?.bounds.getSize(new T.Vector3()) ?? new T.Vector3(1700, 0, 1200);
@@ -262,12 +274,22 @@ export function createNacreOceanGeometry(size, track, quality = 'high') {
     size / 2,
     span.x / 2 + profile.mesh.detailedMargin,
     spacing,
+    horizon > size,
   );
   const zs = axisCoordinates(
     size / 2,
     span.z / 2 + profile.mesh.detailedMargin,
     spacing,
+    horizon > size,
   );
+  // A camera-following grid can extend the already hazed horizon with one
+  // coarse perimeter strip. Its cost stays bounded on very large editor maps.
+  if (horizon > size) {
+    for (const axis of [xs, zs]) {
+      axis.unshift(-horizon / 2);
+      axis.push(horizon / 2);
+    }
+  }
   const shelterAt = createNacreWaveShelter(track);
   const positions = [],
     shelter = [],

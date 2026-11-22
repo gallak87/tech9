@@ -5,6 +5,7 @@ import { resolve } from 'node:path';
 import * as T from 'three';
 import { EDITOR_BIOMES } from './biomes.js';
 import { createEditorBackdrop } from './biome-backdrop.js';
+import { createUmbraBackdrop } from '../levels/umbra/backdrop/index.js';
 
 const fakeTexture = () => {
   const texture = new T.DataTexture(new Uint8Array(4 * 16 * 8), 16, 8);
@@ -127,5 +128,96 @@ test('partial planetary loading failure disposes every fulfilled registered map'
     ),
     /cloud load failed/,
   );
+  assert.equal(value.count(), 1);
+});
+
+test('Umbra keeps the authored silhouette and depth occlusion in the editor and custom races', async () => {
+  const loadTexture = async () => fakeTexture().texture;
+  const original = await createUmbraBackdrop({ loadTexture });
+  const diskName = 'Layered incandescent orbital accretion';
+  const originalDisk = original.group.getObjectByName(diskName);
+  const authoredEye = new T.Vector3(0, 130, 0);
+  const direction = originalDisk.parent.position.clone().sub(authoredEye);
+  const angularScale = originalDisk.scale.x / direction.length();
+  direction.normalize();
+
+  for (const preview of [true, false]) {
+    const part = await createEditorBackdrop(
+      { biome: 'umbra' },
+      { preview, loadTexture },
+    );
+    const disk = part.group.getObjectByName(diskName);
+    const horizon = disk.parent.children.find(
+      (child) => child.geometry.type === 'SphereGeometry',
+    );
+    assert(horizon.material.depthWrite && horizon.material.depthTest);
+    assert(disk.material.depthTest && !disk.material.depthWrite);
+    const camera = new T.PerspectiveCamera();
+    camera.position.set(-23000, 16000, 12000);
+    part.update({ camera });
+    part.group.updateMatrixWorld(true);
+    const toCenter = horizon
+      .getWorldPosition(new T.Vector3())
+      .sub(camera.position);
+    assert(toCenter.clone().normalize().distanceTo(direction) < 1e-8);
+    assert(
+      Math.abs(
+        disk.getWorldScale(new T.Vector3()).x / toCenter.length() -
+          angularScale,
+      ) < 1e-8,
+    );
+    assert(
+      disk
+        .getWorldQuaternion(new T.Quaternion())
+        .angleTo(originalDisk.getWorldQuaternion(new T.Quaternion())) < 1e-6,
+    );
+
+    // Transparent stars draw before the transparent disk, after the opaque
+    // horizon. They must sit behind the black hole for its depth to mask them.
+    const stars = part.group.getObjectByProperty('isPoints', true);
+    const outerRadius =
+      disk.material.uniforms.outerRadius.value * disk.parent.scale.x;
+    const starDistance = new T.Vector3()
+      .fromBufferAttribute(stars.geometry.attributes.position, 0)
+      .applyMatrix4(stars.matrixWorld)
+      .distanceTo(camera.position);
+    assert(
+      starDistance > toCenter.length() + outerRadius && starDistance < part.far,
+    );
+    assert(stars.material.depthTest);
+    part.dispose();
+  }
+  original.dispose();
+});
+
+test('Nacre shares its authored storm with the water and follows the surveyed sea level', async () => {
+  const value = fakeTexture();
+  const part = await createEditorBackdrop(
+    {
+      biome: 'nacre',
+      environment: { layoutVersion: 4 },
+      settings: { waterLevel: -8 },
+    },
+    {
+      track: { editorRegionPlan: { oceanWaterY: -180 } },
+      loadTexture: async () => value.texture,
+    },
+  );
+  const camera = new T.PerspectiveCamera();
+  camera.position.set(1080, -165, 4000);
+  part.update({ camera, mode: 'racing', time: 14 });
+  assert.equal(part.assets.skyTexture, value.texture);
+  assert.equal(
+    part.group.children[0].material.uniforms.stormSky.value,
+    value.texture,
+  );
+  assert.deepEqual(
+    part.group.children[0].getWorldPosition(new T.Vector3()).toArray(),
+    camera.position.toArray(),
+  );
+  assert.equal(part.getPresentation().wetness, 0);
+  part.update({ camera, time: 15, oceanWaterY: -140 });
+  assert.equal(part.getPresentation().wetness, 1);
+  part.dispose();
   assert.equal(value.count(), 1);
 });

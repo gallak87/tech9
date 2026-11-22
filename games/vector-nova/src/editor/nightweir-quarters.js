@@ -40,7 +40,12 @@ function stableAnchors(doc, track) {
 
 // Founded wards bridge the scale between the racing viaduct and regional towns.
 // Their placement is scenery-only and still obeys the full flight reservation.
-export function enrichNightweirPlan(doc, track, plan) {
+export function enrichNightweirPlan(
+  doc,
+  track,
+  plan,
+  { foundedQuays = false } = {},
+) {
   if (!track) return plan;
   const random = editorRandom(plan.seed ^ 0x71756179);
   const quarters = [],
@@ -66,16 +71,23 @@ export function enrichNightweirPlan(doc, track, plan) {
         ? editorRandom(plan.seed ^ anchorSeed(anchor.id + ':' + side))
         : random;
       const lateral = side * (140 + pick() * 75);
-      const x = frame.position.x + frame.right.x * lateral;
-      const z = frame.position.z + frame.right.z * lateral;
-      const y = plan.surfaceHeight(x, z);
-      const yaw = Math.atan2(frame.tangent.x, frame.tangent.z);
-      if (
-        y < plan.waterHeight(x, z) + 4 ||
-        !plan.clears(x, z, 125, 150, y + 75, yaw, y - 16)
-      )
-        continue;
-      if (quarters.some((q) => Math.hypot(q.x - x, q.z - z) < 190)) continue;
+      const heading = Math.atan2(frame.tangent.x, frame.tangent.z);
+      const yaw = foundedQuays ? heading - Math.PI / 2 : heading;
+      let site;
+      for (const reach of foundedQuays ? [1, 1.65, 2.35] : [1]) {
+        const x = frame.position.x + frame.right.x * lateral * reach;
+        const z = frame.position.z + frame.right.z * lateral * reach;
+        const ground = plan.surfaceHeight(x, z),
+          water = plan.waterHeight(x, z);
+        if (ground < water + (foundedQuays ? -10 : 4)) continue;
+        const y = foundedQuays ? Math.max(ground, water + 3.5) : ground;
+        if (!plan.clears(x, z, 125, 150, y + 75, yaw, ground - 16)) continue;
+        if (quarters.some((q) => Math.hypot(q.x - x, q.z - z) < 190)) continue;
+        site = { x, y, z };
+        break;
+      }
+      if (!site) continue;
+      const { x, y, z } = site;
       const id = stable
         ? 'quay-ward-' + anchor.id + '-' + side
         : 'quay-ward-' + quarters.length;
@@ -103,7 +115,7 @@ export function enrichNightweirPlan(doc, track, plan) {
         [0, 40],
         [48, 40],
       ]) {
-        if (parcels.length >= 96) break;
+        if (parcels.length >= (foundedQuays ? 168 : 96)) break;
         const px = x + dx * cos + dz * sin,
           pz = z - dx * sin + dz * cos;
         const py = plan.surfaceHeight(px, pz);
@@ -116,7 +128,7 @@ export function enrichNightweirPlan(doc, track, plan) {
             : 'building';
         const scale = garden ? 1.15 : 0.72 + pick() * 0.2;
         if (
-          py < plan.waterHeight(px, pz) + 3 ||
+          py < plan.waterHeight(px, pz) + (foundedQuays && !garden ? -12 : 3) ||
           !plan.clears(px, pz, 48, 48, py + 78, yaw, py - 16)
         )
           continue;

@@ -82,7 +82,7 @@ capture.load = async (options) => {
   const rig = createCameraRig(view.camera,definition.camera,bounds);
   Object.assign(capture,{view,track,document,settings,road,environment,ship,rig});
   capture.dispose=()=>{road.dispose();environment.dispose();ship.dispose();view.dispose();};
-  capture.quality = async (quality) => {settings.quality=quality;view.apply();environment.update?.({time:12,settings});await view.warm();};
+  capture.quality = async (quality) => {settings.quality=quality;view.apply();environment.update?.({time:12,settings,camera:view.camera});await view.warm();};
   capture.pose = (kind) => {
     let station = 0;
     if(kind==='overview') {
@@ -90,7 +90,7 @@ capture.load = async (options) => {
       const distance=Math.max(size.x,size.z,size.y*1.4)*1.2;
       ship.group.visible=false;view.camera.fov=55;view.camera.up.set(0,1,0);
       view.camera.position.copy(center).add(new T.Vector3(.7,.9,1).normalize().multiplyScalar(distance));view.camera.lookAt(center);view.camera.updateProjectionMatrix();
-      view.follow(center);view.updatePresentation({mode:'fly',time:12,dt:0});
+      view.follow(center);view.updatePresentation({mode:'fly',time:12,dt:0});environment.update?.({time:12,settings,camera:view.camera});
     } else {
       const limit=track.finishDistance??track.length;
       station=kind==='pre-jump' && track.jumps.length ? Math.max(0,track.jumps[0].takeoff-100) : Number(kind.slice(5))/100*limit;
@@ -111,7 +111,7 @@ capture.load = async (options) => {
       rig.reset();view.camera.fov=64;view.camera.updateProjectionMatrix();
       for(let i=0;i<100;i++)rig.update(track,state,1/60,{worldPose:pose,subject:ship.group,reducedMotion:true});
       view.follow(position);view.updateContact(track,state);
-      view.updatePresentation({mode:'racing',time:12,dt:0});environment.update?.({time:12,settings,state});
+      view.updatePresentation({mode:'racing',time:12,dt:0});environment.update?.({time:12,settings,state,camera:view.camera});
     }
     view.camera.updateMatrixWorld();
     return {station,position:view.camera.position.toArray(),quaternion:view.camera.quaternion.toArray(),fov:view.camera.fov};

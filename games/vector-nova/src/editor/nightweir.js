@@ -696,6 +696,7 @@ export function createEditorEnvironment(
   {
     collectSolid = null,
     renderer = null,
+    backdropAssets,
     preview = false,
     previous = null,
   } = {},
@@ -703,6 +704,7 @@ export function createEditorEnvironment(
   if (doc.biome !== 'nightweir' || doc.environment.layoutVersion >= 4)
     return createBiomeEnvironment(doc, track, {
       renderer,
+      backdropAssets,
       collectSolid,
       preview,
       previous,
@@ -1281,7 +1283,7 @@ export function createEditorEnvironment(
 
 export function createEditorWorld(
   value,
-  { renderer = null, preview = false, previous = null } = {},
+  { renderer = null, preview = false, previous = null, backdropAssets } = {},
 ) {
   const doc = validateDocument(value),
     group = new T.Group();
@@ -1303,6 +1305,7 @@ export function createEditorWorld(
       : null;
   const environment = createEditorEnvironment(doc, track, {
     renderer,
+    backdropAssets,
     preview,
     previous: priorEnvironment,
   });
@@ -1418,8 +1421,12 @@ export function createEditorLevel(value) {
     createRoad: ({ track, view }) =>
       createEditorRoad(track, { renderer: view?.renderer }),
     createEnvironment: ({ track, view }) =>
-      createEditorEnvironment(doc, track, { renderer: view?.renderer }),
-    createBackdrop: ({ track } = {}) => createEditorBackdrop(doc, { track }),
+      createEditorEnvironment(doc, track, {
+        renderer: view?.renderer,
+        backdropAssets: view?.assets,
+      }),
+    createBackdrop: ({ track, settings } = {}) =>
+      createEditorBackdrop(doc, { track, settings }),
     createCollisionWorld: ({ track }) => createEditorCollisionWorld(doc, track),
     createRuntime: createEditorFlightRuntime,
     racing: {

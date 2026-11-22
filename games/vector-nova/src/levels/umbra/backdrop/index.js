@@ -21,6 +21,7 @@ void main(){
 /** Localized composed lensing: never samples/distorts the rendered road or HUD. */
 export async function createUmbraBackdrop({
   settings = {},
+  distant = false,
   loadTexture = (url) => new T.TextureLoader().loadAsync(url),
 } = {}) {
   const texture = await loadTexture(
@@ -112,7 +113,15 @@ export async function createUmbraBackdrop({
   const hole = new T.Group();
   hole.name = 'Umbra / localized black hole and accretion disk';
   hole.position.set(...RING_CENTER);
-  hole.lookAt(0, 130, 0);
+  const observationPoint = new T.Vector3(0, 130, 0);
+  hole.lookAt(observationPoint);
+  if (distant) {
+    // Preserve the apparent size and inclination from the observatory, even
+    // when the camera is following a custom course far from the world origin.
+    hole.position.sub(observationPoint).multiplyScalar(40);
+    hole.scale.setScalar(40);
+    sky.scale.setScalar(10);
+  }
   group.add(hole);
   const voidMesh = new T.Mesh(
     new T.SphereGeometry(262, 64, 40),
@@ -167,9 +176,9 @@ export async function createUmbraBackdrop({
     fillColor: '#91c8f1',
     fillIntensity: 0.76,
     environmentIntensity: 0.65,
-    far: 22000,
+    far: distant ? 200000 : 22000,
     ownedTextures: [texture],
-    assets: { ringCenter: RING_CENTER },
+    assets: { ringCenter: distant ? hole.position.toArray() : RING_CENTER },
     update({
       camera,
       settings: current = settings,

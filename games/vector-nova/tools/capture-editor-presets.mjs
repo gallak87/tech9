@@ -259,7 +259,7 @@ try {
           .workshop-strip-editor .workshop-main { grid-column: 1; grid-row: 2; }
           .workshop-palette { grid-column: 1; grid-row: 1; }
           .workshop-global-nav { display: flex; }
-          .workshop-palette .workshop-panel-heading, [data-editor-global-tools],
+          .workshop-palette > :not(.workshop-global-nav),
           .workshop-inspector, .workshop-readiness { display: none; }
           .workshop-preview-status, .workshop-status, .workshop-viewport-hint,
           .workshop-empty-hint, .workshop-fly-badge { visibility: hidden; }
@@ -281,6 +281,16 @@ try {
       await action('focus-selection');
       await action('zoom-out');
       await action('zoom-out');
+      if (biome.id === 'umbra') {
+        // Look across the road toward the observatory's accretion disk.
+        const box = await canvas.boundingBox();
+        const x = box.x + box.width * 0.65,
+          y = box.y + box.height * 0.55;
+        await page.mouse.move(x, y);
+        await page.mouse.down({ button: 'right' });
+        await page.mouse.move(x - 257, y - 103, { steps: 12 });
+        await page.mouse.up({ button: 'right' });
+      }
       if (biome.id === 'worldspire') {
         // Its one complete monolith lives beyond the road, behind the ordinary
         // first-point camera. Use real preview gestures to include that asset.
@@ -349,7 +359,9 @@ try {
           framing:
             biome.id === 'worldspire'
               ? 'road overview, eight zoom-out steps, native orbit/pan framing the complete distant monolith'
-              : 'selected first road point, then two zoom-out steps',
+              : biome.id === 'umbra'
+                ? 'first-point vista, native orbit framing the road against the black hole'
+                : 'selected first road point, then two zoom-out steps',
         },
         documentFingerprint: digest(JSON.stringify(applied)),
         documentIdentity: documentIdentity(applied),

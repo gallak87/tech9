@@ -197,6 +197,7 @@ export function createProductionEnvironment(
   {
     descriptor,
     renderer = null,
+    backdropAssets,
     plan = null,
     collectSolid = null,
     preview = false,
@@ -228,6 +229,7 @@ export function createProductionEnvironment(
     collectSolid,
     preview,
     renderer,
+    backdropAssets,
   };
   let finish, part, kit;
   const borrow = (value) => {

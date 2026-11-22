@@ -6,7 +6,7 @@ export const PLAYABLE_STARTERS = [
     name: 'Harbor braid',
     summary: '7.5 km circuit · Wall ride, twin flyovers and jumps',
     options: {
-      generatorVersion: 6,
+      generatorVersion: 7,
       courseType: 'circuit',
       seed: 42,
       length: 7500,
@@ -29,7 +29,7 @@ export const PLAYABLE_STARTERS = [
     name: 'Waterfront loop',
     summary: '3 km circuit · Banked sprint and short air',
     options: {
-      generatorVersion: 6,
+      generatorVersion: 7,
       courseType: 'circuit',
       seed: 42017,
       length: 3000,
@@ -52,7 +52,7 @@ export const PLAYABLE_STARTERS = [
     name: 'Forest descent',
     summary: '5 km downhill · Linked drops and jumps',
     options: {
-      generatorVersion: 6,
+      generatorVersion: 7,
       courseType: 'downhill',
       seed: 99071,
       length: 5000,
@@ -75,7 +75,7 @@ export const PLAYABLE_STARTERS = [
     name: 'Canyon jump practice',
     summary: '5 km circuit · Big-air transfers',
     options: {
-      generatorVersion: 6,
+      generatorVersion: 7,
       courseType: 'circuit',
       seed: 42,
       length: 5000,

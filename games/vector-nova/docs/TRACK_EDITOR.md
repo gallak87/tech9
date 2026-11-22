@@ -1,6 +1,6 @@
 # Track Workshop
 
-Open the top-level **Editor** tab in the full game or browser build. The Road palette and **File → New track** offer four playable starters with scenery and pickups. **Harbor braid** links two high flyovers, a sustained wall ride and two jump transfers over 7.5 km. **Waterfront loop** is a compact 3 km sprint with short air. **Forest descent** drops nearly 600 m through two jumps. **Canyon jump practice** has two long transfers. Click the empty ground to draw on the 100 m grid. A starter creates a new draft in one undoable step. **Road → Create road** changes the road on the current draft. Choose a style and length, then select **Create road**. Stacked and Woven require Circuit. Downhill has a supported 600 m braking runout after the finish. Browser development also accepts `?editor=1` after career selection.
+Open the top-level **Editor** tab in the full game or browser build. The Road palette and **File → New track** offer four playable starters with scenery and pickups. **Harbor braid** links two high flyovers, a short wall ride and two jump transfers over 7.5 km. **Waterfront loop** is a compact 3 km sprint with short air. **Forest descent** drops nearly 600 m through two jumps. **Canyon jump practice** has two long transfers. Click the empty ground to draw on the 100 m grid. A starter creates a new draft in one undoable step. **Road → Create road** changes the road on the current draft. Choose a style and length, then select **Create road**. Stacked and Woven require Circuit. Downhill has a supported 600 m braking runout after the finish. Browser development also accepts `?editor=1` after career selection.
 
 ## Click, shape, drive
 
@@ -22,7 +22,7 @@ Jump lips stay anchored to road points while other sections change. Removing a g
 
 **Create road** offers styles and lengths from 3 to 20 km. Curviness shapes the racing line. Vertical variation (Descent strength on Downhill) shapes the height profile. Section frequency controls the spacing of carves, crests and dives. Banking controls deck rotation. Circuit Crossovers adds grade-separated bridges. Jump frequency and size reserve space for approaches, gaps and landings. Choose **None** to omit jumps. **Seed & pickups** holds the reproducible road seed and pickup fill.
 
-Choose **Create road** to apply settings or **Try another variation** for a fresh seed in one undoable edit. Generation version 6 reserves the start, jump corridors, bridge clearance and downhill runout, then fits seeded sections to the available road and checks the resulting jumps. Requested downhill length includes 600 m of runout. Existing files load their authored geometry, and versions 1–5 retain their original generation paths.
+Choose **Create road** to apply settings or **Try another variation** for a fresh seed in one undoable edit. New roads start upright and return toward level between banked carves. At high Banking, a long Woven circuit can fit a full corkscrew between jumps. The takeoff and receiving deck stay close to level in roll, so a jump can still climb or drop. Requested downhill length includes 600 m of runout. Existing files load their authored geometry, and road seeds generated with versions 1–6 can still reproduce their original geometry.
 
 ## Around your road
 

@@ -56,7 +56,8 @@ export const ROAD_PRESETS = Object.freeze([
   preset({
     id: 'woven',
     label: 'Woven',
-    description: 'A closed circuit with intertwined turns and high overpasses.',
+    description:
+      'Intertwined turns and high overpasses, with room for a full corkscrew on longer circuits.',
     circuitOnly: true,
     options: {
       length: 10000,

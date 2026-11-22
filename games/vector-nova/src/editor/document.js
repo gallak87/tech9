@@ -6,6 +6,8 @@ import {
 } from './route.js';
 import {
   appendFastRollEdge,
+  bankTrimRate,
+  BANK_TRIM_RATE_LIMIT,
   editorRollRate,
   EDITOR_ROLL_RATE_LIMIT,
   measuresRollEdge,
@@ -13,6 +15,7 @@ import {
 } from './roll-rate.js';
 import { createSeededCourseGeometry } from './seeded-course.js';
 import { createSeededLayoutGeometry } from './seeded-layout.js';
+import { checkSeededBanking, levelSeededRunways } from './seeded-banking.js';
 import { analyzeEditorJumps, predictEditorJumpTrajectory } from './jumps.js';
 import { getShip } from '../ships/catalog.js';
 import { createEditorTrack } from './track.js';
@@ -720,7 +723,10 @@ function generationCandidate(draft, attempt) {
       attempt,
     });
     let document = validateDocument({ ...draft, ...geometry });
-    let analysis = analyzeDocument(document, { strict: true });
+    const pacedBanking = draft.generator.version >= 7;
+    if (pacedBanking) document = levelSeededRunways(document);
+    const checks = { strict: true, pacedBanking };
+    let analysis = analyzeCourse(document, checks);
     if (document.generator.version >= 6 && analysis.maxRollRate > 0.025) {
       // Centreline bank and authored tilt can peak on the same edge. Reduce
       // only the optional deck tilt so the fitted course length stays exact.
@@ -732,7 +738,7 @@ function generationCandidate(draft, attempt) {
           roll: point.roll * scale,
         })),
       };
-      analysis = analyzeDocument(document, { strict: true });
+      analysis = analyzeCourse(document, checks);
     }
     if (!analysis.valid)
       return { document: null, reason: analysis.errors.join(' ') };
@@ -857,7 +863,7 @@ export function assertEditorPracticeReady(value) {
   return report;
 }
 
-function analyzeCourse(value, { strict, practice }) {
+function analyzeCourse(value, { strict, practice, pacedBanking }) {
   let doc;
   try {
     doc = validateDocument(value);
@@ -1073,15 +1079,13 @@ function analyzeCourse(value, { strict, practice }) {
   ) {
     const a = doc.points[i],
       b = doc.points[(i + 1) % doc.points.length];
-    const bankRate =
-      (Math.abs(b.bank - a.bank) * 1.5) /
-      Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+    const bankRate = bankTrimRate(a, b);
     if (bankRate > maxBankRate) {
       maxBankRate = bankRate;
       worstBankPoint = (i + 1) % doc.points.length;
     }
   }
-  if (maxBankRate > 0.008) {
+  if (maxBankRate > BANK_TRIM_RATE_LIMIT) {
     issueAt(
       6,
       'rotation',
@@ -1205,6 +1209,16 @@ function analyzeCourse(value, { strict, practice }) {
   const frames = Array.from({ length: frameCount }, (_, i) =>
     route.sample(i * frameStep),
   );
+  if (pacedBanking) {
+    const issue = checkSeededBanking(
+      doc,
+      route,
+      frames,
+      frameStep,
+      finishDistance,
+    );
+    if (issue) errors.push(issue);
+  }
   let minDeckHeight = Infinity,
     maxRollRate = 0,
     maxFrameRate = 0,

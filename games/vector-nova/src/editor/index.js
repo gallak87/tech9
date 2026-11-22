@@ -2853,7 +2853,6 @@ export function createTrackEditor(
         next.id = recipe ? uid('track') : doc.id;
         next.name = recipe?.name ?? doc.name;
         next.props = [];
-        next.rolls = [];
         const pickupOptions = recipe?.pickups ?? {
           preset: doc.pickups?.preset ?? 'balanced',
           density: doc.pickups?.density ?? 0.5,

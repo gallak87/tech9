@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { GENERATOR_VERSION } from '../src/editor/generation-version.js';
 import {
   launchVerificationBrowser,
   collectPageErrors,
@@ -162,7 +163,7 @@ try {
   );
   assert.equal(saved.generator.banking, 0.37);
   assert.equal(saved.generator.rhythm, 0.84);
-  assert.equal(saved.generator.version, 6);
+  assert.equal(saved.generator.version, GENERATOR_VERSION);
   if (compact) {
     await click('view-map');
     for (const size of [

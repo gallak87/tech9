@@ -115,10 +115,45 @@ test('explicit v5 replays the released woven circuit and mountain descent', () =
   }
 });
 
-test('new courses record the v6 geometry pipeline and agree with async generation', async () => {
+test('explicit v6 preserves the banked circuit and downhill geometry', () => {
+  for (const [courseType, fingerprint] of [
+    [
+      'circuit',
+      '3c3216d4532062e0a2baa9d9dbf902103754aaa0a3925473783fd76f5954466c',
+    ],
+    [
+      'downhill',
+      '91231426533760e59c03d03de178c8d80dc6b0ee8729893343c23db9338445b6',
+    ],
+  ]) {
+    const { points, rolls, jumps } = generateDocument({
+      courseType,
+      generatorVersion: 6,
+      seed: 42,
+      length: 7500,
+      width: 44,
+      bendiness: 0.92,
+      elevation: 0.92,
+      rhythm: 0.94,
+      banking: 1,
+      crossovers: courseType === 'circuit' ? 1 : 0,
+      jumpFrequency: 'many',
+      jumpSize: 'mixed',
+    });
+    const geometry = JSON.stringify({ points, rolls, jumps }, (_, value) =>
+      typeof value === 'number' ? Math.round(value * 1e6) / 1e6 : value,
+    );
+    assert.equal(
+      createHash('sha256').update(geometry).digest('hex'),
+      fingerprint,
+    );
+  }
+});
+
+test('new courses record the v7 geometry pipeline and agree with async generation', async () => {
   const current = generateDocument(options);
   assert.equal(current.generator.version, GENERATOR_VERSION);
-  assert.equal(current.generator.version, 6);
+  assert.equal(current.generator.version, 7);
   assert.deepEqual(
     current,
     await generateDocumentAsync(options, { yieldControl: async () => {} }),

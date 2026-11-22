@@ -1028,6 +1028,7 @@ test('v5 fitting holds geometry limits at short, steep and long road budgets', (
 
 test('v6 high rhythm creates sustained turns and two playable jump rhythms within the same length', () => {
   const options = {
+    generatorVersion: 6,
     seed: 42,
     length: 7500,
     width: 44,

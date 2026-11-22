@@ -53,6 +53,16 @@ const turnRadius = (a, b, c) => {
   return (Math.hypot(ax, az) + Math.hypot(bx, bz)) / Math.max(1e-5, 2 * angle);
 };
 
+function sectionBank(recipe, t, span, pacedBanking) {
+  if (!pacedBanking) return recipe.shape.bank(t);
+  if (recipe.corkscrew) return 0; // Its complete turn is applied to the fitted route.
+  // Keep the full horizontal carve and elevation change. Roll in and out over
+  // a shorter distance so the rider gets a readable exit even on long sections.
+  const offset = (t - 0.5) * span;
+  if (recipe.shape === wall) return ease((250 - Math.abs(offset)) / 205);
+  return recipe.shape.bank(clamp(0.5 + offset / Math.min(440, span), 0, 1));
+}
+
 function setSection(
   output,
   stations,
@@ -73,6 +83,7 @@ function setSection(
     gradeLimit,
     rollLimit,
     wallStrength,
+    pacedBanking,
   } = intensity;
   const samples = new Map();
   const run = (at, side) => clearanceFade(at, side, crossings, distance);
@@ -91,7 +102,7 @@ function setSection(
       x: (dz * offset) / spacing,
       z: (-dx * offset) / spacing,
       height: height * run(stations[i], height),
-      bank: recipe.shape.bank(t) * recipe.direction,
+      bank: sectionBank(recipe, t, span, pacedBanking) * recipe.direction,
     });
   }
   if (samples.size < 4) return;
@@ -179,6 +190,7 @@ export function createSectionProfile(options, random) {
     gradeLimit: attempt >= 2 ? 0.29 : length >= 14000 ? 0.315 : 0.34,
     rollLimit: length >= 14000 || attempt >= 2 ? 0.007 : 0.009,
     wallStrength: 0.92 ** attempt,
+    pacedBanking: options.version >= 7,
   };
   let previous = -1;
   const recipes = Array.from({ length: Math.ceil(length / 320) + 4 }, () => {
@@ -271,12 +283,31 @@ export function createSectionProfile(options, random) {
       const span = Math.min(1180, end - start);
       const entry = (start + end - span) / 2;
       fill(start, entry);
+      const direction = recipes[index++ % recipes.length].direction;
+      const corkscrew =
+        intensity.pacedBanking &&
+        length >= 9000 &&
+        crossovers >= 0.65 &&
+        options.banking >= 0.88;
+      if (corkscrew) {
+        // Keep the same curved/elevated centreline as a wall ride. Anchor the
+        // rotation to the fitted spline so its duration is in actual metres.
+        const middle = entry + span / 2;
+        const nearest = stations.reduce(
+          (best, station, i) =>
+            Math.abs(station - middle) < Math.abs(stations[best] - middle)
+              ? i
+              : best,
+          0,
+        );
+        output.corkscrew = { center: points[nearest], turns: direction };
+      }
       setSection(
         output,
         stations,
         entry,
         span,
-        { shape: wall, direction: recipes[index++ % recipes.length].direction },
+        { shape: wall, direction, corkscrew },
         intensity,
         crossings,
         distance,

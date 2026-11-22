@@ -965,7 +965,20 @@ function publicGeometry(generated, courseType) {
     launchPointId: points[generated.points.indexOf(j.launch)].id,
     landingPointId: points[generated.points.indexOf(j.landing)].id,
   }));
-  return { points, jumps };
+  const geometry = { points, jumps };
+  if (generated.corkscrew) {
+    const { center, turns } = generated.corkscrew;
+    const middle = at(center);
+    geometry.rolls = [
+      {
+        id: 'seed-corkscrew',
+        start: (middle - 360) / total,
+        end: (middle + 360) / total,
+        turns,
+      },
+    ];
+  }
+  return geometry;
 }
 function assertLayoutClearance(geometry, options) {
   const curve = routeCurve({ ...geometry, courseType: options.courseType }),

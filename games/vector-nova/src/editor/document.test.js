@@ -421,7 +421,6 @@ test('current generator preferences have strict canonical enums and blank drafts
     blank: true,
   });
   assert.equal(blank.generator.version, GENERATOR_VERSION);
-  assert.equal(blank.generator.version, 6);
   assert.equal(blank.generator.jumpFrequency, 'normal');
   assert.equal(blank.generator.jumpSize, 'mixed');
   assert.equal(blank.generator.crossovers, 0);
@@ -452,7 +451,7 @@ test('current generator preferences have strict canonical enums and blank drafts
     ['banking', NaN],
     ['banking', Infinity],
     ['banking', 1.01],
-    ['version', 7],
+    ['version', GENERATOR_VERSION + 1],
   ]) {
     const invalid = structuredClone(blank);
     invalid.generator[field] = value;

@@ -1,6 +1,15 @@
 import { createRouteSampler } from './route.js';
 
 export const EDITOR_ROLL_RATE_LIMIT = 0.025;
+export const BANK_TRIM_RATE_LIMIT = 0.008;
+
+export function bankTrimRate(a, b) {
+  // Smoothstep between knots peaks at 1.5 times the linear slope.
+  return (
+    (1.5 * Math.abs(b.bank - a.bank)) /
+    Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z)
+  );
+}
 
 export function rollRateGrid(length) {
   const count = Math.ceil(length / 3);

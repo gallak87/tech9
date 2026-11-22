@@ -182,7 +182,12 @@ export function createTrackEditor(
   let context = 'road';
   let compactDock = 'palette';
   let roadAuthorGroup = '';
-  const openDetails = new Map();
+  const openDetails = new Map([
+    [
+      'environment',
+      window.matchMedia('(min-width: 901px) and (min-height: 560px)').matches,
+    ],
+  ]);
   function details(key, label, content) {
     return `<details class="workshop-advanced" data-editor-details="${key}" ${openDetails.get(key) ? 'open' : ''}><summary tabindex="0">${label}</summary>${content}</details>`;
   }
@@ -306,8 +311,20 @@ export function createTrackEditor(
         </nav>
         <div class="workshop-options-scroll" data-editor-global-tools>
           <section class="workshop-road-home" data-editor-section="road-home" aria-label="Road palette"></section>
-          ${GLOBAL_GROUPS.map(([id, label]) => `<section class="workshop-global-section" id="workshop-palette-${id}" data-editor-section="${id}" aria-label="${label}" hidden><div data-editor-section-body="${id}"></div></section>`).join('')}
+          ${GLOBAL_GROUPS.filter(([id]) => id !== 'world')
+            .map(
+              ([id, label]) =>
+                `<section class="workshop-global-section" id="workshop-palette-${id}" data-editor-section="${id}" aria-label="${label}" hidden><div data-editor-section-body="${id}"></div></section>`,
+            )
+            .join('')}
         </div>
+        <section class="workshop-global-section workshop-scenery-dock" id="workshop-palette-world" data-editor-section="world" aria-label="Environment" hidden>
+          <div class="workshop-options-scroll" data-editor-section-body="world"></div>
+          <div class="workshop-scenery-footer">
+            <div data-editor-scenery-settings></div>
+            <div class="workshop-generator-actions">${button('regenerate-environment', 'Apply environment', 'class="workshop-primary workshop-wide"')}${button('new-world-seed', 'Try another variation', 'class="workshop-wide"')}</div>
+          </div>
+        </section>
       </aside>
       <main class="workshop-main">
         <div class="workshop-viewport-toolbar" role="group" aria-label="Viewport tools">${renderToolModes()}${renderCameraControls()}</div>
@@ -1609,11 +1626,21 @@ export function createTrackEditor(
       ${selectedStyle ? `<p class="workshop-help">${escape(selectedStyle.description)}</p>` : ''}
       <div class="workshop-world-current"><span>Now showing</span><strong>${escape(applied.label)} · ${escape(appliedStyle?.label ?? doc.settings.sceneryPreset)}</strong>${changed ? '<span class="workshop-world-pending" role="status">New choices ready · Apply to preview</span>' : legacyScenery ? '<span class="workshop-world-pending">Apply to update scenery</span>' : ''}</div>
       ${doc.points.length < 4 ? '<p class="workshop-help">Scenery fits around the route once you place four road points.</p>' : ''}
-      ${details('environment', 'Scenery settings', `${range('environment-density', 'Scenery fullness', pending.density, 0.25, 1, 0.01, '', true)}<label class="workshop-label">Environment seed<input type="number" data-editor-field="world-seed" aria-label="Environment seed" min="0" max="4294967295" step="1" value="${pending.seed}"></label>`)}
-      <div class="workshop-generator-actions">${button('regenerate-environment', 'Apply environment', 'class="workshop-primary workshop-wide"')}${button('new-world-seed', 'Try another variation', 'class="workshop-wide"')}</div>
     </section>`;
   }
   function syncSections(analysis, inspector) {
+    globalTools.hidden = globalGroup === 'world';
+    const pending = environmentDraft;
+    const settingsMarkup = details(
+      'environment',
+      'Scenery settings',
+      `${range('environment-density', 'Scenery fullness', pending.density, 0.25, 1, 0.01, '', true)}<label class="workshop-label">Environment seed<input type="number" data-editor-field="world-seed" aria-label="Environment seed" min="0" max="4294967295" step="1" value="${pending.seed}"></label>`,
+    );
+    if (sectionHTML.get('scenery-settings') !== settingsMarkup) {
+      root.querySelector('[data-editor-scenery-settings]').innerHTML =
+        settingsMarkup;
+      sectionHTML.set('scenery-settings', settingsMarkup);
+    }
     const renderers = {
       route: renderRoadPanel,
       shape: renderShape,

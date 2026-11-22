@@ -8,6 +8,7 @@ import {
 } from '../src/editor/document.js';
 import { seedVerificationCareer } from './verification-career.mjs';
 import {
+  enterRecoveredWorkspace,
   openEditorSection,
   revealEditorAction,
   revealEditorField,
@@ -188,11 +189,42 @@ async function capture(id, kind) {
   await frames();
   await page.screenshot({ path: resolve(evidence, `${id}-${kind}.png`) });
 }
+async function checkSceneryDock() {
+  const browse = page.locator('[data-editor-details="biomes"]');
+  if (!(await browse.evaluate((el) => el.open)))
+    await browse.locator('summary').click();
+  const seed = await revealEditorField(page, 'world-seed');
+  const apply = action('regenerate-environment');
+  const scroller = page.locator('[data-editor-section-body="world"]');
+  const before = await Promise.all([seed.boundingBox(), apply.boundingBox()]);
+  const scrolled = await scroller.evaluate((el) => {
+    el.scrollTop = el.scrollHeight;
+    return el.scrollTop;
+  });
+  assert(scrolled > 0, 'expanded biome swatches scroll independently');
+  assert.deepEqual(
+    await Promise.all([seed.boundingBox(), apply.boundingBox()]),
+    before,
+  );
+  for (const control of [seed, apply]) {
+    assert(
+      await control.evaluate((el) => {
+        const r = el.getBoundingClientRect();
+        return el.contains(
+          document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2),
+        );
+      }),
+      'scenery settings and Apply remain visible beside the scrolled swatches',
+    );
+  }
+  await browse.locator('summary').click();
+}
 async function applyFamily(id, previous, canonicalRoad) {
   currentFamily = id;
   const family = EDITOR_BIOMES.find((entry) => entry.id === id),
     preset = family.presets[0];
   await section('world');
+  if (id === 'nightweir') await checkSceneryDock();
   const camera = (await state()).preview.camera;
   const selector = await revealEditorField(page, 'biome');
   if (id === 'halcyon' && (await selector.inputValue()) === 'nightweir') {
@@ -327,9 +359,7 @@ async function importTrack(document) {
 }
 async function loadAfterReload(expected) {
   await page.reload();
-  await page.locator('[data-editor-field="name"]').waitFor({ timeout: 90000 });
-  const recovered = page.locator('[data-editor-action="recover-draft"]');
-  if (await recovered.isVisible()) await recovered.click();
+  await enterRecoveredWorkspace(page);
   await section('library');
   await change('saved', expected.id);
   await choose('load');
@@ -648,9 +678,16 @@ try {
     assert(
       await action('view-map').evaluate((el) => el === document.activeElement),
     );
-    assert.equal(
-      await page.locator('[data-editor-authoring] [data-editor-tool]').count(),
-      3,
+    await section('road-home');
+    const toolbar = page.locator('[data-editor-tool-palette]');
+    assert(await toolbar.isVisible());
+    assert.deepEqual(
+      await toolbar
+        .locator('[data-editor-tool]')
+        .evaluateAll((buttons) =>
+          buttons.map((button) => button.dataset.editorTool).sort(),
+        ),
+      ['draw', 'height', 'move', 'pan'],
     );
     assert.equal(await page.locator('[data-editor-authoring]').count(), 1);
     console.log(

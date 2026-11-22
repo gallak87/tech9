@@ -6,6 +6,18 @@ Run these commands from the app directory. `<dev-server>` means a Vite developme
 
 When starting a second Vite server in this checkout, give it an independent optimizer cache, for example `VN_VITE_CACHE_DIR=node_modules/.vite-5187 npm exec vite -- --host 127.0.0.1 --port 5187 --strictPort`. Sharing the default cache between concurrent servers can invalidate one server's optimized dependencies and produce HTTP 504 responses even in a fresh browser.
 
+## Art, route and jump experiments
+
+`VN_URL=<dev-server> npm run art:capture -- <level-id> <label> --quality both` captures fixed road and scenery views through the production art-pass entry. Use `--view-link '<name>=<copied-art-pass-url>'` to reproduce a hand-framed shot. The command saves desktop stills in `.experiments/level-art/` and prints the view and rendering counts. See the [art-pass camera guide](../ARCHITECTURE.md#lifecycle-and-verification).
+
+`VN_URL=<dev-server> npm run ship:compare -- --ships shrike --preview --label intake-pass` compares a scalar Blender export with the shipped ship under the same production inspector rig. Use `--candidate <file.glb>` for an existing export and `--baseline <file.glb>` to set a saved reference. The command saves fixed views in `.experiments/ship-art/` and prints rendering counts. See the [ship review workflow](../assets/ships/README.md#visual-improvement-workflow).
+
+`npm run check:route-variant -- <original-slug> <variant-slug> --width <target-metres>` checks a widened track's declared width and preserved route geometry. It reports the largest sampled centerline and orientation differences along with changes to checkpoints, finish and jump stations. See the [route comparison options](level-checks/README.md#route-variant-comparison).
+
+`npm run trace:jump -- saffron --case approach --ships kestrel,needle --throttle 1 --settle-ticks 120` traces a solo jump for each chassis through production physics. It prints contacts, transfers and final poses as JSON. Use `--list` for a circuit's authored cases, `--speed` or `--lateral` to vary the approach, and `--boost` to hold boost. The trace stops at the first transfer plus any requested settling time, or at the tick cap.
+
+## Verification commands
+
 Open `?dev=2&showcase=1&ship=bastion&music=0` to replay the 37/37 finale in an isolated completed developer career (`dev=1` also works). Developer modes only show the finale with this explicit flag. Any player hull ID may replace `bastion`; reload to replay. Closing reveals the unearned Encore Cup. Real careers stay unchanged, and this preview is absent from desktop builds.
 
 `VN_URL=<dev-server> node tools/release-verify.mjs` checks original reward-mode badges, 37/37 completion queuing/resume/credits, bonus-course gates and Encore Cup/trophy controls using isolated careers and the real finale scene. Race callbacks use an unshipped fixture; native race/background progression is checked separately. Add `--responsive` for the final production-menu/credits layout checks. `node tools/profile-shatterline-physics.mjs --case reported --ticks 240` runs the bounded ten-racer tube CPU reproduction and prints per-phase timings; it does not measure browser FPS.

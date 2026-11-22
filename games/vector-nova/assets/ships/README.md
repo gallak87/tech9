@@ -11,7 +11,14 @@ blender --background --threads 6 --python assets/ships/build_fleet.py -- --toktx
 
 Use Khronos KTX-Software 4.4.2. The fleet generator accepts `--ship bastion` (or `shrike` / `needle`) after `--` for an individual ship. Add `--render` for Blender review stills in ignored `.experiments/`. Sources are saved before export consolidation, preserving components, modifiers and editable procedural materials. Omitting `--toktx` exports a lossless PNG GLB for authoring; production assets use mipmapped UASTC KTX2.
 
-For a fast material/geometry check, use `-- --ship shrike --preview`. This skips baking and writes `.experiments/fleet-material-preview/shrike/shrike.glb` without replacing the production GLB or editable source. Visual acceptance uses the exported asset in Three.js.
+For a fast material and geometry check, generate a scalar preview and compare it with the production hull in the inspection stage. Run the comparison against a Vite development server.
+
+```sh
+blender --background --threads 6 --python assets/ships/build_fleet.py -- --ship shrike --preview
+VN_URL=http://127.0.0.1:5179 npm run ship:compare -- --ships shrike --preview --label intake-pass
+```
+
+The Blender preview skips baking and writes `.experiments/fleet-material-preview/shrike/shrike.glb`. For Kestrel, run its builder with `-- --preview`. Captures use the production Three.js inspection stage and fixed front, aft and close-up views. The baseline and candidate PNGs go under `.experiments/ship-art/intake-pass/` and render counts print to stdout. Use `--views front,bow --detail-center=X,Y,Z --detail-span N` to frame a specific assembly in model metres, or `--baseline PATH --candidate PATH` to compare two saved GLBs. The scalar preview shows geometry and broad material response. Inspect the fully baked export separately for texture detail.
 
 ## Visual improvement workflow
 

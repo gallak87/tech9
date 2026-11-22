@@ -17,6 +17,12 @@ const RIB_WIDTH = 1.15;
 const TRANSITION = 16;
 const wrap = (s, length) => ((s % length) + length) % length;
 
+export {
+  GAPS as LATTICE_GAPS,
+  RIB_SPACING as LATTICE_RIB_SPACING,
+  RIB_WIDTH as LATTICE_RIB_WIDTH,
+};
+
 export function createLatticeLayout(track) {
   // Retain the exact existing global tessellation consumed by contact shadows.
   const step = track.length / Math.ceil(track.length / 4);
@@ -240,6 +246,7 @@ export function solidRoadSeals(track, base, layout) {
     spacing: 30,
     breadth: 0.068,
     offset: 0.008,
+    roadCoordinates: true,
   });
   const positions = geometry.attributes.position;
   const centers = Array.from(
@@ -306,6 +313,153 @@ export function latticeApertureWalls(track, layout) {
     new THREE.Float32BufferAttribute(positions, 3),
   );
   geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  geometry.computeVertexNormals();
+  geometry.computeBoundingSphere();
+  return geometry;
+}
+
+export function movingLatticeWalls(track, layout) {
+  const positions = [];
+  const uv = [];
+  const roadCoord = [];
+  const shifts = [];
+  const indices = [];
+  const wallCount = GAPS.length * 2;
+  const segmentCount = Math.round(track.length / layout.step);
+  const appendRow = (station) => {
+    const first = positions.length / 3;
+    const frame = track.sample(station);
+    for (const [left, right] of GAPS) {
+      const centre = (left + right) / 2;
+      for (const edge of [left, right]) {
+        const shift = frame.right.clone().multiplyScalar(edge - centre);
+        for (const [u, height] of [
+          [0, -0.03],
+          [1, -0.7],
+        ]) {
+          positions.push(...framePoint(frame, edge, height).toArray());
+          uv.push(u, station / 16);
+          roadCoord.push(station, centre);
+          shifts.push(...shift.toArray());
+        }
+      }
+    }
+    return first;
+  };
+
+  let previous = null;
+  for (let row = 0; row < segmentCount; row++) {
+    const start = row * layout.step;
+    const end = (row + 1) * layout.step;
+    if (layout.spanAt((start + end) / 2)) {
+      previous = null;
+      continue;
+    }
+    const first = previous ?? appendRow(start);
+    const next = appendRow(end);
+    for (let wall = 0; wall < wallCount; wall++) {
+      const a = first + wall * 2;
+      const b = next + wall * 2;
+      // Face into the opening on both sides so the reveal reads from above.
+      if (wall % 2 === 0) indices.push(a, b, a + 1, a + 1, b, b + 1);
+      else indices.push(a, a + 1, b, a + 1, b + 1, b);
+    }
+    previous = next;
+  }
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute(
+    'position',
+    new THREE.Float32BufferAttribute(positions, 3),
+  );
+  geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  geometry.setAttribute(
+    'roadCoord',
+    new THREE.Float32BufferAttribute(roadCoord, 2),
+  );
+  geometry.setAttribute(
+    'latticeWallShift',
+    new THREE.Float32BufferAttribute(shifts, 3),
+  );
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  // Bound the inward travel that the vertex shader applies to the wall edges.
+  const maxShift = Math.max(...GAPS.map(([left, right]) => (right - left) / 2));
+  geometry.computeBoundingSphere();
+  geometry.boundingSphere.radius += maxShift;
+  return geometry;
+}
+
+export function movingLatticeRibWalls(track, layout) {
+  const positions = [];
+  const uv = [];
+  const roadCoord = [];
+  const indices = [];
+  const count = Math.max(1, Math.round(track.length / RIB_SPACING));
+  const halfWidth = track.width / 2;
+  const halfRib = RIB_WIDTH / 2;
+
+  for (let rib = 0; rib < count; rib++) {
+    const centre = (rib * track.length) / count;
+    if (
+      layout.spans.some(
+        ({ start, end }) =>
+          centre - halfRib <= end && centre + halfRib >= start,
+      )
+    )
+      continue;
+    for (const side of [-1, 1]) {
+      const station = centre + side * halfRib;
+      const row = Math.floor(station / layout.step);
+      const t = (station - row * layout.step) / layout.step;
+      const before = track.sample(row * layout.step);
+      const heights = [-0.035, -0.7];
+      const beforeLeft = heights.map((height) =>
+        framePoint(before, -halfWidth, height),
+      );
+      const beforeRight = heights.map((height) =>
+        framePoint(before, halfWidth, height),
+      );
+      const after = track.sample((row + 1) * layout.step);
+      const afterLeft = heights.map((height) =>
+        framePoint(after, -halfWidth, height),
+      );
+      const afterRight = heights.map((height) =>
+        framePoint(after, halfWidth, height),
+      );
+      const first = positions.length / 3;
+      // Follow both original road triangles so the top edge meets the cut.
+      const columns = [[-halfWidth, beforeLeft, afterLeft]];
+      if (t > 0 && t < 1)
+        columns.push([(1 - 2 * t) * halfWidth, beforeRight, afterLeft]);
+      columns.push([halfWidth, beforeRight, afterRight]);
+      for (const [lateral, from, to] of columns) {
+        for (let i = 0; i < heights.length; i++) {
+          positions.push(...from[i].clone().lerp(to[i], t).toArray());
+          uv.push(lateral / track.width + 0.5, station / 16);
+          roadCoord.push(station, lateral);
+        }
+      }
+      for (let column = 0; column < columns.length - 1; column++) {
+        const a = first + column * 2;
+        const b = a + 2;
+        if (side > 0) indices.push(a, a + 1, b, a + 1, b + 1, b);
+        else indices.push(a, b, a + 1, a + 1, b, b + 1);
+      }
+    }
+  }
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute(
+    'position',
+    new THREE.Float32BufferAttribute(positions, 3),
+  );
+  geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  geometry.setAttribute(
+    'roadCoord',
+    new THREE.Float32BufferAttribute(roadCoord, 2),
+  );
+  geometry.setIndex(indices);
   geometry.computeVertexNormals();
   geometry.computeBoundingSphere();
   return geometry;

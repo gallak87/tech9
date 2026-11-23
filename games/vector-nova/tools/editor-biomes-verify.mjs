@@ -671,8 +671,10 @@ try {
       );
     assert.deepEqual(
       available,
-      EDITOR_BIOMES.map((entry) => entry.id),
-      'native picker exposes every registered functional whole-course family',
+      EDITOR_BIOMES.filter(
+        ({ id }) => dev || !isExperimentalEditorBiome(id),
+      ).map(({ id }) => id),
+      'native picker exposes the world families available in this mode',
     );
     for (const id of ids)
       current = await applyFamily(id, current, canonicalRoad);

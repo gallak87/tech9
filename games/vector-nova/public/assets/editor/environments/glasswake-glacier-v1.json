@@ -23,14 +23,14 @@
     "layoutVersion": 4,
     "framing": "selected first road point, then two zoom-out steps"
   },
-  "documentFingerprint": "7c3e04f122fb0248aac6a788374c733302b8152c4bf4696b0e46627e4537af65",
-  "documentIdentity": "custom-glasswake-v8-1f6dbdf7",
-  "roadFingerprint": "2b7294368ecd315c38b6188245c4ec8ba03d673a3412dae8e67b3ddf7e5ee9c2",
+  "documentFingerprint": "8c7335d8c9adc41023537b04db1381bcea1f2f4b451acd25a1388a4dbb4fbb04",
+  "documentIdentity": "custom-glasswake-v8-aa84fea0",
+  "roadFingerprint": "0c5ce4a3a64d530dffcddef0bfa3805329922b770bd702b31b585eaccc137b46",
   "camera": {
     "mode": "orbit",
-    "position": [-511.54708323859484, 266.92958173598237, 618.7480312341468],
+    "position": [-511.538288090164, 266.92958173598237, 618.7368667206131],
     "quaternion": [
-      -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
+      -0.20880453566143964, -0.34339484666878795, -0.07859462265875518,
       0.9123067085457927
     ],
     "fov": 48,
@@ -45,10 +45,10 @@
     "height": 400,
     "format": "webp",
     "quality": 0.86,
-    "sha256": "e8cade046ae7b5b953a7e3a2877cca0c76f15ae8dad050decbcf5aafadaf7393"
+    "sha256": "15028320984b854ca9a65b9cd1c3267827327db7636c7e1d3680f5f3c70b5dbc"
   },
   "source": {
-    "revision": "ad455bfec8f354619e197ca0b47e71e1d0fb6c6d",
-    "dirty": true
+    "revision": "36edcf7a1968a2ba59ecdf6eca6f6cb90c40222e",
+    "dirty": false
   }
 }

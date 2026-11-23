@@ -23,14 +23,14 @@
     "layoutVersion": 4,
     "framing": "selected first road point, then two zoom-out steps"
   },
-  "documentFingerprint": "14abfc7cfa842f821cf40c2f1019f7b1ab2f9a9fd0c92984817fe0904d56a7d2",
-  "documentIdentity": "custom-zephyr-v8-1afdbbbf",
-  "roadFingerprint": "2b7294368ecd315c38b6188245c4ec8ba03d673a3412dae8e67b3ddf7e5ee9c2",
+  "documentFingerprint": "2916f549c4f03a9d46efa1cae0e0474abbd4896824a26d4e90fc074dddea0fb6",
+  "documentIdentity": "custom-zephyr-v8-0bb4e876",
+  "roadFingerprint": "0c5ce4a3a64d530dffcddef0bfa3805329922b770bd702b31b585eaccc137b46",
   "camera": {
     "mode": "orbit",
-    "position": [-511.54708323859484, 266.92958173598237, 618.7480312341468],
+    "position": [-511.538288090164, 266.92958173598237, 618.7368667206131],
     "quaternion": [
-      -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
+      -0.20880453566143964, -0.34339484666878795, -0.07859462265875518,
       0.9123067085457927
     ],
     "fov": 48,
@@ -45,10 +45,10 @@
     "height": 400,
     "format": "webp",
     "quality": 0.86,
-    "sha256": "11c7839b56b927e98b2847b6b8b355c051dab26bbac071f0f0e3aef7890a66a9"
+    "sha256": "7537ed4a0b62f322a0e5dcfd450bb9c7b5359c6a36190cf16615c6023e866d31"
   },
   "source": {
-    "revision": "ad455bfec8f354619e197ca0b47e71e1d0fb6c6d",
-    "dirty": true
+    "revision": "36edcf7a1968a2ba59ecdf6eca6f6cb90c40222e",
+    "dirty": false
   }
 }

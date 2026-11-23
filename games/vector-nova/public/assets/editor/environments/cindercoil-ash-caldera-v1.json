@@ -23,14 +23,14 @@
     "layoutVersion": 4,
     "framing": "selected first road point, then two zoom-out steps"
   },
-  "documentFingerprint": "6ce77d93c56fb806d25788dab0051f0e1732dc812c508d75daebb49c44a55caf",
-  "documentIdentity": "custom-cindercoil-v8-09635fe3",
-  "roadFingerprint": "2b7294368ecd315c38b6188245c4ec8ba03d673a3412dae8e67b3ddf7e5ee9c2",
+  "documentFingerprint": "24b9101738919fb65b7033a27f971156f143e7a7785d2b7d7912cf123930823e",
+  "documentIdentity": "custom-cindercoil-v8-e0e2567e",
+  "roadFingerprint": "0c5ce4a3a64d530dffcddef0bfa3805329922b770bd702b31b585eaccc137b46",
   "camera": {
     "mode": "orbit",
-    "position": [-511.54708323859484, 266.92958173598237, 618.7480312341468],
+    "position": [-511.538288090164, 266.92958173598237, 618.7368667206131],
     "quaternion": [
-      -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
+      -0.20880453566143964, -0.34339484666878795, -0.07859462265875518,
       0.9123067085457927
     ],
     "fov": 48,
@@ -45,10 +45,10 @@
     "height": 400,
     "format": "webp",
     "quality": 0.86,
-    "sha256": "5efe05fe9d619cd39ae43311bcac0fbbebad3daf9fbbb5970ae29d9350154954"
+    "sha256": "d106fe16b57ea64b28b0ac72fbed24f82ccfb4db50a721c086750821434c1812"
   },
   "source": {
-    "revision": "ad455bfec8f354619e197ca0b47e71e1d0fb6c6d",
-    "dirty": true
+    "revision": "36edcf7a1968a2ba59ecdf6eca6f6cb90c40222e",
+    "dirty": false
   }
 }

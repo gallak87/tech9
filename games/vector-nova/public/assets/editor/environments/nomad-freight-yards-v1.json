@@ -23,9 +23,9 @@
     "layoutVersion": 4,
     "framing": "selected first road point, then two zoom-out steps"
   },
-  "documentFingerprint": "5b8dc8664825b2f4481eb380bcf6bb2675d8eb98732cf358f7497a33e2dd425c",
-  "documentIdentity": "custom-nomad-v8-4b82d4b2",
-  "roadFingerprint": "47340789e9d79ee331baf9d4fa9a21f6db081a1524e3246ac52f231842ac9285",
+  "documentFingerprint": "40cbc07a5688acbe53e4a033e1927e81d20b00a0ef9180f706f090c84fb23b79",
+  "documentIdentity": "custom-nomad-v8-0da67bce",
+  "roadFingerprint": "0c5ce4a3a64d530dffcddef0bfa3805329922b770bd702b31b585eaccc137b46",
   "camera": {
     "mode": "orbit",
     "position": [-511.538288090164, 266.92958173598237, 618.7368667206131],
@@ -45,10 +45,10 @@
     "height": 400,
     "format": "webp",
     "quality": 0.86,
-    "sha256": "76c048cbdd3c3013ba0331a9bc5c1fb624730cba777e889bc5d96783a0a8c756"
+    "sha256": "2f1a7985dfc0067121f893726d0b4fa0c9c43c63dee55e4aec93c0e1781bb84f"
   },
   "source": {
-    "revision": "3602b6ea29e491186787fa52b5dfaf5bf44a539f",
+    "revision": "36edcf7a1968a2ba59ecdf6eca6f6cb90c40222e",
     "dirty": false
   }
 }

@@ -23,14 +23,14 @@
     "layoutVersion": 4,
     "framing": "selected first road point, then two zoom-out steps"
   },
-  "documentFingerprint": "20a7d4012fc3d221bad077a212ba6d5e193a948e876b04865ff88696c1c2a4c4",
-  "documentIdentity": "custom-vesper-forest-v8-4bf7aed8",
-  "roadFingerprint": "2b7294368ecd315c38b6188245c4ec8ba03d673a3412dae8e67b3ddf7e5ee9c2",
+  "documentFingerprint": "cb1ad9b1f81f787d6fef38306a728bb8aea134993d05b5a94f6740e6a1caa7dc",
+  "documentIdentity": "custom-vesper-forest-v8-730cc969",
+  "roadFingerprint": "0c5ce4a3a64d530dffcddef0bfa3805329922b770bd702b31b585eaccc137b46",
   "camera": {
     "mode": "orbit",
-    "position": [-511.54708323859484, 266.92958173598237, 618.7480312341468],
+    "position": [-511.538288090164, 266.92958173598237, 618.7368667206131],
     "quaternion": [
-      -0.20880453566143964, -0.34339484666878783, -0.07859462265875516,
+      -0.20880453566143964, -0.34339484666878795, -0.07859462265875518,
       0.9123067085457927
     ],
     "fov": 48,
@@ -45,10 +45,10 @@
     "height": 400,
     "format": "webp",
     "quality": 0.86,
-    "sha256": "05a90054c200df525258cc4427f2fd0af2de480bf670a7de2cc073457a3f80af"
+    "sha256": "b76a9ceaa80abe11677fb4e08f9fe7f216c67894c670e21be261954a4276fd07"
   },
   "source": {
-    "revision": "ad455bfec8f354619e197ca0b47e71e1d0fb6c6d",
-    "dirty": true
+    "revision": "36edcf7a1968a2ba59ecdf6eca6f6cb90c40222e",
+    "dirty": false
   }
 }

@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { Texture } from 'three';
 import { mockBundledEditorAssets } from './test-assets.js';
 import { EDITOR_BIOMES } from './biomes.js';
 import { generateDocument, analyzeDocument } from './document.js';
@@ -64,10 +65,15 @@ test('every whole-course biome drives on its rendered road and full regional col
             (_, i) => 180 + 2 * i,
           ).find((station) => coverage(station, 0) === 0);
           assert.notEqual(opening, undefined);
-          assert(
-            road.group.children.find((mesh) => mesh.userData.roadSurface)
-              .customDepthMaterial,
+          const deck = road.group.children.find(
+            (mesh) => mesh.userData.roadSurface,
           );
+          assert(deck.customDepthMaterial);
+          const reflection = new Texture();
+          subtest.after(() => reflection.dispose());
+          road.setReflection(reflection);
+          assert.equal(deck.material.envMap, reflection);
+          assert.equal('envMap' in deck.customDepthMaterial, false);
           for (let frame = 0; frame <= 12; frame++)
             road.update({ time: frame / 10, mode: 'racing' });
           assert.equal(coverage(opening, 0), 1);

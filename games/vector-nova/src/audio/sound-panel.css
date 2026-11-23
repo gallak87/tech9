@@ -17,6 +17,9 @@
 body:not(:has([data-music-player])) .sound-panel {
   right: 2.5vw;
 }
+body[data-screen='editor'] .sound-panel {
+  display: none;
+}
 .sound-panel[data-docked] {
   position: static;
   inset: auto;

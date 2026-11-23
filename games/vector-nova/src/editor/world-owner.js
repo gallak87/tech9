@@ -263,6 +263,7 @@ export function createEditorOwner(
     isDisposed: () => disposed,
     setReflection(texture) {
       for (const m of materials) {
+        if (!('envMap' in m)) continue;
         m.envMap = texture;
         m.envMapIntensity = 0.7;
         m.needsUpdate = true;

@@ -2028,9 +2028,12 @@ export async function createGame({
       const hull = ship.group.userData.bounds;
       glideTrail?.update({
         active: mode === 'racing' || mode === 'paused',
+        paused: mode === 'paused',
         grounded,
         state: s,
+        time: T.MathUtils.lerp(prev.time, state.time, alpha),
         boost: glideBoost,
+        boosting: s.boosting,
         accent: ship.selected.liveryAccent,
         tail: hull.min[2],
         hullWidth: hull.max[0] - hull.min[0],

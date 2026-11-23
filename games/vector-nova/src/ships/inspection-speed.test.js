@@ -38,14 +38,14 @@ function harness(t) {
     Math.PI / 3,
   );
   let time = 0;
-  function update(overrides = {}) {
-    time += 0.05;
+  function update({ dt = 0.05, ...overrides } = {}) {
+    time += dt;
     preview.update({
       active: true,
       driving: true,
       boost: false,
       time,
-      dt: 0.05,
+      dt,
       heading,
       accent: 0x40e3dc,
       settings: { quality: 'high' },
@@ -60,6 +60,12 @@ function drawnWidth({ index, attributes, drawRange }) {
     attributes.position.getX(vertex),
   );
   return Math.max(...x) - Math.min(...x);
+}
+
+function visiblePulses(trail) {
+  return trail.material.uniforms.boostPulses.value.filter(
+    ({ z: strength }) => strength > 0,
+  ).length;
 }
 
 test('Driving previews early blur with one wide floor imprint', (t) => {
@@ -131,4 +137,44 @@ test('The last impression fades without moving if the hull rotates after release
   assert.ok(Math.max(...fade.array) < opacity);
   for (let i = 0; i < 6; ++i) update({ driving: false, heading: turned });
   assert.ok(!trail.visible);
+});
+
+test('Each Boost press previews one short diamond over the smooth wake', (t) => {
+  const { update, trail } = harness(t);
+  for (let i = 0; i < 20; ++i) update();
+  assert.ok(trail.visible);
+  assert.equal(visiblePulses(trail), 0);
+
+  for (let i = 0; i < 3; ++i) update({ boost: true });
+  assert.equal(visiblePulses(trail), 1);
+  for (let i = 0; i < 20; ++i) update({ boost: true });
+  assert.ok(trail.visible);
+  assert.equal(visiblePulses(trail), 0);
+
+  for (let i = 0; i < 20; ++i) update({ driving: false });
+  assert.ok(!trail.visible);
+  const fromRest = { driving: false, boost: true, dt: 1 / 60 };
+  update(fromRest);
+  assert.ok(!trail.visible);
+  for (let i = 0; i < 6; ++i) update(fromRest);
+  assert.ok(trail.visible);
+  assert.equal(visiblePulses(trail), 1);
+});
+
+test('Restoring the preview with Boost held does not trigger a diamond', (t) => {
+  const { update, trail } = harness(t);
+  for (const suppressed of [
+    { active: false },
+    { settings: { quality: 'high', reducedMotion: true } },
+  ]) {
+    update();
+    for (let i = 0; i < 3; ++i) update({ boost: true });
+    assert.equal(visiblePulses(trail), 1);
+    update({ boost: true, ...suppressed });
+    assert.ok(!trail.visible);
+    assert.equal(visiblePulses(trail), 0);
+    for (let i = 0; i < 3; ++i) update({ boost: true });
+    assert.ok(trail.visible);
+    assert.equal(visiblePulses(trail), 0);
+  }
 });

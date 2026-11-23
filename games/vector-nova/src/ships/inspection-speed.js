@@ -64,6 +64,8 @@ export function createInspectionSpeedPreview(stage) {
         imprintRelease,
       );
       imprint.active = imprint.fadeScale > 0;
+      imprint.boosting = Boolean(boost);
+      imprint.time = time;
       trail.preview(imprint);
       lens.strength =
         visible && high

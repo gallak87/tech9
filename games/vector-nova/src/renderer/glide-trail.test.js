@@ -42,11 +42,17 @@ function stripVertices(mesh) {
         across: trailSurface.getX(id),
         phase: trailSurface.getY(id),
         age: trailSurface.getZ(id),
-        lattice: trailSurface.getW(id),
+        halfWidth: trailSurface.getW(id),
       });
     }
   }
   return vertices;
+}
+
+function activePulses(trail) {
+  return trail.mesh.material.uniforms.boostPulses.value.filter(
+    ({ z }) => z > 0,
+  );
 }
 
 function spanAt(points, target) {
@@ -89,7 +95,9 @@ test('the film is broad over the banked road and fades within a bounded distance
   assert.ok(Math.abs(head.width - 4.6 * 0.6) < 1e-4);
   assert.ok(Math.abs(head.width - tail.width) < 1e-4, 'film fades in place');
   assert.ok(head.center > tail.center, 'older trace stays on the driven path');
-  assert.equal(head.fade, 0, 'the leading edge is feathered');
+  const leadingFade = mesh.material.uniforms.leadingFade.value;
+  assert.ok(Math.abs(leadingFade.x - points[0].phase) < 1e-5);
+  assert.equal(leadingFade.y, 0.9, 'the shader feathers the first 0.9 m');
   assert.ok(points.some(({ fade }) => fade > 0.26) && tail.fade < 1e-6);
 });
 
@@ -171,23 +179,158 @@ test('diamond coordinates stay on the deposited path as trail age advances', (t)
   assert.ok(airborne[0].age > retained[0].age);
 });
 
-test('the streak gains lattice detail only on road laid at higher speeds', (t) => {
+test('a boost stamps one stationary diamond on fresh road and holding does not repeat', (t) => {
   const trail = createGlideTrail({ track });
   t.after(() => trail.dispose());
-  update(trail, 0, 20, 0, { speed: 150 / 3.6 });
-  update(trail, 0.05, 22, 0, { speed: 150 / 3.6 });
-  const slow = stripVertices(trail.mesh);
-  assert.ok(slow.some(({ fade }) => fade > 0.23));
-  assert.ok(slow.every(({ lattice }) => lattice === 0));
+  function frame(time, boosting) {
+    update(trail, time, 20 + time * 100, 0, { boost: 1, boosting });
+  }
+  frame(0, false);
+  frame(0.06, false);
+  assert.ok(stripVertices(trail.mesh).some(({ fade }) => fade > 0.26));
+  assert.equal(
+    activePulses(trail).length,
+    0,
+    'speed and pressure cannot trigger a stamp',
+  );
 
-  update(trail, 0.1, 25, 0, { speed: 250 / 3.6 });
-  update(trail, 0.15, 29, 0, { speed: 320 / 3.6 });
+  frame(0.1, true);
+  const edge = trail.mesh.material.uniforms.leadingFade.value.x;
+  assert.equal(activePulses(trail).length, 0, 'the beginning is feathered');
+  frame(0.17, true);
+  const [pulse] = activePulses(trail);
+  assert.equal(activePulses(trail).length, 1);
+  assert.deepEqual(pulse.toArray(), [edge, 1 / 5.5, 1]);
+  assert.ok(stripVertices(trail.mesh)[0].phase > edge + 5.5);
+  frame(0.23, false);
+  assert.equal(pulse.x, edge);
+  assert.ok(pulse.z > 0 && pulse.z < 1);
+
+  frame(0.24, true);
+  frame(0.28, true);
+  const [older, newer] = activePulses(trail);
+  assert.equal(activePulses(trail).length, 2);
+  assert.equal(older.x, edge);
+  assert.ok(newer.x > older.x + 5.5);
+  frame(0.51, true);
+  frame(0.8, true);
+  assert.equal(activePulses(trail).length, 0);
+  assert.equal(trail.mesh.visible, true, 'the glow stays visible');
+});
+
+test('reset, teleport and reduced motion clear pulses without retriggering held boost', (t) => {
+  const trail = createGlideTrail({ track });
+  t.after(() => trail.dispose());
+  update(trail, 0, 100);
+  update(trail, 0.05, 105, 0, { boosting: true });
+  update(trail, 0.1, 110, 0, { boosting: true });
+  assert.equal(activePulses(trail).length, 1);
+  update(trail, 0.11, 800, 0, { boosting: true });
+  assert.equal(activePulses(trail).length, 0);
+  update(trail, 0.15, 804, 0, { boosting: true });
+  assert.equal(activePulses(trail).length, 0);
+
+  update(trail, 0.2, 809, 0, { boosting: false });
+  update(trail, 0.25, 814, 0, { boosting: true });
+  update(trail, 0.3, 819, 0, { boosting: true });
+  assert.equal(activePulses(trail).length, 1);
+  update(trail, 0.32, 821, 0, { boosting: true, reducedMotion: true });
+  assert.equal(activePulses(trail).length, 0);
+  update(trail, 0.36, 825, 0, { boosting: true });
+  update(trail, 0.41, 830, 0, { boosting: true });
+  assert.equal(activePulses(trail).length, 0);
+
+  update(trail, 0.46, 835, 0, { boosting: false });
+  update(trail, 0.51, 840, 0, { boosting: true });
+  update(trail, 0.56, 845, 0, { boosting: true });
+  assert.equal(activePulses(trail).length, 1);
+  update(trail, 0.57, 100, 0, { boosting: true, resetCount: 1 });
+  assert.equal(activePulses(trail).length, 0);
+});
+
+test('a slow grounded boost waits for fresh deposits while an airborne onset does not', (t) => {
+  const trail = createGlideTrail({ track });
+  t.after(() => trail.dispose());
+  update(trail, 0, 100, 0, { speed: 16 });
+  update(trail, 0.05, 101, 0, { speed: 18, boosting: true });
+  assert.equal(trail.mesh.visible, false);
+  update(trail, 0.1, 102, 0, { speed: 22, boosting: true });
+  const freshPhase = trail.mesh.material.uniforms.leadingFade.value.x;
+  update(trail, 0.15, 104, 0, { speed: 26, boosting: true });
+  const [pulse] = activePulses(trail);
+  assert.equal(pulse.x, freshPhase);
+  update(trail, 0.4, 115, 0, { speed: 42 });
+  assert.equal(activePulses(trail).length, 0);
+  update(trail, 0.44, 117, 0, {
+    speed: 42,
+    grounded: false,
+    boosting: true,
+  });
+  update(trail, 0.49, 120, 0, { speed: 42, boosting: true });
+  update(trail, 0.54, 124, 0, { speed: 42, boosting: true });
+  assert.equal(activePulses(trail).length, 0);
+});
+
+test('the wake head advances on display frames between physics ticks', (t) => {
+  const trail = createGlideTrail({ track });
+  t.after(() => trail.dispose());
+  const speed = 500 / 3.6;
+  const step = 1 / 240;
+  update(trail, 0, 20, 0, { time: 0, speed });
+  update(trail, 2 * step, 20 + 2 * step * speed, 0, {
+    time: 2 * step,
+    speed,
+  });
+  const before = stripVertices(trail.mesh);
+  const phaseBefore = trail.mesh.material.uniforms.leadingFade.value.x;
+  update(trail, 2 * step, 20 + 3 * step * speed, 0, {
+    time: 3 * step,
+    speed,
+  });
+  const next = stripVertices(trail.mesh);
+  assert.ok(Math.abs(next[0].z - before[0].z - step * speed) < 1e-5);
+  assert.ok(
+    Math.abs(
+      trail.mesh.material.uniforms.leadingFade.value.x -
+        phaseBefore -
+        step * speed,
+    ) < 1e-5,
+  );
+
+  update(trail, 2 * step, 24, 0, { time: 3.5 * step, paused: true, speed });
+  assert.deepEqual(stripVertices(trail.mesh), next);
+  update(trail, 2 * step, 22, 0, { time: 2.5 * step, speed });
+  assert.deepEqual(
+    stripVertices(trail.mesh),
+    next,
+    'resume cannot rewind the wake',
+  );
+  update(trail, 4 * step, 20 + 4 * step * speed, 0, {
+    time: 4 * step,
+    speed,
+  });
+  assert.ok(stripVertices(trail.mesh)[0].z > next[0].z);
+  update(trail, 0, 20, 0, { time: 0, speed });
+  assert.equal(
+    trail.mesh.visible,
+    false,
+    'a real simulation rewind clears the path',
+  );
+});
+
+test('sub-tick display updates preserve the full low-speed history', (t) => {
+  const trail = createGlideTrail({ track });
+  t.after(() => trail.dispose());
+  const speed = 100 / 3.6;
+  for (let frame = 0; frame <= 240; frame++) {
+    const time = frame / 240;
+    update(trail, Math.floor(frame / 2) / 120, 20 + speed * time, 0, {
+      time,
+      speed,
+    });
+  }
   const points = stripVertices(trail.mesh);
-  const slowDeposits = points.filter(({ z }) => z <= 20.861);
-  assert.ok(slowDeposits.length > 0);
-  assert.ok(slowDeposits.every(({ lattice }) => lattice === 0));
-  assert.ok(points.some(({ lattice }) => lattice > 0.4 && lattice < 0.7));
-  assert.ok(points.some(({ lattice }) => lattice === 1));
+  assert.ok(Math.abs(points[0].z - points.at(-1).z - 25) < 1e-5);
 });
 
 test('the trace holds when time stops, fades after liftoff, and clears on recovery', (t) => {
@@ -304,7 +447,10 @@ test('the inspector matches the broad profile, fading it in place on its plinth'
   assert.ok(points.every(({ y, z }) => y === 0 && z >= -6.3 - 1e-6));
   const head = spanAt(points, frame.tail * 0.38);
   assert.ok(Math.abs(head.width - 4.2 * 0.65) < 1e-4);
-  assert.ok(head.fade === 0 && points.at(-1).fade < 1e-6);
+  const leadingFade = mesh.material.uniforms.leadingFade.value;
+  assert.ok(Math.abs(leadingFade.x - points[0].phase) < 1e-5);
+  assert.equal(leadingFade.y, 0.9 * 2.25);
+  assert.ok(points.at(-1).fade < 1e-6);
   assert.ok(points.some(({ fade }) => fade > 0.28));
   assert.ok(Math.abs(points.at(-1).z + 6.3) < 1e-6);
   assert.ok(points.every(({ phase, z }) => Math.abs(phase + 2.25 * z) < 1e-5));
@@ -321,4 +467,31 @@ test('the inspector matches the broad profile, fading it in place on its plinth'
   assert.equal(mesh.visible, false);
   trail.dispose();
   assert.equal(mesh.parent, null);
+});
+
+test('the inspector previews one pulse per engagement with the same fade and no surprise on reactivation', (t) => {
+  const trail = createGlideTrail();
+  t.after(() => trail.dispose());
+  const frame = { active: true, speed: 80, tail: -3.9, boost: 1 };
+  trail.preview({ ...frame, time: 0 });
+  assert.equal(activePulses(trail).length, 0);
+  trail.preview({ ...frame, time: 0.05, speed: 8, boosting: true });
+  assert.equal(trail.mesh.visible, false);
+  trail.preview({ ...frame, time: 0.08, speed: 15, boosting: true });
+  trail.preview({ ...frame, time: 0.12, speed: 22, boosting: true });
+  trail.preview({ ...frame, time: 0.16, boosting: true });
+  const [pulse] = activePulses(trail);
+  const head = trail.mesh.material.uniforms.leadingFade.value.x;
+  assert.deepEqual(pulse.toArray(), [head + 0.55 * 2.25, 1 / 5.5, 1]);
+  trail.preview({ ...frame, time: 0.19, boosting: true, active: false });
+  assert.equal(activePulses(trail).length, 0);
+  trail.preview({ ...frame, time: 0.23, boosting: true });
+  trail.preview({ ...frame, time: 0.31, boosting: true });
+  assert.equal(activePulses(trail).length, 0);
+  trail.preview({ ...frame, time: 0.35, boosting: false });
+  trail.preview({ ...frame, time: 0.4, boosting: true });
+  trail.preview({ ...frame, time: 0.46, boosting: true });
+  assert.equal(activePulses(trail).length, 1);
+  trail.preview({ ...frame, time: 0.68, boosting: true });
+  assert.equal(activePulses(trail).length, 0);
 });

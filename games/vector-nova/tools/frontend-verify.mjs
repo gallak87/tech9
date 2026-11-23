@@ -271,9 +271,8 @@ async function finishInputs(difficulty, initial, fieldBuild) {
   const { dynamics } = world;
   const actors = createSimulationActors(world);
   try {
-    // Match production's distinct player and rival factories and acquisition
-    // order. Stock player motion differs from equipment-capable rival motion.
-    const { runtime } = await actors.createPlayer();
+    // Match the live race's motion options and actor acquisition order.
+    const { runtime } = await actors.createPlayer({ equipment: true });
     const { devices } = actors.prepareRacing();
     const racers = await actors.createField();
     const vehicle = {
@@ -3154,6 +3153,24 @@ try {
         });
         await page.locator('#home').click();
         assert.equal((await front(page)).screen, 'home');
+        const setupGaps = await page
+          .locator('.menu-wide')
+          .evaluate((layout) => {
+            const resume = layout.querySelector(
+              '[data-action="resume-session"]',
+            );
+            const modes = layout.querySelector('.mode-picker');
+            const picker =
+              layout.querySelector('.menu-track-picker').firstElementChild;
+            const bottom = resume.getBoundingClientRect().bottom;
+            return [modes, picker].map(
+              (panel) => panel.getBoundingClientRect().top - bottom,
+            );
+          });
+        assert.ok(
+          setupGaps.every((gap) => gap >= 0 && gap <= 32),
+          `Resume should sit close to both setup columns, got ${setupGaps.join('/')} px`,
+        );
         await page.locator('[data-action="resume-session"]').click();
         assert.ok(
           await page.evaluate(() => window.__VN === window.retainedRuntime),

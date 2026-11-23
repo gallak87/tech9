@@ -54,6 +54,10 @@
   align-items: start;
   gap: clamp(24px, 4vw, 64px);
 }
+.front-content.menu-wide:has(> .session-return) {
+  align-content: start;
+  row-gap: 0;
+}
 .race-menu {
   padding-top: 40px;
   max-width: 450px;
@@ -313,6 +317,9 @@
   height: auto;
   display: flex;
   flex-direction: column;
+}
+.menu-wide > .session-return ~ .menu-picker {
+  padding-top: 8px;
 }
 .picker-tabs {
   display: flex;

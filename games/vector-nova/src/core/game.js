@@ -488,6 +488,8 @@ export async function createGame({
       settings,
       emit,
       audioImmersion: definition.audio?.immersion,
+      // Magnetic flight and the equipment wrapper opt in separately.
+      equipment: !freestyle,
       equipmentEnabled: !freestyle,
       ...(interceptor
         ? {

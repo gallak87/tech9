@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import { mkdir, readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { EDITOR_BIOMES } from '../src/editor/biomes.js';
+import {
+  EDITOR_BIOMES,
+  isExperimentalEditorBiome,
+} from '../src/editor/biomes.js';
 import {
   generateDocument,
   ENVIRONMENT_LAYOUT_VERSION,
@@ -27,6 +30,7 @@ const subset = process.argv
   ?.slice(9)
   .split(',');
 const ids = subset ?? EDITOR_BIOMES.map((entry) => entry.id);
+const dev = ids.some(isExperimentalEditorBiome);
 assert.equal(new Set(ids).size, ids.length);
 for (const id of ids)
   assert(
@@ -635,7 +639,9 @@ try {
     const error = request.failure()?.errorText;
     if (error !== 'net::ERR_ABORTED') fail(`${error} ${request.url()}`);
   });
-  await page.goto(new URL('?intro=0&editor=1', base).href);
+  await page.goto(
+    new URL(`?intro=0&editor=1${dev ? '&dev=2' : ''}`, base).href,
+  );
   await page.locator('[data-editor-field="name"]').waitFor({ timeout: 90000 });
   await change('name', name);
   await ready('nightweir');

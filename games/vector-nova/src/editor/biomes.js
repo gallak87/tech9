@@ -629,6 +629,9 @@ export const EDITOR_BIOMES = freeze([
 export function isEditorBiome(id) {
   return EDITOR_BIOMES.some((value) => value.id === id);
 }
+export function isExperimentalEditorBiome(id) {
+  return id === 'oriel' || id === 'worldspire';
+}
 export function editorBiome(id = 'nightweir') {
   const value = EDITOR_BIOMES.find((entry) => entry.id === id);
   if (!value) throw new Error('Choose a supported editor biome.');

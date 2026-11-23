@@ -1,11 +1,15 @@
 import * as T from 'three';
 import metadata from './kits/cindercoil-assets.json' with { type: 'json' };
 import { assetURL } from '../assets/url.js';
+import { roadsideScenerySites } from './roadside-scenery.js';
 import {
   createCindercoilMaterials,
   applyCindercoilAssetMaterials,
 } from '../levels/cindercoil/environment/materials.js';
-import { createLavaPool } from '../levels/cindercoil/environment/geometry.js';
+import {
+  colorCalderaTerrain,
+  createLavaPool,
+} from '../levels/cindercoil/environment/geometry.js';
 
 const assets = Object.fromEntries(
   Object.entries(metadata).map(([id, entry]) => [
@@ -54,7 +58,6 @@ export const cindercoilBiomeDescriptor = {
     // material is borrowed from the finish owner rather than double-owned.
     const soil = context.cinder.materials.basalt;
     soil.name = 'Cindercoil / caldera basalt';
-    soil.vertexColors = false;
     return { soil };
   },
   finishTerrain(materials, textures, context) {
@@ -136,10 +139,46 @@ export const cindercoilBiomeDescriptor = {
           }
         }
       }
+    // Alternate fractured walls and broken tubes, with isolated taller vent
+    // stacks marking the caldera skyline. Height is measured from real ground.
+    const vents = furnace
+      ? ['hollow-tower', 'broken-lava-tube', 'fractured-ridge']
+      : ['fractured-ridge', 'broken-lava-tube', 'hollow-tower', 'talus-apron'];
+    for (const site of roadsideScenerySites(track, doc.settings.density, 24)) {
+      const asset = vents[site.id % vents.length];
+      const [min, max] = assets[asset].bounds;
+      const scale =
+        (95 + random() * 50) / Math.max(max[0] - min[0], max[2] - min[2]);
+      const footprint =
+        (Math.hypot(max[0] - min[0], max[2] - min[2]) * scale) / 2;
+      for (const offset of site.offsets) {
+        const position = site.position
+          .clone()
+          .addScaledVector(
+            site.right,
+            offset + Math.sign(offset) * (footprint + track.width / 2),
+          );
+        if (
+          placement.place(asset, {
+            id: 'roadside-vent-' + site.id,
+            x: position.x,
+            z: position.z,
+            yaw: site.yaw + Math.sign(offset) * 0.38,
+            scale,
+            embed: asset === 'hollow-tower' ? 0.11 : 0.18,
+            solid: false,
+          })
+        )
+          break;
+      }
+    }
     return placement.placements;
   },
   build(context) {
     if (context.collectSolid) return;
+    for (const mesh of context.owner.group.children)
+      if (mesh.material === context.materials.soil)
+        colorCalderaTerrain(mesh.geometry);
     // Lava remains a landscape surface. Active floor heat is a separately
     // deferred hazard feature; its visual never covers the road or flight path.
     for (const [i, basin] of context.plan.basins.entries()) {

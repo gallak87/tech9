@@ -34,6 +34,9 @@ export function createRavelFoilFinish(renderer = null) {
     : Promise.resolve();
   return {
     ready,
+    get ownedTextures() {
+      return texture ? [texture] : [];
+    },
     bind(material) {
       borrowers.add(material);
       if (texture) {

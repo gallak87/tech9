@@ -2077,6 +2077,7 @@ export async function createFrontend(
       workshop = createWorkshop(workshopHost, {
         document: workshopDraft,
         shipId,
+        showExperimentalBiomes: Boolean(developer),
         onExit: closeWorkshop,
         onDriving: (driving) => music?.setDriving(driving),
         onTunes: music ? (opener) => music.open(opener) : null,

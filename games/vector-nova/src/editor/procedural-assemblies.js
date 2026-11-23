@@ -75,6 +75,7 @@ export function createProceduralAssemblies(context, source) {
       yaw = 0,
       embed = 0.04,
       overlap = false,
+      decorative = false,
     } = {},
   ) {
     const prototype = source.prototypes[asset],
@@ -106,7 +107,7 @@ export function createProceduralAssemblies(context, source) {
         ),
       );
     const bounds = local.clone().applyMatrix4(matrix);
-    const solid = contactFaces[asset] <= remainingContactFaces;
+    const solid = !decorative && contactFaces[asset] <= remainingContactFaces;
     if (
       !placement.acceptBounds(bounds, {
         id,

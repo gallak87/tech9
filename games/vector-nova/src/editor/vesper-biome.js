@@ -6,6 +6,8 @@ import {
 import { createFoliageWind } from '@worldkit/environment/weather';
 import { assetURL } from '../assets/url.js';
 import { createProceduralAssemblies } from './procedural-assemblies.js';
+import { createDistrictWater } from './district-water.js';
+import { fillRoadsideKit } from './roadside-scenery.js';
 
 function forestSource(context) {
   const kit = createLivingForestKit({
@@ -169,6 +171,15 @@ export const vesperBiomeDescriptor = {
   waterEnabled: true,
   limit: 245,
   clearanceMargin: 3,
+  createFinish(context) {
+    return createDistrictWater(context, {
+      name: 'Vesper / sheltered forest water',
+      color: '#174f52',
+    });
+  },
+  materials(owner, { finish }) {
+    return finish ? { water: finish.water } : {};
+  },
   build(context) {
     const source = forestSource(context);
     context.vesperSource = source;
@@ -273,6 +284,12 @@ export const vesperBiomeDescriptor = {
           understory++;
       }
     }
+    fillRoadsideKit(context, kit, {
+      families: ['grove-0', 'grove-1', 'grove-2'],
+      limit: 14,
+      size: 1.85,
+      dry: true,
+    });
     const ready = kit.ready.then(() => {
       if (owner.isDisposed() || context.collectSolid) return;
       owner.group.traverse((mesh) => {

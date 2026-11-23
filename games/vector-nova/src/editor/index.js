@@ -51,7 +51,11 @@ import { getShip } from '../ships/catalog.js';
 import { WORLD_PRESETS } from './world-presets.js';
 import { ROAD_PRESETS, roadPresetOptions } from './road-presets.js';
 import { PLAYABLE_STARTERS } from './playable-starters.js';
-import { EDITOR_BIOMES, editorBiome } from './biomes.js';
+import {
+  EDITOR_BIOMES,
+  editorBiome,
+  isExperimentalEditorBiome,
+} from './biomes.js';
 import { findNextSuitableJump } from './jump-placement.js';
 import { prepareJumpEdit } from './jump-authoring.js';
 import {
@@ -117,11 +121,15 @@ export function createTrackEditor(
     onPreviewReady,
     onPreviewError,
     shipId = 'kestrel',
+    showExperimentalBiomes = false,
     document: initial,
     library = createTrackLibrary(),
     recovery = createDraftRecovery(),
   } = {},
 ) {
+  const biomeChoices = showExperimentalBiomes
+    ? EDITOR_BIOMES
+    : EDITOR_BIOMES.filter(({ id }) => !isExperimentalEditorBiome(id));
   const previewShip = getShip(shipId);
   let doc = validateDocument(
     initial ?? createDocument({ seed: 42017, blank: true }),
@@ -1603,13 +1611,15 @@ export function createTrackEditor(
       ['sceneryPreset', 'density', 'waterLevel'].some(
         (key) => pending[key] !== doc.settings[key],
       );
-    const biomeCards = EDITOR_BIOMES.map((entry) =>
-      button(
-        `choose-biome-${entry.id}`,
-        `<img src="${escape(environmentThumbnail(entry.id, entry.presets[0].id))}" alt="" loading="lazy"><strong>${escape(entry.label)}</strong>`,
-        `class="workshop-biome-card" aria-pressed="${entry.id === pending.biome}"`,
-      ),
-    ).join('');
+    const biomeCards = biomeChoices
+      .map((entry) =>
+        button(
+          `choose-biome-${entry.id}`,
+          `<img src="${escape(environmentThumbnail(entry.id, entry.presets[0].id))}" alt="" loading="lazy"><strong>${escape(entry.label)}</strong>`,
+          `class="workshop-biome-card" aria-pressed="${entry.id === pending.biome}"`,
+        ),
+      )
+      .join('');
     const presetCards = presets
       .map((preset) =>
         button(
@@ -1619,8 +1629,11 @@ export function createTrackEditor(
         ),
       )
       .join('');
+    const existingBiome = biomeChoices.some(({ id }) => id === pending.biome)
+      ? ''
+      : option(pending.biome, family.label, true);
     return `<section class="workshop-section workshop-scenery-palette">
-      <label class="workshop-label">Biome<select data-editor-field="biome" aria-label="World family">${EDITOR_BIOMES.map((entry) => option(entry.id, entry.label, entry.id === pending.biome)).join('')}</select></label>
+      <label class="workshop-label">Biome<select data-editor-field="biome" aria-label="World family">${existingBiome}${biomeChoices.map((entry) => option(entry.id, entry.label, entry.id === pending.biome)).join('')}</select></label>
       ${details('biomes', 'Browse biomes', `<div class="workshop-biome-cards" role="group" aria-label="Biome choices">${biomeCards}</div>`)}
       <div class="workshop-world-presets" role="group" aria-label="Scenery swatches">${presetCards}</div>
       ${selectedStyle ? `<p class="workshop-help">${escape(selectedStyle.description)}</p>` : ''}
@@ -3233,6 +3246,7 @@ export function createTrackEditor(
         );
       if (field === 'environment-density') environmentDraft.density = number;
       if (field === 'biome') {
+        if (!biomeChoices.some(({ id }) => id === value)) return;
         environmentDraft.biome = value;
         const preset = (editorBiome(value).presets ?? WORLD_PRESETS)[0];
         Object.assign(environmentDraft, {

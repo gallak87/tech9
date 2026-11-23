@@ -2,7 +2,10 @@ import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
-import { EDITOR_BIOMES } from '../src/editor/biomes.js';
+import {
+  EDITOR_BIOMES,
+  isExperimentalEditorBiome,
+} from '../src/editor/biomes.js';
 import {
   documentIdentity,
   generateDocument,
@@ -191,7 +194,10 @@ try {
           ),
       );
     };
-    await page.goto(new URL('?intro=0&editor=1&music=0', base).href);
+    const dev = chosen.some(({ biome }) => isExperimentalEditorBiome(biome.id));
+    await page.goto(
+      new URL(`?intro=0&editor=1&music=0${dev ? '&dev=2' : ''}`, base).href,
+    );
     await page
       .locator('[data-editor-field="name"]')
       .waitFor({ timeout: 90000 });

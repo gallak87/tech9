@@ -3,10 +3,14 @@ import { replaceShader } from '../../../renderer/shader-patch.js';
 import { NACRE_WAVE_GLSL } from '../../nacre/environment/ocean-waves.js';
 
 // Original sheltered-basin finish shared without its campaign placement.
-export function createNightweirBasinMaterial(clock, rippleTexture) {
+export function createNightweirBasinMaterial(
+  clock,
+  rippleTexture,
+  { name = 'Nightweir / sheltered flowing basin', color = '#29484b' } = {},
+) {
   const river = new T.MeshStandardMaterial({
-    name: 'Nightweir / sheltered flowing basin',
-    color: '#29484b',
+    name,
+    color,
     roughness: 0.22,
     metalness: 0.12,
   });

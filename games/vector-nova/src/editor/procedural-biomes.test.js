@@ -275,6 +275,24 @@ test('Cindercoil parses actual named geology with owned production finish and sy
       group.name.includes('registered art'),
     ),
   );
+  const basalt = visual.group.children.filter(
+    (mesh) => mesh.material?.name === 'Cindercoil / caldera basalt',
+  );
+  assert(basalt.length > 0);
+  for (const mesh of basalt) {
+    assert(mesh.material.vertexColors);
+    const colors = mesh.geometry.getAttribute('color');
+    assert.equal(colors.count, mesh.geometry.getAttribute('position').count);
+    assert(
+      colors.getX(0) > 0 && colors.getX(0) < 0.2,
+      'basalt uses the dark caldera mineral palette',
+    );
+  }
+  const vents = cpu.group.userData.regionalPlacements.filter((site) =>
+    site.id.startsWith('roadside-vent-'),
+  );
+  assert(vents.length > 0);
+  assert(vents.every((site) => site.solid === false));
   cpu.dispose();
   visual.dispose();
 });
@@ -624,6 +642,15 @@ test('Nacre owns real ocean waves below every driving reservation and rooted can
   assert.deepEqual(
     cpu.group.userData.regionalPlacements,
     visual.group.userData.regionalPlacements,
+  );
+  const outcrops = cpu.group.userData.regionalPlacements.filter((site) =>
+    site.id.startsWith('roadside-'),
+  );
+  assert(outcrops.length > 0);
+  assert(outcrops.every((site) => site.solid === false));
+  assert(
+    outcrops.some((site) => site.bounds.max[1] > plan.oceanWaterY),
+    'exposed headlands break the open sea surface',
   );
   let water;
   visual.group.traverse((mesh) => {

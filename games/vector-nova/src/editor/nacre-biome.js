@@ -1,6 +1,7 @@
 import * as T from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { assetURL } from '../assets/url.js';
+import { fillRoadsideKit } from './roadside-scenery.js';
 import { createBatches } from '../levels/nacre/environment/geometry.js';
 import { addObservatory } from '../levels/nacre/environment/observatory.js';
 import { createNacreMaterials } from '../levels/nacre/environment/materials.js';
@@ -291,6 +292,13 @@ export const nacreBiomeDescriptor = {
         scale: 0.6 + random() * 0.35,
       });
     }
+    // These larger outcrops grow from the surveyed seabed. Low coral shelves
+    // sit among exposed headlands without adding an invisible waterline floor.
+    fillRoadsideKit(context, kit, {
+      families: open ? ['headland', 'reef'] : ['headland', 'reef', 'reef'],
+      size: open ? 1.6 : 1.9,
+      limit: open ? 12 : 22,
+    });
     const group = new T.Group();
     const oceanClock = createAmbientClock();
     const viewDirection = new T.Vector3();

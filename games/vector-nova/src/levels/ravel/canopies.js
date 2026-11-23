@@ -27,7 +27,7 @@ function collectorFold(u, v) {
 
 /** The upper, unmarked sails belong to the rig above the drivable membrane.
  * Sparse triangular mouths keep the race route and the star field exposed. */
-export function createRavelCanopies({ track, finish = null }) {
+export function createRavelCanopies({ track, finish = null, layout, clears }) {
   const group = new T.Group();
   group.name = 'Ravel / overlapping upper sail folds';
   const foil = createRavelMembraneMaterial('#d6dcd9', null, finish);
@@ -38,7 +38,7 @@ export function createRavelCanopies({ track, finish = null }) {
   });
   const geometries = [],
     hems = [];
-  const definitions = [
+  const definitions = layout ?? [
     {
       s: 680,
       length: 1100,
@@ -116,7 +116,9 @@ export function createRavelCanopies({ track, finish = null }) {
   const route = [];
   for (let s = 0; s < track.length; s += 32) {
     route.push(track.sample(s).position);
-    const bands = track.roadBands.filter((b) => s >= b.start && s <= b.end);
+    const bands = (track.roadBands ?? []).filter(
+      (b) => s >= b.start && s <= b.end,
+    );
     for (const b of bands) {
       const low = typeof b.min === 'function' ? b.min(s) : b.min;
       const high = typeof b.max === 'function' ? b.max(s) : b.max;
@@ -126,12 +128,23 @@ export function createRavelCanopies({ track, finish = null }) {
     }
   }
   for (const [i, def] of definitions.entries()) {
+    const folded = def.fold ?? (i === 1 && !layout);
     const frame = track.sample(def.s);
-    const right = frame.right.clone().applyAxisAngle(frame.up, def.yaw);
-    const forward = frame.tangent.clone().applyAxisAngle(frame.up, def.yaw);
+    const up = layout ? new T.Vector3(0, 1, 0) : frame.up;
+    const forward = frame.tangent.clone();
+    if (layout) forward.setY(0).normalize();
+    const centre = frame.position.clone();
+    if (layout)
+      centre
+        .addScaledVector(forward, def.ahead ?? 0)
+        .addScaledVector(new T.Vector3().crossVectors(up, forward), def.side);
+    forward.applyAxisAngle(up, def.yaw);
+    const right = layout
+      ? new T.Vector3().crossVectors(up, forward)
+      : frame.right.clone().applyAxisAngle(up, def.yaw);
     const pos = (u, v, extra = 0) => {
       const x =
-        def.side +
+        (layout ? 0 : def.side) +
         (u - 0.5) * def.width * (0.64 + 0.36 * Math.sin(v * Math.PI));
       const z = (v - 0.5) * def.length;
       const h =
@@ -141,25 +154,28 @@ export function createRavelCanopies({ track, finish = null }) {
         def.lean * (u - 0.5) +
         120 * (v - 0.5) +
         38 * Math.sin(v * Math.PI * 2) * Math.sin(u * Math.PI);
-      const fold = i === 1 ? collectorFold(u, v) : [0, 0, 0];
-      return frame.position
+      const fold = folded ? collectorFold(u, v) : [0, 0, 0];
+      return centre
         .clone()
         .addScaledVector(right, x + fold[0])
         .addScaledVector(forward, z + fold[2])
-        .addScaledVector(frame.up, h + fold[1]);
+        .addScaledVector(up, h + fold[1]);
     };
     let extra = 0;
     const clearance = () => {
+      const bounds = new T.Box3();
       for (let v = 0; v <= 1.001; v += 0.1)
         for (let u = 0; u <= 1.001; u += 0.1) {
           const p = pos(u, v, extra);
           if (route.some((q) => q.distanceToSquared(p) < 180 ** 2))
             return false;
+          if (clears) bounds.expandByPoint(p);
         }
-      return true;
+      return !clears || clears(bounds.expandByScalar(30));
     };
     while (!clearance() && extra < 1800) extra += 150;
-    if (i === 1)
+    if (clears && !clearance()) continue;
+    if (i === 1 && !layout)
       group.userData.ravelAscentCollector = {
         station: def.s,
         hemAnchors: [
@@ -171,14 +187,9 @@ export function createRavelCanopies({ track, finish = null }) {
       uv = [],
       coords = [],
       indices = [];
-    const rows = Math.max(
-        Math.ceil(def.length / 20),
-        i === 1 ? COLLECTOR_FOLD_SIZE - 1 : 0,
-      ),
-      columns = Math.max(
-        Math.ceil(def.width / 20),
-        i === 1 ? COLLECTOR_FOLD_SIZE - 1 : 0,
-      );
+    const cageSegments = folded ? COLLECTOR_FOLD_SIZE - 1 : 0;
+    const rows = Math.max(Math.ceil(def.length / 20), cageSegments),
+      columns = Math.max(Math.ceil(def.width / 20), cageSegments);
     for (let r = 0; r <= rows; r++)
       for (let c = 0; c <= columns; c++) {
         const u = c / columns,
@@ -199,6 +210,13 @@ export function createRavelCanopies({ track, finish = null }) {
     geo.setAttribute('uv', new T.Float32BufferAttribute(uv, 2));
     geo.setAttribute('roadCoord', new T.Float32BufferAttribute(coords, 2));
     geo.setIndex(indices);
+    if (clears) {
+      geo.computeBoundingBox();
+      if (!clears(geo.boundingBox.clone().expandByScalar(30))) {
+        geo.dispose();
+        continue;
+      }
+    }
     geo.computeVertexNormals();
     geometries.push(geo);
     const mesh = new T.Mesh(geo, foil);
@@ -220,22 +238,26 @@ export function createRavelCanopies({ track, finish = null }) {
       );
     }
   }
-  const hemMesh = new T.BatchedMesh(
-    hems.length,
-    hems.reduce((n, g) => n + g.attributes.position.count, 0),
-    hems.reduce((n, g) => n + (g.index?.count ?? 0), 0),
-    edge,
-  );
-  hemMesh.name = 'Ravel / culled upper sail load hems';
-  hemMesh.perObjectFrustumCulled = true;
-  hemMesh.sortObjects = false;
-  for (const g of hems) {
-    const id = hemMesh.addGeometry(g);
-    hemMesh.addInstance(id);
-    g.dispose();
+  const hemMesh = hems.length
+    ? new T.BatchedMesh(
+        hems.length,
+        hems.reduce((n, g) => n + g.attributes.position.count, 0),
+        hems.reduce((n, g) => n + (g.index?.count ?? 0), 0),
+        edge,
+      )
+    : null;
+  if (hemMesh) {
+    hemMesh.name = 'Ravel / culled upper sail load hems';
+    hemMesh.perObjectFrustumCulled = true;
+    hemMesh.sortObjects = false;
+    for (const g of hems) {
+      const id = hemMesh.addGeometry(g);
+      hemMesh.addInstance(id);
+      g.dispose();
+    }
+    hemMesh.computeBoundingSphere();
+    group.add(hemMesh);
   }
-  hemMesh.computeBoundingSphere();
-  group.add(hemMesh);
   let disposed = false;
   return {
     group,
@@ -243,7 +265,7 @@ export function createRavelCanopies({ track, finish = null }) {
       if (disposed) return;
       disposed = true;
       group.clear();
-      hemMesh.dispose();
+      hemMesh?.dispose();
       geometries.forEach((g) => g.dispose());
       foil.dispose();
       edge.dispose();

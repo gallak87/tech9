@@ -28,16 +28,6 @@ const LIGHTS = {
     0.45,
     0.8,
   ],
-  orbital: [
-    [-0.62, 0.4, 0.68],
-    '#fff5e3',
-    2.6,
-    '#c3d8e5',
-    '#8ab7ce',
-    1.65,
-    0.65,
-    0.6,
-  ],
   nacre: [
     [-0.55, 0.72, 0.42],
     '#e8ece4',
@@ -247,45 +237,17 @@ async function procedural(id, signal) {
     abort(signal);
     return createOrielBackdrop();
   }
-  const { createOrbitalSky } =
-    await import('../levels/orbital/backdrop/sky.js');
-  abort(signal);
-  const lights = lighting('orbital'),
-    source = createOrbitalSky(lights.sunDirection);
-  const group = new T.Group();
-  group.add(source.radiance, source.stars, source.moon);
-  return {
-    group,
-    ...lights,
-    ownedTextures: source.ownedTextures,
-    update({ camera } = {}) {
-      if (camera) group.position.copy(camera.position);
-    },
-    dispose() {
-      group.traverse((node) => {
-        node.geometry?.dispose();
-        node.material?.dispose();
-      });
-      source.ownedTextures.forEach((texture) => texture.dispose());
-      group.clear();
-    },
-  };
+  throw new Error('Missing registered backdrop for ' + id);
 }
 
 function celestial(source, id, preview) {
   const localCamera = { position: new T.Vector3() };
   if (id === 'helion') {
-    for (const node of source.group.children) {
-      if (node.position.lengthSq() > 1) {
-        node.position.multiplyScalar(6);
-        node.scale.multiplyScalar(6);
-      }
-    }
+    // Keep the photosphere, additive corona and stars in their authored depth
+    // order behind nearby ships and roads, even for a large editor overview.
+    source.group.scale.setScalar(5);
     source.group.traverse((node) => {
-      for (const material of [node.material].flat().filter(Boolean)) {
-        material.depthWrite = false;
-        material.depthTest = false;
-      }
+      if (node.isPoints) node.material.size *= 5;
     });
   }
   const update = source.update;
@@ -304,63 +266,6 @@ function celestial(source, id, preview) {
   source.group.userData.editorCelestial = true;
   return source;
 }
-async function orbitalPlanet(source, loadTexture, signal) {
-  const settled = await Promise.allSettled(
-    ['asterion-surface.webp', 'asterion-clouds.webp'].map((name) =>
-      loadTexture(assetURL(`assets/levels/orbital/${name}`)),
-    ),
-  );
-  const textures = settled
-    .filter((item) => item.status === 'fulfilled')
-    .map((item) => item.value);
-  const failure = settled.find((item) => item.status === 'rejected');
-  if (failure || signal?.aborted) {
-    textures.forEach((texture) => texture.dispose());
-    source.dispose();
-    abort(signal);
-    throw failure.reason;
-  }
-  textures.forEach((texture) => {
-    texture.colorSpace = T.SRGBColorSpace;
-    texture.wrapS = T.RepeatWrapping;
-  });
-  const center = new T.Vector3(0.2, -0.42, -0.88)
-    .normalize()
-    .multiplyScalar(80000);
-  const make = (radius, cloud) => {
-    const geometry = new T.SphereGeometry(radius, 64, 40);
-    const material = new T.ShaderMaterial({
-      name: `Asterion editor / ${cloud ? 'separate cloud deck' : 'terrestrial planet'}`,
-      uniforms: {
-        image: { value: textures[cloud ? 1 : 0] },
-        sun: { value: source.sunDirection },
-      },
-      depthWrite: false,
-      depthTest: false,
-      transparent: cloud,
-      vertexShader:
-        'varying vec2 vUv;varying vec3 n;void main(){vUv=uv;n=normal;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-      fragmentShader: `varying vec2 vUv;varying vec3 n;uniform sampler2D image;uniform vec3 sun;void main(){vec3 color=texture2D(image,vUv).rgb;float day=max(0.,dot(normalize(n),sun));${cloud ? 'float a=smoothstep(.28,.8,dot(color,vec3(.333)))*.74;gl_FragColor=vec4(vec3(.74,.83,.91)*(.16+day*1.25),a);' : 'gl_FragColor=vec4(color*(.06+day*2.4),1.);'}
-#include <tonemapping_fragment>
-#include <colorspace_fragment>
-}`,
-    });
-    const mesh = new T.Mesh(geometry, material);
-    mesh.position.copy(center);
-    mesh.renderOrder = cloud ? -939 : -940;
-    mesh.frustumCulled = false;
-    mesh.name = cloud
-      ? 'Asterion / distant cloud deck'
-      : 'Asterion / distant terrestrial planet';
-    source.group.add(mesh);
-  };
-  make(30000, false);
-  make(30100, true);
-  source.ownedTextures.push(...textures);
-  source.group.userData.editorCelestial = true;
-  return source;
-}
-
 /** Whole-course sky only: no campaign terrain, fixed landmarks or active hazards. */
 export async function createEditorBackdrop(
   document,
@@ -412,6 +317,19 @@ export async function createEditorBackdrop(
         });
       },
     };
+  } else if (id === 'orbital') {
+    const { createOrbitalBackdrop } =
+      await import('../levels/orbital/backdrop/index.js');
+    abort(signal);
+    const orbit = await createOrbitalBackdrop({
+      loadTexture,
+      cameraRelative: true,
+    });
+    source = {
+      ...orbit,
+      update: ({ camera }) => orbit.update(camera.position),
+    };
+    source.group.userData.editorCelestial = true;
   } else if (id === 'helion' || id === 'umbra') {
     const module =
       id === 'helion'
@@ -433,8 +351,6 @@ export async function createEditorBackdrop(
     source = SKIES[id]
       ? await panorama(id, loadTexture, signal)
       : await procedural(id, signal);
-    if (id === 'orbital')
-      source = await orbitalPlanet(source, loadTexture, signal);
   }
   let disposed = false;
   const dispose = () => {

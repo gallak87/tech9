@@ -1,4 +1,91 @@
 import * as T from 'three';
+import { roadsideScenerySites } from './roadside-scenery.js';
+
+const roadsideAssets = {
+  zephyr: ['terrace', 'halo', 'shard'],
+  glasswake: ['cliff-0', 'bell-vault', 'rubble-shelf', 'cliff-1'],
+  saffron: ['rib', 'vertebra-1', 'outcrop'],
+  helion: ['instrumenttower', 'servicegantry', 'radiatorfan'],
+  umbra: ['rib', 'pier', 'vault'],
+  ravel: ['gallery', 'crown', 'cutter'],
+  nomad: ['freight', 'service', 'freight'],
+  oriel: ['gardencourtfar', 'tower', 'waterfrontfar', 'pavilion'],
+  nightweir: ['public-gallery', 'residential-court', 'brick-pressureworks'],
+};
+
+/** Spend the remaining art budget where players can see it. Existing structural
+ * contact selections have already been frozen before these markers are placed. */
+export function fillStaticRoadside(
+  doc,
+  track,
+  plan,
+  placement,
+  assets,
+  options,
+) {
+  const families = roadsideAssets[doc.biome];
+  if (!families) return;
+  const { grounded, waterEnabled } = options;
+  let triangles = placement.placements.reduce(
+    (sum, item) => sum + assets[item.asset].visualTriangles,
+    0,
+  );
+  for (const site of roadsideScenerySites(track, doc.settings.density, 18)) {
+    const assetId = families[site.id % families.length];
+    const asset = assets[assetId];
+    if (triangles + asset.visualTriangles > 700000) continue;
+    const [width, height, depth] = dimensions(asset);
+    const scale = 1.05 + placement.random() * 0.38;
+    const margin = track.width / 2 + (Math.hypot(width, depth) * scale) / 2;
+    for (const offset of site.offsets) {
+      const { x, z } = site.position
+        .clone()
+        .addScaledVector(site.right, offset + Math.sign(offset) * margin);
+      const terrain = plan.surfaceHeight(x, z);
+      if (grounded && site.position.y - terrain > height * scale + 155)
+        continue;
+      if (grounded && waterEnabled) {
+        const radius = Math.hypot(width, depth) * scale * 0.225;
+        const anchors = [
+          [x, z],
+          [x - radius, z],
+          [x + radius, z],
+          [x, z - radius],
+          [x, z + radius],
+        ];
+        const bank = Math.min(
+          ...anchors.map(([px, pz]) => plan.surfaceHeight(px, pz)),
+        );
+        const water = Math.max(
+          ...anchors.map(([px, pz]) => plan.waterHeight(px, pz)),
+        );
+        if (bank - height * scale * 0.1 < water + 2) continue;
+      }
+      if (
+        placement.place(assetId, {
+          id: 'roadside-' + site.id,
+          x,
+          z,
+          y: grounded ? null : site.position.y - height * scale * 0.56,
+          yaw: site.yaw,
+          scale,
+          embed: grounded ? 0.1 : 0,
+          solid: false,
+        })
+      ) {
+        triangles += asset.visualTriangles;
+        const assembly = placement.placements.at(-1);
+        assembly.role = 'decorative';
+        assembly.contactFaces = 0;
+        Object.assign(placement.accepted.at(-1), {
+          role: 'decorative',
+          contactFaces: 0,
+        });
+        break;
+      }
+    }
+  }
+}
 
 const UP = new T.Vector3(0, 1, 0);
 const dimensions = (asset) =>
@@ -99,13 +186,11 @@ export function staticContactStats(placement) {
 
 function sites(track, plan, count = 16) {
   if (!track)
-    return plan.districts
-      .slice(0, count)
-      .map((site) => ({
-        ...site,
-        height: site.y + 100,
-        right: new T.Vector3(Math.cos(site.yaw), 0, -Math.sin(site.yaw)),
-      }));
+    return plan.districts.slice(0, count).map((site) => ({
+      ...site,
+      height: site.y + 100,
+      right: new T.Vector3(Math.cos(site.yaw), 0, -Math.sin(site.yaw)),
+    }));
   return Array.from({ length: count }, (_, i) => {
     const station = (track.length * (i + 0.5)) / count;
     const frame = track.sample(station);

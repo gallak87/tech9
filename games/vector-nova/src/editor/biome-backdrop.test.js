@@ -131,6 +131,70 @@ test('partial planetary loading failure disposes every fulfilled registered map'
   assert.equal(value.count(), 1);
 });
 
+test('Orbital keeps the layered planet below the Workshop roads when the camera rises', async () => {
+  const part = await createEditorBackdrop(
+    { biome: 'orbital' },
+    { loadTexture: async () => fakeTexture().texture },
+  );
+  const globe = part.group.getObjectByName(
+    'Asterion ocean and continental crust',
+  );
+  const clouds = part.group.getObjectByName(
+    'Asterion separated cyclonic cloud deck',
+  );
+  const atmosphere = part.group.getObjectByName(
+    'Asterion luminous atmospheric limb',
+  );
+  const camera = new T.PerspectiveCamera();
+  for (const height of [50, 12500, -700]) {
+    camera.position.set(-14000, height, 17600);
+    part.update({ camera });
+    part.group.updateMatrixWorld(true);
+    const centre = globe.getWorldPosition(new T.Vector3());
+    assert.deepEqual(clouds.getWorldPosition(new T.Vector3()), centre);
+    assert.deepEqual(atmosphere.material.uniforms.planetCenter.value, centre);
+    assert.deepEqual(globe.material.uniforms.planetCenter.value, centre);
+    assert(
+      centre.y + atmosphere.geometry.parameters.radius < Math.min(0, height),
+    );
+    assert.deepEqual(globe.material.uniforms.orbitOrigin.value.toArray(), [
+      camera.position.x,
+      Math.min(height, 0),
+      camera.position.z,
+    ]);
+  }
+  part.dispose();
+});
+
+test('Helion keeps its opaque photosphere and additive corona behind the road', async () => {
+  const part = await createEditorBackdrop(
+    { biome: 'helion' },
+    { loadTexture: async () => fakeTexture().texture },
+  );
+  const star = part.group.getObjectByName(
+    'Helion / 24 km visible photospheric shell',
+  );
+  const shells = part.group.children.filter(
+    (node) => node.material?.blending === T.AdditiveBlending,
+  );
+  assert(star.material.depthTest && star.material.depthWrite);
+  assert.equal(shells.length, 2);
+  for (const shell of shells)
+    assert(shell.material.depthTest && !shell.material.depthWrite);
+  const nearestCorona = Math.min(
+    ...shells.map(
+      (shell) =>
+        (shell.position.length() - shell.geometry.parameters.radius) *
+        part.group.scale.x,
+    ),
+  );
+  assert(
+    nearestCorona > 10000,
+    'large Workshop overviews can fit between the eye and corona',
+  );
+  part.dispose();
+});
+
 test('Umbra keeps the authored silhouette and depth occlusion in the editor and custom races', async () => {
   const loadTexture = async () => fakeTexture().texture;
   const original = await createUmbraBackdrop({ loadTexture });

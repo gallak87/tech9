@@ -127,6 +127,28 @@ export function createCalderaHeight(track) {
   };
 }
 
+/** Colour the retained survey vertices with the same cold basalt, warm ash and
+ * oxidized deposits on the authored caldera and arbitrary Workshop terrain. */
+export function colorCalderaTerrain(geometry) {
+  const positions = geometry.getAttribute('position');
+  const colors = new Float32Array(positions.count * 3);
+  const cold = new T.Color('#3b4248'),
+    ash = new T.Color('#6b6a65'),
+    oxide = new T.Color('#48382e');
+  const color = new T.Color();
+  for (let i = 0; i < positions.count; i += 1) {
+    const x = positions.getX(i),
+      z = positions.getZ(i);
+    const n = terrainNoise(x * 0.008, z * 0.008);
+    color
+      .copy(cold)
+      .lerp(ash, T.MathUtils.smoothstep(n, 0.37, 0.73) * 0.75)
+      .lerp(oxide, Math.max(0, 0.35 - n));
+    colors.set(color.toArray(), i * 3);
+  }
+  geometry.setAttribute('color', new T.BufferAttribute(colors, 3));
+}
+
 export function createCalderaTerrain(
   track,
   material,
@@ -137,23 +159,13 @@ export function createCalderaTerrain(
     -Math.PI / 2,
   );
   const positions = geometry.getAttribute('position');
-  const colors = new Float32Array(positions.count * 3);
-  const cold = new T.Color('#3b4248'),
-    ash = new T.Color('#6b6a65'),
-    oxide = new T.Color('#48382e');
   for (let i = 0; i < positions.count; i += 1) {
     const x = positions.getX(i) + center.x,
       z = positions.getZ(i) + center.z;
     const y = heightAt(x, z);
     positions.setXYZ(i, x, y, z);
-    const n = terrainNoise(x * 0.008, z * 0.008);
-    const color = cold
-      .clone()
-      .lerp(ash, T.MathUtils.smoothstep(n, 0.37, 0.73) * 0.75)
-      .lerp(oxide, Math.max(0, 0.35 - n));
-    colors.set(color.toArray(), i * 3);
   }
-  geometry.setAttribute('color', new T.BufferAttribute(colors, 3));
+  colorCalderaTerrain(geometry);
   geometry.computeVertexNormals();
   const mesh = new T.Mesh(geometry, material);
   mesh.name = 'Cindercoil / weathered caldera, scoria slopes and ash shelves';

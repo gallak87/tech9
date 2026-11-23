@@ -13,6 +13,8 @@ import { finishIceMaterial } from '../levels/glasswake/environment/materials.js'
 import { finishThermalMaterial } from '../levels/helion/environment/materials.js';
 import { finishUmbraMaterial } from '../levels/umbra/environment/materials.js';
 import { finishWorldspireMineral } from '../levels/worldspire/environment/mineral-materials.js';
+import { finishNomadSalt } from '../levels/nomad/salt-material.js';
+import { buildRavelSails } from './ravel-sails.js';
 import {
   createIndustrialBiomeFinish,
   industrialCoordinates,
@@ -31,6 +33,7 @@ import {
   planOriel,
   planWorldspire,
   applyStaticContactPolicy,
+  fillStaticRoadside,
   staticContactStats,
 } from './static-biome-plans.js';
 
@@ -50,6 +53,7 @@ function descriptor(id, metadata, plan, options = {}) {
     plan(doc, track, region, placement) {
       plan(doc, track, region, placement, assets);
       applyStaticContactPolicy(doc, region, placement, assets);
+      fillStaticRoadside(doc, track, region, placement, assets, options);
     },
     build: ({ placement }) => ({
       stats: staticContactStats(placement),
@@ -144,6 +148,18 @@ const descriptors = Object.freeze({
     limit: 60,
     createFinish: (context) => createIndustrialBiomeFinish(context, 'ravel'),
     prepareGeometry: industrialCoordinates,
+    build(context) {
+      const sails = buildRavelSails(context);
+      const stats = staticContactStats(context.placement);
+      if (!sails) return { stats, dispose() {} };
+      sails.stats = {
+        ...stats,
+        collectorSails: sails.group.children.filter(
+          (node) => !node.isBatchedMesh,
+        ).length,
+      };
+      return sails;
+    },
   }),
   nomad: descriptor('nomad', nomadAssets, planNomad, {
     name: 'Nomad / parked salt convoy',
@@ -152,6 +168,11 @@ const descriptors = Object.freeze({
     limit: 180,
     createFinish: (context) => createIndustrialBiomeFinish(context, 'nomad'),
     prepareGeometry: industrialCoordinates,
+    finishTerrain({ soil }) {
+      soil.color.set('#d7d9d3');
+      finishNomadSalt(soil);
+      soil.needsUpdate = true;
+    },
   }),
   oriel: descriptor('oriel', orielAssets, planOriel, {
     name: 'Oriel / inhabited civic gardens',

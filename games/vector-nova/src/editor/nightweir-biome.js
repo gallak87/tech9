@@ -15,6 +15,7 @@ import {
 import { finishNightweirWindows } from '../levels/nightweir/environment/blackstart.js';
 import { createNightweirBasinMaterial } from '../levels/nightweir/environment/basin-material.js';
 import { createNacreOceanNormals } from '../levels/nacre/environment/ocean-normals.js';
+import { fillStaticRoadside } from './static-biome-plans.js';
 
 const assets = Object.fromEntries(
   Object.entries(metadata).map(([id, asset]) => [
@@ -130,5 +131,13 @@ nwWindowNormal=normalize(mat3(modelMatrix)*nwN);`,
       textures.scree,
     );
   },
-  build: buildNightweirDistricts,
+  build(context) {
+    const town = buildNightweirDistricts(context);
+    const { doc, track, plan, placement } = context;
+    fillStaticRoadside(doc, track, plan, placement, assets, {
+      grounded: true,
+      waterEnabled: true,
+    });
+    return town;
+  },
 };

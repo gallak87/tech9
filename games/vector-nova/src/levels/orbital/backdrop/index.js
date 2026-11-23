@@ -25,9 +25,11 @@ const vertexShader = `
 const detailBounds = new T.Vector4(0.265, 0.495, 0.11, 0.105);
 const regionSampling = `
   uniform vec4 detailBounds;
+  uniform vec3 orbitOrigin;
   float weatherCover(vec3 point, vec3 normal) {
     // Two synoptic systems flank a clear coastal corridor below the circuit.
     // Fine convection remains subordinate to kilometre-scale weather masses.
+    point -= orbitOrigin;
     vec2 northwest=(point.xz-vec2(-2200.,1700.))/vec2(2300.,1150.);
     vec2 southeast=(point.xz-vec2(1900.,-1700.))/vec2(1800.,2300.);
     float systems=exp(-dot(northwest,northwest))+exp(-dot(southeast,southeast));
@@ -98,16 +100,11 @@ function material(name, uniforms, fragmentShader, options = {}) {
  * shaded cloud deck and thin atmospheric limb. Coordinates are scene-fixed;
  * the star sphere alone follows the camera. Lighting metadata is shared with
  * the local shipyard renderer. No baked illumination or scenic screenshots. */
-export async function createOrbitalBackdrop() {
-  const loader = new T.TextureLoader();
-  const [
-    surface,
-    clouds,
-    surfaceDetail,
-    cloudDetail,
-    surfaceSurround,
-    cloudSurround,
-  ] = await Promise.all(
+export async function createOrbitalBackdrop({
+  loadTexture = (url) => new T.TextureLoader().loadAsync(url),
+  cameraRelative = false,
+} = {}) {
+  const maps = await Promise.allSettled(
     [
       'asterion-surface.webp',
       'asterion-clouds.webp',
@@ -115,27 +112,35 @@ export async function createOrbitalBackdrop() {
       'asterion-weather-density-v1.png',
       'asterion-terrain-surround-v1.png',
       'asterion-weather-surround-v1.png',
-    ].map((file) =>
-      loader.loadAsync(assetURL(`assets/levels/orbital/${file}`)),
-    ),
+    ].map((file) => loadTexture(assetURL(`assets/levels/orbital/${file}`))),
   );
-  surface.colorSpace = T.SRGBColorSpace;
-  surfaceDetail.colorSpace = T.SRGBColorSpace;
-  surfaceSurround.colorSpace = T.SRGBColorSpace;
-  const ownedTextures = [
+  const failure = maps.find((map) => map.status === 'rejected');
+  const ownedTextures = maps
+    .filter((map) => map.status === 'fulfilled')
+    .map((map) => map.value);
+  if (failure) {
+    for (const texture of new Set(ownedTextures)) texture.dispose();
+    throw failure.reason;
+  }
+  const [
     surface,
     clouds,
     surfaceDetail,
     cloudDetail,
     surfaceSurround,
     cloudSurround,
-  ];
+  ] = ownedTextures;
+  surface.colorSpace = T.SRGBColorSpace;
+  surfaceDetail.colorSpace = T.SRGBColorSpace;
+  surfaceSurround.colorSpace = T.SRGBColorSpace;
   for (const map of ownedTextures) {
     map.wrapS = T.RepeatWrapping;
     map.wrapT = T.ClampToEdgeWrapping;
     map.anisotropy = 4;
   }
   const group = new T.Group();
+  const worldCenter = PLANET_CENTER.clone();
+  const orbitOrigin = new T.Vector3();
   group.name = 'Asterion / terrestrial world and orbital radiance';
   group.userData.spaceBackdrop = true;
   group.userData.aoExclude = true;
@@ -146,11 +151,12 @@ export async function createOrbitalBackdrop() {
       surfaceDetailMap: { value: surfaceDetail },
       surfaceSurroundMap: { value: surfaceSurround },
       planetToLocal: { value: new T.Matrix3() },
-      planetCenter: { value: PLANET_CENTER },
+      planetCenter: { value: worldCenter },
       cloudMap: { value: clouds },
       cloudDetailMap: { value: cloudDetail },
       cloudSurroundMap: { value: cloudSurround },
       detailBounds: { value: detailBounds },
+      orbitOrigin: { value: orbitOrigin },
       sunDirection: { value: SUN_DIRECTION },
     },
     `
@@ -225,6 +231,7 @@ export async function createOrbitalBackdrop() {
       cloudSurroundMap: { value: cloudSurround },
       surfaceSurroundMap: { value: surfaceSurround },
       detailBounds: { value: detailBounds },
+      orbitOrigin: { value: orbitOrigin },
       sunDirection: { value: SUN_DIRECTION },
     },
     `
@@ -275,7 +282,7 @@ export async function createOrbitalBackdrop() {
     'Asterion / thin Rayleigh limb',
     {
       sunDirection: { value: SUN_DIRECTION },
-      planetCenter: { value: PLANET_CENTER },
+      planetCenter: { value: worldCenter },
       planetRadius: { value: PLANET_RADIUS },
     },
     `
@@ -334,8 +341,23 @@ export async function createOrbitalBackdrop() {
     planetRadius: PLANET_RADIUS,
     planetCenter: PLANET_CENTER.clone(),
     update(cameraPosition) {
-      stars.position.copy(cameraPosition);
-      radiance.position.copy(cameraPosition);
+      if (cameraRelative) {
+        // All Workshop roads lie above the world datum. Translating the planet
+        // up with an overview camera would put its surface in front of the road.
+        group.position.copy(cameraPosition);
+        orbitOrigin.set(
+          cameraPosition.x,
+          Math.min(0, cameraPosition.y),
+          cameraPosition.z,
+        );
+        worldCenter.copy(PLANET_CENTER).add(orbitOrigin);
+        globe.position.copy(worldCenter).sub(cameraPosition);
+        cloudDeck.position.copy(globe.position);
+        atmosphere.position.copy(globe.position);
+      } else {
+        stars.position.copy(cameraPosition);
+        radiance.position.copy(cameraPosition);
+      }
     },
     dispose() {
       for (const map of ownedTextures) map.dispose();

@@ -10,6 +10,7 @@ export function createWorkshop(
   {
     document: initialDocument = null,
     shipId = 'kestrel',
+    showExperimentalBiomes = false,
     onExit,
     onSettings,
     onTunes,
@@ -188,6 +189,7 @@ export function createWorkshop(
   });
   editor = createTrackEditor(editorHost, {
     shipId,
+    showExperimentalBiomes,
     ...(initialDocument ? { document: initialDocument } : {}),
     onExit,
     onTestDrive: testDrive,

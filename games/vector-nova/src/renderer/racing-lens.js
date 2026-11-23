@@ -1,5 +1,8 @@
 import { MathUtils, Vector2 } from 'three';
 
+const foregroundOnset = 80 / 3.6;
+const foregroundPeak = 145 / 3.6;
+
 export function racingBlurStrength({
   speed,
   cruiseSpeed,
@@ -7,8 +10,15 @@ export function racingBlurStrength({
   catapulting = false,
 }) {
   if (catapulting) return 0.24;
-  const cruise = MathUtils.smoothstep(speed / cruiseSpeed, 0.8, 1) * (0.16 / 3);
-  return MathUtils.lerp(cruise, 0.16, MathUtils.clamp(boost, 0, 1));
+  const foreground =
+    MathUtils.smoothstep(speed, foregroundOnset, foregroundPeak) * 0.026;
+  const cruise =
+    MathUtils.smoothstep(
+      speed,
+      foregroundPeak,
+      Math.max(foregroundPeak + 1, cruiseSpeed),
+    ) * 0.064;
+  return MathUtils.lerp(foreground + cruise, 0.2, MathUtils.clamp(boost, 0, 1));
 }
 
 // Peripheral world streaking, with a clear road aim and a tracked sharp craft.
@@ -20,6 +30,7 @@ export const racingLens = {
     pressure: { value: 0 },
     time: { value: 0 },
     craftCenter: { value: new Vector2(0.5, 0.25) },
+    craftRadius: { value: 0.1 },
   },
   vertexShader: `
     varying vec2 racingUv;
@@ -33,22 +44,41 @@ export const racingLens = {
     uniform float pressure;
     uniform float time;
     uniform vec2 craftCenter;
+    uniform float craftRadius;
     varying vec2 racingUv;
     void main() {
       vec2 radial=racingUv-vec2(.5,.52);
       float edge=smoothstep(.13,.48,length(radial*vec2(1.15,1.)));
-      float craft=smoothstep(.10,.23,length((racingUv-craftCenter)*vec2(1.,.82)));
-      vec2 stride=radial*strength*edge*craft;
+      vec2 hullMetric=vec2(1.,.82);
+      float fromCraft=length((racingUv-craftCenter)*hullMetric);
+      float craft=smoothstep(craftRadius,craftRadius+.13,fromCraft);
+      // Bring the bottom corners in first, then widen the rush at race speed.
+      float foreground=1.-smoothstep(.30,.66,racingUv.y);
+      float shoulder=smoothstep(.27,.50,abs(radial.x))*.63;
+      float spread=smoothstep(.026,.09,strength);
+      float sector=mix(mix(.22,1.,max(foreground,shoulder)),1.,spread);
+      vec2 stride=radial*strength*edge*craft*sector;
+      // A long tap near the silhouette must not collect the craft's image.
+      stride*=min(1.,max(0.,fromCraft-craftRadius)/max(length(stride*hullMetric),.00001));
+      if(dot(stride,stride)<.00000001) {
+        gl_FragColor=texture2D(tDiffuse,racingUv);
+        return;
+      }
       vec4 streak=vec4(0.);
       // Spatially stagger taps instead of repeating hard silhouettes at fixed
       // offsets. A fixed screen-space phase avoids temporal noise/shimmer.
       vec3 noise=fract(vec3(gl_FragCoord.xyx)*.1031);
       noise+=dot(noise,noise.yzx+33.33);
       float jitter=fract((noise.x+noise.y)*noise.z);
+      // Shorter strides need fewer taps. Fade in each extra tap as the
+      // sample budget grows to keep the transition smooth.
+      float samples=mix(12.,24.,smoothstep(.026,.14,strength));
       float weights=0.;
-      for(int i=0;i<32;i++) {
-        float amount=(float(i)+.5+(jitter-.5)*.65)/32.;
-        float weight=1.-amount*.65;
+      for(int i=0;i<24;i++) {
+        float share=clamp(samples-float(i),0.,1.);
+        if(share<=0.) break;
+        float amount=min((float(i)+.5+(jitter-.5)*.65)/samples,1.);
+        float weight=(1.-amount*.65)*share;
         streak+=texture2D(tDiffuse,clamp(racingUv-stride*amount,vec2(0.),vec2(1.)))*weight;
         weights+=weight;
       }

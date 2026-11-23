@@ -320,6 +320,9 @@ export function createPickupPreview({
       selectedKind = kind;
       stop();
     },
+    get active() {
+      return current !== null;
+    },
     getSnapshot: () => ({
       kind: current?.kind ?? null,
       time: current?.time ?? 0,

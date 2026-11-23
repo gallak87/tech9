@@ -135,6 +135,9 @@ export async function createPickupInspector({
     { signal: life.signal },
   );
   return {
+    get active() {
+      return preview.active;
+    },
     update(dt) {
       preview.update(dt);
       engine.update();

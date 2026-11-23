@@ -8,6 +8,10 @@ import { createRivalPreview, RIVAL_SHIPS } from './rivals.js';
 import { configureShipTextures } from './texture-loader.js';
 import { createInspectionStage } from './inspection-stage.js';
 import { createInspectionPipeline } from './inspection-pipeline.js';
+import {
+  createInspectionSpeedPreview,
+  INSPECTION_DRIVING_SPEED,
+} from './inspection-speed.js';
 
 const START_ROTATION = 0;
 const START_ELEVATION = 0.38;
@@ -100,12 +104,15 @@ export async function createInspector({
     );
     host.append(canvas);
     const stage = lifetime.own(createInspectionStage(renderer));
+    const speedPreview = lifetime.own(createInspectionSpeedPreview(stage));
     const inspectionFrame = new T.Group();
     inspectionFrame.name = 'Inspector / studio orientation';
     stage.scene.add(inspectionFrame);
     const camera = new T.PerspectiveCamera(39, 1, 0.1, 200);
     const pipeline = lifetime.own(
-      createInspectionPipeline(renderer, stage.scene, camera),
+      createInspectionPipeline(renderer, stage.scene, camera, {
+        lens: speedPreview.lens,
+      }),
     );
     const root = document.createElement('main');
     root.id = 'interface';
@@ -275,7 +282,7 @@ export async function createInspector({
       subject?.quaternion.identity();
       if (tab === 'fleet')
         fleet?.update({
-          speed: preview.driving ? 400 / 3.6 : 0,
+          speed: preview.driving ? INSPECTION_DRIVING_SPEED : 0,
           boost: preview.boost,
           steer: 0,
           time,
@@ -284,7 +291,7 @@ export async function createInspector({
         });
       else
         rival?.update({
-          speed: preview.driving ? 400 / 3.6 : 0,
+          speed: preview.driving ? INSPECTION_DRIVING_SPEED : 0,
           boost: preview.boost,
           time,
           energy: 1,
@@ -292,6 +299,16 @@ export async function createInspector({
           reducedMotion: settings.reducedMotion,
         });
       pickupTools?.update(dt);
+      speedPreview.update({
+        active: tab === 'fleet' && !loading && !pickupTools?.active,
+        driving: preview.driving,
+        boost: preview.boost,
+        time,
+        dt,
+        heading: inspectionFrame.quaternion,
+        accent: fleet.selected.liveryAccent,
+        settings,
+      });
       const size = `${innerWidth}x${innerHeight}@${settings.quality}`;
       if (layout?.size !== size) {
         renderer.setPixelRatio(
@@ -375,6 +392,7 @@ export async function createInspector({
         pipeline.render({
           heat: !settings.reducedMotion,
           quality: settings.quality,
+          subject: tab === 'fleet' ? subject : null,
         }),
       );
     }
@@ -386,6 +404,7 @@ export async function createInspector({
     }
     fleet = loaded;
     inspectionFrame.add(fleet.group);
+    speedPreview.attach(fleet.group);
     fit(fleet.group);
     if (
       !import.meta.env.VN_DESKTOP &&
@@ -530,6 +549,7 @@ export async function createInspector({
           rivalId,
           rivalLoading,
           preview: { ...preview },
+          speedEffects: speedPreview.getSnapshot(),
           demonstration: pickupTools?.getSnapshot(),
         },
       }),

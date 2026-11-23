@@ -193,6 +193,7 @@ export function buildTrackVisual(track, settings, renderer) {
     );
   }
 
+  const surfaceStep = 6;
   const runningSurface = sweep(
     'Asphalt running surface / 28 metres',
     [
@@ -200,6 +201,7 @@ export function buildTrackVisual(track, settings, renderer) {
       [14, 0],
     ],
     road,
+    { step: surfaceStep },
   );
   runningSurface.userData.roadSurface = true;
   sweep(
@@ -1376,6 +1378,7 @@ export function buildTrackVisual(track, settings, renderer) {
   }
   group.userData = {
     asset: 'authored Halcyon circuit / CC0 asphalt',
+    surfaceStep,
     representativeSection: { start: 0, end: track.length },
     groundY: track.groundY,
     sectionShowcases: track.showcases,

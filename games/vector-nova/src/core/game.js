@@ -38,6 +38,7 @@ import * as T from 'three';
 import { createFleetShip } from '../ships/fleet.js';
 import { loadShipSelection, saveShipSelection } from '../ships/catalog.js';
 import { createRenderer } from '../renderer/index.js';
+import { createGlideTrail } from '../renderer/glide-trail.js';
 import {
   createVehicleState,
   STEERING_ASSIST,
@@ -190,7 +191,7 @@ export async function createGame({
     const simulation = lifetime.own(
       await createSimulationWorld(definition, { shape: blockout, signal }),
     );
-    const { track, collisionWorld, dynamics } = simulation;
+    const { track, collisionWorld, dynamics, racingEnabled } = simulation;
     if (definition.event?.finishAtCourseEnd && track.closed !== false)
       throw new Error('Eliminator terminal finishes require an open sprint');
     const eliminator =
@@ -287,6 +288,12 @@ export async function createGame({
       }),
     );
     const { road, environment } = world;
+    const roadCoverage =
+      road.userData.surfaceCoverage ??
+      track.surfaceCoverage ??
+      (track.isGap
+        ? (distance, lateral) => Number(!track.isGap(distance, lateral))
+        : undefined);
     let finishMarker = null;
     if (!blockout) {
       finishMarker = lifetime.own(
@@ -310,6 +317,18 @@ export async function createGame({
     lifetime.defer(() => ship.group.removeFromParent());
     const shipBounds = new T.Box3().setFromObject(ship.group);
     scene.add(ship.group);
+    const glideTrail = racingEnabled
+      ? lifetime.own(
+          createGlideTrail({
+            track,
+            surfaceStep:
+              definition.renderer?.contact?.surfaceStep ??
+              road.userData.surfaceStep,
+            coverageAt: roadCoverage,
+          }),
+        )
+      : null;
+    if (glideTrail) scene.add(glideTrail.mesh);
     // One district-scale radiance probe gives the craft real nearby architecture
     // in its reflections. It is a static approximation, generated from this scene.
     const reflectionPoint = track
@@ -437,7 +456,6 @@ export async function createGame({
         );
       }
     };
-    const { racingEnabled } = simulation;
     const runtimeContext = {
       track,
       road,
@@ -1846,9 +1864,9 @@ export async function createGame({
           reducedMotion: settings.reducedMotion,
           mode,
         });
+      camera.clearViewOffset();
+      const worldPose = pose(s, alpha, feedback);
       {
-        camera.clearViewOffset();
-        const worldPose = pose(s, alpha, feedback);
         const reviewing = mode === 'overview' || (blockout && mode === 'title');
         if (mode === 'fly') {
           flyCamera.update(dt);
@@ -1980,6 +1998,11 @@ export async function createGame({
         interceptor: frame.interceptor,
       });
       interceptorEffects?.update(frame);
+      const catapulting = motionFeedback.vectorActive === true;
+      const grounded = worldPose?.grounded !== false;
+      const glideBoost = catapulting
+        ? 1
+        : (feedback.boost ?? Number(s.boosting));
       view.setRacingFeedback?.({
         mode,
         speed: s.speed,
@@ -1987,7 +2010,7 @@ export async function createGame({
           getVehiclePace(s.shipId, track.pace, vehicleHandling(s))
             ?.cruiseSpeed ?? vehicleHandling(s).cruiseSpeed,
         boosting: s.boosting,
-        catapulting: motionFeedback.vectorActive === true,
+        catapulting,
         enabled: racingEnabled,
         feedback,
         subjectPosition: ship.group.position,
@@ -2002,6 +2025,17 @@ export async function createGame({
         ship.group.position,
       );
       world.update(frame);
+      const hull = ship.group.userData.bounds;
+      glideTrail?.update({
+        active: mode === 'racing' || mode === 'paused',
+        grounded,
+        state: s,
+        boost: glideBoost,
+        accent: ship.selected.liveryAccent,
+        tail: hull.min[2],
+        hullWidth: hull.max[0] - hull.min[0],
+        reducedMotion: settings.reducedMotion,
+      });
       finishMarker?.update();
       view.render(now);
       ui.updateDevTools(now, renderer.info.render);

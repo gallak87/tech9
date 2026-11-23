@@ -174,7 +174,7 @@ test('landing and Freestyle auditions route their real owners without propulsion
   );
   assert.equal(driver.events[0].payload.perfect, true);
   await h.preview.play('freestyle-trick');
-  assert.equal(h.drivers[2].events[0].type, 'freestyle-trick');
+  assert.equal(h.drivers[2].events[0].type, 'freestyle-score-tick');
   assert.equal(h.drivers[2].events[0].payload.ordinal, 1);
   h.preview.dispose();
 });

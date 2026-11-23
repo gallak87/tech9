@@ -30,10 +30,10 @@ export const LANDING_PREVIEWS = [
   },
   {
     id: 'freestyle-trick',
-    label: 'Freestyle · roll, touchdown + Perfect bank',
+    label: 'Freestyle · points tally, touchdown + Perfect bank',
     group: 'Landing & Freestyle',
     detail:
-      'Completed-roll tick followed by the magnetic touchdown and Perfect reward.',
+      'Rotation points tally during a roll, then magnetic touchdown and Perfect reward.',
   },
 ];
 
@@ -73,7 +73,16 @@ export function landingDemonstration(
     : null;
   const freestyle = {
     clock: time,
-    flight: airborne ? { id } : null,
+    flight: airborne
+      ? {
+          id,
+          rotationPoints:
+            kind === 'freestyle-trick'
+              ? Math.max(0, Math.min(time, 0.32)) *
+                FREESTYLE_RULES.rotationPointsPerSecond
+              : 0,
+        }
+      : null,
     pendingLanding:
       graded && !missed && !airborne && !banked
         ? { id, elapsed: time - LANDING_PREVIEW_CONTACT }
@@ -126,11 +135,6 @@ export function landingDemonstration(
       : 0;
   const events = [];
   const crossed = (at) => previous < at && time >= at;
-  if (kind === 'freestyle-trick' && crossed(0.32))
-    events.push({
-      type: 'freestyle-trick',
-      payload: { id, ordinal: 1, kind: 'roll' },
-    });
   if (!missed && crossed(LANDING_PREVIEW_CONTACT))
     events.push({
       type: 'landing-catch',

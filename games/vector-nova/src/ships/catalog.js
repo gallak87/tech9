@@ -13,7 +13,16 @@ const baseline = {
   boostDrain: 21,
   recharge: 5.5,
 };
-const ship = (id, name, role, description, design, tuning, plumeWidth = 1) =>
+const ship = (
+  id,
+  name,
+  role,
+  description,
+  design,
+  tuning,
+  liveryAccent,
+  plumeWidth = 1,
+) =>
   Object.freeze({
     id,
     name,
@@ -22,6 +31,7 @@ const ship = (id, name, role, description, design, tuning, plumeWidth = 1) =>
     design,
     version: 1,
     plumeWidth,
+    liveryAccent,
     exhausts: id === 'needle' ? ['Exhaust_C'] : ['Exhaust_L', 'Exhaust_R'],
     asset: `assets/ships/${id}/${id}.glb`,
     handling: Object.freeze({ ...baseline, ...tuning }),
@@ -35,6 +45,7 @@ export const SHIPS = Object.freeze([
     'The original all-rounder. Predictable turn-in, balanced speed and braking.',
     'Split prow / swept ceramic chassis',
     {},
+    0xff674f,
   ),
   ...(import.meta.env?.VN_EDITION === 'demo'
     ? []
@@ -56,6 +67,7 @@ export const SHIPS = Object.freeze([
             grip: 1.16,
             boostDrain: 23,
           },
+          0x40e3dc,
           0.82,
         ),
         ship(
@@ -75,6 +87,7 @@ export const SHIPS = Object.freeze([
             grip: 1.2,
             boostDrain: 15.5,
           },
+          0xffaf59,
           1.22,
         ),
         ship(
@@ -94,6 +107,7 @@ export const SHIPS = Object.freeze([
             grip: 0.92,
             boostDrain: 25,
           },
+          0xbc80ff,
           1.65,
         ),
       ]),

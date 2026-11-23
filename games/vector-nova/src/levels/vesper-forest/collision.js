@@ -8,13 +8,5 @@ export function createVesperCollisionWorld({ track }) {
     geometryId: 'cast-ribbon-v3-deck-owned-decals',
     fullDeck: true,
     road: createVesperRoad({ track }),
-    select(object) {
-      if (object.userData.drivingSurface) return { kind: 'deck' };
-      if (/resin curb|protective divider/.test(object.name))
-        return { kind: 'rail', roadBoundary: true };
-      if (/resin sides and underside/.test(object.name))
-        return { kind: 'structure' };
-      return null;
-    },
   });
 }

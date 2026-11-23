@@ -586,12 +586,13 @@ test('residual spin at contact and during support does not penalize an aligned f
   }
 });
 
-test('arrival tilt and heading distinguish precise, clean and recovered landings before magnetic alignment', () => {
-  for (const [axis, precise, clean] of [
-    [new T.Vector3(0, 0, 1), 0.24, 0.48],
-    [new T.Vector3(0, 1, 0), 0.29, 0.58],
+test('arrival and settled angles allow slightly wider Perfects while retaining Great and Good boundaries', () => {
+  for (const [axis, formerPrecise, precise, clean] of [
+    [new T.Vector3(0, 0, 1), 0.24, 0.288, 0.48],
+    [new T.Vector3(0, 1, 0), 0.29, 0.348, 0.58],
   ]) {
     for (const [angle, expected] of [
+      [formerPrecise + 0.001, 'perfect'],
       [precise - 0.001, 'perfect'],
       [precise + 0.001, 'clean'],
       [clean - 0.001, 'clean'],
@@ -599,14 +600,15 @@ test('arrival tilt and heading distinguish precise, clean and recovered landings
     ]) {
       const c = createFreestyleController({ track });
       c.launch('jump-0');
+      const quaternion = new T.Quaternion().setFromAxisAngle(axis, angle);
       c.land({
         jump: track.jumps[0],
         outcome: 'landed',
         position: new T.Vector3(0, 0.72, 0),
-        quaternion: new T.Quaternion().setFromAxisAngle(axis, angle),
+        quaternion,
         velocity: new T.Vector3(0, 0, 145),
       });
-      const leg = settle(c);
+      const leg = settle(c, { quaternion });
       assert.equal(leg.quality, expected, `${axis.toArray()}: ${angle}`);
     }
   }

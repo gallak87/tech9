@@ -1,5 +1,6 @@
 import * as T from 'three';
 import { createCollisionWorld, indexedTriangles } from './collision-world.js';
+import { readCollisionSolid } from './solid-metadata.js';
 
 // Extract exact authored meshes in bounded jump corridors. Levels may retain
 // their entire selected deck so magnetic support never changes skins at a
@@ -79,7 +80,8 @@ export function collectProductionSolids({
   try {
     group.traverse((object) => {
       if (!object.isMesh) return;
-      const info = select(object);
+      const declared = readCollisionSolid(object);
+      const info = declared === undefined ? select?.(object) : declared?.info;
       if (!info) return;
       const retainDeck = fullDeck && info.kind === 'deck';
       const geometry = object.geometry;
@@ -103,13 +105,18 @@ export function collectProductionSolids({
           !near(geometry.boundingBox.clone().applyMatrix4(matrix))
         )
           continue;
-        const solidId = `${object.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${targets.length}-${index}`;
+        const solidId = `${declared?.id ?? object.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${targets.length}-${index}`;
+        const coordinates = declared
+          ? declared.coordinates
+          : object.isInstancedMesh
+            ? null
+            : geometry.attributes.roadCoord;
         const source = indexedTriangles(
           geometry.attributes.position.array,
           indices,
           { id: solidId, ...info },
           matrix,
-          object.isInstancedMesh ? null : geometry.attributes.roadCoord,
+          coordinates,
         );
         const kept = [];
         for (const [i, triangle] of source.entries()) {
@@ -117,10 +124,11 @@ export function collectProductionSolids({
           if (!retainDeck && !near(new T.Box3().setFromPoints(points)))
             continue;
           if (info.kind === 'deck' || info.roadBoundary) {
-            const route =
-              geometry.attributes.roadCoord ??
-              geometry.attributes.routeDistance;
-            const uv = geometry.attributes.uv;
+            const route = declared
+              ? coordinates
+              : (geometry.attributes.roadCoord ??
+                geometry.attributes.routeDistance);
+            const uv = declared ? null : geometry.attributes.uv;
             const distance =
               object.isInstancedMesh || (!route && !uv)
                 ? nearest(
@@ -146,6 +154,9 @@ export function collectProductionSolids({
             );
             if (info.kind === 'deck' && !interval) continue;
             triangle.distance = distance;
+            // start/end describe ownership of a supported route interval.
+            // Actual face coverage stays in the three roadCoordinates; never
+            // treat a whole ownership interval as geometry filling its gaps.
             if (interval) Object.assign(triangle, interval);
           }
           kept.push(triangle);

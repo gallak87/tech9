@@ -1,10 +1,11 @@
 export const FREESTYLE_RULES = Object.freeze({
-  version: 8,
+  version: 9,
   rotationPointsPerSecond: 800,
   landingWindow: 0.3,
   stableWindow: 0.1,
   landingTiltTolerance: 0.48,
   landingHeadingTolerance: 0.58,
+  perfectAngleToleranceScale: 0.6,
   perfectToleranceScale: 0.5,
   points: Object.freeze({ landed: 1000, clean: 2000, perfect: 2500 }),
   angularSpeed: [2.8, 2.6, 3.1],

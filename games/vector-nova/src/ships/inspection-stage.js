@@ -50,6 +50,7 @@ export function createInspectionStage(renderer) {
   scene.add(ring);
   return {
     scene,
+    floor,
     render(draw) {
       const borrowed = new Map();
       scene.traverse((object) => {

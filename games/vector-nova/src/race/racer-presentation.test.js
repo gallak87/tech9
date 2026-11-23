@@ -10,6 +10,7 @@ import {
   Vector3,
 } from 'three';
 import { createRacerPresentation } from './racer-presentation.js';
+import { RACE_OPPONENTS } from './roster.js';
 import { createDeviceRuntime } from '../pickups/runtime.js';
 import { createVehicleState } from '../physics/index.js';
 import { createTrack } from '../levels/halcyon/track/model.js';
@@ -77,6 +78,121 @@ test('rivals follow their own speed, boost/Vector, simulation clock and live gra
   } finally {
     presentation.dispose();
   }
+});
+
+test('rival wakes keep roster colors across takeoff, pause and touchdown, then clear outside range', async (t) => {
+  const track = createTrack();
+  const scene = new Scene();
+  const cameraPosition = track.sample(80).position.clone();
+  const opponents = RACE_OPPONENTS.slice(0, 2).map((specification, i) => {
+    const state = {
+      ...createVehicleState(),
+      distance: 80,
+      lateral: i === 0 ? -2 : 2,
+      speed: 90,
+    };
+    const pose = {
+      position: new Vector3(),
+      quaternion: new Quaternion(),
+      grounded: true,
+    };
+    return {
+      specification,
+      state,
+      prev: { ...state },
+      pose,
+      runtime: { pose: () => pose },
+    };
+  });
+  const presentation = await createRacerPresentation({
+    racers: { enabled: true, opponents },
+    scene,
+    track,
+    wakeSurface: {},
+    loadRival: async () => {
+      const group = new Group();
+      group.userData.bounds = { min: [-2, 0, -3.6], max: [2, 1.3, 3.6] };
+      return { group, dispose: () => group.removeFromParent() };
+    },
+  });
+  t.after(() => presentation.dispose());
+  const settings = { quality: 'low' };
+  const [rook, latch] = opponents.map(({ specification: { name, color } }) => ({
+    color: color.slice(1),
+    ground: scene.getObjectByName(`${name} / ground glide trail`),
+    air: scene.getObjectByName(`${name} / airborne glide wake`),
+  }));
+
+  function step(rookHeight = 0, mode = 'racing') {
+    for (const [i, { state, prev, pose }] of opponents.entries()) {
+      Object.assign(prev, state);
+      state.time += 1 / 60;
+      state.distance += state.speed / 60;
+      const frame = track.sample(state.distance);
+      const height = i === 0 ? rookHeight : 0;
+      pose.grounded = height === 0;
+      pose.position
+        .copy(frame.position)
+        .addScaledVector(frame.right, state.lateral)
+        .addScaledVector(frame.up, 0.72 + height);
+      pose.quaternion.copy(frame.quaternion);
+    }
+    presentation.update({ mode, settings, cameraPosition });
+  }
+  function front(mesh) {
+    return new Vector3().fromBufferAttribute(
+      mesh.geometry.attributes.position,
+      0,
+    );
+  }
+
+  for (let i = 0; i < 24; i++) step();
+  for (const rival of [rook, latch]) {
+    assert.ok(rival.ground.visible);
+    assert.equal(
+      rival.ground.material.uniforms.accent.value.getHexString(),
+      rival.color,
+    );
+    const { attributes, index, drawRange } = rival.ground.geometry;
+    const distances = Array.from(
+      index.array.subarray(0, drawRange.count),
+      (vertex) => attributes.trailDistance.getX(vertex),
+    );
+    assert.ok(
+      Math.abs(Math.max(...distances) - Math.min(...distances) - 30) < 1e-4,
+    );
+    assert.equal(rival.air.visible, false);
+  }
+  const takeoff = front(rook.ground);
+  for (let i = 1; i <= 24; i++) step(i * 0.4);
+  assert.ok(rook.ground.visible && rook.air.visible);
+  assert.deepEqual(front(rook.ground), takeoff);
+  assert.ok(Math.abs(rook.air.material.uniforms.wakeLength.value - 30) < 1e-5);
+  assert.equal(
+    rook.air.material.uniforms.accent.value.getHexString(),
+    rook.color,
+  );
+  assert.equal(latch.air.visible, false);
+
+  const flight = front(rook.air);
+  step(2, 'paused');
+  assert.deepEqual(front(rook.air), flight);
+  assert.deepEqual(front(rook.ground), takeoff);
+  const { opacity } = rook.air.material.uniforms;
+  const airborneOpacity = opacity.value;
+  for (let i = 0; i < 4; i++) step();
+  assert.ok(rook.ground.visible && rook.air.visible);
+  assert.deepEqual(front(rook.air), flight);
+  assert.ok(opacity.value > 0 && opacity.value < airborneOpacity);
+  for (let i = 0; i < 13; i++) step();
+  assert.equal(rook.air.visible, false);
+
+  cameraPosition.set(2000, 2000, 2000);
+  step();
+  assert.equal(rook.ground.visible, false);
+  assert.equal(latch.ground.visible, false);
+  presentation.dispose();
+  assert.equal(scene.children.length, 0);
 });
 
 test('an eliminated rival hides propulsion, pickup fields and hull contact feedback in racing and pause', async () => {

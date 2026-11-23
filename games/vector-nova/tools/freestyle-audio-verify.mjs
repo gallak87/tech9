@@ -55,7 +55,7 @@ try {
       readFeedback() {
         return { mode, tick, state: {...state}, runtime: runtime.snapshot(),
           practice: structuredClone(freestylePractice), audio: audio.getStatus(),
-          reward: audio.getPresentation() };
+          reward: audio.getPresentation(), events: structuredClone(events) };
       },`,
     {
       transform(source) {
@@ -89,6 +89,13 @@ try {
     runtime,
     practice,
   });
+  const freestyle = (snapshot) =>
+    snapshot.runtime.freestyle ?? snapshot.runtime.motion.freestyle;
+  async function stepTally(ticks) {
+    await page.evaluate((count) => window.__VN.stepFeedback(count), ticks);
+    await frames();
+    return read();
+  }
   async function practice(id = 'transfer-1', airAlignment = true) {
     await page.evaluate(() => {
       const api = window.__VN;
@@ -199,6 +206,84 @@ try {
       snapshot.environment.thunder.loaded
     );
   });
+
+  await page.evaluate(() => {
+    window.__VN.loadScenario('jump1-success');
+    window.__feedbackPilot = () => ({ throttle: 0, aerialRoll: 1 });
+  });
+  await frames();
+  let tally = await stepTally(10);
+  const beforeTally = tally.reward.triggerCount;
+  await page.waitForTimeout(40);
+  tally = await stepTally(10);
+  assert.ok(freestyle(tally).flight.rotationPoints >= 25);
+  assert.ok(freestyle(tally).flight.rotationPoints < 100);
+  assert.ok(
+    tally.reward.triggerCount > beforeTally,
+    'the 25-point threshold sounds before the former 100-point threshold',
+  );
+  for (let i = 0; i < 4; i++) {
+    await page.waitForTimeout(130);
+    const previousCount = tally.reward.triggerCount;
+    tally = await stepTally(18);
+    assert.ok(freestyle(tally).flight);
+    assert.equal(freestyle(tally).flight.tricks.length, 0);
+    assert.ok(
+      tally.reward.triggerCount - previousCount <= 1,
+      'one rendered observation never catches up skipped score thresholds',
+    );
+  }
+  assert.ok(freestyle(tally).flight.rotationPoints >= 100);
+  assert.ok(
+    tally.reward.triggerCount > beforeTally,
+    'continuous rotation points sound before any completed rotation',
+  );
+  assert.equal(tally.reward.lastCue, 'score-tick');
+  assert.equal(tally.reward.lastPlaybackRate, 1);
+
+  // Coast through the end of a native roll: only the completed-trick bonus
+  // changes. No held rotation points are earned after release.
+  for (let i = 0; i < 50 && freestyle(tally).progress[2] < 5.7; i++)
+    tally = await stepTally(6);
+  assert.ok(freestyle(tally).progress[2] >= 5.7);
+  assert.equal(freestyle(tally).flight.tricks.length, 0);
+  await page.evaluate(() => {
+    window.__feedbackPilot = () => ({ throttle: 0 });
+  });
+  const releasedPoints = freestyle(tally).flight.rotationPoints;
+  const releasedCount = tally.reward.triggerCount;
+  tally = await stepTally(1);
+  assert.equal(freestyle(tally).flight.rotationPoints, releasedPoints);
+  assert.equal(tally.reward.activeVoices, 0);
+  await page.waitForTimeout(180);
+  tally = await stepTally(60);
+  assert.equal(freestyle(tally).flight.rotationPoints, releasedPoints);
+  assert.ok(freestyle(tally).flight.tricks.length > 0);
+  assert.ok(tally.events.some((event) => event.type === 'freestyle-trick'));
+  assert.equal(
+    tally.reward.triggerCount,
+    releasedCount,
+    'release and a completed-rotation bonus never replay pending tally clicks',
+  );
+
+  await page.evaluate(() => window.__VN.pause());
+  await frames();
+  const pausedTally = await read();
+  assert.equal(pausedTally.reward.activeVoices, 0);
+  await page.waitForTimeout(180);
+  await page.locator('#resume').click();
+  await frames();
+  assert.equal((await read()).reward.triggerCount, releasedCount);
+  assert.deepEqual(fixed(await read()), {
+    ...fixed(pausedTally),
+    mode: 'racing',
+  });
+  tally = await stepTally(1);
+  assert.equal(tally.reward.triggerCount, releasedCount);
+  console.log(
+    'PASS · native rising points tick before completed rotations; release, coast bonuses and pause/resume produce no catch-up clicks',
+  );
+
   await practice();
   const completed = await complete();
   await page.waitForTimeout(80);

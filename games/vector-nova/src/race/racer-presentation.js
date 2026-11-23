@@ -3,6 +3,7 @@ import { createRivalPreview } from '../ships/rivals.js';
 import { createHitFeedback } from '../pickups/hit-feedback.js';
 import { createRivalPickups } from './rival-pickups.js';
 import { readRuntimeFrame } from '../core/session-runtime.js';
+import { createRivalWake } from './rival-wake.js';
 
 const up = new Vector3(0, 1, 0);
 const forward = new Vector3(0, 0, 1);
@@ -13,6 +14,7 @@ export async function createRacerPresentation({
   racers,
   scene,
   track,
+  wakeSurface = null,
   combat = null,
   settings = {},
   loadRival = createRivalPreview,
@@ -29,6 +31,7 @@ export async function createRacerPresentation({
         opponent,
         hitFeedback: null,
         pickups: null,
+        wake: null,
         yaw: new Quaternion(),
         roll: new Quaternion(),
       };
@@ -42,9 +45,17 @@ export async function createRacerPresentation({
         opponent.runtime,
         settings,
       );
+      entry.wake = createRivalWake(
+        scene,
+        track,
+        wakeSurface,
+        ship.group,
+        opponent.specification,
+      );
     }
   } catch (error) {
-    ships.forEach(({ ship, hitFeedback, pickups }) => {
+    ships.forEach(({ ship, hitFeedback, pickups, wake }) => {
+      wake?.dispose();
       pickups?.dispose();
       hitFeedback?.dispose();
       ship.dispose();
@@ -64,6 +75,7 @@ export async function createRacerPresentation({
       mode = 'title',
       settings = {},
       interceptor = null,
+      cameraPosition,
     } = {}) {
       if (disposed) return;
       const enabled = racers.enabled;
@@ -73,7 +85,15 @@ export async function createRacerPresentation({
           (mode === 'results' && !interceptor));
       const combatState = combat?.view();
       const flashes = combatState?.flashes ?? [];
-      for (const { ship, opponent, yaw, roll, hitFeedback, pickups } of ships) {
+      for (const {
+        ship,
+        opponent,
+        yaw,
+        roll,
+        hitFeedback,
+        pickups,
+        wake,
+      } of ships) {
         const retained = !!(
           mode === 'results' &&
           interceptor?.result &&
@@ -110,6 +130,7 @@ export async function createRacerPresentation({
         if (!show) {
           ship.update?.({ quality: settings.quality, visible: false });
           hitFeedback?.update(undefined, settings);
+          wake?.reset();
           continue;
         }
         const blend = ['racing', 'results'].includes(mode)
@@ -128,16 +149,18 @@ export async function createRacerPresentation({
             drivePower = 0.35 + 0.65 * MathUtils.smoothstep(releaseAge, 0, 0.4);
           }
         }
+        const speed = MathUtils.lerp(
+          opponent.prev?.speed ?? state.speed,
+          state.speed,
+          blend,
+        );
+        const catapulting =
+          effects.vectorActive === true ||
+          effects.equipment?.slipstreamRemaining > 0;
         ship.update?.({
-          speed: MathUtils.lerp(
-            opponent.prev?.speed ?? state.speed,
-            state.speed,
-            blend,
-          ),
+          speed,
           boost: state.boosting,
-          catapulting:
-            effects.vectorActive === true ||
-            effects.equipment?.slipstreamRemaining > 0,
+          catapulting,
           time: state.time,
           energy: state.energy / 100,
           quality: settings.quality,
@@ -182,6 +205,18 @@ export async function createRacerPresentation({
             .multiply(yaw)
             .multiply(roll);
         }
+        if (disabled) wake?.reset();
+        else
+          wake?.update({
+            opponent,
+            pose,
+            blend,
+            speed,
+            boost: Number(Boolean(catapulting || state.boosting)),
+            mode,
+            reducedMotion: settings.reducedMotion,
+            cameraPosition,
+          });
         const disruption = combat?.disruption?.(opponent.specification.id);
         // Hull-space interference must use this frame's rendered transform.
         hitFeedback?.update(
@@ -200,10 +235,14 @@ export async function createRacerPresentation({
         );
       }
     },
+    resetWakes() {
+      for (const { wake } of ships) wake?.reset();
+    },
     dispose() {
       if (disposed) return;
       disposed = true;
-      ships.forEach(({ ship, hitFeedback, pickups }) => {
+      ships.forEach(({ ship, hitFeedback, pickups, wake }) => {
+        wake?.dispose();
         pickups.dispose();
         hitFeedback?.dispose();
         ship.dispose();

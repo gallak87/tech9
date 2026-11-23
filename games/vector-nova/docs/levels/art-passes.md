@@ -15,4 +15,6 @@ Use an independent, brutal AAA environment-art critic with matched normal-drivin
 
 Follow [art direction](../ART_BIBLE.md), the [level workflow](../LEVEL_API.md#environment-assembly-workflow), and each course's technical constraints. Use bounded desktop verification; retain the expansion campaign's mobile/portrait deferral. Browser/Playwright use is authorized. Keep music off and verification audio muted. Do not replace whole-course judgment with one hero view or inflate a score because checks pass.
 
+Use the [circuit art capture tool](../../tools/README.md#art-route-and-jump-experiments) for the matched desktop stills. Capture the same road stations, district views and copied landmark poses at the same quality in each round. Review moving encounters separately while driving.
+
 Keep detailed round findings in chat and temporary captures under ignored `.experiments/`. After each course, replace its value in [ART_SCORES.json](../ART_SCORES.json) with its latest numeric score only, and retain a succinct note of this prescribed pass and its outcome in related level guidance. Record completion here so finished loops stay closed; do not start another course beyond this sequence automatically.

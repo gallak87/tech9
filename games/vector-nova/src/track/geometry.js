@@ -167,7 +167,12 @@ export function seededRandom(seed) {
 export function roadSealGeometry(
   track,
   surface,
-  { spacing = 36, breadth = 0.078, offset = 0.008 } = {},
+  {
+    spacing = 36,
+    breadth = 0.078,
+    offset = 0.008,
+    roadCoordinates = false,
+  } = {},
 ) {
   positive('Track length', track.length);
   positive('Track width', track.width);
@@ -200,6 +205,7 @@ export function roadSealGeometry(
   const step = track.length / segments;
   const positions = [];
   const normals = [];
+  const roadCoord = [];
   const edgeInset = 0.02 / track.width;
   const point = (index) =>
     new THREE.Vector3().fromBufferAttribute(attribute, index);
@@ -269,6 +275,11 @@ export function roadSealGeometry(
                   .addScaledVector(normal, offset);
                 positions.push(lifted.x, lifted.y, lifted.z);
                 normals.push(normal.x, normal.y, normal.z);
+                if (roadCoordinates)
+                  roadCoord.push(
+                    (segment + vertex.v) * step,
+                    (vertex.u - 0.5) * track.width,
+                  );
               }
             }
           }
@@ -282,6 +293,11 @@ export function roadSealGeometry(
     new THREE.Float32BufferAttribute(positions, 3),
   );
   geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+  if (roadCoordinates)
+    geometry.setAttribute(
+      'roadCoord',
+      new THREE.Float32BufferAttribute(roadCoord, 2),
+    );
   geometry.computeBoundingSphere();
   return geometry;
 }

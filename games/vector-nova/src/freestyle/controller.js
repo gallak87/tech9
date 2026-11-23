@@ -328,12 +328,12 @@ export function createFreestyleController({ track }) {
         up.dot(frame.up) >
           Math.cos(
             FREESTYLE_RULES.landingTiltTolerance *
-              FREESTYLE_RULES.perfectToleranceScale,
+              FREESTYLE_RULES.perfectAngleToleranceScale,
           ) &&
         forward.dot(frame.tangent) >
           Math.cos(
             FREESTYLE_RULES.landingHeadingTolerance *
-              FREESTYLE_RULES.perfectToleranceScale,
+              FREESTYLE_RULES.perfectAngleToleranceScale,
           ) &&
         (tube ||
           laneError < halfCatchWidth * FREESTYLE_RULES.perfectToleranceScale) &&
@@ -412,12 +412,12 @@ export function createFreestyleController({ track }) {
         up.dot(frame.up) >
           Math.cos(
             FREESTYLE_RULES.landingTiltTolerance *
-              FREESTYLE_RULES.perfectToleranceScale,
+              FREESTYLE_RULES.perfectAngleToleranceScale,
           ) &&
         forward.dot(frame.tangent) >
           Math.cos(
             FREESTYLE_RULES.landingHeadingTolerance *
-              FREESTYLE_RULES.perfectToleranceScale,
+              FREESTYLE_RULES.perfectAngleToleranceScale,
           );
       // Native support decides whether a landing worked. Alignment and
       // settlement distinguish the higher grades without penalizing spin.

@@ -133,7 +133,7 @@
   backdrop-filter: blur(5px);
   padding: 30px 18px;
   display: grid;
-  place-items: center;
+  place-items: safe center;
 }
 .completion-cinematic[data-credits-transition='fade'] .completion-credits {
   animation: completion-credits-fade var(--completion-dialog-fade, 700ms)

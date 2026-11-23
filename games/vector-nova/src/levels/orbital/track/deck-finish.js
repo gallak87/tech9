@@ -22,7 +22,8 @@ export function createDeckFinish(renderer) {
     material.normalMap = maps[1];
     material.aoMap = material.roughnessMap = material.metalnessMap = maps[2];
     material.color.set(0xffffff);
-    material.roughness = 0.75;
+    // Broaden the grazing highlight without flattening the seam/face variation.
+    material.roughness = 0.86;
     material.metalness = 1;
     material.needsUpdate = true;
   }

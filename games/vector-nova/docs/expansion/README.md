@@ -19,6 +19,8 @@ Saffron Leviathan (`saffron`) has a 40 m roadway; Umbra Fold (`umbra`) has a 35 
 5. Present and inspect the complete revised circuit. Reviews cover the whole level at the brief's phase gates; no preliminary approval cycle for widening individual sections. Use the shared free camera alongside driving views.
 6. Run bounded desktop inspection and focused verification, repair concrete findings, then hand the complete variant to the user for driving review. Technical checks do not substitute for human acceptance.
 
+Run `npm run check:route-variant -- <original-slug> <variant-slug> --width <target-metres>` from the game directory to check the declared width, route length, sampled centerline and banking, finish, checkpoints and jump stations. Use [the comparison options](../../tools/level-checks/README.md#route-variant-comparison) for sampling and tolerances. Verify rendered road width, collision and driving separately with the assigned brief's checks.
+
 Keep ship size and handling unchanged. Start with the existing camera; adjust local framing only where the revised geometry demonstrably requires it. Avoid a universal deformation framework, wholesale asset regeneration, and unrelated roadmap polish. Any extra level changes must be named in its brief.
 
 ## Inspection and verification agents

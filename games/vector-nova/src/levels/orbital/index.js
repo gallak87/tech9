@@ -40,9 +40,10 @@ export default function createLevel({ shape }) {
       const group = shape
         ? buildLevel2Blockout(track)
         : buildOrbitalTrack(track, view?.renderer);
-      return legacyPart(group, ({ state }) =>
-        group.userData.update?.(state.distance),
-      );
+      return legacyPart(group, (frame) => {
+        group.userData.update?.(frame.state.distance);
+        group.userData.updateRoadAnimation?.(frame);
+      });
     },
     createEnvironment({ track }) {
       const group = shape ? new T.Group() : createOrbitalEnvironment(track);

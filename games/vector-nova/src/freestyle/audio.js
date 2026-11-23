@@ -1,5 +1,4 @@
 import { freestyleLandingGrade } from './arcade.js';
-import { TRICKS } from './rules.js';
 import { createSampleBank } from '../audio/sample-bank.js';
 
 export const FREESTYLE_SAMPLES = Object.freeze({
@@ -25,12 +24,14 @@ export const FREESTYLE_SAMPLES = Object.freeze({
 
 export const FREESTYLE_AUDIO_RULES = Object.freeze({
   maxVoices: 2,
+  pointsPerTick: 25,
+  maxTicksPerSecond: 32,
   gains: Object.freeze({
     good: 0.28,
     great: 0.3,
     perfect: 0.32,
     miss: 0.26,
-    trick: 0.1,
+    trick: 0.28,
   }),
 });
 
@@ -55,26 +56,24 @@ function cueFor(event) {
     };
   }
   if (
-    event?.type !== 'freestyle-trick' ||
-    typeof payload.kind !== 'string' ||
-    !Object.hasOwn(TRICKS, payload.kind) ||
+    event?.type !== 'freestyle-score-tick' ||
     !Number.isInteger(payload.ordinal) ||
     payload.ordinal < 1
   )
     return null;
   return {
     sample: 'trick',
-    cue: `trick:${payload.kind}`,
+    cue: 'score-tick',
     grade: null,
-    key: JSON.stringify(['trick', payload.id, payload.ordinal]),
+    key: JSON.stringify(['score-tick', payload.id, payload.ordinal]),
     gain: FREESTYLE_AUDIO_RULES.gains.trick,
     playbackRate: 1,
   };
 }
 
 // The physical landing is a separate, immediate cue. This owner confirms banks,
-// misses and completed tricks; it never sounds the continuously rising
-// score. Recorded sources are prepared at unlock, with no synthetic fallback.
+// misses and the rising rotation-point tally. Completed tricks add no sound.
+// Recorded sources are prepared at unlock, with no synthetic fallback.
 export function createFreestyleAudio(
   context,
   destination,
@@ -87,10 +86,17 @@ export function createFreestyleAudio(
     triggerCount = 0,
     lastGrade = null,
     lastCue = null,
-    lastPlaybackRate = null;
+    lastPlaybackRate = null,
+    lastTickAt = -Infinity,
+    tally = null;
+  function stopTicks() {
+    for (const voice of [...voices]) if (voice.tick) voice.stop();
+  }
   function stop() {
     for (const voice of [...voices]) voice.stop();
     seen.clear();
+    lastTickAt = -Infinity;
+    tally = null;
   }
   function remainingSeconds() {
     return Math.max(
@@ -105,19 +111,81 @@ export function createFreestyleAudio(
       return cue ? (bank.get(cue.sample)?.duration ?? 0) / cue.playbackRate : 0;
     },
     remainingSeconds,
+    update(frame) {
+      const freestyle =
+          frame.motion?.freestyle ?? frame.motion?.motion?.freestyle,
+        flight = freestyle?.flight,
+        points = flight?.rotationPoints,
+        clock = freestyle?.clock;
+      if (
+        disposed ||
+        context.state !== 'running' ||
+        frame.mode !== 'racing' ||
+        typeof flight?.id !== 'string' ||
+        !flight.id ||
+        flight.failed ||
+        freestyle.pendingLanding ||
+        !Number.isFinite(points) ||
+        points < 0 ||
+        !Number.isFinite(clock)
+      ) {
+        stopTicks();
+        tally = null;
+        return false;
+      }
+      const ordinal = Math.floor(points / FREESTYLE_AUDIO_RULES.pointsPerTick);
+      if (
+        !tally ||
+        tally.id !== flight.id ||
+        points < tally.points ||
+        clock < tally.clock
+      ) {
+        stopTicks();
+        tally = { id: flight.id, points, clock, ordinal };
+        return false;
+      }
+      if (clock === tally.clock) return false;
+      const growing = points > tally.points;
+      tally.points = points;
+      tally.clock = clock;
+      if (!growing) {
+        tally.ordinal = ordinal;
+        stopTicks();
+        return false;
+      }
+      if (
+        ordinal <= tally.ordinal ||
+        context.currentTime - lastTickAt <
+          1 / FREESTYLE_AUDIO_RULES.maxTicksPerSecond - 1e-9
+      )
+        return false;
+      // One live tick at most, even after a slow frame. Consume skipped points;
+      // release, pause, mute and loading must never leave a catch-up sequence.
+      tally.ordinal = ordinal;
+      return this.trigger({
+        type: 'freestyle-score-tick',
+        payload: { id: flight.id, ordinal },
+      });
+    },
     trigger(event) {
       if (disposed || context.state !== 'running') return false;
       const cue = cueFor(event);
       if (!cue || seen.has(cue.key)) return false;
       seen.add(cue.key);
       if (seen.size > 24) seen.delete(seen.values().next().value);
+      if (
+        !cue.grade &&
+        context.currentTime - lastTickAt <
+          1 / FREESTYLE_AUDIO_RULES.maxTicksPerSecond - 1e-9
+      )
+        return false;
       const buffer = bank.get(cue.sample);
       if (!buffer) return false;
       if (cue.grade) {
-        // Confirmed banks and misses win over the last airborne trick tick.
+        // Confirmed banks and misses win over the last airborne score tick.
         // Common touchdown has its own voice and is not restarted here.
-        for (const voice of [...voices]) if (voice.trick) voice.stop();
-      } else if ([...voices].some((voice) => !voice.trick)) return false;
+        stopTicks();
+      } else if ([...voices].some((voice) => !voice.tick)) return false;
       if (voices.size >= FREESTYLE_AUDIO_RULES.maxVoices) return false;
       const source = context.createBufferSource(),
         envelope = context.createGain(),
@@ -137,7 +205,7 @@ export function createFreestyleAudio(
         voices.delete(voice);
       };
       const voice = {
-        trick: !cue.grade,
+        tick: !cue.grade,
         endsAt,
         stop() {
           if (released) return;
@@ -149,6 +217,7 @@ export function createFreestyleAudio(
       voices.add(voice);
       source.start(time);
       source.stop(endsAt);
+      if (!cue.grade) lastTickAt = time;
       triggerCount++;
       lastGrade = cue.grade ?? lastGrade;
       lastCue = cue.cue;

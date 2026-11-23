@@ -3,6 +3,13 @@ import * as T from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { sweepGeometry, boxProfile } from '../../../track/geometry.js';
 import { framePoint } from '../../../track/frames.js';
+import { declareCollisionSolid } from '../../../physics/solid-metadata.js';
+
+const routeCoordinates = Object.freeze({
+  attribute: 'roadCoord',
+  distance: 0,
+  lateral: 1,
+});
 
 const inside = (s, j) => s > j.takeoff && s < j.landingStart;
 
@@ -342,6 +349,11 @@ export function createVesperRoad({ track, shape = false }) {
     surface.userData.drivingSurface = true;
     surface.userData.roadSurface = true;
     surface.userData.rightEdge = right;
+    declareCollisionSolid(surface, {
+      id: 'cast-resin-driving-surface',
+      kind: 'deck',
+      routeCoordinates,
+    });
     surface.receiveShadow = true;
     group.add(surface);
     const thickness = new T.Mesh(
@@ -369,6 +381,11 @@ export function createVesperRoad({ track, shape = false }) {
     }
     thickness.geometry.computeVertexNormals();
     thickness.name = 'Thick cast resin sides and underside';
+    declareCollisionSolid(thickness, {
+      id: 'thick-cast-resin-sides-and-underside',
+      kind: 'structure',
+      routeCoordinates,
+    });
     group.add(thickness);
     for (const sign of [-1, 1]) {
       const curb = new T.Mesh(
@@ -384,6 +401,12 @@ export function createVesperRoad({ track, shape = false }) {
         shape ? milk : core,
       );
       curb.name = 'Continuous cast resin curb';
+      declareCollisionSolid(curb, {
+        id: 'continuous-cast-resin-curb',
+        kind: 'rail',
+        roadBoundary: true,
+        routeCoordinates,
+      });
       group.add(curb);
       group.add(
         new T.Mesh(

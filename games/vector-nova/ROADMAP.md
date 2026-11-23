@@ -1,36 +1,23 @@
 # VECTOR//NOVA roadmap
 
-Current direction updated on **2026-11-13**. Remaining work covers hardware validation, release integration, code maintenance and presentation. Completed art and critic campaigns remain closed.
+Current direction updated on **2026-11-13**. Remaining work covers release integration, specific device faults, code maintenance and presentation. Completed art and critic campaigns remain closed.
 
 ## Current baseline
 
 - Track Workshop supports direct 3D editing, seeded circuits and downhill courses up to 20 km, jumps, scenery presets, pickups and test drives. Saved tracks are playable in Quick Race, Practice and Time Trial. Time Trial keeps course-specific personal records.
 
 - Main has seventeen racing courses, four original championships plus the unlockable Encore Cup, four playable ships and a ten-racer field. Quick Race, Practice, continuous circuit Time Trials, sprint trials, saved bests and personal ghosts are implemented. Course details and shared rules live in [architecture](ARCHITECTURE.md) and the [level API](docs/LEVEL_API.md).
-- All 28 career rewards, six enhancement tracks, six equipped abilities, Quad Core, the live Garage, physical combat/contact and demo-to-full save transfer are implemented. The full collection now has 37 unlocks: those 28 items plus nine derived mode-course unlocks. Completing it opens the original Oriel, Ravel and Nomad Procession courses, Encore Cup and the Shatterline completion cinematic. Browser developer modes require `showcase=1` to preview that cinematic. The manual title screen, three named career slots, top-level navigation and shared audio controls are described in [entry and careers](docs/intro-and-profiles.md).
+- The career collection has **37 unlocks: 28 rewards plus nine mode-course unlocks**. Six enhancement tracks, six equipped abilities, Quad Core, the live Garage, physical combat/contact and demo-to-full save transfer are implemented. Completing the collection opens the original Oriel, Ravel and Nomad Procession courses, Encore Cup and the Shatterline completion cinematic. Browser developer modes require `showcase=1` to preview that cinematic. The manual title screen, three named career slots, top-level navigation and shared audio controls are described in [entry and careers](docs/intro-and-profiles.md).
 - Eight songs, local music/SFX generation, browser publishing and offline Electron demo/full packages exist. Startup selects Blue Hour and honors the saved startup-pause preference. See [audio](docs/audio/README.md), [desktop builds](docs/steam/desktop.md) and the [release checklist](docs/steam/release.md).
 - Freestyle, Eliminator and Interceptor each have three standalone courses integrated into main and complete the planned mode additions. Their course chains and progression are in [architecture](ARCHITECTURE.md#session-devices-and-replay).
 
 ## Now
 
-### Integrate and review the work already in flight
+### Deferred FPS, devices and release readiness
 
-- [ ] Finish physical fullscreen/controller navigation acceptance. Dedicated automated windowed/ultrawide, keyboard/controller, retained-session and focus/scroll checks cover the revised frontend; physical input and display behavior still need their release pass.
-
-### Performance, devices and release readiness
-
-- [ ] Validate sustained foreground performance in Worldspire, Nightweir and Umbra on representative hardware after the rendering fixes; investigate any remaining slow sections. Bounded M1 Pro GPU/scene-cost regressions pass.
-- [ ] Investigate the reported iPhone 13 graphics-context loss after Halcyon's countdown on a physical device. Test loading, countdown and sustained full-field racing before choosing the mobile default; the error alone does not identify the cause.
-- [ ] Finish hands-on phone/tablet and physical-gamepad driving checks: long flights, two-thumb ergonomics, mappings and responsive HUD/cameras. Browser emulation is not a per-device or per-level driving pass; the user's separate widening-campaign mobile review remains open.
-- [ ] Finish startup, sustained foreground frame-pacing and memory validation on representative hardware. Bounded M1 Pro native-Chrome GPU/scene-cost probes cover the rendering changes; they do not close foreground performance or physical-device acceptance.
+- [ ] Revisit FPS and first-use frame pacing in Worldspire, Nightweir and Umbra, including Umbra Low's shader/program-reflection stalls. Keep GPU/CPU profiling separate from unprofiled acceptance measurements.
+- [ ] Reproduce the reported iPhone 13 graphics-context loss after Halcyon's countdown on the affected hardware and collect failure timing and graphics diagnostics. Browser emulation cannot establish whether this device-specific fault remains after the rendering-budget fixes.
 - [ ] Move the game and desktop CI into a private repository when ready; decide what remains publicly playable. Complete the remaining hardware, distribution and store gates in the [release checklist](docs/steam/release.md).
-
-## Code quality and maintenance
-
-Remaining audit work; original item numbers are retained. Preserve approved handling, save/replay compatibility, deterministic stepping, resource ownership and desktop edition boundaries.
-
-- [ ] **Explicit collision metadata (#8):** replace art-name/UV assumptions with explicit solid roles and route-coordinate meanings. Distinguish broad ownership intervals from actual face coverage; migrate one level first while preserving collider geometry, triangle order, fingerprints and replay identities.
-- [ ] **One completion overlay shell:** consolidate duplicated boot/loading, failure, credits and focus handling in `src/frontend/index.js` and `src/frontend/completion-cinematic.js`. Preserve eager loading feedback, cancellation/retry, saved completion acknowledgement and keyboard/controller focus return.
 
 ## Next
 

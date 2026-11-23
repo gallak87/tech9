@@ -91,9 +91,18 @@ const bank = (id = 'transfer-1', quality = 'great', chain = 1) => ({
     chain,
   },
 });
-const trick = (ordinal = 1, kind = 'roll') => ({
-  type: 'freestyle-trick',
-  payload: { id: 'transfer-1', kind, ordinal },
+const tick = (ordinal = 1) => ({
+  type: 'freestyle-score-tick',
+  payload: { id: 'transfer-1', ordinal },
+});
+const scoreFrame = (points, clock, flight = {}) => ({
+  mode: 'racing',
+  motion: {
+    freestyle: {
+      clock,
+      flight: { id: 'transfer-1', rotationPoints: points, ...flight },
+    },
+  },
 });
 const sources = (context) =>
   context.nodes.filter((node) => node.kind === 'source');
@@ -184,8 +193,8 @@ test('chains preserve the recorded pitch, gain and authored grade', async () => 
 test('confirmed misses sound once after failure; airborne misses, pending recovery and transfers stay silent', async () => {
   const { audio, context } = rig();
   await audio.prepare();
-  assert.equal(audio.trigger(trick()), true);
-  const tick = sources(context).at(-1);
+  assert.equal(audio.trigger(tick()), true);
+  const tallySource = sources(context).at(-1);
   for (const event of [
     { type: 'jump-miss', payload: { id: 'transfer-1', at: 10 } },
     {
@@ -206,9 +215,9 @@ test('confirmed misses sound once after failure; airborne misses, pending recove
   event.payload.bank = 0;
   assert.equal(audio.trigger(event), true);
   assert.equal(
-    tick.disconnected,
+    tallySource.disconnected,
     true,
-    'confirmed failure takes priority over trick ticks',
+    'confirmed failure takes priority over score ticks',
   );
   const source = sources(context).at(-1);
   assert.equal(source.buffer.cue, 'miss');
@@ -237,50 +246,126 @@ test('confirmed misses sound once after failure; airborne misses, pending recove
   audio.dispose();
 });
 
-test('every completed trick uses the same quiet source at its recorded pitch', async () => {
+test('completed rotations are silent; tally ticks retain the recording and pitch', async () => {
   const { audio, context } = rig();
   await audio.prepare();
-  let buffer;
   for (const [index, kind] of ['roll', 'flip', 'spin', 'corkscrew'].entries()) {
-    const event = trick(index + 1, kind);
-    assert.equal(audio.trigger(event), true);
-    const source = sources(context).at(-1);
-    buffer ??= source.buffer;
-    assert.equal(source.buffer, buffer);
-    assert.equal(source.playbackRate.value, 1);
-    assert.equal(source.target.gain.value, FREESTYLE_AUDIO_RULES.gains.trick);
-    assert.equal(audio.duration(event), durations.trick);
-    assert.equal(source.stops[0], context.currentTime + durations.trick);
-    source.onended();
+    const completed = {
+      type: 'freestyle-trick',
+      payload: { id: 'transfer-1', ordinal: index + 1, kind },
+    };
+    assert.equal(audio.trigger(completed), false);
+    assert.equal(audio.duration(completed), 0);
   }
+  assert.equal(sources(context).length, 0);
+  audio.update(scoreFrame(0, 0));
+  assert.equal(audio.update(scoreFrame(24, 0.03)), false);
+  assert.equal(audio.update(scoreFrame(25, 0.04)), true);
+  const source = sources(context).at(-1);
+  assert.equal(source.buffer.cue, 'trick');
+  assert.equal(source.playbackRate.value, 1);
+  assert.equal(source.target.gain.value, FREESTYLE_AUDIO_RULES.gains.trick);
+  assert.equal(audio.duration(tick()), durations.trick);
+  assert.equal(source.stops[0], context.currentTime + durations.trick);
+  assert.equal(audio.getPresentation().lastCue, 'score-tick');
+  assert.equal(audio.update(scoreFrame(25, 0.04)), false);
+  assert.equal(
+    source.disconnected,
+    false,
+    'duplicate render does not cut a tick',
+  );
+  assert.equal(audio.update(scoreFrame(25, 0.05)), false);
+  assert.equal(source.disconnected, true, 'release stops the tally');
   audio.dispose();
 });
 
-test('banks win over completed-trick ticks; rejected or over-budget cues are never deferred', async () => {
+test('25-point cadence survives render quantization and never exceeds 32 ticks per second', async () => {
+  for (const fps of [30, 60, 144]) {
+    const { audio, context } = rig();
+    await audio.prepare();
+    audio.update(scoreFrame(0, 0));
+    for (let i = 1; i <= fps * 2; i++) {
+      const time = i / fps;
+      context.currentTime = 4 + time;
+      for (const source of sources(context))
+        if (!source.disconnected && source.stops[0] <= context.currentTime)
+          source.onended();
+      audio.update(scoreFrame(time * 800, time));
+    }
+    const starts = sources(context).map((source) => source.startedAt);
+    assert.ok(starts.length >= 56 && starts.length <= 64, `${fps} FPS cadence`);
+    for (let i = 1; i < starts.length; i++)
+      assert.ok(starts[i] - starts[i - 1] >= 1 / 32 - 1e-9);
+    audio.dispose();
+  }
+});
+
+test('slow frames, loading, pause and restored flights never queue a catch-up tally', async () => {
+  const { audio, context } = rig();
+  audio.update(scoreFrame(0, 0));
+  assert.equal(audio.update(scoreFrame(500, 1)), false);
+  await audio.prepare();
+  assert.equal(audio.update(scoreFrame(510, 1.1)), false);
+  assert.equal(audio.update(scoreFrame(1500, 2)), true);
+  assert.equal(sources(context).length, 1, 'a slow frame sounds only once');
+  context.currentTime += 0.01;
+  assert.equal(audio.update(scoreFrame(1600, 2.01)), false);
+  context.currentTime += 0.2;
+  assert.equal(
+    audio.update(scoreFrame(1600, 2.25)),
+    false,
+    'release drops a due tick',
+  );
+  assert.equal(audio.update(scoreFrame(1610, 2.3)), false);
+  audio.stop();
+  assert.equal(
+    audio.update(scoreFrame(3000, 4)),
+    false,
+    'resume baselines muted points',
+  );
+  assert.equal(audio.update(scoreFrame(3100, 4.2)), true);
+  assert.equal(
+    audio.update(scoreFrame(0, 0)),
+    false,
+    'restore baselines a rewind',
+  );
+  assert.equal(audio.getPresentation().activeVoices, 0);
+  assert.equal(audio.update(scoreFrame(500, 1, { id: 'transfer-2' })), false);
+  assert.equal(
+    audio.update(scoreFrame(600, 1.2, { id: 'transfer-2', failed: true })),
+    false,
+  );
+  assert.equal(audio.getPresentation().activeVoices, 0);
+  audio.dispose();
+});
+
+test('banks win over score ticks; rejected or over-budget cues are never deferred', async () => {
   const { audio, context } = rig();
   await audio.prepare();
-  assert.equal(audio.trigger(trick()), true);
-  assert.equal(audio.trigger(trick()), false);
-  assert.equal(audio.trigger(trick(2, 'flip')), true);
-  assert.equal(audio.trigger(trick(3, 'spin')), false);
+  assert.equal(audio.trigger(tick()), true);
+  assert.equal(audio.trigger(tick()), false);
+  context.currentTime += 0.125;
+  assert.equal(audio.trigger(tick(2)), true);
+  context.currentTime += 0.125;
+  assert.equal(audio.trigger(tick(3)), false);
   assert.equal(audio.getPresentation().activeVoices, 2);
   const ticks = sources(context);
   assert.equal(
     ticks[0].buffer,
     ticks[1].buffer,
-    'trick kinds share the restrained source',
+    'score ticks share one recording',
   );
   assert.equal(ticks[0].playbackRate.value, 1);
   assert.equal(ticks[1].playbackRate.value, 1);
   assert.equal(audio.trigger(bank()), true);
   assert.ok(ticks.every((node) => node.disconnected));
   assert.equal(audio.getPresentation().activeVoices, 1);
-  assert.equal(audio.trigger(trick(4)), false);
+  assert.equal(audio.trigger(tick(4)), false);
   sources(context).at(-1).onended();
-  assert.equal(audio.trigger(trick(3)), false);
-  assert.equal(audio.trigger(trick(4)), false);
-  assert.equal(audio.trigger(trick(5, 'corkscrew')), true);
-  assert.equal(audio.getPresentation().lastCue, 'trick:corkscrew');
+  assert.equal(audio.trigger(tick(3)), false);
+  assert.equal(audio.trigger(tick(4)), false);
+  assert.equal(audio.trigger(tick(5)), true);
+  assert.equal(audio.getPresentation().lastCue, 'score-tick');
   assert.equal(audio.getPresentation().lastGrade, 'great');
   audio.dispose();
 });

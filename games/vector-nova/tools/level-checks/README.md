@@ -14,6 +14,14 @@ The CPU command loads only `src/levels/<slug>/{metadata,index}.js`, validates th
 
 For level-owned tests, import `assertTrackContract(track, options)` from `track-contract.mjs`, or await `assertLevelContract({ metadata, createLevel }, options)` from `level-contract.mjs`. Defaults sample at most 1 metre apart, allow 1% relative chord error and 0.1 radians of frame rotation per metre. These configurable numerical limits are not difficulty scores. Sampling is bounded to 4–25000 intervals; choose an appropriate smaller step for sharp geometry. This cannot establish continuity between every possible point, scenery clearance, real driving feel or valid Nacre flight gaps. Keep those authored tests.
 
+## Route variant comparison
+
+```sh
+npm run check:route-variant -- <original-slug> <variant-slug> --width <target-metres>
+```
+
+The CPU tool compares sampled centerline positions and full frame orientations at the same metre stations over the shared route length. It also checks length, circuit format, finish, checkpoints and longitudinal jump intervals. The JSON report includes both declared widths and geometry versions, plus the stations with the largest position and frame differences. A difference outside the tolerances returns exit status 1. Omit `--width` to report the width change without asserting a target. Adjust sampling with `--step` (default 1 m) and tolerances with `--metres` and `--radians` (both default 0.0001). Use the existing level smoke checks and authored tests for replay identity, physical boundaries, scenery clearance and driving.
+
 ## Hidden runtime smoke check
 
 Build and start the intended worktree's own preview on a free port first. The command requires `VN_URL` and never starts or replaces a server:

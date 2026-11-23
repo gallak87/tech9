@@ -50,9 +50,9 @@ export const soundEffects = [
   {
     ...race(
       'freestyle-trick',
-      'Freestyle · completed trick',
-      'freestyle-trick',
-      { id: 'sound-preview', ordinal: 1, kind: 'roll' },
+      'Freestyle · points tally',
+      'freestyle-score-tick',
+      { id: 'sound-preview', ordinal: 1 },
       0.35,
     ),
     group: 'Freestyle',

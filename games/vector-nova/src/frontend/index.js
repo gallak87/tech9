@@ -98,6 +98,7 @@ import {
 } from '../progression/index.js';
 import { createMusicPlayer } from '../audio/player.js';
 import { createMenuBackdrop } from './menu-backdrop.js';
+import { createCompletionOverlay } from './completion-overlay.js';
 import { assetURL } from '../assets/url.js';
 import { TRACK_CHALLENGES, trackChallenge } from './track-challenge.js';
 import {
@@ -110,6 +111,7 @@ import './style.css';
 import '../freestyle/style.css';
 import './menu.css';
 import './cup-art.css';
+import './completion-cinematic.css';
 
 const stamp = formatTime;
 const button = (action, label, primary = false) =>
@@ -765,14 +767,18 @@ export async function createFrontend(
   }
   function stopCompletion() {
     completionGeneration++;
+    // Release the covered shell before the overlay restores its invoking focus.
+    shell.inert = false;
     completionController?.abort();
     completionController = null;
     completion?.dispose();
     completion = null;
     completionPending = null;
-    host.querySelector('.completion-boot')?.remove();
-    shell.inert = false;
     music?.setSuspended(false);
+    menuBackdrop.configure({
+      active: !disposed && !shell.hidden && menuVisible(),
+      reducedMotion: settings.reducedMotion,
+    });
   }
   function closeCompletion() {
     if (disposed) return;
@@ -784,7 +790,9 @@ export async function createFrontend(
       intent = 'cup';
     }
     setScreen(wideMenu.matches && intent === 'cup' ? 'cup' : 'home');
-    focusMenu('[data-cup="encore"], [data-action="cup-hub"]');
+    focusMenu(
+      shell.querySelector('[data-cup="encore"]') ?? '[data-action="cup-hub"]',
+    );
   }
   function showCompletion() {
     // Keep the full-edition finale and its fleet models out of demo bundles.
@@ -803,15 +811,16 @@ export async function createFrontend(
     const token = ++completionGeneration;
     completionController = new AbortController();
     const signal = completionController.signal;
-    const loading = document.createElement('section');
-    loading.className = 'completion-cinematic completion-boot';
-    loading.setAttribute('aria-label', 'Career collection complete');
-    loading.innerHTML =
-      '<div class="completion-boot-content"><span class="kicker">37 / 37 · CAREER COMPLETE</span><h1 role="status">Loading…</h1><progress max="1" value="0.02" aria-label="Loading"></progress></div>';
-    host.append(loading);
-    menuBackdrop.mount(loading);
+    const overlay = createCompletionOverlay({
+      host,
+      shipId: profile().completion.shipId,
+      settings: () => settings,
+      signal,
+      onClose: closeCompletion,
+    });
+    completion = overlay;
     menuBackdrop.configure({
-      active: true,
+      active: false,
       reducedMotion: settings.reducedMotion,
     });
     game?.clearInput();
@@ -826,63 +835,17 @@ export async function createFrontend(
       .then(({ createCompletionCinematic }) => {
         if (disposed || signal.aborted || token !== completionGeneration)
           return;
-        loading.remove();
-        menuBackdrop.configure({
-          active: false,
-          reducedMotion: settings.reducedMotion,
-        });
-        completion = createCompletionCinematic({
-          host,
-          shipId: profile().completion.shipId,
-          settings: () => settings,
-          signal,
-          onClose: closeCompletion,
-        });
-        return completion.ready;
+        // Credits may already be open from Skip/Escape while the chunk loaded.
+        // In that case the eager shell is complete and needs no heavy scene.
+        if (overlay.phase === 'credits') return;
+        return createCompletionCinematic({ overlay, settings: () => settings })
+          .ready;
       })
       .catch((failure) => {
         if (disposed || signal.aborted || token !== completionGeneration)
           return;
-        completion?.dispose();
-        // A failed chunk download must still leave a keyboard/controller exit and
-        // the earned unlocks. Pending completion is acknowledged only by Close.
-        completion = {
-          dispose: () => loading.remove(),
-          snapshot: () => ({ phase: 'credits', error: failure.message }),
-        };
-        loading.innerHTML =
-          '<div class="completion-boot-content" role="dialog" aria-modal="true" aria-labelledby="completion-fallback-title"><span class="kicker">37 / 37 · CAREER COMPLETE</span><h1 id="completion-fallback-title">Thx for playing, 3 Encore courses unlocked!</h1><p>Oriel · Ravel · Nomad Procession</p><p class="completion-error" role="alert">The cinematic couldn’t load. Your unlocks are still available.</p><p>Dev: George Allakhverdyan<br>Studio name TBD</p><p>Homies who helped test the game:<br>Noyan Gunday</p><button type="button" class="completion-retry" data-completion-retry>Reload and retry</button><button type="button" class="primary" data-completion-close>Close</button></div>';
-        host.append(loading);
-        menuBackdrop.mount(loading);
-        menuBackdrop.configure({
-          active: true,
-          reducedMotion: settings.reducedMotion,
-        });
-        loading
-          .querySelector('[data-completion-close]')
-          .addEventListener('click', closeCompletion, { signal });
-        loading
-          .querySelector('[data-completion-retry]')
-          .addEventListener('click', () => location.reload(), { signal });
-        loading.addEventListener(
-          'keydown',
-          (event) => {
-            if (event.code === 'Escape') {
-              event.preventDefault();
-              closeCompletion();
-            } else if (event.code === 'Tab') {
-              event.preventDefault();
-              const controls = [...loading.querySelectorAll('button')];
-              const index = controls.indexOf(document.activeElement);
-              controls[
-                (index + (event.shiftKey ? -1 : 1) + controls.length) %
-                  controls.length
-              ].focus();
-            }
-          },
-          { signal },
-        );
-        loading.querySelector('[data-completion-close]').focus();
+        // Chunk and stage failures use the same dialog and acknowledgement path.
+        overlay.showCredits({ error: failure });
       })
       .finally(() => {
         if (token === completionGeneration) completionPending = null;
@@ -1208,7 +1171,8 @@ export async function createFrontend(
     disposeControllerSettings?.();
     disposeControllerSettings = null;
     menuBackdrop.configure({
-      active: !shell.hidden && menuVisible(),
+      active:
+        !completion && !completionPending && !shell.hidden && menuVisible(),
       reducedMotion: settings.reducedMotion,
     });
     if (shell.hidden) return;
@@ -3288,7 +3252,8 @@ export async function createFrontend(
   unsubscribeSettings = subscribeSettings((next) => {
     settings = { ...next };
     menuBackdrop.configure({
-      active: !shell.hidden && menuVisible(),
+      active:
+        !completion && !completionPending && !shell.hidden && menuVisible(),
       reducedMotion: settings.reducedMotion,
     });
     sounds?.configure();

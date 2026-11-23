@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { sweepGeometry, roadSealGeometry } from '../../../track/geometry.js';
 import { framePoint } from '../../../track/frames.js';
 
@@ -17,11 +18,24 @@ const RIB_WIDTH = 1.15;
 const TRANSITION = 16;
 const wrap = (s, length) => ((s % length) + length) % length;
 
+export const LATTICE_REFERENCE_WIDTH = 28;
+
 export {
   GAPS as LATTICE_GAPS,
   RIB_SPACING as LATTICE_RIB_SPACING,
   RIB_WIDTH as LATTICE_RIB_WIDTH,
 };
+
+export function movingLatticeGaps(width) {
+  const scale = width / LATTICE_REFERENCE_WIDTH;
+  return GAPS.map(([left, right]) => [left * scale, right * scale]);
+}
+
+export function movingLatticeRibPitch({ length, closed = true }) {
+  return closed
+    ? length / Math.max(1, Math.round(length / RIB_SPACING))
+    : RIB_SPACING;
+}
 
 export function createLatticeLayout(track) {
   // Retain the exact existing global tessellation consumed by contact shadows.
@@ -318,24 +332,24 @@ export function latticeApertureWalls(track, layout) {
   return geometry;
 }
 
-export function movingLatticeWalls(track, layout) {
+function movingLatticeWalls(track, runs, depth, permanentLayout) {
   const positions = [];
   const uv = [];
   const roadCoord = [];
   const shifts = [];
   const indices = [];
-  const wallCount = GAPS.length * 2;
-  const segmentCount = Math.round(track.length / layout.step);
+  const gaps = movingLatticeGaps(track.width);
+  const wallCount = gaps.length * 2;
   const appendRow = (station) => {
     const first = positions.length / 3;
     const frame = track.sample(station);
-    for (const [left, right] of GAPS) {
+    for (const [left, right] of gaps) {
       const centre = (left + right) / 2;
       for (const edge of [left, right]) {
         const shift = frame.right.clone().multiplyScalar(edge - centre);
         for (const [u, height] of [
           [0, -0.03],
-          [1, -0.7],
+          [1, -depth],
         ]) {
           positions.push(...framePoint(frame, edge, height).toArray());
           uv.push(u, station / 16);
@@ -347,24 +361,26 @@ export function movingLatticeWalls(track, layout) {
     return first;
   };
 
-  let previous = null;
-  for (let row = 0; row < segmentCount; row++) {
-    const start = row * layout.step;
-    const end = (row + 1) * layout.step;
-    if (layout.spanAt((start + end) / 2)) {
-      previous = null;
-      continue;
+  for (const run of runs) {
+    let previous = null;
+    for (let row = 0; row < run.count; row++) {
+      const start = run.start + row * run.interval;
+      const end = start + run.interval;
+      if (permanentLayout?.spanAt((start + end) / 2)) {
+        previous = null;
+        continue;
+      }
+      const first = previous ?? appendRow(start);
+      const next = appendRow(end);
+      for (let wall = 0; wall < wallCount; wall++) {
+        const a = first + wall * 2;
+        const b = next + wall * 2;
+        // Face into the opening on both sides so the reveal reads from above.
+        if (wall % 2 === 0) indices.push(a, b, a + 1, a + 1, b, b + 1);
+        else indices.push(a, a + 1, b, a + 1, b + 1, b);
+      }
+      previous = next;
     }
-    const first = previous ?? appendRow(start);
-    const next = appendRow(end);
-    for (let wall = 0; wall < wallCount; wall++) {
-      const a = first + wall * 2;
-      const b = next + wall * 2;
-      // Face into the opening on both sides so the reveal reads from above.
-      if (wall % 2 === 0) indices.push(a, b, a + 1, a + 1, b, b + 1);
-      else indices.push(a, a + 1, b, a + 1, b + 1, b);
-    }
-    previous = next;
   }
 
   const geometry = new THREE.BufferGeometry();
@@ -384,67 +400,78 @@ export function movingLatticeWalls(track, layout) {
   geometry.setIndex(indices);
   geometry.computeVertexNormals();
   // Bound the inward travel that the vertex shader applies to the wall edges.
-  const maxShift = Math.max(...GAPS.map(([left, right]) => (right - left) / 2));
+  const maxShift = Math.max(...gaps.map(([left, right]) => (right - left) / 2));
   geometry.computeBoundingSphere();
   geometry.boundingSphere.radius += maxShift;
   return geometry;
 }
 
-export function movingLatticeRibWalls(track, layout) {
+function movingLatticeRibWalls(track, runs, depth, permanentLayout) {
   const positions = [];
   const uv = [];
   const roadCoord = [];
   const indices = [];
-  const count = Math.max(1, Math.round(track.length / RIB_SPACING));
+  const pitch = movingLatticeRibPitch(track);
   const halfWidth = track.width / 2;
   const halfRib = RIB_WIDTH / 2;
 
-  for (let rib = 0; rib < count; rib++) {
-    const centre = (rib * track.length) / count;
-    if (
-      layout.spans.some(
-        ({ start, end }) =>
-          centre - halfRib <= end && centre + halfRib >= start,
+  const heights = [-0.035, -depth];
+  for (const run of runs) {
+    const firstRib = Math.floor((run.start - halfRib) / pitch);
+    const lastRib = Math.ceil((run.end + halfRib) / pitch);
+    const strips = run.transverseStep
+      ? Math.ceil(track.width / run.transverseStep)
+      : 1;
+    const stripWidth = track.width / strips;
+    const pointsAt = (s) => {
+      const frame = track.sample(s);
+      return Array.from({ length: strips + 1 }, (_, column) =>
+        heights.map((height) =>
+          framePoint(frame, -halfWidth + column * stripWidth, height),
+        ),
+      );
+    };
+    for (let rib = firstRib; rib <= lastRib; rib++) {
+      const centre = rib * pitch;
+      if (
+        permanentLayout?.spans.some(
+          ({ start, end }) =>
+            centre - halfRib <= end && centre + halfRib >= start,
+        )
       )
-    )
-      continue;
-    for (const side of [-1, 1]) {
-      const station = centre + side * halfRib;
-      const row = Math.floor(station / layout.step);
-      const t = (station - row * layout.step) / layout.step;
-      const before = track.sample(row * layout.step);
-      const heights = [-0.035, -0.7];
-      const beforeLeft = heights.map((height) =>
-        framePoint(before, -halfWidth, height),
-      );
-      const beforeRight = heights.map((height) =>
-        framePoint(before, halfWidth, height),
-      );
-      const after = track.sample((row + 1) * layout.step);
-      const afterLeft = heights.map((height) =>
-        framePoint(after, -halfWidth, height),
-      );
-      const afterRight = heights.map((height) =>
-        framePoint(after, halfWidth, height),
-      );
-      const first = positions.length / 3;
-      // Follow both original road triangles so the top edge meets the cut.
-      const columns = [[-halfWidth, beforeLeft, afterLeft]];
-      if (t > 0 && t < 1)
-        columns.push([(1 - 2 * t) * halfWidth, beforeRight, afterLeft]);
-      columns.push([halfWidth, beforeRight, afterRight]);
-      for (const [lateral, from, to] of columns) {
-        for (let i = 0; i < heights.length; i++) {
-          positions.push(...from[i].clone().lerp(to[i], t).toArray());
-          uv.push(lateral / track.width + 0.5, station / 16);
-          roadCoord.push(station, lateral);
+        continue;
+      for (const side of [-1, 1]) {
+        const station = centre + side * halfRib;
+        if (station < run.start || station >= run.end) continue;
+        const row = Math.floor((station - run.start) / run.interval);
+        const rowStart = run.start + row * run.interval;
+        const t = (station - rowStart) / run.interval;
+        const before = pointsAt(rowStart);
+        const after = pointsAt(rowStart + run.interval);
+        const first = positions.length / 3;
+        const appendColumn = (lateral, from, to) => {
+          for (let i = 0; i < heights.length; i++) {
+            positions.push(...from[i].clone().lerp(to[i], t).toArray());
+            uv.push(lateral / track.width + 0.5, station / 16);
+            roadCoord.push(station, lateral);
+          }
+        };
+        // Follow both deck triangles in each strip so the top edge meets the cut.
+        for (let column = 0; column <= strips; column++) {
+          const lateral = -halfWidth + column * stripWidth;
+          appendColumn(lateral, before[column], after[column]);
+          if (column < strips && t > 0 && t < 1)
+            appendColumn(
+              lateral + stripWidth * (1 - t),
+              before[column + 1],
+              after[column],
+            );
         }
-      }
-      for (let column = 0; column < columns.length - 1; column++) {
-        const a = first + column * 2;
-        const b = a + 2;
-        if (side > 0) indices.push(a, a + 1, b, a + 1, b + 1, b);
-        else indices.push(a, b, a + 1, a + 1, b, b + 1);
+        for (let a = first; a < positions.length / 3 - 2; a += 2) {
+          const b = a + 2;
+          if (side > 0) indices.push(a, a + 1, b, a + 1, b + 1, b);
+          else indices.push(a, b, a + 1, a + 1, b, b + 1);
+        }
       }
     }
   }
@@ -463,4 +490,37 @@ export function movingLatticeRibWalls(track, layout) {
   geometry.computeVertexNormals();
   geometry.computeBoundingSphere();
   return geometry;
+}
+
+export function createMovingLatticeSurfaces(
+  track,
+  {
+    runs = [{ start: 0, end: track.length, step: 4 }],
+    depth = 0.7,
+    permanentLayout,
+  } = {},
+) {
+  const geometryRuns = runs.map((run) => {
+    const count = Math.ceil((run.end - run.start) / (run.step ?? 4));
+    return { ...run, count, interval: (run.end - run.start) / count };
+  });
+  const half = track.width / 2;
+  const profile = [
+    [half, -depth],
+    [-half, -depth],
+  ];
+  const underdecks = permanentLayout
+    ? [maskedSweepGeometry(track, profile, permanentLayout, false)]
+    : geometryRuns.map(({ start, end, step }) =>
+        sweepGeometry(track, profile, { start, end, step: step ?? 4 }),
+      );
+  const bottom =
+    underdecks.length === 1 ? underdecks[0] : mergeGeometries(underdecks);
+  if (underdecks.length > 1)
+    for (const geometry of underdecks) geometry.dispose();
+  return {
+    walls: movingLatticeWalls(track, geometryRuns, depth, permanentLayout),
+    bottom,
+    ribs: movingLatticeRibWalls(track, geometryRuns, depth, permanentLayout),
+  };
 }

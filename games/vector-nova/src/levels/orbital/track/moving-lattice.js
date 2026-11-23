@@ -1,12 +1,19 @@
-import { Float32BufferAttribute, MathUtils } from 'three';
+import {
+  Float32BufferAttribute,
+  MathUtils,
+  MeshDepthMaterial,
+  RGBADepthPacking,
+  Vector3,
+} from 'three';
 import { createAmbientClock } from '../../../presentation/ambient-clock.js';
 import {
   appendShaderPatch,
   replaceShader,
 } from '../../../renderer/shader-patch.js';
 import {
-  LATTICE_GAPS,
-  LATTICE_RIB_SPACING,
+  movingLatticeGaps,
+  movingLatticeRibPitch,
+  LATTICE_REFERENCE_WIDTH,
   LATTICE_RIB_WIDTH,
 } from './lattice.js';
 
@@ -14,42 +21,72 @@ const initialCentre = 210;
 const travelSpeed = 175;
 const openRadius = 74;
 const taperEnd = 108;
-const stagger = 1.9;
-const gaps = LATTICE_GAPS.map(([left, right]) => ({
-  centre: (left + right) / 2,
-  halfWidth: (right - left) / 2,
-}));
 const gl = (value) => value.toFixed(6);
+const openingGLSL = `
+    uniform float orbitalLatticePhase;
+    uniform float orbitalLatticePeriod;
+    uniform float orbitalLatticeStagger;
+    uniform float orbitalLatticeRibPitch;
+    uniform vec3 orbitalLatticeCentres;
+    uniform vec3 orbitalLatticeHalfWidths;
+    float orbitalAperture(float station, float centre, float available) {
+      float shift = (station + centre * orbitalLatticeStagger) / orbitalLatticePeriod;
+      float distanceToFront = abs(fract(shift - orbitalLatticePhase + 0.5) - 0.5) * orbitalLatticePeriod;
+      return clamp((${gl(taperEnd)} - distanceToFront) / ${gl(taperEnd - openRadius)}, 0.0, 1.0) * available;
+    }
+    float orbitalRib(float station) {
+      return abs(fract(station / orbitalLatticeRibPitch + 0.5) - 0.5) * orbitalLatticeRibPitch;
+    }`;
+const keepRib = `orbitalRib(vLattice.x) <= ${gl(LATTICE_RIB_WIDTH / 2)}`;
 
-export function createMovingLattice(trackLength, devices, permanentSpans) {
-  const period = trackLength / Math.max(1, Math.round(trackLength / 640));
-  const ribPitch =
-    trackLength / Math.max(1, Math.round(trackLength / LATTICE_RIB_SPACING));
+export function createMovingLattice(track, { protectedSpans = [] } = {}) {
+  const { length, width, closed = true } = track;
+  const period = closed ? length / Math.max(1, Math.round(length / 640)) : 640;
+  const ribPitch = movingLatticeRibPitch(track);
+  const stagger = 1.9 * (LATTICE_REFERENCE_WIDTH / width);
+  const gaps = movingLatticeGaps(width).map(([left, right]) => ({
+    centre: (left + right) / 2,
+    halfWidth: (right - left) / 2,
+  }));
   const phase = { value: initialCentre / period };
+  // Course rebuilds replace instance data without creating a shader program
+  // for each new length or width. Every visible/depth layer shares these values.
+  const uniforms = {
+    orbitalLatticePhase: phase,
+    orbitalLatticePeriod: { value: period },
+    orbitalLatticeStagger: { value: stagger },
+    orbitalLatticeRibPitch: { value: ribPitch },
+    orbitalLatticeCentres: {
+      value: new Vector3(...gaps.map(({ centre }) => centre)),
+    },
+    orbitalLatticeHalfWidths: {
+      value: new Vector3(...gaps.map(({ halfWidth }) => halfWidth)),
+    },
+  };
   const clock = createAmbientClock();
+  const bindings = new WeakSet();
   let previous;
   const exclusions = [
     { distance: 0, halfLength: 19 },
-    ...devices.map(({ distance, length }) => ({
-      distance,
-      halfLength: length / 2 + 5,
-    })),
-    ...permanentSpans.map(({ start, end }) => ({
+    ...(!closed ? [{ distance: length, halfLength: 19 }] : []),
+    ...protectedSpans.map(({ start, end }) => ({
       distance: (start + end) / 2,
       halfLength: (end - start) / 2,
     })),
   ];
-  const wrappedDistance = (distance, length) =>
+  const wrappedDistance = (distance, period) =>
     Math.abs(
-      MathUtils.euclideanModulo(distance + length / 2, length) - length / 2,
+      MathUtils.euclideanModulo(distance + period / 2, period) - period / 2,
     );
   // The shadow samples several hundred points per frame. Reuse the same
   // station rows as the road mesh for its authored exclusion mask.
-  const rows = Math.ceil(trackLength / 4);
+  const rows = Math.ceil(length / 4);
   const permits = Float32Array.from({ length: rows + 1 }, (_, index) => {
-    const station = (index * trackLength) / rows;
+    const station = (index * length) / rows;
     return exclusions.reduce((available, { distance, halfLength }) => {
-      const delta = wrappedDistance(station - distance, trackLength);
+      const delta = closed
+        ? wrappedDistance(station - distance, length)
+        : Math.abs(station - distance);
       return Math.min(
         available,
         MathUtils.smoothstep(delta, halfLength, halfLength + 16),
@@ -57,8 +94,11 @@ export function createMovingLattice(trackLength, devices, permanentSpans) {
     }, 1);
   });
   const availability = (station) => {
-    const row =
-      (MathUtils.euclideanModulo(station, trackLength) * rows) / trackLength;
+    if (!closed && (station <= 0 || station >= length)) return 0;
+    const distance = closed
+      ? MathUtils.euclideanModulo(station, length)
+      : station;
+    const row = (distance * rows) / length;
     const index = Math.floor(row);
     return MathUtils.lerp(permits[index], permits[index + 1], row - index);
   };
@@ -73,29 +113,6 @@ export function createMovingLattice(trackLength, devices, permanentSpans) {
       1,
     );
   };
-  const openingGLSL = `
-    uniform float orbitalLatticePhase;
-    float orbitalAperture(float station, float centre, float available) {
-      float shift = (station + centre * ${gl(stagger)}) / ${gl(period)};
-      float distanceToFront = abs(fract(shift - orbitalLatticePhase + 0.5) - 0.5) * ${gl(period)};
-      return clamp((${gl(taperEnd)} - distanceToFront) / ${gl(taperEnd - openRadius)}, 0.0, 1.0) * available;
-    }
-    float orbitalRib(float station) {
-      return abs(fract(station / ${gl(ribPitch)} + 0.5) - 0.5) * ${gl(ribPitch)};
-    }`;
-  const apertures = gaps
-    .map(
-      ({ centre }) => `orbitalAperture(vLattice.x, ${gl(centre)}, vLattice.z)`,
-    )
-    .join(', ');
-  const gapTest = gaps
-    .map(
-      ({ centre, halfWidth }, index) =>
-        `abs(vLattice.y - ${gl(centre)}) < ${gl(halfWidth)} * orbitalOpenings[${index}]`,
-    )
-    .join(' ||\n        ');
-  const keepRib = `orbitalRib(vLattice.x) <= ${gl(LATTICE_RIB_WIDTH / 2)}`;
-
   return {
     update(frame, now) {
       const time = clock(frame, now);
@@ -103,7 +120,7 @@ export function createMovingLattice(trackLength, devices, permanentSpans) {
         previous !== undefined &&
         !frame.reset &&
         !frame.settings?.reducedMotion &&
-        ['title', 'countdown', 'racing'].includes(frame.mode)
+        ['title', 'countdown', 'racing', 'editor'].includes(frame.mode)
       ) {
         const seconds = MathUtils.clamp(time - previous, 0, 0.1);
         phase.value = (phase.value + (seconds * travelSpeed) / period) % 1;
@@ -140,17 +157,19 @@ export function createMovingLattice(trackLength, devices, permanentSpans) {
       }
       return 1;
     },
-    bind(material, part) {
+    bind(material, part, { roadNeon = false } = {}) {
+      if (bindings.has(material)) return;
+      bindings.add(material);
       const wall = part === 'wall';
       const openOnly = part === 'bottom' || part === 'rib';
+      const roadFinish = part === 'road' && material.isMeshStandardMaterial;
       appendShaderPatch(
         material,
-        `-orbital-moving-lattice-${trackLength}-${part}`,
+        `-orbital-moving-lattice-${part}-${roadNeon}-${roadFinish}`,
         (shader) => {
-          shader.uniforms.orbitalLatticePhase = phase;
-          // The main running material already declares roadCoord for its inlays.
-          const coordinates =
-            part === 'road' ? '' : 'attribute vec2 roadCoord;';
+          Object.assign(shader.uniforms, uniforms);
+          // The campaign induction sweep already declares its deck coordinates.
+          const coordinates = roadNeon ? '' : 'attribute vec2 roadCoord;';
           shader.vertexShader = replaceShader(
             `${coordinates}
           attribute float latticeAvailable;
@@ -166,14 +185,20 @@ export function createMovingLattice(trackLength, devices, permanentSpans) {
             ? `if (orbitalAperture(vLattice.x, vLattice.y, vLattice.z) < 0.02 || ${keepRib}) discard;`
             : `float orbitalWindow = 0.0;
           if (vLattice.z > 0.0) {
-            vec3 orbitalOpenings = vec3(${apertures});
+            vec3 orbitalOpenings = vec3(
+              orbitalAperture(vLattice.x, orbitalLatticeCentres.x, vLattice.z),
+              orbitalAperture(vLattice.x, orbitalLatticeCentres.y, vLattice.z),
+              orbitalAperture(vLattice.x, orbitalLatticeCentres.z, vLattice.z)
+            );
             orbitalWindow = max(orbitalOpenings.x, max(orbitalOpenings.y, orbitalOpenings.z));
             ${
               part === 'shell'
                 ? 'if (orbitalWindow > 0.02) discard;'
                 : part === 'rib'
                   ? ''
-                  : `if (orbitalWindow > 0.0 && !(${keepRib}) && (${gapTest})) discard;`
+                  : `vec3 fromCentres = abs(vec3(vLattice.y) - orbitalLatticeCentres);
+            if (orbitalWindow > 0.0 && !(${keepRib}) &&
+                any(lessThan(fromCentres, orbitalLatticeHalfWidths * orbitalOpenings))) discard;`
             }
           }
           ${openOnly ? 'if (orbitalWindow <= 0.02) discard;' : ''}`;
@@ -185,7 +210,7 @@ export function createMovingLattice(trackLength, devices, permanentSpans) {
             `#include <clipping_planes_fragment>
           ${cutout}`,
           );
-          if (part === 'road') {
+          if (roadFinish) {
             // The exposed induction ribs have a broader highlight than the
             // sealed plates. The permanent colored spans retain their finish.
             shader.fragmentShader = replaceShader(
@@ -199,12 +224,21 @@ export function createMovingLattice(trackLength, devices, permanentSpans) {
               '#include <opaque_fragment>',
               `outgoingLight = mix(outgoingLight,
               outgoingLight * vec3(0.55, 0.83, 1.0) + vec3(0.018, 0.23, 0.33),
-              orbitalWindow * (1.0 - vRoadNeon.a));
+              orbitalWindow${roadNeon ? ' * (1.0 - vRoadNeon.a)' : ''});
             #include <opaque_fragment>`,
             );
           }
         },
       );
+    },
+    bindMesh(mesh, part, options) {
+      this.prepare(mesh.geometry);
+      this.bind(mesh.material, part, options);
+      if (!mesh.castShadow) return null;
+      const depth = new MeshDepthMaterial({ depthPacking: RGBADepthPacking });
+      this.bind(depth, part);
+      mesh.customDepthMaterial = depth;
+      return depth;
     },
   };
 }

@@ -439,15 +439,16 @@ export function createEditorViewport(
       );
       if (drawLabel && drawing?.cursor?.visible)
         drawLabel.style.top = `${Math.min(height - 28, Math.max(4, drawing.cursor.y + 18))}px`;
-      const animateOcean =
-        world?.group.userData.editorBiome === 'nacre' &&
-        latest?.environment?.layoutVersion >= 4 &&
+      const biome = world?.group.userData.editorBiome;
+      const animate =
+        ((biome === 'orbital' && world.track) ||
+          (biome === 'nacre' && latest?.environment?.layoutVersion >= 4)) &&
         (selection.readOnly || flying) &&
         !document.hidden &&
         !loadSettings().reducedMotion &&
         !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      settings.reducedMotion = !animateOcean;
-      const time = animateOcean ? now / 1000 : 0;
+      settings.reducedMotion = !animate;
+      const time = animate ? now / 1000 : 0;
       backdrop?.update?.({
         camera,
         time,
@@ -459,16 +460,16 @@ export function createEditorViewport(
         settings,
         time,
         dt: 0,
-        mode: 'paused',
+        mode: animate ? 'editor' : 'paused',
         reviewing: false,
-        reset: true,
+        reset: !animate,
         state: { distance: 0, lateral: 0 },
       });
       const started = performance.now();
       renderer.render(scene, camera);
       metrics = {
-        preset: animateOcean
-          ? 'Low / animated ocean preview'
+        preset: animate
+          ? `Low / animated ${biome === 'nacre' ? 'ocean' : 'lattice'} preview`
           : 'Low / static editor preview',
         biome: world?.group.userData.editorBiome ?? null,
         environment: world?.group.userData.environment ?? null,
@@ -486,9 +487,9 @@ export function createEditorViewport(
         renderer: gpuRenderer,
         camera: cameraState(),
       };
-      // Limit idle ocean animation to 15 Hz. User input and fly navigation
+      // Limit idle scenery animation to 15 Hz. User input and fly navigation
       // continue to request their own immediate frames.
-      if (animateOcean) sceneryTimer = setTimeout(draw, 1000 / 15);
+      if (animate) sceneryTimer = setTimeout(draw, 1000 / 15);
     });
   }
   function focusBounds(bounds) {

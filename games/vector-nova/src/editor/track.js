@@ -79,12 +79,16 @@ export function createEditorTrack(value) {
         station < j.landingStart - lipTolerance,
     );
   };
+  track.jumpProtectedSpans = track.jumps.map((jump) => ({
+    start: jump.takeoff - 120,
+    end: jump.recovery + 80,
+  }));
   track.isJumpProtected = (distance) => {
     const station = closed
       ? T.MathUtils.euclideanModulo(distance, length)
       : distance;
-    return track.jumps.some(
-      (j) => station >= j.takeoff - 120 && station <= j.recovery + 80,
+    return track.jumpProtectedSpans.some(
+      ({ start, end }) => station >= start && station <= end,
     );
   };
   let from = 0;

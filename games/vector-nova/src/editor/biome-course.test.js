@@ -4,6 +4,7 @@ import { mockBundledEditorAssets } from './test-assets.js';
 import { EDITOR_BIOMES } from './biomes.js';
 import { generateDocument, analyzeDocument } from './document.js';
 import { loadEditorCourse } from './course.js';
+import { generatePickupLayout } from './pickups.js';
 import { createMagneticRuntime } from '../core/session-runtime.js';
 import { createVehicleState } from '../physics/index.js';
 import { createRapierWorld } from '../physics/rapier-world.js';
@@ -55,6 +56,24 @@ test('every whole-course biome drives on its rendered road and full regional col
         await Promise.all([road.ready, environment.ready]);
         assert.equal(road.group.userData.biome, biome.id);
         assert(road.group.children.some((mesh) => mesh.userData.roadSurface));
+        if (biome.id === 'orbital') {
+          const coverage = road.group.userData.surfaceCoverage;
+          assert.equal(coverage(0, 0), 1);
+          const opening = Array.from(
+            { length: 30 },
+            (_, i) => 180 + 2 * i,
+          ).find((station) => coverage(station, 0) === 0);
+          assert.notEqual(opening, undefined);
+          assert(
+            road.group.children.find((mesh) => mesh.userData.roadSurface)
+              .customDepthMaterial,
+          );
+          for (let frame = 0; frame <= 12; frame++)
+            road.update({ time: frame / 10, mode: 'racing' });
+          assert.equal(coverage(opening, 0), 1);
+        } else {
+          assert.equal(road.group.userData.surfaceCoverage, undefined);
+        }
         assert(
           environment.group.userData.region.assemblies > 0,
           `${biome.id} has a populated full-course world`,
@@ -113,4 +132,39 @@ test('every whole-course biome drives on its rendered road and full regional col
         environment.dispose();
       }
     });
+});
+
+test('Asterion lattice respects Workshop jump gaps, recovery, pickups and downhill runout', (t) => {
+  mockBundledEditorAssets(t);
+  const doc = generateDocument({
+    biome: 'orbital',
+    courseType: 'downhill',
+    length: 4300,
+    width: 56,
+    seed: 815,
+    seedJumps: true,
+    jumpFrequency: 'many',
+  });
+  doc.pickups = generatePickupLayout(doc);
+  const { definition } = loadEditorCourse(doc);
+  const track = definition.createTrack();
+  const road = definition.createRoad({ track });
+  t.after(() => road.dispose());
+  const coverage = road.group.userData.surfaceCoverage;
+  const devices = definition.racing.createDevices(track);
+  assert(track.jumps.length && devices.length);
+  for (let frame = 0; frame <= 40; frame++) {
+    road.update({ time: frame / 10, mode: 'racing' });
+    assert.equal(coverage(track.finishDistance + 100, 0), 1);
+    for (const { takeoff, landingStart, recovery } of track.jumps) {
+      assert.equal(coverage(takeoff, 0), 1);
+      assert.equal(coverage((takeoff + landingStart) / 2, 0), 0);
+      assert.equal(coverage(landingStart, 0), 1);
+      assert.equal(coverage(recovery, 0), 1);
+    }
+    for (const { distance, lateral, length } of devices) {
+      assert.equal(coverage(distance - length / 2, lateral), 1);
+      assert.equal(coverage(distance + length / 2, lateral), 1);
+    }
+  }
 });

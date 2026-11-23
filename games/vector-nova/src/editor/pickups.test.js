@@ -238,7 +238,7 @@ for (const degrees of [90, 180, 270])
       'held rotated road receives actual generated devices',
     );
     const road = createEditorRoad(track);
-    const hardware = createEditorPickupHardware(track, doc, road);
+    const hardware = createEditorPickupHardware(track, devices, road);
     const projector = createSurfaceProjector(
       track,
       collectRoadSurfaces(road.group),

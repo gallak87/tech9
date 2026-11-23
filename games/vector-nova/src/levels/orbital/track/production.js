@@ -19,8 +19,7 @@ import {
   maskedSweepGeometry,
   solidRoadSeals,
   latticeApertureWalls,
-  movingLatticeWalls,
-  movingLatticeRibWalls,
+  createMovingLatticeSurfaces,
 } from './lattice.js';
 import { containmentGeometry } from './containment.js';
 import { createDeckFinish } from './deck-finish.js';
@@ -38,11 +37,15 @@ export function buildOrbitalTrack(track, renderer = null) {
   const lattice = createLatticeLayout(track);
   const neonSections = roadNeonSections(lattice);
   const inductionSweep = createInductionSweep(track.length);
-  const movingLattice = createMovingLattice(
-    track.length,
-    createDevices(track),
-    lattice.spans,
-  );
+  const movingLattice = createMovingLattice(track, {
+    protectedSpans: [
+      ...lattice.spans,
+      ...createDevices(track).map(({ distance, length }) => ({
+        start: distance - length / 2 - 5,
+        end: distance + length / 2 + 5,
+      })),
+    ],
+  });
   group.userData.updateRoadAnimation = (frame) => {
     inductionSweep.update(frame);
     movingLattice.update(frame);
@@ -134,21 +137,9 @@ export function buildOrbitalTrack(track, renderer = null) {
   const addMovingSurface = (name, geometry, base, part, castShadow = false) => {
     const surface = base.clone();
     materials.add(surface);
-    movingLattice.bind(surface, part);
-    const mesh = add(
-      name,
-      movingLattice.prepare(geometry),
-      surface,
-      castShadow,
-    );
-    if (castShadow) {
-      const depth = new THREE.MeshDepthMaterial({
-        depthPacking: THREE.RGBADepthPacking,
-      });
-      movingLattice.bind(depth, part);
-      materials.add(depth);
-      mesh.customDepthMaterial = depth;
-    }
+    const mesh = add(name, geometry, surface, castShadow);
+    const depth = movingLattice.bindMesh(mesh, part);
+    if (depth) materials.add(depth);
     return mesh;
   };
   const neonMaterials = new Map();
@@ -320,8 +311,7 @@ export function buildOrbitalTrack(track, renderer = null) {
   );
   runningSurface.userData.drivingSurface = true;
   runningSurface.userData.roadSurface = true;
-  movingLattice.prepare(runningSurface.geometry);
-  movingLattice.bind(runningSurface.material, 'road');
+  movingLattice.bindMesh(runningSurface, 'road', { roadNeon: true });
   addMovingSurface(
     'Folded alloy deck shell / solid districts only',
     maskedSweepGeometry(
@@ -357,29 +347,24 @@ export function buildOrbitalTrack(track, renderer = null) {
     emissive: 0x0c5679,
     emissiveIntensity: 0.65,
   });
+  const movingSurfaces = createMovingLatticeSurfaces(track, {
+    permanentLayout: lattice,
+  });
   addMovingSurface(
     'Traveling lattice / recessed aperture walls',
-    movingLatticeWalls(track, lattice),
+    movingSurfaces.walls,
     latticeLining,
     'wall',
   );
   addMovingSurface(
     'Traveling lattice / runner and crossbar undersides',
-    maskedSweepGeometry(
-      track,
-      [
-        [14, -0.7],
-        [-14, -0.7],
-      ],
-      lattice,
-      false,
-    ),
+    movingSurfaces.bottom,
     latticeLining,
     'bottom',
   );
   addMovingSurface(
     'Traveling lattice / transverse magnetic rib faces',
-    movingLatticeRibWalls(track, lattice),
+    movingSurfaces.ribs,
     underframe,
     'rib',
   );

@@ -205,8 +205,7 @@ export function createEditorDevices(track, value) {
 }
 
 /** Static preview uses the same projected Low hardware as ordinary gameplay. */
-export function createEditorPickupHardware(track, doc, road) {
-  const devices = createEditorDevices(track, doc);
+export function createEditorPickupHardware(track, devices, road) {
   const group = new Group();
   group.name = 'Editor / automatic road pickups';
   const visuals = devices.length

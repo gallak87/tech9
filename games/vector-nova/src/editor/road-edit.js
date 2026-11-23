@@ -38,8 +38,10 @@ export function createRoadEdit(base, roadGroup, pickups) {
       mesh,
       position,
       normal,
+      wallShift: mesh.geometry.getAttribute('latticeWallShift'),
       originalPosition: null,
       originalNormal: null,
+      originalWallShift: null,
     };
     let previousDistance = Infinity;
     let strip;
@@ -153,15 +155,19 @@ export function createRoadEdit(base, roadGroup, pickups) {
       const b = strip.buffer;
       b.originalPosition ??= b.position.array.slice();
       b.originalNormal ??= b.normal.array.slice();
+      if (b.wallShift) b.originalWallShift ??= b.wallShift.array.slice();
       const source = b.originalPosition,
         normals = b.originalNormal;
       const dest = b.position.array,
         directions = b.normal.array;
+      const wallShift = b.wallShift?.array;
       const first = start * 3,
         last = end * 3;
       if (unchanged) {
         dest.set(source.subarray(first, last), first);
         directions.set(normals.subarray(first, last), first);
+        if (wallShift)
+          wallShift.set(b.originalWallShift.subarray(first, last), first);
       } else {
         for (let j = first; j < last; j += 3) {
           const x = source[j],
@@ -176,6 +182,14 @@ export function createRoadEdit(base, roadGroup, pickups) {
           directions[j] = m[0] * nx + m[4] * ny + m[8] * nz;
           directions[j + 1] = m[1] * nx + m[5] * ny + m[9] * nz;
           directions[j + 2] = m[2] * nx + m[6] * ny + m[10] * nz;
+          if (wallShift) {
+            const sx = b.originalWallShift[j],
+              sy = b.originalWallShift[j + 1],
+              sz = b.originalWallShift[j + 2];
+            wallShift[j] = m[0] * sx + m[4] * sy + m[8] * sz;
+            wallShift[j + 1] = m[1] * sx + m[5] * sy + m[9] * sz;
+            wallShift[j + 2] = m[2] * sx + m[6] * sy + m[10] * sz;
+          }
         }
       }
       strip.first = Math.min(strip.first, first);
@@ -295,7 +309,12 @@ export function createRoadEdit(base, roadGroup, pickups) {
       changedRows++;
     }
     for (const strip of strips) {
-      for (const attribute of [strip.buffer.position, strip.buffer.normal]) {
+      for (const attribute of [
+        strip.buffer.position,
+        strip.buffer.normal,
+        strip.buffer.wallShift,
+      ]) {
+        if (!attribute) continue;
         attribute.addUpdateRange(strip.first, strip.last - strip.first);
         attribute.needsUpdate = true;
       }

@@ -5,6 +5,8 @@ import { framePoint } from '../track/frames.js';
 import { sweepGeometry, boxProfile, beamTransform } from '../track/geometry.js';
 import { groundFrame, createRouteClearance } from '../environment/placement.js';
 import { createAsphalt } from '../levels/halcyon/track/asphalt.js';
+import { createMovingLatticeSurfaces } from '../levels/orbital/track/lattice.js';
+import { createMovingLattice } from '../levels/orbital/track/moving-lattice.js';
 import { assetURL } from '../assets/url.js';
 import {
   finishNightweirConcrete,
@@ -55,7 +57,7 @@ function createPreparedTrack(doc) {
 
 export function createEditorRoad(
   track,
-  { renderer = null, collectSolid = null, preview = false } = {},
+  { renderer = null, collectSolid = null, preview = false, devices = [] } = {},
 ) {
   if (track.editorEnvironment) prepareRegion(track.editorEnvironment, track);
   const biome = editorBiome(track.editorBiome ?? 'nightweir');
@@ -85,6 +87,35 @@ export function createEditorRoad(
   );
   part.group.userData.biome = biome.id;
   part.group.userData.roadKind = style.kind;
+  const lattice =
+    biome.id === 'orbital' && !collectSolid
+      ? createMovingLattice(track, {
+          protectedSpans: [
+            { start: -75, end: 75 },
+            ...(track.closed
+              ? []
+              : [{ start: track.finishDistance, end: track.length }]),
+            ...track.jumpProtectedSpans,
+            ...track.editorBiomeSpans.map(({ start, end }) => ({
+              start: start - 12,
+              end: end + 12,
+            })),
+            ...devices.map(({ distance, length }) => ({
+              start: distance - length / 2 - 12,
+              end: distance + length / 2 + 12,
+            })),
+          ],
+        })
+      : null;
+  if (lattice) {
+    part.group.userData.surfaceCoverage = (station, lateral) =>
+      track.isGap(station) ? 0 : lattice.coverage(station, lateral);
+    part.update = lattice.update;
+  }
+  const bindLattice = (mesh, layer) => {
+    const depth = lattice.bindMesh(mesh, layer);
+    if (depth) part.materials.add(depth);
+  };
   const asphalt =
     asphaltKind && renderer && !collectSolid
       ? createAsphalt(renderer, track.width, {
@@ -124,11 +155,12 @@ export function createEditorRoad(
         ? finishNightweirConcrete
         : undefined,
   );
+  const steelValues = { color: style.metal, roughness: 0.6, metalness: 0.45 };
   const steel = part.material(
     limestoneKit
       ? 'Shatterline / graphite titanium joints'
       : 'Editor / oxide municipal steel',
-    { color: style.metal, roughness: 0.6, metalness: 0.45 },
+    steelValues,
     limestoneKit ? finishShatterlineMaterial : finishNightweirMetal,
   );
   const paint = part.material('Editor / ivory road markings', {
@@ -152,8 +184,8 @@ export function createEditorRoad(
     ...run,
     start: i === 0 && track.closed === false ? -70 : run.start,
   }));
-  const sweepRoad = (route, profile, options = {}) => {
-    const geometries = roadRuns
+  const sweepRuns = (options) =>
+    roadRuns
       .map((run) => ({
         start: Math.max(run.start, options.start ?? run.start),
         end: Math.min(run.end, options.end ?? run.end),
@@ -166,16 +198,18 @@ export function createEditorRoad(
         const result = [];
         // Keep every original longitudinal sample; chunks only bound allocation.
         for (let first = 0; first < count; first += perPiece)
-          result.push(
-            sweepGeometry(route, profile, {
-              ...options,
-              step: step * (1 + 1e-9),
-              start: run.start + step * first,
-              end: run.start + step * Math.min(count, first + perPiece),
-            }),
-          );
+          result.push({
+            ...options,
+            step: step * (1 + 1e-9),
+            start: run.start + step * first,
+            end: run.start + step * Math.min(count, first + perPiece),
+          });
         return result;
       });
+  const sweepRoad = (route, profile, options = {}) => {
+    const geometries = sweepRuns(options).map((run) =>
+      sweepGeometry(route, profile, run),
+    );
     if (!geometries.length)
       throw new Error('Road detail has no supported interval');
     if (geometries.length === 1) return geometries[0];
@@ -255,7 +289,7 @@ export function createEditorRoad(
       )
     )
       continue;
-    part.solid(
+    const mesh = part.solid(
       spans.length
         ? `${editorBiome(surface.biome).label} section driving deck`
         : 'Continuous asphalt driving deck',
@@ -271,6 +305,7 @@ export function createEditorRoad(
       { kind: 'deck', start: surface.start, end: surface.end },
       collectSolid,
     );
+    if (lattice && surface.biome === biome.id) bindLattice(mesh, 'road');
   }
   if (spans.length) {
     const join = part.material('Editor / passive surface join', {
@@ -355,13 +390,40 @@ export function createEditorRoad(
                 [-half - 0.5, -1.6],
                 [-half, 0],
               ];
-  part.solid(
+  const soffitMaterial = lattice
+    ? part.material(
+        'Asterion / lattice shell',
+        steelValues,
+        finishNightweirMetal,
+      )
+    : steel;
+  const soffitMesh = part.solid(
     'Formed bridge soffit',
     sweepRoad(track, soffit, range),
-    steel,
+    soffitMaterial,
     { kind: 'structure' },
     collectSolid,
   );
+  if (lattice) {
+    bindLattice(soffitMesh, 'shell');
+    const { walls, bottom, ribs } = createMovingLatticeSurfaces(track, {
+      runs: sweepRuns({ ...range, start: 0 }),
+      depth: 1.8,
+    });
+    for (const [layer, geometry] of [
+      ['wall', walls],
+      ['bottom', bottom],
+      ['rib', ribs],
+    ]) {
+      const material = part.material(
+        `Asterion / lattice ${layer}`,
+        steelValues,
+      );
+      const mesh = part.solid(material.name, geometry, material);
+      mesh.castShadow = false;
+      bindLattice(mesh, layer);
+    }
+  }
   for (const side of [-1, 1]) {
     part.solid(
       'Precast road boundary',
@@ -1289,7 +1351,10 @@ export function createEditorWorld(
     group = new T.Group();
   group.name = `${editorBiome(doc.biome).label} track editor preview`;
   const track = doc.points.length >= 4 ? createPreparedTrack(doc) : null;
-  const road = track ? createEditorRoad(track, { renderer, preview }) : null;
+  const devices = track ? createEditorDevices(track, doc) : [];
+  const road = track
+    ? createEditorRoad(track, { renderer, preview, devices })
+    : null;
   const reuseKey = JSON.stringify([
     doc.biome,
     doc.environment,
@@ -1309,7 +1374,9 @@ export function createEditorWorld(
     preview,
     previous: priorEnvironment,
   });
-  const pickups = road ? createEditorPickupHardware(track, doc, road) : null;
+  const pickups = road
+    ? createEditorPickupHardware(track, devices, road)
+    : null;
   const roadEdit =
     preview && track ? createRoadEdit(doc, road.group, pickups) : null;
   if (pickups) group.add(pickups.group);
@@ -1347,6 +1414,7 @@ export function createEditorWorld(
     ready: Promise.all([road?.ready, environment.ready]),
     update(frame) {
       environment.update?.(frame);
+      road?.update?.(frame);
     },
     setReflection(texture) {
       road?.setReflection(texture);
@@ -1419,7 +1487,10 @@ export function createEditorLevel(value) {
     camera: EDITOR_CAMERA,
     createTrack: () => createPreparedTrack(doc),
     createRoad: ({ track, view }) =>
-      createEditorRoad(track, { renderer: view?.renderer }),
+      createEditorRoad(track, {
+        renderer: view?.renderer,
+        devices: doc.biome === 'orbital' ? createEditorDevices(track, doc) : [],
+      }),
     createEnvironment: ({ track, view }) =>
       createEditorEnvironment(doc, track, {
         renderer: view?.renderer,

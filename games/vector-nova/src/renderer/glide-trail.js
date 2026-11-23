@@ -17,7 +17,7 @@ import {
 const onset = 75 / 3.6;
 const life = 0.9;
 const reach = 30;
-const headFeather = 0.9;
+const headFeather = 0.45;
 const boostDiamondLength = 5.5;
 const boostDiamondLife = 0.26;
 const previewPhaseScale = 2.25;
@@ -27,6 +27,10 @@ const rowLimit = historySize + Math.ceil(reach / rowSpacing);
 const columns = 9;
 const strips = columns - 1;
 const projectionOptions = { geometryOnly: true };
+
+export function glideWakeAnchor(tail) {
+  return tail * 0.15;
+}
 
 function wrappedDelta(delta, period) {
   return MathUtils.euclideanModulo(delta + period / 2, period) - period / 2;
@@ -535,7 +539,7 @@ export function createGlideTrail({ track, surfaceStep = 0, coverageAt } = {}) {
           headTickTime = -Infinity;
         }
         const heading = state.heading ?? 0;
-        const origin = tail * 0.38;
+        const origin = glideWakeAnchor(tail);
         let station = state.distance + Math.cos(heading) * origin;
         let lateral = state.lateral + Math.sin(heading) * origin;
         let segment = 0;
@@ -602,7 +606,7 @@ export function createGlideTrail({ track, surfaceStep = 0, coverageAt } = {}) {
       if (time < lastPreviewTime) clearBoostPulses();
       lastPreviewTime = time;
       begin();
-      const origin = tail * 0.38;
+      const origin = glideWakeAnchor(tail);
       if (
         !active ||
         reducedMotion ||

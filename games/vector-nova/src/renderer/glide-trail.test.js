@@ -87,7 +87,7 @@ test('the film is broad over the banked road and fades within a bounded distance
   assert.ok(points[0].y < points[1].y, 'width follows road bank');
   const front = points[0].z;
   const end = points.at(-1).z;
-  assert.ok(Math.abs(front - 68.86) < 1e-4, 'head starts under the hull');
+  assert.ok(Math.abs(front - 69.55) < 1e-4, 'head starts near the hull centre');
   const head = spanAt(points, front);
   const tail = spanAt(points, end);
   const travelled = Math.hypot(front - end, (head.center - tail.center) / 0.8);
@@ -97,7 +97,7 @@ test('the film is broad over the banked road and fades within a bounded distance
   assert.ok(head.center > tail.center, 'older trace stays on the driven path');
   const leadingFade = mesh.material.uniforms.leadingFade.value;
   assert.ok(Math.abs(leadingFade.x - points[0].phase) < 1e-5);
-  assert.equal(leadingFade.y, 0.9, 'the shader feathers the first 0.9 m');
+  assert.equal(leadingFade.y, 0.45, 'the head feathers close to the hull');
   assert.ok(points.some(({ fade }) => fade > 0.26) && tail.fade < 1e-6);
 });
 
@@ -142,11 +142,11 @@ test('boost increases the fresh mark without resizing or brightening old deposit
   const normal = stripVertices(cruise.mesh);
   const boosted = stripVertices(surge.mesh);
   assert.deepEqual(
-    normal.filter(({ z }) => z < 22.861),
-    boosted.filter(({ z }) => z < 22.861),
+    normal.filter(({ z }) => z < 23.551),
+    boosted.filter(({ z }) => z < 23.551),
   );
-  const ordinaryHead = spanAt(normal, 24.36);
-  const boostedHead = spanAt(boosted, 24.36);
+  const ordinaryHead = spanAt(normal, 25.05);
+  const boostedHead = spanAt(boosted, 25.05);
   assert.ok(boostedHead.width > ordinaryHead.width);
   assert.ok(boostedHead.fade > ordinaryHead.fade);
 });
@@ -157,7 +157,7 @@ test('diamond coordinates stay on the deposited path as trail age advances', (t)
   update(trail, 0, 100);
   update(trail, 0.1, 110, 1);
   update(trail, 0.2, 120, 2);
-  const atDeposit = ({ z }) => Math.abs(z - 108.86) < 1e-4;
+  const atDeposit = ({ z }) => Math.abs(z - 109.55) < 1e-4;
   const coordinates = ({ x, y, z, across, phase }) => [x, y, z, across, phase];
   const old = stripVertices(trail.mesh).filter(atDeposit);
   assert.ok(old.length > 0);
@@ -445,11 +445,11 @@ test('the inspector matches the broad profile, fading it in place on its plinth'
   const points = stripVertices(mesh);
   assert.equal(mesh.visible, true);
   assert.ok(points.every(({ y, z }) => y === 0 && z >= -6.3 - 1e-6));
-  const head = spanAt(points, frame.tail * 0.38);
+  const head = spanAt(points, -0.585);
   assert.ok(Math.abs(head.width - 4.2 * 0.65) < 1e-4);
   const leadingFade = mesh.material.uniforms.leadingFade.value;
   assert.ok(Math.abs(leadingFade.x - points[0].phase) < 1e-5);
-  assert.equal(leadingFade.y, 0.9 * 2.25);
+  assert.equal(leadingFade.y, 0.45 * 2.25);
   assert.ok(points.at(-1).fade < 1e-6);
   assert.ok(points.some(({ fade }) => fade > 0.28));
   assert.ok(Math.abs(points.at(-1).z + 6.3) < 1e-6);

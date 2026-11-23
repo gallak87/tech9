@@ -39,6 +39,7 @@ import { createFleetShip } from '../ships/fleet.js';
 import { loadShipSelection, saveShipSelection } from '../ships/catalog.js';
 import { createRenderer } from '../renderer/index.js';
 import { createGlideTrail } from '../renderer/glide-trail.js';
+import { createAirborneWake } from '../renderer/airborne-wake.js';
 import {
   createVehicleState,
   STEERING_ASSIST,
@@ -329,6 +330,10 @@ export async function createGame({
         )
       : null;
     if (glideTrail) scene.add(glideTrail.mesh);
+    const airborneWake = racingEnabled
+      ? lifetime.own(createAirborneWake())
+      : null;
+    if (airborneWake) scene.add(airborneWake.mesh);
     // One district-scale radiance probe gives the craft real nearby architecture
     // in its reflections. It is a static approximation, generated from this scene.
     const reflectionPoint = track
@@ -682,6 +687,7 @@ export async function createGame({
       }
       audio.resetEnvironment();
       effects.reset();
+      airborneWake?.reset();
       raceFeedback.reset();
       resetLandingFeedback();
       world.reset();
@@ -2026,17 +2032,32 @@ export async function createGame({
       );
       world.update(frame);
       const hull = ship.group.userData.bounds;
+      const wakeActive = mode === 'racing' || mode === 'paused';
+      const wakeTime = T.MathUtils.lerp(prev.time, state.time, alpha);
       glideTrail?.update({
-        active: mode === 'racing' || mode === 'paused',
+        active: wakeActive,
         paused: mode === 'paused',
         grounded,
         state: s,
-        time: T.MathUtils.lerp(prev.time, state.time, alpha),
+        time: wakeTime,
         boost: glideBoost,
         boosting: s.boosting,
         accent: ship.selected.liveryAccent,
         tail: hull.min[2],
         hullWidth: hull.max[0] - hull.min[0],
+        reducedMotion: settings.reducedMotion,
+      });
+      airborneWake?.update({
+        active: wakeActive && !worldPose?.recovering,
+        paused: mode === 'paused',
+        airborne: !grounded,
+        time: wakeTime,
+        resetCount: s.resetCount,
+        position: ship.group.position,
+        quaternion: ship.group.quaternion,
+        bounds: hull,
+        accent: ship.selected.liveryAccent,
+        speed: s.speed,
         reducedMotion: settings.reducedMotion,
       });
       finishMarker?.update();

@@ -54,6 +54,8 @@ export function createSkywellRuntime(context) {
       airAngularResponse: 24,
       forgivingContacts: false,
       surfaceLanding: true,
+      // Freestyle judges actual receiver contact to complete the final trick.
+      airborneFinish: false,
     },
   );
   let incoming = null,

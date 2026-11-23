@@ -425,7 +425,10 @@ export async function generateCompletionRun({
           actor.state.distance,
           COMPLETION_RUN_STEP,
           physics,
-          { grounded: actor.runtime.pose(1)?.grounded !== false },
+          {
+            grounded: actor.runtime.pose(1)?.grounded !== false,
+            time: actor.state.time,
+          },
         );
         for (const event of raceEvents) {
           const recorded = {

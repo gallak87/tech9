@@ -1,53 +1,79 @@
 import { createDeviceLayout } from '../../pickups/layout.js';
 
+// Offsets are metres from the start of each carrier's road. The central
+// Vector strips keep their launch run-ups. Combat gates sit in optional lanes
+// between the receiving zone and the next approach.
+const plan = {
+  'nomad-tailforge': [
+    ['aegis', 150, -8],
+    ['vector', 360, 0],
+    ['arc', 510, 12],
+  ],
+  'nomad-shoulder-ascent': [
+    ['repulsor', 600, -8],
+    ['vector', 760, 0],
+  ],
+  'nomad-high-balcony': [['arc', 944, 8]],
+  // Portside has a long enough supported deck for the full Ion emission.
+  'nomad-portside-dive': [
+    ['aegis', 1050, 8],
+    ['ion', 1110, -9],
+    ['repulsor', 1930, 9],
+  ],
+  'nomad-freight-cathedral': [['arc', 620, -8]],
+  'nomad-overtaking-wall': [['repulsor', 517, 8]],
+  'nomad-passing-deck': [['arc', 1672, -9]],
+  'nomad-lower-hold': [
+    ['repulsor', 600, 8],
+    ['vector', 760, 0],
+  ],
+  'nomad-crane-alley': [['arc', 620, -8]],
+  'nomad-saltwind': [
+    ['aegis', 520, -8],
+    ['vector', 760, 0],
+    ['repulsor', 865, 9],
+  ],
+  'nomad-terminus': [['arc', 885, -8]],
+};
+
+const dimensions = {
+  aegis: { length: 8, width: 10 },
+  vector: { length: 65, width: 14 },
+  arc: { length: 10, width: 10 },
+  ion: { length: 10, width: 10 },
+  repulsor: { length: 10, width: 10 },
+};
+
 export function createDevices(track) {
   const devices = [];
-  const add = (carrier, type, offset, lateral, length, width = 12) => {
-    const distance = carrier.start + offset;
-    if (
-      distance - length / 2 < carrier.start + 12 ||
-      distance + length / 2 > carrier.end - 35
-    )
-      return;
-    if (
-      track.jumps.some(
-        (jump) =>
-          distance + length / 2 + 8 >= jump.takeoff &&
-          distance - length / 2 - 8 <= Math.max(jump.landingEnd, jump.recovery),
-      )
-    )
-      return;
-    devices.push({
-      id: `${carrier.id}-${type}`,
-      type,
-      distance,
-      lateral,
-      length,
-      width,
-      label: carrier.name,
-    });
-  };
   for (const carrier of track.carriers) {
-    const portside = carrier.id === 'nomad-portside-dive';
-    // Portside's broad receiving deck ends 1000m into the carrier.
-    add(
-      carrier,
-      'aegis',
-      portside ? 1050 : carrier.index ? 520 : 150,
-      0,
-      8,
-      10,
-    );
-    add(carrier, 'vector', carrier.index ? 760 : 360, 0, 65, 14);
-    // Short cargo holds have no offensive lane clear of both catch and launch.
-    // Keep all three choices on supported deck after reachable shield gates.
-    if (carrier.id === 'nomad-tailforge') add(carrier, 'arc', 350, -17, 10, 8);
-    if (portside) add(carrier, 'ion', 1200, -17, 10, 8);
-    if (carrier.id === 'nomad-saltwind')
-      add(carrier, 'repulsor', 655, 17, 10, 8);
+    for (const [type, offset, lateral] of plan[carrier.id] ?? []) {
+      const id = `${carrier.id}-${type}`;
+      const distance = carrier.start + offset;
+      const { length, width } = dimensions[type];
+      const start = distance - length / 2;
+      const end = distance + length / 2;
+      if (
+        start < carrier.start + 12 ||
+        end > carrier.end - 35 ||
+        end >= track.finishDistance ||
+        track.jumps.some(
+          (jump) =>
+            end + 8 >= jump.takeoff &&
+            start - 8 <= Math.max(jump.landingEnd, jump.recovery),
+        )
+      )
+        throw new Error(`Device ${id} is outside the safe convoy road`);
+      devices.push({
+        id,
+        type,
+        distance,
+        lateral,
+        length,
+        width,
+        label: carrier.name,
+      });
+    }
   }
-  return createDeviceLayout(
-    track,
-    devices.sort((a, b) => a.distance - b.distance),
-  );
+  return createDeviceLayout(track, devices);
 }

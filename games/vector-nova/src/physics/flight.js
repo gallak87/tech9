@@ -20,7 +20,8 @@ import {
   racerImpact,
   mitigateHazardImpact,
 } from './contact-feedback.js';
-import { landingZoneEnd } from './landing-zone.js';
+import { FINISH_RUNOUT_SOURCE, landingZoneEnd } from './landing-zone.js';
+import { crossAirborneGate } from './finish-gate.js';
 
 export const DEFAULT_FLIGHT_RULES = Object.freeze({
   gravity: 26,
@@ -218,7 +219,10 @@ export function createFlightModel(overrides = {}) {
   // Half the hull must overlap the authored rail envelope; offsets represent
   // visible outboard barriers without expanding the road landing surface.
   function sweptRail(track, jump, before, after) {
-    if (!track.jumps.includes(jump) && jump.id !== 'equipment-jump')
+    if (
+      !track.jumps.includes(jump[FINISH_RUNOUT_SOURCE] ?? jump) &&
+      jump.id !== 'equipment-jump'
+    )
       return null;
     const receivingEnd = landingZoneEnd(track, jump);
     const height = R.railHeight[jump.id] ?? 0.9;
@@ -333,7 +337,10 @@ export function createFlightModel(overrides = {}) {
     velocity,
     normalExtent = bodyExtent,
   ) {
-    if (!track.jumps.includes(jump) && jump.id !== 'equipment-jump')
+    if (
+      !track.jumps.includes(jump[FINISH_RUNOUT_SOURCE] ?? jump) &&
+      jump.id !== 'equipment-jump'
+    )
       return null;
     const receivingEnd = landingZoneEnd(track, jump);
     const motion = new THREE.Line3(before.position, after.position);
@@ -596,6 +603,86 @@ export function createFlightModel(overrides = {}) {
     let seed = 0;
     let stepModifiers = {};
     let equipmentFrame = null;
+    const finish =
+      track.closed === false && options.airborneFinish !== false
+        ? track.finishDistance
+        : undefined;
+    const penultimate = track.checkpoints?.at(-2);
+    const lastCheckpoint = penultimate?.distance ?? penultimate?.s;
+    const runoutJumps = new WeakMap();
+
+    function withFinishRunout(jump) {
+      if (!runoutJumps.has(jump))
+        runoutJumps.set(jump, { ...jump, [FINISH_RUNOUT_SOURCE]: jump });
+      return runoutJumps.get(jump);
+    }
+
+    function activeFlightJump() {
+      const jump =
+        flight.equipmentJump ??
+        track.jumps.find((entry) => entry.id === flight.id);
+      return flight.sprintFinishPassed ? withFinishRunout(jump) : jump;
+    }
+
+    function sprintCrossing(jump, before, after, time, dt) {
+      if (
+        !Number.isFinite(finish) ||
+        !Number.isFinite(lastCheckpoint) ||
+        flight.sprintFinishPassed ||
+        flight.from >= finish ||
+        !before ||
+        !after
+      )
+        return null;
+      const terminalTransfer =
+        jump.id !== 'equipment-jump' &&
+        Math.abs(jump.landingStart - lastCheckpoint) < 1e-5;
+      if (terminalTransfer) {
+        if (flight.sprintReceiverTime === undefined) {
+          const receiverTime = crossAirborneGate(
+            track,
+            lastCheckpoint,
+            before,
+            after,
+            time,
+            dt,
+          );
+          if (receiverTime === null) return null;
+          flight.sprintReceiverTime = receiverTime;
+        }
+      } else if (flight.from < lastCheckpoint) return null;
+      const finishTime = crossAirborneGate(
+        track,
+        finish,
+        before,
+        after,
+        time,
+        dt,
+      );
+      if (
+        finishTime === null ||
+        (terminalTransfer && finishTime < flight.sprintReceiverTime)
+      )
+        return null;
+      return {
+        type: 'airborne-finish',
+        payload: {
+          time: finishTime,
+          from: flight.from,
+          ...(terminalTransfer
+            ? { jumpId: jump.id, receiverTime: flight.sprintReceiverTime }
+            : {}),
+        },
+      };
+    }
+
+    function recordSprintCrossing(crossing, events) {
+      if (crossing && mode === 'flight') {
+        flight.sprintFinishPassed = true;
+        events.push(crossing);
+      }
+    }
+
     const surfaceFrame = (state) =>
       track.sampleSurface?.(state.distance, state.lateral) ??
       track.sample(state.distance);
@@ -935,6 +1022,7 @@ export function createFlightModel(overrides = {}) {
     function beginRecovery(jump, reason, events) {
       if (mode === 'recovery') return;
       mode = 'recovery';
+      delete flight.sprintReceiverTime;
       flight.failure = reason;
       flight.remaining = automaticRecovery ? R.recoveryDelay : 0;
       if (!automaticRecovery) flight.manualRecovery = true;
@@ -1124,25 +1212,39 @@ export function createFlightModel(overrides = {}) {
 
     function advanceWorldContacts(
       state,
-      jump,
+      initialJump,
       before,
       acceleration,
       dt,
       events,
     ) {
       let start = before,
-        remaining = dt;
+        remaining = dt,
+        jump = initialJump;
       let target = clonePose(currentPose);
       // Recover velocity at the start of the proposed interval.
       flight.velocity.addScaledVector(acceleration, -dt);
       for (let i = 0; i < COLLISION_RULES.maxContacts; i++) {
         const hit = collisionWorld.sweepHull(start, target, R);
+        const elapsed = remaining * (hit?.fraction ?? 1);
+        if (mode === 'flight') {
+          const crossing = sprintCrossing(
+            jump,
+            start.position,
+            hit?.position ?? target.position,
+            state.time - remaining + elapsed,
+            elapsed,
+          );
+          if (crossing) {
+            recordSprintCrossing(crossing, events);
+            jump = activeFlightJump();
+          }
+        }
         if (!hit) {
           currentPose = target;
           flight.velocity.addScaledVector(acceleration, remaining);
           return false;
         }
-        const elapsed = remaining * hit.fraction;
         flight.velocity.addScaledVector(acceleration, elapsed);
         remaining -= elapsed;
         flight.contacts += 1;
@@ -1521,9 +1623,7 @@ export function createFlightModel(overrides = {}) {
     }
 
     function prepareDynamicFlight(state, input, dt, events) {
-      const jump =
-        flight.equipmentJump ??
-        track.jumps.find((entry) => entry.id === flight.id);
+      const jump = activeFlightJump();
       state.time += dt;
       state.impact = Math.max(0, state.impact - dt * 2.4);
       state.steer = clamp(Number(input?.steer) || 0, -1, 1);
@@ -1631,7 +1731,11 @@ export function createFlightModel(overrides = {}) {
     }
 
     function finishDynamicFlight(state, events) {
-      const { jump, incomingVelocity } = pending.native;
+      const {
+        jump: original,
+        incomingVelocity,
+        wasRecovering,
+      } = pending.native;
       const result = actor.read();
       currentPose = {
         position: result.position,
@@ -1641,6 +1745,16 @@ export function createFlightModel(overrides = {}) {
       flight.angularVelocity.copy(result.angularVelocity);
       state.speed = flight.velocity.length();
       state.lateralSpeed = flight.velocity.dot(flight.launchRight);
+      const crossing =
+        !wasRecovering &&
+        sprintCrossing(
+          original,
+          previousPose?.position,
+          currentPose.position,
+          state.time,
+          pending.dt,
+        );
+      const jump = crossing ? withFinishRunout(original) : original;
       const contacts = result.contacts.map((hit) => ({
         hit,
         contact: supportedContact(
@@ -1735,6 +1849,7 @@ export function createFlightModel(overrides = {}) {
         if (crash && hit.incomingSpeed > 2)
           beginRecovery(jump, hit.shape.kind, events);
       }
+      recordSprintCrossing(crossing, events);
       const landing = contacts.find(({ hit }) => supportedDeck.has(hit));
       if (landing) {
         const { contact } = landing;
@@ -1907,9 +2022,7 @@ export function createFlightModel(overrides = {}) {
     }
 
     function advanceFlight(state, input, dt, events) {
-      const jump =
-        flight.equipmentJump ??
-        track.jumps.find((entry) => entry.id === flight.id);
+      let jump = activeFlightJump();
       state.time += dt;
       state.impact = Math.max(0, state.impact - dt * 2.4);
       state.steer = clamp(Number(input?.steer) || 0, -1, 1);
@@ -2000,6 +2113,7 @@ export function createFlightModel(overrides = {}) {
         if (mode === 'recovery') return;
       } else {
         let landingBefore = before;
+        let landingStep = dt;
         const rail = sweptRail(track, jump, before, currentPose);
         // A lower-hull road hit can precede side contact in the same tick.
         // Resolving the later rail first would start the road sweep underneath
@@ -2017,6 +2131,17 @@ export function createFlightModel(overrides = {}) {
           // Resolve at the swept hit time, then integrate the remainder with the
           // reflected velocity. Keep ballistic height; no pull down onto the deck.
           const remaining = dt * (1 - rail.fraction);
+          recordSprintCrossing(
+            sprintCrossing(
+              jump,
+              before.position,
+              contact.position,
+              state.time - remaining,
+              dt - remaining,
+            ),
+            events,
+          );
+          jump = activeFlightJump();
           flight.velocity.addScaledVector(acceleration, -remaining);
           catchEdge(state, jump, rail, contact, events);
           currentPose.position
@@ -2025,8 +2150,9 @@ export function createFlightModel(overrides = {}) {
             .addScaledVector(acceleration, remaining * remaining * 0.5);
           flight.velocity.addScaledVector(acceleration, remaining);
           landingBefore = contact;
+          landingStep = remaining;
         }
-        const landing =
+        let landing =
           R.curvedContact && (!rail || floorFirst)
             ? directLanding
             : sweptLanding(
@@ -2036,6 +2162,28 @@ export function createFlightModel(overrides = {}) {
                 currentPose,
                 flight.velocity,
               );
+        const crossing = sprintCrossing(
+          jump,
+          landingBefore.position,
+          currentPose.position,
+          state.time,
+          landingStep,
+        );
+        if (crossing && !landing) {
+          landing = sweptLanding(
+            track,
+            withFinishRunout(jump),
+            landingBefore,
+            currentPose,
+            flight.velocity,
+          );
+        }
+        const contactTime =
+          state.time - landingStep * (1 - (landing?.fraction ?? 1));
+        if (crossing && crossing.payload.time <= contactTime) {
+          recordSprintCrossing(crossing, events);
+          jump = activeFlightJump();
+        }
         if (landing) {
           const contactPose = {
             position: landingBefore.position
@@ -2059,7 +2207,9 @@ export function createFlightModel(overrides = {}) {
           return;
         }
       }
-      const failure = flightFailure(jump);
+      const failure = flightFailure(
+        flight.sprintFinishPassed ? activeFlightJump() : jump,
+      );
       if (failure) {
         beginRecovery(jump, failure, events);
       }
@@ -2181,7 +2331,9 @@ export function createFlightModel(overrides = {}) {
         const end =
           Math.min(
             track.closed === false
-              ? (track.finishDistance ?? track.length)
+              ? at >= lastCheckpoint && at < finish
+                ? track.length
+                : (track.finishDistance ?? track.length)
               : Infinity,
             at + Math.max(450, state.speed * 4),
           ) - 0.01;
@@ -2326,6 +2478,14 @@ export function createFlightModel(overrides = {}) {
       restore(data) {
         if (!data || !['magnetic', 'flight', 'recovery'].includes(data.mode))
           throw new Error('Invalid flight runtime state.');
+        if (
+          (data.flight?.sprintReceiverTime !== undefined &&
+            (!Number.isFinite(data.flight.sprintReceiverTime) ||
+              data.flight.sprintReceiverTime < 0)) ||
+          (data.flight?.sprintFinishPassed !== undefined &&
+            typeof data.flight.sprintFinishPassed !== 'boolean')
+        )
+          throw new Error('Invalid airborne sprint state.');
         if (
           data.flight?.equipmentControl !== undefined &&
           typeof data.flight.equipmentControl !== 'boolean'

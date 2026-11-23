@@ -877,8 +877,8 @@ export async function createGame({
                     )?.race;
               return {
                 ...row,
-                // createRace alone validates checkpoint order, transfers and
-                // grounded terminal contact, and interpolates its exact time.
+                // createRace validates checkpoint order and transfers, and
+                // supplies the exact time of the terminal crossing.
                 finishTime: qualifiedEliminatorFinishTime(progress),
               };
             })

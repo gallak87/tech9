@@ -8,6 +8,8 @@ import {
 import { createVehicleState, getVehiclePace } from '../src/physics/index.js';
 import { SHIPS } from '../src/ships/catalog.js';
 import { sprintRunoutControl } from '../src/race/course.js';
+import { createRace } from '../src/race/index.js';
+import { advanceSession } from '../src/core/session-runtime.js';
 import {
   inspectJump,
   inspectSprint,
@@ -44,6 +46,41 @@ test('Shatterline has twelve real gaps, three separated long flights and a groun
   }
   assert.equal(track.surfaceCoverage(track.finishDistance), 1);
   assert.ok(track.finishDistance < track.length);
+});
+
+test('sampled flight can land on the supported runway after an airborne finish', (t) => {
+  const runtime = createShatterlineRuntime({ track });
+  t.after(() => runtime.dispose());
+  const jump = track.jumps.at(-1);
+  const state = {
+    ...createVehicleState('kestrel'),
+    distance: jump.takeoff - 0.8,
+    speed: 290,
+  };
+  const race = createRace(track);
+  race.placeScenario(state.distance);
+  runtime.reset({ state });
+  const events = [];
+  let landing;
+  for (let tick = 0; tick < 1000 && !landing; tick++) {
+    advanceSession({
+      state,
+      input: { throttle: 1 },
+      dt: FLIGHT_STEP,
+      runtime,
+      race,
+      emit(event) {
+        events.push(event.type);
+        if (event.type === 'jump-transfer') landing = event.payload;
+      },
+    });
+  }
+  assert.equal(race.complete, true);
+  assert.ok(
+    events.indexOf('sprint-complete') < events.indexOf('jump-transfer'),
+  );
+  assert.equal(landing?.outcome, 'landed');
+  assert.ok(landing.to > track.finishDistance && landing.to < track.length);
 });
 
 test('the entire supported raceway visibly descends, including every receiving deck', () => {

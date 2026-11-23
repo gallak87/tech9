@@ -723,7 +723,10 @@ export function createRacers({
         Math.max(0, opponent.state.distance),
         step,
         vehicleEvents,
-        { grounded: opponent.runtime.pose(1)?.grounded !== false },
+        {
+          grounded: opponent.runtime.pose(1)?.grounded !== false,
+          time: opponent.state.time,
+        },
       );
       // Deliver decorative events to attached observers, then drain them even
       // in CPU-only races so feedback never accumulates between simulation ticks.

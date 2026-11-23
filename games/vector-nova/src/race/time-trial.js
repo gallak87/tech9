@@ -1,3 +1,5 @@
+import { SPRINT_RULES_VERSION } from './course.js';
+
 // Player records are pose trajectories, never developer input logs. Changing
 // the rules or physics identity starts a separate record and ghost namespace.
 export const TRIAL_RULES =
@@ -46,7 +48,9 @@ export function trialIdentity({ track, ship, version, runtime, build = null }) {
     laps: 1,
     physics: 3,
     ...(build ? { build } : {}),
-    ...(track.closed === false ? {} : { start: 'standing' }),
+    ...(track.closed === false
+      ? { sprintVersion: SPRINT_RULES_VERSION }
+      : { start: 'standing' }),
   };
 }
 export function encodeGhost(source) {

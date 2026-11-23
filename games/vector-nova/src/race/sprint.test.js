@@ -17,6 +17,7 @@ import {
   sweptVectorContacts,
 } from '../pickups/simulation.js';
 import { assertTrackContract } from '../../tools/level-checks/track-contract.mjs';
+import { crossAirborneGate } from '../physics/finish-gate.js';
 
 const dt = 1 / 120;
 const throttle = {
@@ -102,6 +103,101 @@ test('sprint latches one grounded terminal crossing and freezes the recorded clo
   airborne.step(990, 1010, 0.2, [], { grounded: false });
   assert.equal(airborne.complete, false);
   assert.equal(airborne.valid, false);
+});
+
+test('airborne gates use the forward swept crossing above the real road width', () => {
+  const track = makeTrack();
+  const nominal = track.sample;
+  track.sample = (station) => ({
+    ...nominal(station),
+    right: new Vector3(0.5, Math.sqrt(0.75), 0),
+  });
+  const crossing = (x, y, reverse = false) =>
+    crossAirborneGate(
+      track,
+      1000,
+      new Vector3(x, y, reverse ? 1003 : 999),
+      new Vector3(x, y, reverse ? 999 : 1003),
+      2,
+      0.1,
+    );
+  assert.ok(Math.abs(crossing(5, 40) - 1.925) < 1e-10);
+  assert.equal(crossing(11, 40), null, 'side fly-by');
+  assert.equal(crossing(5, 3), null, 'under the banked surface');
+  assert.equal(crossing(5, 40, true), null, 'backwards');
+
+  track.frameAtTime = (station, time) => nominal(station + 2 * time);
+  const moving = crossAirborneGate(
+    track,
+    1000,
+    new Vector3(0, 40, 1001.8),
+    new Vector3(0, 40, 1002.3),
+    1.1,
+    0.1,
+  );
+  assert.ok(Math.abs(moving - (1 + (0.1 * 2) / 3)) < 1e-10);
+});
+
+test('an airborne sprint finish credits only ordered, evidenced terminal crossings', () => {
+  const direct = createRace(makeTrack(), { laps: 1 });
+  direct.step(0, 990, 9.9);
+  const pulse = (payload) => [{ type: 'airborne-finish', payload }];
+  assert.deepEqual(
+    direct.step(990, 990, 0.2, pulse({ from: NaN, time: 10 }), {
+      grounded: false,
+      time: 10.1,
+    }),
+    [],
+  );
+  const events = direct.step(990, 990, 0.2, pulse({ from: 990, time: 10.25 }), {
+    grounded: false,
+    time: 10.3,
+  });
+  assert.deepEqual(
+    events.map(({ type }) => type),
+    ['checkpoint', 'sprint-complete'],
+  );
+  assert.ok(Math.abs(direct.elapsed - 10.25) < 1e-10);
+
+  const track = makeTrack({ jumps: true });
+  track.checkpoints.splice(-2, 1);
+  const final = createRace(track, { laps: 1 });
+  final.step(0, 200, 2);
+  final.step(200, 200, 4);
+  const terminal = { from: 200, time: 6.04, receiverTime: 5, jumpId: 'hero' };
+  for (const [witness, time] of [
+    [{ ...terminal, time: 6.04, jumpId: 'early' }, 6.1],
+    [{ ...terminal, time: 6.14, receiverTime: 1 }, 6.2],
+  ]) {
+    assert.deepEqual(
+      final.step(200, 200, 0.1, pulse(witness), { grounded: false, time }),
+      [],
+    );
+    assert.equal(final.checkpoint, 1);
+  }
+  const completed = final.step(
+    200,
+    200,
+    0.1,
+    pulse({ ...terminal, time: 6.24 }),
+    {
+      grounded: false,
+      time: 6.3,
+    },
+  );
+  assert.deepEqual(
+    completed.map(({ type }) => type),
+    ['checkpoint', 'checkpoint', 'sprint-complete'],
+  );
+  assert.deepEqual(final.completedTransfers, ['0:hero']);
+  assert.equal(final.checkpoint, 3);
+  assert.ok(Math.abs(final.splits[1] - 5) < 1e-10);
+  assert.ok(Math.abs(final.elapsed - 6.24) < 1e-10);
+  assert.equal(final.valid, true);
+  assert.deepEqual(
+    final.step(200, 200, 0.1, pulse(terminal), { time: 6.4 }),
+    [],
+  );
 });
 
 test('hero flights hold checkpoint credit; recovery costs time; skipping cannot finish', () => {

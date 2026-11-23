@@ -6,9 +6,107 @@ import { createVehicleState } from '../src/physics/index.js';
 import { withMagneticBoundaries } from '../src/physics/magnetic-boundaries.js';
 import { projectMagneticBody } from '../src/physics/magnetic-body.js';
 import { getCollisionHull } from '../src/ships/collision-hulls.js';
+import {
+  createSimulationActors,
+  createSimulationWorld,
+} from '../src/core/simulation.js';
+import { advanceSession } from '../src/core/session-runtime.js';
+import {
+  captureSimulationCheckpoint,
+  restoreSimulationCheckpoint,
+} from '../src/core/simulation-checkpoint.js';
+import { createRace } from '../src/race/index.js';
 
 const DT = 1 / 120;
 const input = { throttle: 1, steer: 0 };
+
+test('Shatterline finishes above the line after a late Horizon Jump Drive and lands on the runout', async (t) => {
+  const world = await createSimulationWorld(createShatterlineLevel());
+  const actors = createSimulationActors(world);
+  t.after(() => {
+    actors.dispose();
+    world.dispose();
+  });
+  const { track, dynamics } = world;
+  const { runtime } = await actors.createPlayer({ equipment: true });
+  const jump = track.jumps.at(-1);
+  assert.equal(jump.id, 'horizon-transfer');
+  const state = {
+    ...createVehicleState('kestrel'),
+    distance: jump.takeoff - 0.5,
+    speed: 215,
+    equipment: ['jump'],
+  };
+  const race = createRace(track, { laps: 1 });
+  race.placeScenario(state.distance);
+  race.valid = true;
+  runtime.reset({ state, reason: 'fresh-lap' });
+  const context = { state, runtime, race, dynamics };
+  const step = (input, emit = () => {}) =>
+    advanceSession({ ...context, input, dt: DT, emit, presentation: false });
+  while (state.time < 3) step(input);
+  assert.equal(runtime.pose(1).grounded, false);
+  assert.equal(race.checkpoint, track.checkpoints.length - 3);
+  const saved = captureSimulationCheckpoint(context);
+
+  function finish() {
+    let pressed = false;
+    const events = [];
+    const finishFrame = track.sample(track.finishDistance);
+    for (let tick = 0; tick < 720; tick++) {
+      const equipment1 = !pressed && state.time >= 3.9;
+      pressed ||= equipment1;
+      step({ ...input, equipment1 }, (event) => {
+        if (event.type === 'sprint-complete') {
+          const pose = runtime.pose(1);
+          assert.equal(pose.grounded, false);
+          assert.equal(state.distance, jump.takeoff);
+          assert.ok(pose.position.y > finishFrame.position.y + 50);
+        }
+        if (
+          [
+            'equipment-activate',
+            'airborne-finish',
+            'sprint-complete',
+            'jump-miss',
+            'jump-transfer',
+          ].includes(event.type)
+        )
+          events.push(event);
+      });
+      if (race.complete && runtime.pose(1).grounded) break;
+    }
+    assert.equal(race.complete, true);
+    assert.equal(race.valid, true);
+    assert.equal(race.checkpoint, track.checkpoints.length - 1);
+    assert.deepEqual(race.completedTransfers, ['0:horizon-transfer']);
+    assert.deepEqual(
+      events.map(({ type }) => type),
+      [
+        'equipment-activate',
+        'airborne-finish',
+        'sprint-complete',
+        'jump-transfer',
+      ],
+    );
+    assert.equal(events.at(-1).payload.outcome, 'landed');
+    assert.ok(
+      state.distance > track.finishDistance && state.distance < track.length,
+    );
+    assert.ok(Math.abs(race.elapsed - events[1].payload.time) < 1e-10);
+    const landedSpeed = state.speed;
+    for (let tick = 0; tick < 60; tick++) step(input);
+    assert.ok(
+      state.speed < landedSpeed,
+      'finish braking overrides held throttle',
+    );
+    return { events, state: { ...state }, elapsed: race.elapsed };
+  }
+
+  const first = finish();
+  restoreSimulationCheckpoint(saved, context, { presentation: false });
+  assert.deepEqual(finish(), first);
+});
 
 test('powered tube touchdown keeps actual surface coordinates without moving the native or interpolated chassis sideways', async (t) => {
   const level = createShatterlineLevel();

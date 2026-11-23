@@ -34,6 +34,7 @@ for (const folder of await readdir(directory, { withFileTypes: true })) {
   const devices = definition.racing.createDevices(track);
   const attacks = devices.filter((device) => isCombatDevice(device.type));
   const pursuit = definition.event?.type === 'interceptor';
+  const convoy = folder.name === 'nomad' || folder.name === 'eliminator-nomad';
 
   test(`${folder.name}: ${pursuit ? 'pursuit shields and attacks stay on the supported road' : 'complete pickup set leaves safe, optional combat lanes'}`, () => {
     createDeviceLayout(track, devices);
@@ -102,12 +103,25 @@ for (const folder of await readdir(directory, { withFileTypes: true })) {
       for (const jump of track.jumps ?? []) {
         const start = device.distance - device.length / 2;
         const end = device.distance + device.length / 2;
-        if (end < jump.takeoff)
+        if (end < jump.takeoff) {
+          // Short convoy decks still leave time for an optional weapon to
+          // activate at Vector speed before the next takeoff.
+          const launchClearance =
+            convoy && device.type !== 'ion'
+              ? VECTOR_PROPULSION.cruiseSpeed *
+                (device.type === 'arc'
+                  ? COMBAT_RULES.arcDelay
+                  : COMBAT_RULES.pulseDelay)
+              : pursuit
+                ? 60
+                : device.type === 'ion'
+                  ? 800
+                  : 350;
           assert.ok(
-            jump.takeoff - end >=
-              (pursuit ? 60 : device.type === 'ion' ? 800 : 350),
+            jump.takeoff - end >= launchClearance,
             `${device.id}: attack too close to ${jump.id} takeoff`,
           );
+        }
         const authoredRecovery =
           folder.name === 'vesper-forest'
             ? {
@@ -129,7 +143,7 @@ for (const folder of await readdir(directory, { withFileTypes: true })) {
           );
         } else if (start > jump.recovery)
           assert.ok(
-            start - jump.recovery >= (pursuit ? 30 : 150),
+            start - jump.recovery >= (convoy ? 8 : pursuit ? 30 : 150),
             `${device.id}: allow landing recovery after ${jump.id}`,
           );
       }

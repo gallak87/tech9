@@ -150,9 +150,10 @@ export function advanceSession({
       race
         .step(playerPrevious.distance, state.distance, step, completed, {
           grounded: runtime.pose(1)?.grounded !== false,
+          time: state.time,
         })
         .forEach(emit);
-      // Forward finish events with the same grounded sprint pose.
+      // Seat field finish events against the same solved physics tick.
       racers?.finishAdvance?.({ playerPose: runtime.pose(1) })?.forEach(emit);
       const interactions = runtime.advanceInteractions?.(step) ?? [];
       interactions.forEach(emit);
@@ -168,6 +169,7 @@ export function advanceSession({
   race
     .step(previous, state.distance, dt, events, {
       grounded: runtime.pose(1)?.grounded !== false,
+      time: state.time,
     })
     .forEach(emit);
   racers

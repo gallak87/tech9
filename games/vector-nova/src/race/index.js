@@ -33,6 +33,86 @@ export function createRace(
       'Sprint needs start, terminal checkpoint and supported runout',
     );
   const epsilon = 1e-5;
+  const lastCheckpoint = positions.at(-2);
+  const finalJump =
+    sprint &&
+    track.jumps?.find(
+      (jump) => Math.abs(jump.landingStart - lastCheckpoint) < epsilon,
+    );
+  function finishSprint(race, elapsed, events) {
+    race.elapsed = elapsed;
+    race.complete = true;
+    race.lastLap = elapsed;
+    if (race.valid) race.best = elapsed;
+    const result = {
+      duration: elapsed,
+      valid: race.valid,
+      rulesId: race.rulesId,
+    };
+    race.history.push(result);
+    events.push({ type: 'sprint-complete', payload: { ...result } });
+    return events;
+  }
+
+  function airborneFinish(
+    race,
+    previous,
+    beforeTime,
+    dt,
+    time,
+    witness,
+    events,
+  ) {
+    if (
+      !witness ||
+      !Number.isFinite(witness.from) ||
+      Math.abs(witness.from - previous) >= epsilon ||
+      !Number.isFinite(witness.time) ||
+      witness.time < time - dt - epsilon ||
+      witness.time > time + epsilon
+    )
+      return false;
+    const elapsed =
+      beforeTime + Math.max(0, Math.min(dt, witness.time - (time - dt)));
+    if (witness.jumpId !== undefined) {
+      const transfer = `0:${witness.jumpId}`;
+      const receiverTime = elapsed - (witness.time - witness.receiverTime);
+      if (
+        !finalJump ||
+        witness.jumpId !== finalJump.id ||
+        Math.abs(previous - finalJump.takeoff) >= epsilon ||
+        race.checkpoint !== count - 3 ||
+        race.completedTransfers.includes(transfer) ||
+        !Number.isFinite(witness.receiverTime) ||
+        !Number.isFinite(receiverTime) ||
+        receiverTime < 0 ||
+        receiverTime <= (race.splits.at(-1) ?? -Infinity) ||
+        receiverTime >= elapsed
+      )
+        return false;
+      race.completedTransfers.push(transfer);
+      if (precise) race.splits.push(receiverTime);
+      events.push({
+        type: 'checkpoint',
+        payload: { index: count - 2, lapTime: receiverTime },
+      });
+    } else if (
+      race.checkpoint !== count - 2 ||
+      previous < lastCheckpoint - epsilon
+    )
+      return false;
+
+    race.checkpoint = count - 1;
+    race.startDistance = track.finishDistance;
+    if (precise) race.splits.push(elapsed);
+    events.push({
+      type: 'checkpoint',
+      payload: { index: count - 1, lapTime: elapsed },
+    });
+    finishSprint(race, elapsed, events);
+    return true;
+  }
+
   return {
     rulesId: sprint
       ? `${rulesId}:sprint-v${course.version}:${track.finishDistance}:${track.length}`
@@ -75,13 +155,34 @@ export function createRace(
       this.startDistance = base + positions[this.checkpoint];
       this.valid = !untimed && distance === 0;
     },
-    step(previous, current, dt, vehicleEvents = [], { grounded = true } = {}) {
+    step(
+      previous,
+      current,
+      dt,
+      vehicleEvents = [],
+      { grounded = true, time } = {},
+    ) {
       if (this.complete) return [];
       const beforeTime = this.elapsed;
       const beforeTotal = this.totalElapsed;
       let lastCrossingTime = 0;
       this.elapsed += dt;
       const events = [];
+      if (
+        sprint &&
+        Number.isFinite(time) &&
+        airborneFinish(
+          this,
+          previous,
+          beforeTime,
+          dt,
+          time,
+          vehicleEvents.find((event) => event.type === 'airborne-finish')
+            ?.payload,
+          events,
+        )
+      )
+        return events;
       if (current <= previous) return events;
       // Only the matching authored takeoff can transfer progress over a gap.
       // Holding distance in flight ensures missing a road never awards its CP.
@@ -192,21 +293,8 @@ export function createRace(
             type: 'checkpoint',
             payload: { index, lapTime: this.elapsed },
           });
-          if (sprint && index === count - 1) {
-            this.elapsed =
-              beforeTime + (dt * (crossing - previous)) / (current - previous);
-            this.complete = true;
-            this.lastLap = this.elapsed;
-            if (this.valid) this.best = this.elapsed;
-            const result = {
-              duration: this.elapsed,
-              valid: this.valid,
-              rulesId: this.rulesId,
-            };
-            this.history.push(result);
-            events.push({ type: 'sprint-complete', payload: { ...result } });
-            return events;
-          }
+          if (sprint && index === count - 1)
+            return finishSprint(this, beforeTime + crossingTime, events);
           if (index === 0) {
             if (precise)
               this.elapsed =

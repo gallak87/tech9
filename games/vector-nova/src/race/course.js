@@ -1,6 +1,6 @@
 import { getShip } from '../ships/catalog.js';
 
-export const SPRINT_RULES_VERSION = 1;
+export const SPRINT_RULES_VERSION = 2;
 const clamp = (value, lower, upper) => Math.max(lower, Math.min(upper, value));
 
 export function courseIdentity(track) {

@@ -14,8 +14,8 @@ import {
 } from 'three';
 import { glideWakeAnchor } from './glide-trail.js';
 
-const reach = 12;
-const life = 0.36;
+const reach = 30;
+const life = 0.6;
 const landingFade = 0.2;
 const capacity = Math.ceil(life * 240) + 2;
 
@@ -30,7 +30,7 @@ function wakeSample() {
 
 // The air wake carries copies of the rendered hull pose in scene space. The
 // road wake can therefore remain on the deck when this ribbon lifts away.
-export function createAirborneWake() {
+export function createAirborneWake({ strengthScale = 1 } = {}) {
   const geometry = new BufferGeometry();
   const positions = new Float32BufferAttribute(capacity * 6, 3);
   const fades = new Float32BufferAttribute(capacity * 2, 1);
@@ -209,6 +209,7 @@ export function createAirborneWake() {
       bounds,
       accent = 0x9ed9ec,
       speed,
+      visibility = 1,
       reducedMotion = false,
     }) {
       if (disposed) return;
@@ -228,7 +229,7 @@ export function createAirborneWake() {
         .applyQuaternion(quaternion)
         .add(position);
       edge.set((bounds.max[0] - left) * 0.25, 0, 0).applyQuaternion(quaternion);
-      const fade = 0.22 * MathUtils.smoothstep(speed, 15, 36);
+      const fade = 0.22 * strengthScale * MathUtils.smoothstep(speed, 15, 36);
       if (airborne) {
         const previous = lastAirborne ? samples[head] : ground;
         const elapsed = time - previous.time;
@@ -239,13 +240,14 @@ export function createAirborneWake() {
           append(ground.point, ground.edge, ground.time, ground.fade);
         if (!count || distance > 0.015) append(origin, edge, time, fade);
         accentColor.set(accent);
-        opacity.value = 1;
+        opacity.value = visibility;
         draw(time);
       } else {
         if (lastAirborne) landedAt = time;
         if (mesh.visible) {
           opacity.value =
-            1 - MathUtils.smoothstep(time - landedAt, 0, landingFade);
+            visibility *
+            (1 - MathUtils.smoothstep(time - landedAt, 0, landingFade));
           if (opacity.value === 0) clearPath();
         }
         store(ground, origin, edge, time, fade);

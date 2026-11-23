@@ -80,10 +80,7 @@ test('The world-space wake follows the banked underside along a bounded curved p
   let length = 0;
   for (let i = 1; i < rows.length; i++)
     length += rows[i - 1].distanceTo(rows[i]);
-  assert.ok(
-    length >= 11 && length <= 12.01,
-    `wake follows ${length}m of the arc`,
-  );
+  assert.ok(Math.abs(length - 30) < 1e-4, `wake follows ${length}m of the arc`);
   const middle = rows[Math.floor(rows.length / 2)];
   const chord = rows.at(-1).clone().sub(rows[0]);
   const fromHead = middle.clone().sub(rows[0]);

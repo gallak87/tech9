@@ -18,9 +18,6 @@ const onset = 75 / 3.6;
 const life = 0.9;
 const reach = 30;
 const headFeather = 0.45;
-const boostDiamondLength = 5.5;
-const boostDiamondLife = 0.26;
-const previewPhaseScale = 2.25;
 const historySize = Math.ceil(life * 120) + 4;
 const rowSpacing = 0.58;
 const rowLimit = historySize + Math.ceil(reach / rowSpacing);
@@ -53,39 +50,40 @@ function decayAt(fraction) {
 
 // Each deposit keeps its road coordinates, width and strength. The visible
 // remainder conforms to the current deck, including curved or moving surfaces.
-export function createGlideTrail({ track, surfaceStep = 0, coverageAt } = {}) {
+export function createGlideTrail({
+  track,
+  surfaceStep = 0,
+  coverageAt,
+  strengthScale = 1,
+} = {}) {
   const geometry = new BufferGeometry();
   const positions = new Float32BufferAttribute(rowLimit * columns * 3, 3);
   const fades = new Float32BufferAttribute(rowLimit * columns, 1);
-  const surfaceCoordinates = new Float32BufferAttribute(
-    rowLimit * columns * 4,
-    4,
-  );
+  const distances = new Float32BufferAttribute(rowLimit * columns, 1);
   const indices = new Uint16BufferAttribute(rowLimit * strips * 6, 1);
   positions.setUsage(DynamicDrawUsage);
   fades.setUsage(DynamicDrawUsage);
-  surfaceCoordinates.setUsage(DynamicDrawUsage);
+  distances.setUsage(DynamicDrawUsage);
   indices.setUsage(DynamicDrawUsage);
   const across = new Float32Array(rowLimit * columns);
   for (let i = 0; i < across.length; i++)
     across[i] = 2 * ((i % columns) / strips) - 1;
   geometry.setAttribute('position', positions);
   geometry.setAttribute('fade', fades);
-  geometry.setAttribute('trailSurface', surfaceCoordinates);
+  geometry.setAttribute('trailDistance', distances);
   geometry.setAttribute('across', new Float32BufferAttribute(across, 1));
   geometry.setIndex(indices);
   geometry.setDrawRange(0, 0);
 
   const accentColor = new Color(0x9ed9ec);
   const leadingFade = new Vector2(0, headFeather);
-  const boostPulses = [new Vector3(0, 1, 0), new Vector3(0, 1, 0)];
-  const pulseTimes = [-Infinity, -Infinity];
+  const opacityScale = { value: strengthScale };
   const material = new ShaderMaterial({
     uniforms: {
       ...UniformsUtils.clone(UniformsLib.fog),
       accent: { value: accentColor },
       leadingFade: { value: leadingFade },
-      boostPulses: { value: boostPulses },
+      opacityScale,
     },
     transparent: true,
     depthWrite: false,
@@ -97,14 +95,11 @@ export function createGlideTrail({ track, surfaceStep = 0, coverageAt } = {}) {
     toneMapped: false,
     fog: true,
     vertexShader: `
-      attribute float fade, across;
-      attribute vec4 trailSurface;
-      varying vec2 trail;
-      varying vec4 surfaceCoord;
+      attribute float fade, across, trailDistance;
+      varying vec3 trail;
       #include <fog_pars_vertex>
       void main() {
-        trail = vec2(across, fade);
-        surfaceCoord = trailSurface;
+        trail = vec3(across, fade, trailDistance);
         vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
         gl_Position = projectionMatrix * mvPosition;
         #include <fog_vertex>
@@ -112,40 +107,18 @@ export function createGlideTrail({ track, surfaceStep = 0, coverageAt } = {}) {
     fragmentShader: `
       uniform vec3 accent;
       uniform vec2 leadingFade;
-      uniform vec3 boostPulses[2];
-      varying vec2 trail;
-      varying vec4 surfaceCoord;
+      uniform float opacityScale;
+      varying vec3 trail;
       #include <fog_pars_fragment>
-      vec2 diamondGlow(vec3 pulse) {
-        // Phase is distance along the deposited road, not distance from the hull.
-        float along = (surfaceCoord.y - pulse.x) * pulse.y;
-        float halfWidth = max(0.001, surfaceCoord.w * 0.70);
-        float diamond = abs(surfaceCoord.x) / halfWidth + abs(2.0 * along - 1.0);
-        float aa = max(0.001, fwidth(diamond) * 0.60);
-        float outline = abs(diamond - 1.0);
-        vec2 glow = 1.0 - smoothstep(
-          vec2(0.013, 0.026), vec2(0.035, 0.12) + aa, vec2(outline)
-        );
-        float ends = smoothstep(0.0, 0.024, along) *
-          (1.0 - smoothstep(0.976, 1.0, along));
-        float detail = 1.0 - smoothstep(0.15, 0.40, aa);
-        float deposited = 1.0 - smoothstep(0.72, 1.0, surfaceCoord.z);
-        return glow * (pulse.z * ends * detail * deposited);
-      }
       void main() {
-        vec2 glow = vec2(0.0);
-        if (boostPulses[0].z > 0.0) glow = diamondGlow(boostPulses[0]);
-        if (boostPulses[1].z > 0.0) glow = max(glow, diamondGlow(boostPulses[1]));
         float lateral = abs(trail.x);
         float edge = 1.0 - smoothstep(0.48, 1.0, lateral);
         float band = 1.0 - smoothstep(0.25, 0.9, lateral);
         float halo = sqrt(edge);
         vec3 livery = accent * (1.12 + 0.29 * band);
-        vec3 tint = mix(livery, vec3(1.2), glow.x * 0.56);
-        float lead = smoothstep(0., leadingFade.y, abs(surfaceCoord.y - leadingFade.x));
-        float opacity = min(0.8, trail.y * lead *
-          (edge * (0.63 + 0.42 * glow.y + 1.0 * glow.x) + 0.18 * halo));
-        gl_FragColor = vec4(tint, opacity);
+        float lead = smoothstep(0., leadingFade.y, abs(trail.z - leadingFade.x));
+        float opacity = min(0.8, opacityScale * trail.y * lead * (0.63 * edge + 0.18 * halo));
+        gl_FragColor = vec4(livery, opacity);
         #include <colorspace_fragment>
         #include <fog_fragment>
       }`,
@@ -188,51 +161,10 @@ export function createGlideTrail({ track, surfaceStep = 0, coverageAt } = {}) {
     lastTime = -Infinity;
   let lastReset,
     lastAccent,
-    boostHeld = false,
-    pendingBoostAt = -Infinity,
-    lastPreviewTime = -Infinity,
     rows = 0,
     indexCount = 0,
     cachedBankStart,
     disposed = false;
-
-  function boostStarted(boosting) {
-    const rising = boosting && !boostHeld;
-    boostHeld = boosting;
-    return rising;
-  }
-
-  function clearBoostPulses() {
-    pendingBoostAt = -Infinity;
-    for (let i = 0; i < boostPulses.length; i++) {
-      pulseTimes[i] = -Infinity;
-      boostPulses[i].z = 0;
-    }
-  }
-
-  function queueBoostPulse(boosting, rising, time) {
-    if (!boosting || time - pendingBoostAt >= boostDiamondLife)
-      pendingBoostAt = -Infinity;
-    if (boosting && rising) pendingBoostAt = time;
-  }
-
-  function stampBoostPulse(time, distance) {
-    if (!Number.isFinite(pendingBoostAt)) return;
-    pendingBoostAt = -Infinity;
-    // Preserve the last stamp's fade during a rapid release and re-engage.
-    const slot = pulseTimes[0] <= pulseTimes[1] ? 0 : 1;
-    pulseTimes[slot] = time;
-    boostPulses[slot].set(distance, 1 / boostDiamondLength, 0);
-  }
-
-  function fadeBoostPulses(time) {
-    for (let i = 0; i < boostPulses.length; i++) {
-      const age = time - pulseTimes[i];
-      boostPulses[i].z =
-        MathUtils.smoothstep(age, 0, 0.035) *
-        (1 - MathUtils.smoothstep(age, 0.11, boostDiamondLife));
-    }
-  }
 
   function clear() {
     head = -1;
@@ -240,7 +172,6 @@ export function createGlideTrail({ track, surfaceStep = 0, coverageAt } = {}) {
     joining = false;
     headTickTime = -Infinity;
     lastTime = -Infinity;
-    clearBoostPulses();
     geometry.setDrawRange(0, 0);
     mesh.visible = false;
   }
@@ -263,15 +194,7 @@ export function createGlideTrail({ track, surfaceStep = 0, coverageAt } = {}) {
     bankEndRight.copy(b.right);
   }
 
-  function appendRow(
-    station,
-    lateral,
-    width,
-    fade,
-    distance,
-    fraction,
-    preview = false,
-  ) {
+  function appendRow(station, lateral, width, fade, distance, preview = false) {
     const at = preview ? station : routeStation(station);
     if (!preview && (at < 0 || at >= track.length)) return -1;
     const surface = preview
@@ -353,7 +276,7 @@ export function createGlideTrail({ track, surfaceStep = 0, coverageAt } = {}) {
       } else point.addScaledVector(side, x).addScaledVector(bow, x * x);
       positions.setXYZ(i, point.x, point.y, point.z);
       fades.setX(i, fade * coverage[i]);
-      surfaceCoordinates.setXYZW(i, x * width, distance, fraction, width);
+      distances.setX(i, distance);
     }
     return base;
   }
@@ -396,7 +319,7 @@ export function createGlideTrail({ track, surfaceStep = 0, coverageAt } = {}) {
     for (const [attribute, length] of [
       [positions, rows * columns * 3],
       [fades, rows * columns],
-      [surfaceCoordinates, rows * columns * 4],
+      [distances, rows * columns],
       [indices, indexCount],
     ]) {
       attribute.clearUpdateRanges();
@@ -428,7 +351,6 @@ export function createGlideTrail({ track, surfaceStep = 0, coverageAt } = {}) {
         width,
         strength * decayAt(fraction),
         distance,
-        fraction,
       );
       if (row >= 0 && previousRow >= 0) {
         connect(
@@ -498,14 +420,13 @@ export function createGlideTrail({ track, surfaceStep = 0, coverageAt } = {}) {
       speed = state?.speed,
       time = state?.time,
       boost = 0,
-      boosting = false,
       accent = 0x9ed9ec,
       tail = 0,
       hullWidth = 4,
+      visibility = 1,
       reducedMotion = false,
     }) {
       if (disposed) return;
-      const rising = boostStarted(boosting);
       if (
         !active ||
         reducedMotion ||
@@ -517,18 +438,18 @@ export function createGlideTrail({ track, surfaceStep = 0, coverageAt } = {}) {
         return;
       }
       const tickTime = state.time ?? time;
-      const reset =
+      if (
         tickTime < lastTickTime ||
         state.resetCount !== lastReset ||
-        accent !== lastAccent;
-      const queueOnset = rising && (!reset || !Number.isFinite(lastTime));
-      if (reset) clear();
+        accent !== lastAccent
+      )
+        clear();
       lastReset = state.resetCount;
       lastAccent = accent;
       lastTickTime = tickTime;
       if (paused || time <= lastTime) return;
 
-      queueBoostPulse(grounded && boosting, queueOnset, time);
+      opacityScale.value = strengthScale * visibility;
       if (grounded && speed > onset) {
         // Follow every interpolated display pose while retaining at most one
         // sample for each physics tick in the trail history.
@@ -580,21 +501,17 @@ export function createGlideTrail({ track, surfaceStep = 0, coverageAt } = {}) {
           head = next;
           headTickTime = tickTime;
           count = Math.min(historySize, count + 1);
-          stampBoostPulse(time, travelled[next]);
         }
         joining = true;
       } else joining = false;
 
       lastTime = time;
-      fadeBoostPulses(time);
       draw(time, accent);
     },
     preview({
       active,
       speed,
       boost = 0,
-      boosting = false,
-      time = 0,
       accent = 0x9ed9ec,
       tail = 0,
       hullWidth = 4,
@@ -602,34 +519,22 @@ export function createGlideTrail({ track, surfaceStep = 0, coverageAt } = {}) {
       reducedMotion = false,
     }) {
       if (disposed) return;
-      const rising = boostStarted(boosting);
-      if (time < lastPreviewTime) clearBoostPulses();
-      lastPreviewTime = time;
       begin();
+      opacityScale.value = strengthScale;
       const origin = glideWakeAnchor(tail);
       if (
-        !active ||
-        reducedMotion ||
-        !Number.isFinite(time) ||
-        origin <= -6.3 ||
-        fadeScale <= 0
+        active &&
+        !reducedMotion &&
+        origin > -6.3 &&
+        fadeScale > 0 &&
+        speed > onset
       ) {
-        clearBoostPulses();
-        finish(accent);
-        return;
-      }
-      queueBoostPulse(boosting, rising, time);
-      if (speed > onset) {
         const pressure = MathUtils.clamp(boost, 0, 1);
         const width = widthAt(hullWidth, pressure);
         const strength =
           strengthAt(speed, pressure) * MathUtils.clamp(fadeScale, 0, 1);
         const length = origin + 6.3;
-        leadingFade.set(
-          -origin * previewPhaseScale,
-          headFeather * previewPhaseScale,
-        );
-        stampBoostPulse(time, leadingFade.x + 0.55 * previewPhaseScale);
+        leadingFade.set(origin, headFeather);
         let previous = -1;
         for (let row = 0; row <= 12; row++) {
           const fraction = row / 12;
@@ -639,17 +544,16 @@ export function createGlideTrail({ track, surfaceStep = 0, coverageAt } = {}) {
             0,
             width,
             strength * decayAt(fraction),
-            -z * previewPhaseScale,
-            fraction,
+            z,
             true,
           );
           if (previous >= 0) connect(previous, base, z, 0, width, true);
           previous = base;
         }
       }
-      fadeBoostPulses(time);
       finish(accent);
     },
+    reset: clear,
     dispose() {
       if (disposed) return;
       disposed = true;

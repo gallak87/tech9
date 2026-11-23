@@ -62,12 +62,6 @@ function drawnWidth({ index, attributes, drawRange }) {
   return Math.max(...x) - Math.min(...x);
 }
 
-function visiblePulses(trail) {
-  return trail.material.uniforms.boostPulses.value.filter(
-    ({ z: strength }) => strength > 0,
-  ).length;
-}
-
 test('Driving previews early blur with one wide floor imprint', (t) => {
   const { preview, update, heading, floor, ship, trail } = harness(t);
   update({ driving: false });
@@ -93,12 +87,17 @@ test('Driving previews early blur with one wide floor imprint', (t) => {
 });
 
 test('Boost, graphics quality and inactive auditions update the same effects', (t) => {
-  const { preview, update } = harness(t);
+  const { preview, update, trail } = harness(t);
   for (let i = 0; i < 30; ++i) update();
   const cruise = preview.getSnapshot();
+  const cruiseWidth = drawnWidth(trail.geometry);
+  const { fade } = trail.geometry.attributes;
+  const cruiseOpacity = Math.max(...fade.array);
   assert.ok(cruise.speed > INSPECTION_DRIVING_SPEED * 0.99);
   for (let i = 0; i < 6; ++i) update({ boost: true });
   assert.ok(preview.getSnapshot().blur > cruise.blur);
+  assert.ok(drawnWidth(trail.geometry) > cruiseWidth);
+  assert.ok(Math.max(...fade.array) > cruiseOpacity);
   update({ boost: true, settings: { quality: 'low' } });
   assert.equal(preview.getSnapshot().blur, 0);
   assert.ok(preview.getSnapshot().trail);
@@ -113,7 +112,8 @@ test('Boost, graphics quality and inactive auditions update the same effects', (
       trail: false,
     });
   }
-  for (let i = 0; i < 10; ++i) update({ driving: false, boost: true });
+  for (let i = 0; i < 10; ++i)
+    update({ driving: false, boost: true, dt: 1 / 60 });
   assert.ok(
     preview.getSnapshot().blur > 0 && preview.getSnapshot().trail,
     'Boost can audition by itself',
@@ -137,44 +137,4 @@ test('The last impression fades without moving if the hull rotates after release
   assert.ok(Math.max(...fade.array) < opacity);
   for (let i = 0; i < 6; ++i) update({ driving: false, heading: turned });
   assert.ok(!trail.visible);
-});
-
-test('Each Boost press previews one short diamond over the smooth wake', (t) => {
-  const { update, trail } = harness(t);
-  for (let i = 0; i < 20; ++i) update();
-  assert.ok(trail.visible);
-  assert.equal(visiblePulses(trail), 0);
-
-  for (let i = 0; i < 3; ++i) update({ boost: true });
-  assert.equal(visiblePulses(trail), 1);
-  for (let i = 0; i < 20; ++i) update({ boost: true });
-  assert.ok(trail.visible);
-  assert.equal(visiblePulses(trail), 0);
-
-  for (let i = 0; i < 20; ++i) update({ driving: false });
-  assert.ok(!trail.visible);
-  const fromRest = { driving: false, boost: true, dt: 1 / 60 };
-  update(fromRest);
-  assert.ok(!trail.visible);
-  for (let i = 0; i < 6; ++i) update(fromRest);
-  assert.ok(trail.visible);
-  assert.equal(visiblePulses(trail), 1);
-});
-
-test('Restoring the preview with Boost held does not trigger a diamond', (t) => {
-  const { update, trail } = harness(t);
-  for (const suppressed of [
-    { active: false },
-    { settings: { quality: 'high', reducedMotion: true } },
-  ]) {
-    update();
-    for (let i = 0; i < 3; ++i) update({ boost: true });
-    assert.equal(visiblePulses(trail), 1);
-    update({ boost: true, ...suppressed });
-    assert.ok(!trail.visible);
-    assert.equal(visiblePulses(trail), 0);
-    for (let i = 0; i < 3; ++i) update({ boost: true });
-    assert.ok(trail.visible);
-    assert.equal(visiblePulses(trail), 0);
-  }
 });

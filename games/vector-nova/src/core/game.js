@@ -318,16 +318,13 @@ export async function createGame({
     lifetime.defer(() => ship.group.removeFromParent());
     const shipBounds = new T.Box3().setFromObject(ship.group);
     scene.add(ship.group);
+    const wakeSurface = {
+      surfaceStep:
+        definition.renderer?.contact?.surfaceStep ?? road.userData.surfaceStep,
+      coverageAt: roadCoverage,
+    };
     const glideTrail = racingEnabled
-      ? lifetime.own(
-          createGlideTrail({
-            track,
-            surfaceStep:
-              definition.renderer?.contact?.surfaceStep ??
-              road.userData.surfaceStep,
-            coverageAt: roadCoverage,
-          }),
-        )
+      ? lifetime.own(createGlideTrail({ track, ...wakeSurface }))
       : null;
     if (glideTrail) scene.add(glideTrail.mesh);
     const airborneWake = racingEnabled
@@ -588,6 +585,7 @@ export async function createGame({
             racers,
             scene,
             track,
+            wakeSurface,
             combat,
             settings,
             loadRival: definition.racing.loadRival,
@@ -688,6 +686,7 @@ export async function createGame({
       audio.resetEnvironment();
       effects.reset();
       airborneWake?.reset();
+      if (reason !== 'manual-recover') racerPresentation?.resetWakes();
       raceFeedback.reset();
       resetLandingFeedback();
       world.reset();
@@ -2002,6 +2001,7 @@ export async function createGame({
         mode,
         settings,
         interceptor: frame.interceptor,
+        cameraPosition: camera.position,
       });
       interceptorEffects?.update(frame);
       const catapulting = motionFeedback.vectorActive === true;
@@ -2041,7 +2041,6 @@ export async function createGame({
         state: s,
         time: wakeTime,
         boost: glideBoost,
-        boosting: s.boosting,
         accent: ship.selected.liveryAccent,
         tail: hull.min[2],
         hullWidth: hull.max[0] - hull.min[0],

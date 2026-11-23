@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { access, appendFile, mkdir, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 
+let recordingSerial = 0;
+
 // Dedicated-tab picture and native Web Audio only. Chrome stays host-muted;
 // no microphone or desktop surface is ever requested.
 export async function installNativeAudioTap(context) {
@@ -30,7 +32,7 @@ export async function installNativeAudioTap(context) {
 
 export async function startTabRecording(
   page,
-  { outputFile, title, audioGain = 1 },
+  { outputFile, title, audioGain = 1, allowSilent = false },
 ) {
   try {
     await access(outputFile);
@@ -40,11 +42,12 @@ export async function startTabRecording(
   }
   await mkdir(dirname(outputFile), { recursive: true });
   await writeFile(outputFile, Buffer.alloc(0));
-  await page.exposeFunction('writeMarketingCapture', (chunk) =>
+  const binding = `writeMarketingCapture_${++recordingSerial}`;
+  await page.exposeFunction(binding, (chunk) =>
     appendFile(outputFile, Buffer.from(chunk, 'base64')),
   );
   await page.evaluate(
-    ({ title, audioGain }) => {
+    ({ title, audioGain, allowSilent, binding }) => {
       document.title = title;
       const button = document.createElement('button');
       button.id = 'record-marketing-tab';
@@ -73,28 +76,34 @@ export async function startTabRecording(
             stream.getTracks().forEach((track) => track.stop());
             throw new Error('Refusing non-tab capture.');
           }
-          const mixer = new AudioContext({ sampleRate: 48000 });
-          const output = mixer.createMediaStreamDestination();
-          if (!window.__VN_MARKETING_AUDIO.length)
+          if (!window.__VN_MARKETING_AUDIO.length && !allowSilent)
             throw new Error('No native game audio taps.');
-          for (const tap of window.__VN_MARKETING_AUDIO) {
-            await tap.context.resume();
-            const gain = mixer.createGain();
-            gain.gain.value = audioGain;
-            mixer
-              .createMediaStreamSource(tap.stream)
-              .connect(gain)
-              .connect(output);
+          const videoOnly = window.__VN_MARKETING_AUDIO.length === 0;
+          let mixer = null;
+          let mix;
+          if (videoOnly) {
+            mix = new MediaStream([video]);
+          } else {
+            mixer = new AudioContext({ sampleRate: 48000 });
+            const output = mixer.createMediaStreamDestination();
+            for (const tap of window.__VN_MARKETING_AUDIO) {
+              await tap.context.resume();
+              const gain = mixer.createGain();
+              gain.gain.value = audioGain;
+              mixer
+                .createMediaStreamSource(tap.stream)
+                .connect(gain)
+                .connect(output);
+            }
+            await mixer.resume();
+            mix = new MediaStream([video, output.stream.getAudioTracks()[0]]);
           }
-          await mixer.resume();
-          const mix = new MediaStream([
-            video,
-            output.stream.getAudioTracks()[0],
-          ]);
           const recorder = new MediaRecorder(mix, {
-            mimeType: 'video/webm;codecs=vp9,opus',
+            mimeType: videoOnly
+              ? 'video/webm;codecs=vp9'
+              : 'video/webm;codecs=vp9,opus',
             videoBitsPerSecond: 24000000,
-            audioBitsPerSecond: 192000,
+            ...(videoOnly ? {} : { audioBitsPerSecond: 192000 }),
           });
           const capture = {
             pending: Promise.resolve(),
@@ -102,10 +111,13 @@ export async function startTabRecording(
             done: false,
             settings: video.getSettings(),
             audioBuses: window.__VN_MARKETING_AUDIO.length,
+            videoOnly,
+            bytes: 0,
           };
           window.__VN_TAB_RECORDING = capture;
           recorder.ondataavailable = (event) => {
             if (!event.data.size) return;
+            capture.bytes += event.data.size;
             capture.pending = capture.pending.then(async () => {
               const data = await new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -116,7 +128,7 @@ export async function startTabRecording(
                   );
                 reader.readAsDataURL(event.data);
               });
-              await window.writeMarketingCapture(data);
+              await window[binding](data);
             });
           };
           recorder.onerror = (event) => {
@@ -129,7 +141,7 @@ export async function startTabRecording(
               capture.error = String(error);
             }
             mix.getTracks().forEach((track) => track.stop());
-            await mixer.close();
+            await mixer?.close();
             capture.done = true;
           };
           capture.stop = () => {
@@ -148,7 +160,7 @@ export async function startTabRecording(
         }
       };
     },
-    { title, audioGain },
+    { title, audioGain, allowSilent, binding },
   );
   await page.bringToFront();
   await page.locator('#record-marketing-tab').click();
@@ -195,6 +207,7 @@ export async function startTabRecording(
       startedAt: capture.startedAt,
       settings: capture.settings,
       audioBuses: capture.audioBuses,
+      videoOnly: capture.videoOnly,
     };
   });
   assert.ok(
@@ -219,7 +232,10 @@ export async function stopTabRecording(page) {
         window.__VN_TAB_RECORDING.startedAt) /
       1000,
     audioBuses: window.__VN_TAB_RECORDING.audioBuses,
+    videoOnly: window.__VN_TAB_RECORDING.videoOnly,
+    bytes: window.__VN_TAB_RECORDING.bytes,
   }));
   assert.equal(metadata.error, null);
+  assert.ok(metadata.bytes > 0, 'Recorder wrote encoded media data.');
   return metadata;
 }

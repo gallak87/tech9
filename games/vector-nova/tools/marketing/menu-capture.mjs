@@ -110,10 +110,10 @@ function showcaseSeed(id, fixture) {
   for (const ship of ['shrike', 'bastion', 'needle'])
     profile.loadouts[ship] = ['jump', 'injector', null, null];
   if (!validateProfile(profile))
-    throw new Error('Invalid RC4 showcase profile.');
+    throw new Error('Invalid trailer showcase profile.');
   const collection = careerUnlockProgress(profile);
   if (collection.collected !== 31 || collection.total !== 37)
-    throw new Error('RC4 must show 31/37, with bonus worlds still hidden.');
+    throw new Error('Trailer must show 31/37, with bonus worlds still hidden.');
   if (BONUS_LEVEL_IDS.some((id) => levelAvailable(id, { complete: false })))
     throw new Error('Bonus course access changed.');
   selected.setItem(PROFILE_KEY, JSON.stringify(profile));
@@ -186,7 +186,8 @@ async function assertSpoilerSafe(page) {
     }
     return faults;
   });
-  if (faults.length) throw new Error(`RC4 spoiler gate: ${faults.join('; ')}`);
+  if (faults.length)
+    throw new Error(`Trailer spoiler gate: ${faults.join('; ')}`);
 }
 
 async function command(program, args) {
@@ -329,6 +330,13 @@ async function snapshot(page) {
       error: state.error,
       developer: state.developer,
       stagedPresentation: window.__VN_MENU_PRESENTATION ?? null,
+      editorAvailable: !!document.querySelector(
+        '.menu-top-tabs [data-action="track-editor"]',
+      ),
+      trackLibrary:
+        document
+          .querySelector('.course-sources [aria-pressed="true"]')
+          ?.getAttribute('data-action') ?? null,
       progress:
         document.querySelector('.career-progress')?.textContent.trim() ?? null,
       rewards: Number(
@@ -572,7 +580,11 @@ async function flow(page, id, mark, pointer, fixture) {
     await mark('main-progress');
     await page.waitForTimeout(500);
     await click('[data-action="circuits"]');
-    for (const level of ['vesper-forest', 'helion']) {
+    // The merged Editor adds a production library switch. Always browse the
+    // authored game tracks rather than inheriting a prior custom selection.
+    if (await page.locator('[data-action="game-levels"]').count())
+      await click('[data-action="game-levels"]');
+    for (const level of ['vesper-forest', 'orbital']) {
       await mark(`circuit-${level}-approach`);
       await glide(page, `[data-level="${level}"]`, pointer, 360, { x: 0.13 });
       await page.waitForFunction(
@@ -586,10 +598,10 @@ async function flow(page, id, mark, pointer, fixture) {
     }
     await page.mouse.click(pointer.x, pointer.y);
     await page.waitForFunction(
-      () => window.__VN_FRONTEND.getState().selected === 'helion',
+      () => window.__VN_FRONTEND.getState().selected === 'orbital',
     );
     await settledImages(page);
-    await mark('selected-helion');
+    await mark('selected-orbital');
     await page.waitForTimeout(1000);
   } else if (id === 'menu-founders') {
     await mark('founders-reveal-approach');
@@ -759,6 +771,7 @@ export async function captureMenus({
   const manifest = {
     createdAt: new Date().toISOString(),
     kind: 'intro-menu-sources',
+    candidate: 'RC5',
     flowOnly,
     sourceRevision: execFileSync('git', ['rev-parse', 'HEAD'], {
       cwd: root,
@@ -888,6 +901,22 @@ export async function captureMenus({
         );
         await settledImages(page);
         await pauseMusic(page);
+        // Cache only: no world or hidden Garage is constructed to warm assets.
+        if (id === 'menu-garage')
+          await page.evaluate(async () => {
+            const { loadShipModel } = await import('/src/ships/model-cache.js');
+            await Promise.all(
+              ['shrike', 'bastion', 'needle', 'kestrel'].map(loadShipModel),
+            );
+          });
+        if (
+          (await page
+            .locator('.menu-top-tabs [data-action="track-editor"]')
+            .count()) === 0
+        )
+          throw new Error(
+            'RC5 requires the merged production Editor navigation.',
+          );
         if (id === 'menu-founders') {
           await page.evaluate(async (state) => {
             const { cupVictoryView } = await import('/src/frontend/cup-art.js');
@@ -1105,7 +1134,7 @@ if (
   const args = process.argv.slice(2);
   if (args.includes('--help'))
     console.log(
-      `node tools/marketing/menu-capture.mjs [--output DIRECTORY] [--only ${sourceIds.join(',')}] [--record-fixture FILE] [--flow-only]\nCaptures the native title reveal and five isolated RC4 menu source takes, preserving pointer movement and settled markers. Production-access career stays at 31/37, without revealing bonus worlds or Encore.\nFounders uses an explicitly staged completed-cup state and the unchanged production victory view; it is not a played championship recording.\n--record-fixture supplies genuine logical Time Trial record/ghost entries with provenance; required for menu-trial.\n--flow-only verifies selected flows headless, without recording. VN_URL may select an existing server.`,
+      `node tools/marketing/menu-capture.mjs [--output DIRECTORY] [--only ${sourceIds.join(',')}] [--record-fixture FILE] [--flow-only]\nCaptures the native title reveal and five isolated RC5 menu source takes on the merged Editor build, preserving pointer movement and settled markers. Circuit browsing uses Vesper Forest -> Asterion Orbital through Game tracks. Production-access career stays at 31/37, without revealing bonus worlds or Encore.\nFounders uses an explicitly staged completed-cup state and the unchanged production victory view; it is not a played championship recording.\n--record-fixture supplies genuine logical Time Trial record/ghost entries with provenance; required for menu-trial.\n--flow-only verifies selected flows headless, without recording. VN_URL may select an existing server.`,
     );
   else {
     const options = {};

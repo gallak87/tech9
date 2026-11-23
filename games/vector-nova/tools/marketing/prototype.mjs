@@ -274,6 +274,7 @@ try {
           saved.id === shot.id &&
           saved.mode === shot.mode &&
           saved.level === shot.level &&
+          saved.difficulty === shot.difficulty &&
           saved.exotic === shot.exotic &&
           saved.engineGain === shot.engineGain &&
           saved.upgrades === shot.upgrades &&
@@ -334,6 +335,7 @@ try {
           cameraBinding,
           aiSpeed,
           race,
+          difficulty,
           engineGain,
           driver,
           captureMimeType,
@@ -344,7 +346,7 @@ try {
           if (race) {
             const { RACE_OPPONENTS } = await import('/src/race/roster.js');
             game.startCup({
-              difficulty: 'hard',
+              difficulty,
               eventIndex: 2,
               eventCount: 3,
               gridOrder: [...RACE_OPPONENTS.map((r) => r.id), 'player'],
@@ -390,6 +392,8 @@ try {
             cameraRequested: false,
             cameraActions: [],
             hitTargets: [],
+            passedTarget: null,
+            impacts: [],
             controlErrors: [],
           };
           const seenEvents = new Set();
@@ -403,7 +407,7 @@ try {
               }
             : null;
           const motionOf = (s) =>
-            s.runtime.state.flight?.mode ?? s.runtime.state.mode;
+            s.runtime.state.flight?.mode ?? s.runtime.state.mode ?? 'magnetic';
           window.__VN_MARKETING_DRIVER = drive;
           const compact = () => {
             const s = game.getSnapshot();
@@ -503,6 +507,15 @@ try {
                 };
               }
               if (race) {
+                const defend =
+                  Number.isFinite(driver.deflectAt) &&
+                  elapsed >= driver.deflectAt &&
+                  elapsed < driver.deflectAt + 0.18;
+                pad.buttons[3] = {
+                  value: Number(defend),
+                  pressed: defend,
+                  touched: defend,
+                };
                 const aligned = rivals.some((r) => {
                   const gap = r.distance - s.vehicle.distance;
                   return (
@@ -536,12 +549,17 @@ try {
                       'combat-hit',
                       'combat-contact',
                       'combat-confirm',
+                      'impact',
                     ].includes(event.type)
                   )
                     continue;
                   const key = JSON.stringify(event);
                   if (!seenEvents.has(key)) {
                     seenEvents.add(key);
+                    if (event.type === 'impact') {
+                      drive.impacts.push(event);
+                      continue;
+                    }
                     drive.weaponEvents.push(event);
                     if (
                       event.type === 'combat-confirm' &&
@@ -603,8 +621,17 @@ try {
                   playerPosition < target.position
                 );
               });
+              if (passedTarget && !drive.passedTarget)
+                drive.passedTarget = {
+                  id: passedTarget.id,
+                  at: now,
+                  distance: s.vehicle.distance,
+                };
               const cameraDue =
-                (driver.cameraAfterPass && passedTarget) ||
+                (driver.cameraAfterPass &&
+                  drive.passedTarget &&
+                  s.vehicle.distance >=
+                    (driver.cameraAfterPassDistance ?? 0)) ||
                 (Number.isFinite(driver.cameraAt) &&
                   elapsed >= driver.cameraAt);
               if (cameraDue && !drive.cameraRequested) {
@@ -616,7 +643,7 @@ try {
                       key: 'C',
                       requestedAt,
                       completedAt: performance.now(),
-                      passedTarget: passedTarget?.id ?? null,
+                      passedTarget: drive.passedTarget?.id ?? null,
                       mode: game.getSnapshot().camera.mode,
                     }),
                   )
@@ -750,6 +777,7 @@ try {
           cameraBinding: `cameraCapture_${shot.id}`,
           aiSpeed: shot.aiSpeed,
           race: shot.mode === 'race',
+          difficulty: shot.difficulty ?? 'hard',
           engineGain: shot.engineGain ?? 1,
           driver: shot.driver ?? {},
           captureMimeType,
@@ -846,6 +874,8 @@ try {
           maxVisibleRivals: drive.maxVisibleRivals,
           cameraActions: drive.cameraActions,
           hitTargets: drive.hitTargets,
+          passedTarget: drive.passedTarget,
+          impacts: drive.impacts,
           controlErrors: drive.controlErrors,
           greenAtRawSeconds: (drive.racingStartedAt - r.startedAt) / 1000,
         };

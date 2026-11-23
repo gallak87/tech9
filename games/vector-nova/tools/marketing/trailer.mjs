@@ -104,6 +104,8 @@ export async function assembleTrailer({
       cut.source < 0 ||
       cut.source + duration > shot.seconds + 0.01 ||
       (cut.audio !== undefined && typeof cut.audio !== 'boolean') ||
+      (cut.decodeFromStart !== undefined &&
+        typeof cut.decodeFromStart !== 'boolean') ||
       (cut.gain !== undefined && (!finite(cut.gain) || cut.gain < 0)) ||
       (cut.audioFade !== undefined &&
         (!finite(cut.audioFade) ||
@@ -202,19 +204,25 @@ export async function assembleTrailer({
         : fade;
     const fadeOutStart = isLast ? cutDuration : cutDuration - fade;
     const fadeOutDuration = continuesIntoNext ? 0 : isLast ? nativeTail : fade;
+    const sourceInPoint = shot.inPoint + cut.source;
+    // Tab capture can resize while sharing starts. Preserve the decoder state
+    // across that lead-in when a static menu take has seek artifacts.
+    const videoStart = cut.decodeFromStart
+      ? `trim=start=${sourceInPoint},setpts=PTS-STARTPTS,`
+      : '';
+    const audioStart = cut.decodeFromStart ? `start=${sourceInPoint}:` : '';
     inputArgs.push(
       '-threads',
       '1',
-      '-ss',
-      String(shot.inPoint + cut.source),
+      ...(cut.decodeFromStart ? [] : ['-ss', String(sourceInPoint)]),
       '-t',
-      String(audioDuration + 0.08),
+      String(audioDuration + 0.08 + (cut.decodeFromStart ? sourceInPoint : 0)),
       '-i',
       sourcePath,
     );
     if (!copyVideoFrom)
       filters.push(
-        `[${index}:v]scale=1920:1080:flags=lanczos,fps=${fps},trim=end_frame=${cut.to - cut.from},setpts=N/(${fps}*TB),setsar=1[v${index}]`,
+        `[${index}:v]${videoStart}scale=1920:1080:flags=lanczos,fps=${fps},trim=end_frame=${cut.to - cut.from},setpts=N/(${fps}*TB),setsar=1[v${index}]`,
       );
     const fades = [
       ...(fadeIn > 0 ? [`afade=t=in:d=${fadeIn}`] : []),
@@ -226,11 +234,11 @@ export async function assembleTrailer({
     filters.push(
       muted
         ? `anullsrc=r=48000:cl=stereo,atrim=duration=${audioDuration},asetpts=PTS-STARTPTS,adelay=${delay}S:all=1[a${index}]`
-        : `[${index}:a]aresample=48000,aformat=channel_layouts=stereo,atrim=duration=${audioDuration},asetpts=PTS-STARTPTS,volume=${cut.gain ?? 1}${fades.length ? `,${fades.join(',')}` : ''},adelay=${delay}S:all=1[a${index}]`,
+        : `[${index}:a]aresample=48000,aformat=channel_layouts=stereo,atrim=${audioStart}duration=${audioDuration},asetpts=PTS-STARTPTS,volume=${cut.gain ?? 1}${fades.length ? `,${fades.join(',')}` : ''},adelay=${delay}S:all=1[a${index}]`,
     );
     decisions.push({
       ...cut,
-      sourceInPoint: shot.inPoint + cut.source,
+      sourceInPoint,
       sourcePath,
       nativeTail,
       muted,

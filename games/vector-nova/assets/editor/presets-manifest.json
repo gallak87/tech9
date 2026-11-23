@@ -140,9 +140,9 @@
         "near": 0.5,
         "far": 200000
       },
-      "sha256": "9a93ecc6780a304f86226d95dd5556311eb7cc6ae6ad40455435b8c005426cc5",
+      "sha256": "c2e0f2510af53efee7e6595323d946f0739a399bf9114cee6778bd8f96c0044b",
       "provenance": "Captured from the actual applied Vector Nova editor environment; no campaign image or generated illustration.",
-      "sourceRevision": "36edcf7a1968a2ba59ecdf6eca6f6cb90c40222e",
+      "sourceRevision": "1a1ebb010d4827f52f920e2e149d3833134e38b8",
       "sourceDirty": false
     },
     "orbital/observatory-v1": {
@@ -164,9 +164,9 @@
         "near": 0.5,
         "far": 200000
       },
-      "sha256": "14aed2c963d56bfb63159436b31d7816fc68b6e1d3405a2c0acbde5e18a4ff11",
+      "sha256": "6a1f68de19b62c047cd1c52dd0d69278879859e423880cd0292943c72306b379",
       "provenance": "Captured from the actual applied Vector Nova editor environment; no campaign image or generated illustration.",
-      "sourceRevision": "36edcf7a1968a2ba59ecdf6eca6f6cb90c40222e",
+      "sourceRevision": "1a1ebb010d4827f52f920e2e149d3833134e38b8",
       "sourceDirty": false
     },
     "nacre/storm-archipelago-v1": {

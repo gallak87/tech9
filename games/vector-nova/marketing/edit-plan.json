@@ -1,9 +1,9 @@
 {
-  "id": "interwoven-trailer-rc5-blue-hour",
+  "id": "vector-nova-rc5-blue-hour-9f75a150d",
   "kind": "trailer",
   "crf": 21,
   "fps": 60,
-  "frames": 5911,
+  "frames": 5265,
   "outputFile": "vector-nova-rc5-blue-hour.mp4",
   "music": {
     "id": "blue-hour",
@@ -16,19 +16,14 @@
         "gain": 0.75
       },
       {
-        "from": 41.05,
-        "to": 43.349999999999994,
+        "from": 42.95,
+        "to": 45.25,
         "gain": 0.79
       },
       {
-        "from": 48,
-        "to": 50.3,
+        "from": 49.800000000000004,
+        "to": 51.75,
         "gain": 0.82
-      },
-      {
-        "from": 57.45,
-        "to": 61.15,
-        "gain": 0.81
       }
     ],
     "phraseJumps": [
@@ -39,22 +34,22 @@
         "gain": 1
       },
       {
-        "at": 88.2,
+        "at": 77.41875,
         "source": 90,
         "crossfade": 0.04,
         "gain": 1.1885022274370185
       },
       {
-        "at": 95.11666666666666,
-        "source": 116.13541666666667,
+        "at": 84.35,
+        "source": 116.14999999999999,
         "crossfade": 0.04,
         "gain": 1
       }
     ]
   },
   "closing": {
-    "from": 5707,
-    "to": 5911,
+    "from": 5061,
+    "to": 5265,
     "tail": 0.2
   },
   "cuts": [
@@ -75,7 +70,7 @@
     },
     {
       "shot": "asterion-pack",
-      "source": 5.68,
+      "source": 0,
       "from": 342,
       "to": 546,
       "gain": 0.76
@@ -88,125 +83,120 @@
       "gain": 0.66
     },
     {
-      "shot": "nacre",
+      "shot": "nacre-continuous",
       "source": 0,
       "from": 714,
-      "to": 840,
-      "gain": 0.7
-    },
-    {
-      "shot": "nacre-breach",
-      "source": 1.5,
-      "from": 840,
-      "to": 1344,
+      "to": 1458,
       "gain": 0.72
     },
     {
       "shot": "umbra-first-lens",
       "source": 0,
-      "from": 1344,
-      "to": 1680,
+      "from": 1458,
+      "to": 1794,
       "gain": 0.68
     },
     {
       "shot": "menu-circuits",
       "source": 0.55,
-      "from": 1680,
-      "to": 1962,
+      "from": 1794,
+      "to": 2076,
       "audio": false,
       "decodeFromStart": true
     },
     {
       "shot": "menu-founders",
       "source": 0.74,
-      "from": 1962,
-      "to": 2133,
+      "from": 2076,
+      "to": 2247,
       "audio": false,
       "decodeFromStart": true
     },
     {
       "shot": "freestyle-skywell",
       "source": 0,
-      "from": 2133,
-      "to": 2673,
+      "from": 2247,
+      "to": 2787,
       "gain": 0.77
     },
     {
       "shot": "eliminator",
-      "source": 0,
-      "from": 2673,
-      "to": 3033,
-      "gain": 0.78
-    },
-    {
-      "shot": "menu-horizon",
-      "source": 1.05,
-      "from": 3033,
-      "to": 3165,
-      "audio": false,
+      "source": 0.3,
+      "from": 2787,
+      "to": 3114,
+      "gain": 0.78,
       "decodeFromStart": true
-    },
-    {
-      "shot": "interceptor-goliath",
-      "source": 0,
-      "from": 3165,
-      "to": 3765,
-      "gain": 0.72
     },
     {
       "shot": "menu-trial",
       "source": 1.88,
-      "from": 3765,
-      "to": 3897,
+      "from": 3114,
+      "to": 3246,
       "audio": false,
       "decodeFromStart": true
     },
     {
       "shot": "trial-ghost",
       "source": 0,
-      "from": 3897,
-      "to": 4137,
+      "from": 3246,
+      "to": 3486,
       "gain": 0.69
     },
     {
-      "shot": "workshop-ui",
+      "shot": "workshop-ui-roll",
       "source": 0,
-      "from": 4137,
-      "to": 4362,
+      "from": 3486,
+      "to": 3594,
+      "audio": false,
+      "decodeFromStart": true
+    },
+    {
+      "shot": "workshop-ui-apply",
+      "source": 0,
+      "from": 3594,
+      "to": 3652,
+      "audio": false,
+      "decodeFromStart": true
+    },
+    {
+      "shot": "workshop-ui-test",
+      "source": 0,
+      "from": 3652,
+      "to": 3698,
       "audio": false,
       "decodeFromStart": true
     },
     {
       "shot": "workshop-drive",
-      "source": 0.14,
-      "from": 4362,
-      "to": 4695,
+      "source": 0,
+      "from": 3698,
+      "to": 4044,
       "gain": 0.75
     },
     {
       "shot": "menu-garage",
       "source": 0.83,
-      "from": 4695,
-      "to": 5231,
+      "from": 4044,
+      "to": 4585,
       "audio": false,
       "decodeFromStart": true
     },
     {
       "shot": "shatterline-finale-vista",
       "source": 0,
-      "from": 5231,
-      "to": 5707,
+      "from": 4585,
+      "to": 5061,
       "gain": 0.74
     }
   ],
   "captureShots": [
     {
       "id": "intro",
-      "seconds": 5.6625,
+      "seconds": 5.673700000047684,
       "preroll": 0,
       "state": {},
       "importFrom": {
-        "directory": ".experiments/marketing/rc5/assembly-v1",
+        "directory": ".experiments/marketing/rc5-refresh/assembly-v1",
         "id": "intro"
       }
     },
@@ -216,17 +206,17 @@
       "preroll": 0,
       "state": {},
       "importFrom": {
-        "directory": ".experiments/marketing/rc5/assembly-v1",
+        "directory": ".experiments/marketing/rc5-refresh/assembly-v1",
         "id": "editorial-black"
       }
     },
     {
       "id": "asterion-pack",
-      "seconds": 11.5,
+      "seconds": 3.4,
       "preroll": 0,
       "state": {},
       "importFrom": {
-        "directory": ".experiments/marketing/rc5/assembly-v1",
+        "directory": ".experiments/marketing/rc5-refresh/assembly-v1",
         "id": "asterion-pack"
       }
     },
@@ -236,28 +226,18 @@
       "preroll": 0,
       "state": {},
       "importFrom": {
-        "directory": ".experiments/marketing/rc5/assembly-v1",
+        "directory": ".experiments/marketing/rc5-refresh/assembly-v1",
         "id": "vesper-oak"
       }
     },
     {
-      "id": "nacre",
-      "seconds": 13,
+      "id": "nacre-continuous",
+      "seconds": 14,
       "preroll": 0,
       "state": {},
       "importFrom": {
-        "directory": ".experiments/marketing/rc5/assembly-v1",
-        "id": "nacre"
-      }
-    },
-    {
-      "id": "nacre-breach",
-      "seconds": 11.8,
-      "preroll": 0,
-      "state": {},
-      "importFrom": {
-        "directory": ".experiments/marketing/rc5/assembly-v1",
-        "id": "nacre-breach"
+        "directory": ".experiments/marketing/rc5-refresh/assembly-v1",
+        "id": "nacre-continuous"
       }
     },
     {
@@ -266,27 +246,27 @@
       "preroll": 0,
       "state": {},
       "importFrom": {
-        "directory": ".experiments/marketing/rc5/assembly-v1",
+        "directory": ".experiments/marketing/rc5-refresh/assembly-v1",
         "id": "umbra-first-lens"
       }
     },
     {
       "id": "menu-circuits",
-      "seconds": 5.920099999904632,
+      "seconds": 5.906499999999999,
       "preroll": 0,
       "state": {},
       "importFrom": {
-        "directory": ".experiments/marketing/rc5/assembly-v1",
+        "directory": ".experiments/marketing/rc5-refresh/assembly-v1",
         "id": "menu-circuits"
       }
     },
     {
       "id": "menu-founders",
-      "seconds": 4.601000000000001,
+      "seconds": 4.602299999952317,
       "preroll": 0,
       "state": {},
       "importFrom": {
-        "directory": ".experiments/marketing/rc5/assembly-v1",
+        "directory": ".experiments/marketing/rc5-refresh/assembly-v1",
         "id": "menu-founders"
       }
     },
@@ -296,7 +276,7 @@
       "preroll": 0,
       "state": {},
       "importFrom": {
-        "directory": ".experiments/marketing/rc5/assembly-v1",
+        "directory": ".experiments/marketing/rc5-refresh/assembly-v1",
         "id": "freestyle-skywell"
       }
     },
@@ -306,37 +286,17 @@
       "preroll": 0,
       "state": {},
       "importFrom": {
-        "directory": ".experiments/marketing/rc5/assembly-v1",
+        "directory": ".experiments/marketing/rc5-refresh/assembly-v1",
         "id": "eliminator"
       }
     },
     {
-      "id": "menu-horizon",
-      "seconds": 3.7182000000476836,
-      "preroll": 0,
-      "state": {},
-      "importFrom": {
-        "directory": ".experiments/marketing/rc5/assembly-v1",
-        "id": "menu-horizon"
-      }
-    },
-    {
-      "id": "interceptor-goliath",
-      "seconds": 10,
-      "preroll": 0,
-      "state": {},
-      "importFrom": {
-        "directory": ".experiments/marketing/rc5/assembly-v1",
-        "id": "interceptor-goliath"
-      }
-    },
-    {
       "id": "menu-trial",
-      "seconds": 4.7086000001430515,
+      "seconds": 4.7105,
       "preroll": 0,
       "state": {},
       "importFrom": {
-        "directory": ".experiments/marketing/rc5/assembly-v1",
+        "directory": ".experiments/marketing/rc5-refresh/assembly-v1",
         "id": "menu-trial"
       }
     },
@@ -346,37 +306,57 @@
       "preroll": 0,
       "state": {},
       "importFrom": {
-        "directory": ".experiments/marketing/rc5/assembly-v1",
+        "directory": ".experiments/marketing/rc5-refresh/assembly-v1",
         "id": "trial-ghost"
       }
     },
     {
-      "id": "workshop-ui",
-      "seconds": 3.76,
+      "id": "workshop-ui-roll",
+      "seconds": 5.024,
       "preroll": 0,
       "state": {},
       "importFrom": {
-        "directory": ".experiments/marketing/rc5/assembly-v1",
-        "id": "workshop-ui"
+        "directory": ".experiments/marketing/rc5-refresh/assembly-v1",
+        "id": "workshop-ui-roll"
+      }
+    },
+    {
+      "id": "workshop-ui-apply",
+      "seconds": 2.193,
+      "preroll": 0,
+      "state": {},
+      "importFrom": {
+        "directory": ".experiments/marketing/rc5-refresh/assembly-v1",
+        "id": "workshop-ui-apply"
+      }
+    },
+    {
+      "id": "workshop-ui-test",
+      "seconds": 0.7839999999999998,
+      "preroll": 0,
+      "state": {},
+      "importFrom": {
+        "directory": ".experiments/marketing/rc5-refresh/assembly-v1",
+        "id": "workshop-ui-test"
       }
     },
     {
       "id": "workshop-drive",
-      "seconds": 6.051599999904632,
+      "seconds": 6.0489999999999995,
       "preroll": 0,
       "state": {},
       "importFrom": {
-        "directory": ".experiments/marketing/rc5/assembly-v1",
+        "directory": ".experiments/marketing/rc5-refresh/assembly-v1",
         "id": "workshop-drive"
       }
     },
     {
       "id": "menu-garage",
-      "seconds": 12.105700000047685,
+      "seconds": 11.645299999952316,
       "preroll": 0,
       "state": {},
       "importFrom": {
-        "directory": ".experiments/marketing/rc5/assembly-v1",
+        "directory": ".experiments/marketing/rc5-refresh/assembly-v1",
         "id": "menu-garage"
       }
     },
@@ -386,7 +366,7 @@
       "preroll": 0,
       "state": {},
       "importFrom": {
-        "directory": ".experiments/marketing/rc5/assembly-v1",
+        "directory": ".experiments/marketing/rc5-refresh/assembly-v1",
         "id": "shatterline-finale-vista"
       }
     }

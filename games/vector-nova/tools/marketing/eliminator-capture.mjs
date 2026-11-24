@@ -12,9 +12,10 @@ import {
 import {
   createProfileStore,
   PROFILE_KEY,
+  shipUnlocked,
 } from '../../src/progression/profile.js';
 import { modeUnlockRequirement } from '../../src/levels/access.js';
-import { saveShipSelection } from '../../src/ships/catalog.js';
+import { saveShipSelection, SHIPS } from '../../src/ships/catalog.js';
 import {
   installNativeAudioTap,
   startTabRecording,
@@ -32,6 +33,7 @@ const { values } = parseArgs({
     },
     url: { type: 'string', default: process.env.VN_URL },
     level: { type: 'string', default: 'eliminator-saffron' },
+    ship: { type: 'string', default: 'kestrel' },
     quality: { type: 'string', default: 'high' },
     difficulty: { type: 'string', default: 'easy' },
     'boost-lead': { type: 'string', default: '2' },
@@ -43,7 +45,7 @@ const { values } = parseArgs({
 });
 if (values.help) {
   console.log(
-    'VN_URL=<server> node tools/marketing/eliminator-capture.mjs [--record] [--level eliminator-saffron|eliminator-glasswake] [--output DIRECTORY] [--require-escape]\nDefault: muted headless real-time rehearsal. --record captures a dedicated game tab and native audio. The runner attempts a last-place escape before a real cut; metadata distinguishes an earned escape from the fallback ordinary rival cut. No clock, field, placement or elimination data is seeded.',
+    'VN_URL=<server> node tools/marketing/eliminator-capture.mjs [--record] [--level eliminator-saffron|eliminator-glasswake] [--ship kestrel] [--output DIRECTORY] [--require-escape]\nDefault: muted headless real-time rehearsal. --record captures a dedicated game tab and native audio. The runner attempts a last-place escape before a real cut; metadata distinguishes an earned escape from the fallback ordinary rival cut. No clock, field, placement or elimination data is seeded.',
   );
   process.exit(0);
 }
@@ -53,6 +55,10 @@ assert.ok(
 );
 assert.ok(
   ['eliminator-saffron', 'eliminator-glasswake'].includes(values.level),
+);
+assert.ok(
+  SHIPS.some(({ id }) => id === values.ship),
+  'Choose a ship from the course build’s fleet.',
 );
 assert.ok(['high', 'low'].includes(values.quality));
 assert.ok(['easy', 'medium', 'hard'].includes(values.difficulty));
@@ -104,8 +110,7 @@ const provenance = {
     .filter(Boolean),
   inputs:
     'Ordinary standard-gamepad input through the native real-time session.',
-  staging:
-    'Isolated Frontier Cup and preceding course prerequisites plus Kestrel selection only; no field, motion, clock, placement or cut seeds.',
+  staging: `Isolated Frontier Cup and preceding course prerequisites plus ${values.ship} selection only; no field, motion, clock, placement or cut seeds.`,
 };
 const memory = createMemoryStorage();
 const careers = createCareerSlots({ storage: () => memory, now: () => 1 });
@@ -121,10 +126,10 @@ for (const previous of mode.levelIds.slice(
 ))
   assert.ok(profileStore.recordCourseFinish(previous));
 const profile = JSON.parse(storage.getItem(PROFILE_KEY));
-if (!profile.claims.includes('ship-kestrel'))
-  profile.claims.push('ship-kestrel');
+if (!shipUnlocked(profile, values.ship))
+  profile.claims.push(`ship-${values.ship}`);
 storage.setItem(PROFILE_KEY, JSON.stringify(profile));
-saveShipSelection('kestrel', storage);
+saveShipSelection(values.ship, storage);
 const seed = Array.from({ length: memory.length }, (_, i) => {
   const key = memory.key(i);
   return [key, memory.getItem(key)];
@@ -389,7 +394,7 @@ try {
     };
   }, driverOptions);
   const initial = await page.evaluate(() => window.__VN.getSnapshot());
-  assert.equal(initial.vehicle.shipId, 'kestrel');
+  assert.equal(initial.vehicle.shipId, values.ship);
   assert.equal(initial.eliminator.elapsed, 0);
   assert.equal(initial.eliminator.remaining, 10);
   assert.equal(initial.competition.difficulty, values.difficulty);
@@ -477,6 +482,7 @@ try {
     JSON.stringify(
       {
         level: values.level,
+        ship: values.ship,
         quality: values.quality,
         difficulty: values.difficulty,
         record: values.record,

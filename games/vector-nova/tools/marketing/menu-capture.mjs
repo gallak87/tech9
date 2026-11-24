@@ -29,6 +29,11 @@ import { readTrialRecords } from '../../src/race/time-trial.js';
 
 const root = resolve(import.meta.dirname, '../..');
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
+const titleShip = 'kestrel';
+const garageFleet = ['shrike', 'bastion', 'needle'];
+const menuShip = garageFleet[0];
+const garageShip = garageFleet.at(-1);
+const garageLoadout = ['jump', 'injector', 'deflector', 'lance'];
 const sourceIds = [
   'intro',
   'menu-circuits',
@@ -96,6 +101,7 @@ function showcaseSeed(id, fixture) {
   const careers = createCareerSlots({ storage: () => source });
   careers.create(1);
   const selected = careers.storageFor(1);
+  const garage = id === 'menu-garage';
   // A staged, valid production career: all gear is earned, while the mode-course
   // chains remain unfinished. Launch permissions must never expose bonus worlds.
   const profile = freshProfile();
@@ -104,16 +110,18 @@ function showcaseSeed(id, fixture) {
   profile.points = 120;
   profile.cups = ['founders', 'frontier', 'horizon', 'apex'];
   profile.trialTracks = ['halcyon', 'orbital'];
-  profile.claims = REWARDS.map(({ id }) => id);
-  profile.exoticShip = 'kestrel';
-  profile.loadouts.kestrel = ['jump', 'injector', 'deflector', 'lance'];
-  for (const ship of ['shrike', 'bastion', 'needle'])
+  profile.claims = REWARDS.map(({ id }) => id).filter(
+    (claim) => !garage || claim !== 'ship-kestrel',
+  );
+  profile.exoticShip = garageShip;
+  for (const ship of garageFleet)
     profile.loadouts[ship] = ['jump', 'injector', null, null];
+  profile.loadouts[garageShip] = [...garageLoadout];
   if (!validateProfile(profile))
     throw new Error('Invalid trailer showcase profile.');
   const collection = careerUnlockProgress(profile);
-  if (collection.collected !== 31 || collection.total !== 37)
-    throw new Error('Trailer must show 31/37, with bonus worlds still hidden.');
+  if (collection.collected !== (garage ? 30 : 31) || collection.total !== 37)
+    throw new Error('Unexpected trailer unlock count.');
   if (BONUS_LEVEL_IDS.some((id) => levelAvailable(id, { complete: false })))
     throw new Error('Bonus course access changed.');
   selected.setItem(PROFILE_KEY, JSON.stringify(profile));
@@ -129,10 +137,7 @@ function showcaseSeed(id, fixture) {
       ),
     }),
   );
-  selected.setItem(
-    'vector-nova.ship',
-    id === 'menu-garage' ? 'shrike' : 'kestrel',
-  );
+  selected.setItem('vector-nova.ship', menuShip);
   selected.setItem('vector-nova.circuit', fixture?.level ?? 'nacre');
   if (id === 'menu-trial')
     for (const [key, value] of fixture.storageEntries)
@@ -145,7 +150,7 @@ function foundersPresentation() {
   const store = createCupStore(() => storage);
   const cup = CUPS.find(({ id }) => id === 'founders');
   const ids = ['player', ...RACE_OPPONENTS.map(({ id }) => id)];
-  store.start(cup.id, 'kestrel', 'hard');
+  store.start(cup.id, menuShip, 'hard');
   for (let index = 0; index < cup.tracks.length; index++) {
     store.finish({
       final: true,
@@ -345,6 +350,9 @@ async function snapshot(page) {
           ?.getAttribute('aria-valuenow') ?? NaN,
       ),
       ship: document.querySelector('.ship-details h1')?.textContent ?? null,
+      garageFleet: [
+        ...document.querySelectorAll('.garage-fleet [data-ship]'),
+      ].map((button) => button.dataset.ship),
       role: document.querySelector('.garage-role')?.textContent ?? null,
       equipment:
         document.querySelector('.garage-equipment-count')?.textContent.trim() ??
@@ -521,10 +529,11 @@ async function createRecorder(page, context, raw, binding) {
           capture.done = true;
         };
         capture.stop = () => recorder.stop();
+        capture.start = () => {
+          recorder.start(500);
+          capture.startedAt = performance.now();
+        };
         button.remove();
-        recorder.start(500);
-        capture.startedAt = performance.now();
-        capture.active = true;
       } catch (error) {
         window.__VN_MENU_RECORD_ERROR = String(error);
       }
@@ -533,7 +542,7 @@ async function createRecorder(page, context, raw, binding) {
   await page.bringToFront();
   await page.locator('#marketing-record').click();
   await page.waitForFunction(
-    () => window.__VN_MENU_RECORDING?.active || window.__VN_MENU_RECORD_ERROR,
+    () => window.__VN_MENU_RECORDING?.start || window.__VN_MENU_RECORD_ERROR,
     null,
     { timeout: 20000 },
   );
@@ -567,6 +576,9 @@ async function createRecorder(page, context, raw, binding) {
     throw new Error(
       `Menu tab capture clipped: ${framing.width}x${framing.height}`,
     );
+  // Let Chrome finish resizing the first encoded frame before the title fade.
+  await page.waitForTimeout(300);
+  await page.evaluate(() => window.__VN_MENU_RECORDING.start());
   return framing;
 }
 
@@ -677,9 +689,11 @@ async function flow(page, id, mark, pointer, fixture) {
     await mark('time-trial-records-hold-end');
   } else if (id === 'menu-garage') {
     await click('[data-action="garage-tab"]');
-    await readyShip(page, 'shrike');
+    await readyShip(page, menuShip);
     await mark('garage-open');
-    for (const ship of ['bastion', 'needle', 'kestrel']) {
+    await mark('ship-shrike-stats');
+    await page.waitForTimeout(950);
+    for (const ship of garageFleet.slice(1)) {
       await mark(`ship-${ship}-approach`);
       await glide(page, `button[data-ship="${ship}"]`, pointer);
       await readyShip(page, ship);
@@ -688,26 +702,27 @@ async function flow(page, id, mark, pointer, fixture) {
       await mark(`ship-${ship}-hold-end`);
     }
     await page.mouse.click(pointer.x, pointer.y);
-    await readyShip(page, 'kestrel');
+    await readyShip(page, garageShip);
     await page.waitForFunction(
-      () =>
+      (ship) =>
         document
-          .querySelector('button[data-ship="kestrel"]')
+          .querySelector(`button[data-ship="${ship}"]`)
           ?.getAttribute('aria-pressed') === 'true' &&
         /4\s*\/\s*4.*Quad Core/.test(
           document.querySelector('.garage-equipment-count')?.textContent,
         ),
+      garageShip,
     );
-    await mark('kestrel-selected-quad-core');
+    await mark(`${garageShip}-selected-quad-core`);
     await glide(page, '[data-fleet-upgrade="speed-3"]', pointer, 450);
     await page.waitForTimeout(1100);
     await mark('fleet-upgrade-tooltip');
     await glide(page, '.garage-equipment-count', pointer, 450, { x: 0.7 });
     await page.waitForTimeout(1000);
-    await mark('kestrel-four-slot-loadout');
+    await mark(`${garageShip}-four-slot-loadout`);
     await glide(page, '[data-equip="lance"]', pointer, 450);
     await page.waitForTimeout(2200);
-    await mark('kestrel-loadout-hold-end');
+    await mark(`${garageShip}-loadout-hold-end`);
   } else throw new Error(`Unknown menu flow ${id}`);
 }
 
@@ -744,7 +759,7 @@ export async function captureMenus({
   output = resolve(root, '.experiments/marketing/menu-capture'),
   flowOnly = false,
   base = process.env.VN_URL,
-  only = sourceIds,
+  only = sourceIds.filter((id) => id !== 'menu-horizon'),
   recordFixture = null,
 } = {}) {
   if (
@@ -786,8 +801,10 @@ export async function captureMenus({
     renderingViewport: { width: 1600, height: 900, deviceScaleFactor: 1 },
     pointer:
       'Menus draw a plain noninteractive arrow at actual pointermove coordinates because Chrome tab sharing omits the virtual OS cursor; native cursor hidden. Intro has no pointer.',
+    titlePresentation:
+      'Native Start background, timing, animation and Kestrel ship preview.',
     profile:
-      'Isolated staged production-access Career 1, no developer URL or launch permissions. All 28 gear claims and four original cup wins; unfinished mode courses keep collection at 31/37. Quad Core Kestrel with Jump/Injector/Deflector/Lance. Genuine supplied trial entries copied unchanged. Personal careers untouched.',
+      'Isolated staged production-access Career 1. The circuit menu shows 31/37 and the four original cup wins. The Garage uses 30/37 with Kestrel locked, and Quad Core Needle has Jump/Injector/Deflector/Lance. The trial entries are imported unchanged from the recorded laps.',
     spoilerPolicy:
       'Exclude Oriel, Ravel, Nomad Procession, their revealing mode variants, Encore Cup and completion presentation from every menu source, including thumbnails.',
     foundersPresentation:
@@ -882,12 +899,12 @@ export async function captureMenus({
         await page.goto(base);
         // Load production modules/models before recording, then let the actual
         // entry own its native five-second fade. No replay hooks or fake title.
-        await page.evaluate(async () => {
+        await page.evaluate(async (ship) => {
           window.__VN_TITLE_MODULE = await import('/src/frontend/entry.js');
           await import('/src/frontend/ship-preview.js');
           const { loadShipModel } = await import('/src/ships/model-cache.js');
-          await loadShipModel('kestrel');
-        });
+          await loadShipModel(ship);
+        }, titleShip);
       } else {
         if (id === 'menu-trial') url.searchParams.set('level', fixture.level);
         await page.goto(url.href);
@@ -903,12 +920,10 @@ export async function captureMenus({
         await pauseMusic(page);
         // Cache only: no world or hidden Garage is constructed to warm assets.
         if (id === 'menu-garage')
-          await page.evaluate(async () => {
+          await page.evaluate(async (fleet) => {
             const { loadShipModel } = await import('/src/ships/model-cache.js');
-            await Promise.all(
-              ['shrike', 'bastion', 'needle', 'kestrel'].map(loadShipModel),
-            );
-          });
+            await Promise.all(fleet.map(loadShipModel));
+          }, garageFleet);
         if (
           (await page
             .locator('.menu-top-tabs [data-action="track-editor"]')
@@ -948,13 +963,14 @@ export async function captureMenus({
       });
       if (id !== 'intro') {
         await page.waitForFunction(
-          () =>
+          (count) =>
             document
               .querySelector('.career-progress-bar')
-              ?.getAttribute('aria-valuenow') === '31' &&
+              ?.getAttribute('aria-valuenow') === count &&
             document
               .querySelector('.career-progress-bar')
               ?.getAttribute('aria-valuemax') === '37',
+          id === 'menu-garage' ? '30' : '31',
         );
         const progressBox = await page
           .locator('.career-progress')
@@ -1035,6 +1051,7 @@ export async function captureMenus({
       if (
         id === 'intro' &&
         (end.screen !== 'intro' ||
+          end.preview?.ship !== titleShip ||
           !end.startVisible ||
           end.tabs ||
           !end.musicPaused ||
@@ -1054,13 +1071,13 @@ export async function captureMenus({
         );
       if (
         id === 'menu-garage' &&
-        (end.shipId !== 'kestrel' ||
-          end.exoticShip !== 'kestrel' ||
-          JSON.stringify(end.loadout) !==
-            JSON.stringify(['jump', 'injector', 'deflector', 'lance']))
+        (end.shipId !== garageShip ||
+          end.exoticShip !== garageShip ||
+          JSON.stringify(end.garageFleet) !== JSON.stringify(garageFleet) ||
+          JSON.stringify(end.loadout) !== JSON.stringify(garageLoadout))
       )
         throw new Error(
-          'Garage finale build changed: expected Quad Core Kestrel and the approved four items.',
+          'Unexpected Garage fleet, Quad Core selection, or loadout.',
         );
       if (errors.length || end.error)
         throw new Error(
@@ -1134,7 +1151,7 @@ if (
   const args = process.argv.slice(2);
   if (args.includes('--help'))
     console.log(
-      `node tools/marketing/menu-capture.mjs [--output DIRECTORY] [--only ${sourceIds.join(',')}] [--record-fixture FILE] [--flow-only]\nCaptures the native title reveal and five isolated RC5 menu source takes on the merged Editor build, preserving pointer movement and settled markers. Circuit browsing uses Vesper Forest -> Asterion Orbital through Game tracks. Production-access career stays at 31/37, without revealing bonus worlds or Encore.\nFounders uses an explicitly staged completed-cup state and the unchanged production victory view; it is not a played championship recording.\n--record-fixture supplies genuine logical Time Trial record/ghost entries with provenance; required for menu-trial.\n--flow-only verifies selected flows headless, without recording. VN_URL may select an existing server.`,
+      `node tools/marketing/menu-capture.mjs [--output DIRECTORY] [--only ${sourceIds.join(',')}] [--record-fixture FILE] [--flow-only]\nCaptures the native title reveal and four RC5 menu sources by default, with pointer movement and settled markers. The circuit menu browses Vesper Forest and Asterion Orbital with 31/37 unlocks. The Garage uses its own profile for Quad Core Needle.\nFounders uses a staged completed-cup state and the production victory view.\n--record-fixture supplies genuine Time Trial record and ghost entries for menu-trial.\n--flow-only verifies selected flows headless, without recording. VN_URL may select an existing server.`,
     );
   else {
     const options = {};

@@ -275,6 +275,7 @@ try {
           saved.mode === shot.mode &&
           saved.level === shot.level &&
           saved.difficulty === shot.difficulty &&
+          (saved.ship ?? 'kestrel') === (shot.ship ?? 'kestrel') &&
           saved.exotic === shot.exotic &&
           saved.engineGain === shot.engineGain &&
           saved.upgrades === shot.upgrades &&
@@ -314,7 +315,7 @@ try {
       );
       await page.goto(
         new URL(
-          `/?dev=2&ship=kestrel&exotic=${shot.exotic ?? 'shrike'}&equipment=${shot.equipment?.join(',') ?? 'jump,injector'}&upgrades=${shot.upgrades ?? 0}&level=${shot.level ?? shot.id}&music=0`,
+          `/?dev=2&ship=${shot.ship ?? 'kestrel'}&exotic=${shot.exotic ?? 'shrike'}&equipment=${shot.equipment?.join(',') ?? 'jump,injector'}&upgrades=${shot.upgrades ?? 0}&level=${shot.level ?? shot.id}&music=0`,
           base,
         ).href,
       );
@@ -422,6 +423,8 @@ try {
                 lateral: s.vehicle.lateral,
                 heading: s.vehicle.heading,
                 speed: s.vehicle.speed,
+                boosting: s.vehicle.boosting,
+                energy: s.vehicle.energy,
                 resetCount: s.vehicle.resetCount,
               },
               motion: motionOf(s),
@@ -479,24 +482,31 @@ try {
                 },
               });
               pad.axes[0] = c.steer;
+              const boostDistance = driver.boostDistance;
+              const holdBoost =
+                boostDistance &&
+                s.vehicle.distance >= boostDistance[0] &&
+                s.vehicle.distance < boostDistance[1];
               for (const [button, value] of [
-                [7, aiSpeed ? c.throttle : 1],
-                [6, aiSpeed ? c.brake : 0],
+                [7, aiSpeed && !holdBoost ? c.throttle : 1],
+                [6, aiSpeed && !holdBoost ? c.brake : 0],
                 [
                   0,
-                  driver.boost === false
-                    ? 0
-                    : Array.isArray(driver.boost)
-                      ? Number(
-                          driver.boost.some(
-                            ([from, to]) => elapsed >= from && elapsed < to,
-                          ),
-                        )
-                      : race
-                        ? Number(elapsed >= 8 && elapsed < 11)
-                        : aiSpeed
-                          ? Number(c.boost)
-                          : 0,
+                  boostDistance
+                    ? Number(holdBoost)
+                    : driver.boost === false
+                      ? 0
+                      : Array.isArray(driver.boost)
+                        ? Number(
+                            driver.boost.some(
+                              ([from, to]) => elapsed >= from && elapsed < to,
+                            ),
+                          )
+                        : race
+                          ? Number(elapsed >= 8 && elapsed < 11)
+                          : aiSpeed
+                            ? Number(c.boost)
+                            : 0,
                 ],
                 [1, Number(c.airbrake)],
               ]) {
@@ -643,6 +653,7 @@ try {
                       key: 'C',
                       requestedAt,
                       completedAt: performance.now(),
+                      distance: s.vehicle.distance,
                       passedTarget: drive.passedTarget?.id ?? null,
                       mode: game.getSnapshot().camera.mode,
                     }),
@@ -686,12 +697,6 @@ try {
               if (settings.displaySurface !== 'browser') {
                 stream.getTracks().forEach((t) => t.stop());
                 throw new Error('Refusing non-tab capture.');
-              }
-              if (Math.abs(settings.width / settings.height - 16 / 9) > 0.02) {
-                stream.getTracks().forEach((t) => t.stop());
-                throw new Error(
-                  `Capture aspect ratio is ${settings.width}x${settings.height}; resize the browser before recording.`,
-                );
               }
               const taps = [...window.__VN_MARKETING_TAPS];
               if (!taps.length) {
@@ -762,10 +767,12 @@ try {
                 capture.done = true;
               };
               capture.stop = () => recorder.stop();
+              capture.start = () => {
+                recorder.start(500);
+                capture.startedAt = performance.now();
+              };
               button.remove();
-              recorder.start(500);
-              capture.startedAt = performance.now();
-              capture.active = true;
+              capture.ready = true;
             } catch (error) {
               window.__VN_MARKETING_ERROR = String(error);
             }
@@ -787,8 +794,7 @@ try {
       await page.click('#marketing-record');
       await page.waitForFunction(
         () =>
-          window.__VN_MARKETING_RECORDING?.active ||
-          window.__VN_MARKETING_ERROR,
+          window.__VN_MARKETING_RECORDING?.ready || window.__VN_MARKETING_ERROR,
         null,
         { timeout: 20000 },
       );
@@ -796,8 +802,8 @@ try {
         () => window.__VN_MARKETING_ERROR,
       );
       if (captureError) throw new Error(captureError);
-      // Chrome's sharing infobar consumes window height after capture begins.
-      // Grow only our own window to preserve the entire emulated game viewport.
+      // Chrome's sharing infobar can shorten the tab as soon as sharing starts.
+      // Fit our window before MediaRecorder chooses its first frame dimensions.
       const cdp = await context.newCDPSession(page);
       await page.waitForTimeout(300);
       for (let attempt = 0; attempt < 3; attempt++) {
@@ -831,6 +837,7 @@ try {
         throw new Error(
           `Tab capture clipped the game viewport: ${framing.width}x${framing.height}`,
         );
+      await page.evaluate(() => window.__VN_MARKETING_RECORDING.start());
       if (shot.driver?.camera === 'vista') {
         await page.keyboard.press('c');
         const cameraMode = await page.evaluate(
@@ -912,13 +919,15 @@ try {
         throw new Error(`${shot.id}: ${take.end.errors.join('; ')}`);
       if (take.controlErrors.length)
         throw new Error(`${shot.id}: ${take.controlErrors.join('; ')}`);
+      if (take.end.vehicle.shipId !== (shot.ship ?? 'kestrel'))
+        throw new Error(`${shot.id}: capture loaded the wrong ship.`);
       if (shot.requireValidLap && take.end.lap?.valid !== true)
         throw new Error(`${shot.id}: staged take does not have a valid lap.`);
       if (
         shot.upgrades === 3 &&
-        (take.profile?.shipId !== 'kestrel' ||
+        (take.profile?.shipId !== (shot.ship ?? 'kestrel') ||
           take.profile?.claims !== 28 ||
-          take.profile?.exoticShip !== 'kestrel' ||
+          take.profile?.exoticShip !== (shot.exotic ?? 'shrike') ||
           JSON.stringify(take.end.equipment) !==
             JSON.stringify(shot.equipment) ||
           Object.values(take.end.vehicle.enhancements ?? {}).some(
@@ -926,7 +935,7 @@ try {
           ))
       )
         throw new Error(
-          `${shot.id}: finale profile/loadout does not match Garage.`,
+          `${shot.id}: upgraded ship profile or loadout does not match the shot.`,
         );
       if (
         shot.driver?.cameraAfterPass &&

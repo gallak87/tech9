@@ -58,6 +58,23 @@
   align-content: start;
   row-gap: 0;
 }
+/* The track library starts alongside the retained session. */
+.menu-wide:has(> .session-return ~ .menu-track-picker > .course-sources) {
+  grid-template-areas:
+    'resume tracks'
+    'setup tracks';
+  grid-template-rows: auto 1fr;
+}
+.menu-wide:has(> .menu-track-picker > .course-sources) > .session-return {
+  grid-area: resume;
+  margin-bottom: 8px;
+}
+.front-content.menu-wide:has(> .menu-track-picker > .course-sources)
+  > .session-return
+  + .race-menu {
+  grid-area: setup;
+  padding-top: 0;
+}
 .race-menu {
   padding-top: 40px;
   max-width: 450px;
@@ -305,6 +322,7 @@
   color: #c6bfa9;
   font-size: 11px;
   line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 .menu-transfer {
   max-width: 370px;
@@ -320,6 +338,10 @@
 }
 .menu-wide > .session-return ~ .menu-picker {
   padding-top: 8px;
+}
+.menu-wide > .session-return ~ .menu-track-picker:has(> .course-sources) {
+  grid-area: tracks;
+  padding-top: 4px;
 }
 .picker-tabs {
   display: flex;
@@ -588,6 +610,12 @@
 }
 .menu-narrow > .race-menu {
   padding-top: 25px;
+}
+.menu-narrow > .session-return:has(+ .race-menu) {
+  margin-bottom: 8px;
+}
+.menu-narrow > .session-return + .race-menu {
+  padding-top: 0;
 }
 .menu-narrow .menu-picker {
   max-width: 850px;

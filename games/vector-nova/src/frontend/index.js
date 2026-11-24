@@ -1515,8 +1515,8 @@ export async function createFrontend(
     customSource = false;
     selected = racingTrack;
   }
-  function returnFromWorkshop() {
-    const destination = workshopReturn;
+  function returnFromWorkshop(toHome) {
+    const destination = toHome ? null : workshopReturn;
     workshopReturn = null;
     if (destination) {
       customSource = true;
@@ -1527,8 +1527,9 @@ export async function createFrontend(
       });
     } else {
       setScreen('home');
-      focusMenu('[data-action="track-editor"]');
-      if (customSource) void refreshCustomCourses();
+      const focus = '[data-action="track-editor"]';
+      if (customSource) void refreshCustomCourses({ focus });
+      else focusMenu(focus);
     }
   }
   function selectCircuit(id) {
@@ -2005,11 +2006,11 @@ export async function createFrontend(
     workshop = null;
     workshopHost.remove();
   }
-  function closeWorkshop() {
+  function closeWorkshop(_document, { toHome = false } = {}) {
     releaseWorkshop();
     workshopLoad = null;
     error = '';
-    returnFromWorkshop();
+    returnFromWorkshop(toHome);
   }
   async function openWorkshop() {
     if (import.meta.env?.VN_EDITION === 'demo' || workshopPending) return;
@@ -2041,7 +2042,6 @@ export async function createFrontend(
       workshop = createWorkshop(workshopHost, {
         document: workshopDraft,
         shipId,
-        showExperimentalBiomes: Boolean(developer),
         onExit: closeWorkshop,
         onDriving: (driving) => music?.setDriving(driving),
         onTunes: music ? (opener) => music.open(opener) : null,

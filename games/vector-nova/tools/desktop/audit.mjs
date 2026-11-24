@@ -41,6 +41,7 @@ export async function auditPackage(directory, edition, platform) {
     );
     if (
       path.startsWith('dist/assets/levels/') ||
+      path.startsWith('dist/assets/editor/') ||
       path.startsWith('dist/assets/ships/') ||
       path.startsWith('dist/assets/menu/')
     )

@@ -1,7 +1,6 @@
 import * as T from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { assetURL } from '../assets/url.js';
-import { fillRoadsideKit } from './roadside-scenery.js';
 import { createBatches } from '../levels/nacre/environment/geometry.js';
 import { addObservatory } from '../levels/nacre/environment/observatory.js';
 import { createNacreMaterials } from '../levels/nacre/environment/materials.js';
@@ -115,32 +114,43 @@ function nacreSource(context, waterY) {
   materials.reefCoral.customProgramCacheKey = () =>
     originalKey + '-editor-flattened-tissue';
   const prototypes = {};
-  {
+  for (const [id, profile] of [
+    [
+      'headland',
+      [
+        [-48, -15, 148, 51, 53],
+        [15, 10, 113, 60, 49],
+        [57, -18, 68, 58, 67],
+      ],
+    ],
+    [
+      'seaStacks',
+      [
+        [-40, -20, 204, 36, 37],
+        [13, 13, 157, 38, 43],
+        [53, -15, 111, 32, 37],
+      ],
+    ],
+  ]) {
     const batch = createBatches();
     batch.add(
       'shoreShelf',
       materials.basalt,
       [0, 10, 0],
-      [145, 90, 120],
+      [168, 83, 127],
       [0, 0.2, 0],
       '#899a98',
     );
-    for (const [x, z, height] of [
-      [-35, -15, 170],
-      [24, 10, 115],
-      [50, -22, 75],
-    ])
+    for (const [x, z, height, width, depth] of profile)
       batch.add(
         x < 0 ? 'basaltA' : 'basaltB',
         materials.basalt,
         [x, height * 0.28, z],
-        [43, height, 42],
+        [width, height, depth],
         [0, x * 0.031, 0],
         '#9aaba6',
       );
-    prototypes.headland = flattenNacreBatches(
-      batch.finish('Nacre / rooted basalt headland'),
-    );
+    prototypes[id] = flattenNacreBatches(batch.finish('Nacre / ' + id));
   }
   {
     const batch = createBatches();
@@ -245,6 +255,100 @@ function nacreSource(context, waterY) {
   };
 }
 
+/** Raise signature coast forms above the wave crests from the surveyed seabed.
+ * The ordinary reef habitats can stay submerged or only surface occasionally. */
+function placeCoastalLandmarks({ doc, track, placement, plan }, kit, open) {
+  if (!track) return;
+  const random = placement.random;
+  const { density } = doc.settings;
+  const crest =
+    plan.oceanWaterY +
+    NACRE_OCEAN_PROFILE.waves.reduce(
+      (height, wave) => height + wave.amplitude * (1 + wave.sharpness),
+      0,
+    );
+  const length = track.finishDistance ?? track.length;
+  const firstSide = random() < 0.5 ? -1 : 1;
+  function place(id, asset, station, side, top, initialScale) {
+    if (track.isJumpProtected?.(station)) return false;
+    const frame = track.sample(station);
+    const forward = frame.tangent.clone().setY(0).normalize();
+    if (forward.lengthSq() < 0.5) return false;
+    const right = new T.Vector3(forward.z, 0, -forward.x);
+    const yaw = Math.atan2(forward.x, forward.z) + (random() - 0.5) * 0.85;
+    const size = kit.localBounds[asset].getSize(new T.Vector3());
+    const minimumTop = Math.max(top, frame.position.y + (open ? 14 : 45));
+    for (const sign of [side, -side])
+      for (const offset of [210, 330, 465, 620]) {
+        const { x, z } = frame.position
+          .clone()
+          .addScaledVector(right, sign * offset);
+        const radius = Math.max(size.x, size.z) * initialScale * 0.26;
+        const ground = Math.min(
+          plan.surfaceHeight(x, z),
+          plan.surfaceHeight(x - radius, z),
+          plan.surfaceHeight(x + radius, z),
+          plan.surfaceHeight(x, z - radius),
+          plan.surfaceHeight(x, z + radius),
+        );
+        const scale = Math.max(
+          initialScale,
+          (minimumTop - ground + 10) / size.y,
+        );
+        if (scale > 3) continue;
+        if (
+          kit.emit(asset, {
+            id,
+            x,
+            z,
+            y: ground - 10,
+            yaw,
+            scale,
+            embed: 0,
+            decorative: asset !== 'observatory',
+          })
+        )
+          return true;
+      }
+    return false;
+  }
+  // One high lens supplies a distinct navigational landmark for each seed.
+  for (const f of [0.18, 0.26, 0.43, 0.65])
+    if (
+      place(
+        'tide-observatory',
+        'observatory',
+        f * length,
+        firstSide,
+        crest + 240,
+        1.2,
+      )
+    )
+      break;
+  const count = Math.min(
+    open ? 8 : 18,
+    Math.ceil(length / (open ? 1360 - 480 * density : 950 - 665 * density)),
+  );
+  for (let i = 0; i < count; i++) {
+    const station = i + 0.33 + 0.32 * random();
+    const asset = random() < (open ? 0.33 : 0.52) ? 'seaStacks' : 'headland';
+    const top = crest + (asset === 'seaStacks' ? 125 : 58) + random() * 85;
+    const scale = 1.25 + random() * 0.5;
+    for (const shift of [0, 0.29, -0.29])
+      if (
+        place(
+          'roadside-coast-' + i,
+          asset,
+          ((station + shift) / count) * length,
+          (i % 2 ? -1 : 1) * firstSide,
+          top,
+          scale,
+        )
+      )
+        break;
+  }
+}
+
 export const nacreBiomeDescriptor = {
   name: 'Nacre living reef and ocean',
   limit: 85,
@@ -261,19 +365,21 @@ export const nacreBiomeDescriptor = {
       nacreSource(context, waterY),
     );
     const open = context.doc.settings.sceneryPreset.includes('open-water');
+    placeCoastalLandmarks(context, kit, open);
     planManufacturedSites(context, kit, {
-      families: open
-        ? ['headland', 'headland', 'reef', 'observatory']
-        : ['reef', 'headland', 'reef', 'observatory'],
-      limit: open ? 35 : 50,
-      spacing: 240,
+      families: open ? ['reef', 'headland'] : ['reef', 'reef', 'headland'],
+      limit: open ? 20 : 32,
+      spacing: open ? 480 : 340,
     });
     // The civil survey intentionally has no dry districts across a seabed.
     // Small rooted reef habitats occupy that water region independently of
     // the road stations, instead of disappearing with its land-only parcels.
     const random = context.placement.random,
       bounds = context.plan.bounds;
-    for (let i = 0; i < (open ? 18 : 30); i++) {
+    const habitatCount = Math.floor(
+      (open ? 18 : 30) * context.doc.settings.density,
+    );
+    for (let i = 0; i < habitatCount; i++) {
       const x = T.MathUtils.lerp(
         bounds.min.x,
         bounds.max.x,
@@ -292,13 +398,6 @@ export const nacreBiomeDescriptor = {
         scale: 0.6 + random() * 0.35,
       });
     }
-    // These larger outcrops grow from the surveyed seabed. Low coral shelves
-    // sit among exposed headlands without adding an invisible waterline floor.
-    fillRoadsideKit(context, kit, {
-      families: open ? ['headland', 'reef'] : ['headland', 'reef', 'reef'],
-      size: open ? 1.6 : 1.9,
-      limit: open ? 12 : 22,
-    });
     const group = new T.Group();
     const oceanClock = createAmbientClock();
     const viewDirection = new T.Vector3();

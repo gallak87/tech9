@@ -82,12 +82,23 @@
   border-bottom: 1px solid #292929;
   background: #0b0b0b;
 }
-.workshop-wordmark {
+.track-workshop .workshop-wordmark {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
   font-size: 26px;
   font-weight: 900;
   font-style: italic;
   letter-spacing: -0.055em;
+  text-align: left;
   white-space: nowrap;
+}
+.track-workshop .workshop-wordmark:hover {
+  background: transparent;
+}
+.track-workshop .workshop-wordmark:hover small {
+  color: #fff;
 }
 .workshop-wordmark span {
   color: #d12424;
@@ -863,9 +874,6 @@
 .workshop-header-course {
   width: 102px;
 }
-.workshop-header-course .workshop-label {
-  margin: 0;
-}
 .workshop-header-course select {
   min-height: 34px;
   padding: 8px;
@@ -878,17 +886,21 @@
   flex-wrap: nowrap;
   gap: 5px;
 }
-.workshop-strip-editor .workshop-header button {
+.workshop-strip-editor .workshop-header button:not(.workshop-wordmark) {
   min-height: 35px;
   padding: 6px 10px;
   font-size: 12px;
   white-space: nowrap;
 }
-.workshop-strip-editor .workshop-header button:not(.workshop-primary) {
+.workshop-strip-editor
+  .workshop-header
+  button:not(.workshop-primary, .workshop-wordmark) {
   border-color: var(--workshop-rule);
   background: var(--workshop-control);
 }
-.workshop-strip-editor .workshop-header button:not(.workshop-primary):hover {
+.workshop-strip-editor
+  .workshop-header
+  button:not(.workshop-primary, .workshop-wordmark):hover {
   border-color: #888;
 }
 .workshop-strip-editor .workshop-header [data-editor-action='test'] {
@@ -1015,6 +1027,9 @@
   background: transparent;
   color: var(--workshop-muted);
   font-size: 12px;
+}
+.workshop-global-nav button {
+  text-align: center;
 }
 .workshop-global-nav button[aria-pressed='true'] {
   border-bottom-color: var(--workshop-accent);
@@ -1693,7 +1708,7 @@
     font-size: 19px;
     margin-right: 0;
   }
-  .workshop-strip-editor .workshop-header button {
+  .workshop-strip-editor .workshop-header button:not(.workshop-wordmark) {
     padding-inline: 7px;
     font-size: 10px;
   }
@@ -1709,6 +1724,7 @@
   }
   .workshop-strip-editor .workshop-wordmark {
     font-size: 18px;
+    justify-self: start;
   }
   .workshop-document-actions {
     grid-column: 2 / -1;
@@ -1731,7 +1747,7 @@
   .workshop-file-menu {
     inset-inline-start: 8px;
   }
-  .workshop-strip-editor .workshop-header button {
+  .workshop-strip-editor .workshop-header button:not(.workshop-wordmark) {
     padding: 6px 4px;
     min-height: 30px;
     font-size: 9px;

@@ -14,6 +14,7 @@ import {
 import { bindEditorViewportInput } from './viewport-input.js';
 import { createPreviewGuides } from './preview-guides.js';
 import { signedPointRoll } from './point-gestures.js';
+import { glasswakeOrbitClearance } from './glasswake-orbit.js';
 
 // Road generation preferences do not rebuild resolved geometry or scenery.
 export function editorWorldFingerprint(value) {
@@ -89,6 +90,7 @@ export function createEditorViewport(
   let scene;
   let camera;
   let world;
+  let sceneryOrbitClearance;
   let latest;
   let committedDocument;
   let showRoadEdit = false;
@@ -102,6 +104,7 @@ export function createEditorViewport(
   let yaw = -0.72;
   let pitch = 0.76;
   let distance = 1800;
+  let renderedRadius = distance;
   let flying = false;
   let flyFrame;
   let flyTime = 0;
@@ -220,7 +223,7 @@ export function createEditorViewport(
         flyPosition: flyPosition.clone(),
         distance,
         units:
-          (distance * 2 * Math.tan((camera.fov * Math.PI) / 360)) /
+          (renderedRadius * 2 * Math.tan((camera.fov * Math.PI) / 360)) /
           Math.max(1, host.clientHeight),
         right: new T.Vector3(1, 0, 0).applyQuaternion(camera.quaternion),
         up: new T.Vector3(0, 1, 0).applyQuaternion(camera.quaternion),
@@ -362,7 +365,7 @@ export function createEditorViewport(
           world.clearRoadEdit();
       }
       camera.aspect = width / height;
-      camera.near = flying ? 0.5 : Math.max(0.5, Math.min(20, distance / 2000));
+      let radius = distance;
       camera.far = Math.max(200000, distance * 3);
       if (flying) {
         camera.position.copy(flyPosition);
@@ -373,8 +376,15 @@ export function createEditorViewport(
           target.y + Math.sin(pitch) * distance,
           target.z + Math.cos(yaw) * Math.cos(pitch) * distance,
         );
+        if (!selection.readOnly && sceneryOrbitClearance) {
+          radius = sceneryOrbitClearance(target, camera.position, distance);
+          if (radius < distance)
+            camera.position.lerp(target, 1 - radius / distance);
+        }
         camera.lookAt(target);
       }
+      renderedRadius = radius;
+      camera.near = flying ? 0.5 : Math.max(0.5, Math.min(20, radius / 2000));
       camera.updateProjectionMatrix();
       camera.updateMatrixWorld();
       if (scene.fog)
@@ -900,6 +910,13 @@ export function createEditorViewport(
         world.dispose();
       }
       world = next;
+      backdrop?.fitTrack?.(world.track);
+      sceneryOrbitClearance =
+        buildingDocument.biome === 'glasswake'
+          ? glasswakeOrbitClearance(
+              world.environmentOwner.group.userData.regionalPlacements,
+            )
+          : null;
       builtFingerprint = buildingFingerprint;
       // A drag can begin while the committed world is compiling. Reapply its
       // latest pose before the replacement is ever presented.
@@ -938,6 +955,7 @@ export function createEditorViewport(
     rendererLife?.abort();
     world?.dispose();
     world = undefined;
+    sceneryOrbitClearance = undefined;
     builtFingerprint = null;
     showRoadEdit = false;
     roadEditDirty = false;
@@ -1111,7 +1129,7 @@ export function createEditorViewport(
     pan(x, y) {
       exitFly(false);
       if (!camera) return;
-      const step = distance * 0.12;
+      const step = renderedRadius * 0.12;
       target.addScaledVector(
         new T.Vector3(1, 0, 0).applyQuaternion(camera.quaternion),
         x * step,

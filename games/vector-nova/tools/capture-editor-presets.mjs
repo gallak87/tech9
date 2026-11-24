@@ -2,10 +2,7 @@ import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
-import {
-  EDITOR_BIOMES,
-  isExperimentalEditorBiome,
-} from '../src/editor/biomes.js';
+import { EDITOR_BIOMES } from '../src/editor/biomes.js';
 import {
   documentIdentity,
   generateDocument,
@@ -168,6 +165,10 @@ try {
     };
     const action = async (id) =>
       native(async () => (await revealEditorAction(page, id)).click());
+    const cameraAction = (id) =>
+      page
+        .locator(`.workshop-camera-controls [data-editor-action="${id}"]`)
+        .click();
     const field = async (id, value) =>
       native(async () => {
         const control = await revealEditorField(page, id);
@@ -194,10 +195,7 @@ try {
           ),
       );
     };
-    const dev = chosen.some(({ biome }) => isExperimentalEditorBiome(biome.id));
-    await page.goto(
-      new URL(`?intro=0&editor=1&music=0${dev ? '&dev=2' : ''}`, base).href,
-    );
+    await page.goto(new URL('?intro=0&editor=1&music=0', base).href);
     await page
       .locator('[data-editor-field="name"]')
       .waitFor({ timeout: 90000 });
@@ -274,10 +272,10 @@ try {
       await ready();
       const canvas = page.locator('[data-editor-world] canvas');
       await action('context-road');
-      await action('fit');
-      await action('focus-selection');
-      await action('zoom-out');
-      await action('zoom-out');
+      await cameraAction('fit');
+      await cameraAction('focus-selection');
+      await cameraAction('zoom-out');
+      await cameraAction('zoom-out');
       if (biome.id === 'umbra') {
         // Look across the road toward the observatory's accretion disk.
         const box = await canvas.boundingBox();
@@ -289,24 +287,55 @@ try {
         await page.mouse.up({ button: 'right' });
       }
       if (biome.id === 'worldspire') {
-        // Its one complete monolith lives beyond the road, behind the ordinary
-        // first-point camera. Use real preview gestures to include that asset.
-        await action('fit');
-        for (let i = 0; i < 8; i++) await action('zoom-out');
+        // Frame the road and the monolith on the same approach.
+        await cameraAction('fit');
+        for (let i = 0; i < 4; i++) await cameraAction('zoom-out');
         const bounds = await canvas.boundingBox();
         const x = bounds.x + bounds.width * 0.65,
           y = bounds.y + bounds.height * 0.6;
         await page.mouse.move(x, y);
         await page.mouse.down({ button: 'right' });
-        await page.mouse.move(x - Math.PI / 0.006, y - 102.5, { steps: 12 });
+        await page.mouse.move(x - 152, y - 142, { steps: 12 });
         await page.mouse.up({ button: 'right' });
         const panY = bounds.y + bounds.height * 0.35;
         await page.mouse.move(x, panY);
         await page.keyboard.down('Shift');
         await page.mouse.down({ button: 'right' });
-        await page.mouse.move(x - 360, panY + 350, { steps: 12 });
+        await page.mouse.move(x + 90, panY + 84, { steps: 12 });
         await page.mouse.up({ button: 'right' });
         await page.keyboard.up('Shift');
+      }
+      if (biome.id === 'oriel') {
+        const box = await canvas.boundingBox();
+        const x = box.x + box.width * 0.65,
+          y = box.y + box.height * 0.55;
+        await page.mouse.move(x, y);
+        await page.mouse.down({ button: 'right' });
+        await page.mouse.move(x + 15, y - 112, { steps: 12 });
+        await page.mouse.up({ button: 'right' });
+      }
+      if (biome.id === 'ravel') {
+        await cameraAction('fit');
+        await cameraAction('zoom-out');
+        const box = await canvas.boundingBox();
+        const x = box.x + box.width * 0.65,
+          y = box.y + box.height * 0.55;
+        await page.mouse.move(x, y);
+        await page.mouse.down({ button: 'right' });
+        await page.mouse.move(x - 215, y - 24, { steps: 12 });
+        await page.mouse.up({ button: 'right' });
+      }
+      if (biome.id === 'glasswake') {
+        // See the shelf faces and the distant ice banks behind the road.
+        await cameraAction('fit');
+        await cameraAction('zoom-out');
+        const box = await canvas.boundingBox();
+        const x = box.x + box.width * 0.65,
+          y = box.y + box.height * 0.55;
+        await page.mouse.move(x, y);
+        await page.mouse.down({ button: 'right' });
+        await page.mouse.move(x + 45, y - 116, { steps: 12 });
+        await page.mouse.up({ button: 'right' });
       }
       await action('context-environment');
       await ready();
@@ -365,10 +394,16 @@ try {
           layoutVersion: applied.environment.layoutVersion,
           framing:
             biome.id === 'worldspire'
-              ? 'road overview, eight zoom-out steps, native orbit/pan framing the complete distant monolith'
+              ? 'road approach and monolith, framed with native orbit and pan'
               : biome.id === 'umbra'
                 ? 'first-point vista, native orbit framing the road against the black hole'
-                : 'selected first road point, then two zoom-out steps',
+                : biome.id === 'glasswake'
+                  ? 'road overview tilted to show the glacial shelf faces and distant ice banks'
+                  : biome.id === 'oriel'
+                    ? 'first-point vista tilted to show the inhabited cylinder'
+                    : biome.id === 'ravel'
+                      ? 'orbit overview showing the collector sails and the road'
+                      : 'selected first road point, then two zoom-out steps',
         },
         documentFingerprint: digest(JSON.stringify(applied)),
         documentIdentity: documentIdentity(applied),
@@ -387,7 +422,7 @@ try {
         source: { revision: sourceRevision, dirty: sourceDirty },
       };
       // Publishing into public/ reloads Vite clients. Keep the reused page alive
-      // through the batch, then publish only after the browser closes.
+      // through the batch, then publish before tearing down the browser.
       captured.push({ file, metadataFile, bytes, metadata });
       manifest.images[key] = {
         file,
@@ -422,17 +457,16 @@ try {
       }
     }
   } finally {
-    await context.close();
+    for (const { file, metadataFile, bytes, metadata } of captured) {
+      await writeFile(resolve(root, 'public', file), bytes);
+      await writeFile(
+        resolve(root, 'public', metadataFile),
+        JSON.stringify(metadata, null, 2) + '\n',
+      );
+    }
+    if (captured.length)
+      await writeFile(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
   }
 } finally {
   await browser.close();
-  for (const { file, metadataFile, bytes, metadata } of captured) {
-    await writeFile(resolve(root, 'public', file), bytes);
-    await writeFile(
-      resolve(root, 'public', metadataFile),
-      JSON.stringify(metadata, null, 2) + '\n',
-    );
-  }
-  if (captured.length)
-    await writeFile(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
 }

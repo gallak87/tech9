@@ -45,10 +45,10 @@
     "height": 400,
     "format": "webp",
     "quality": 0.86,
-    "sha256": "ca2f08b45b45304759df319bfe49839415c999e0be933f0b8dcb28dce1b8f8c3"
+    "sha256": "2bff974059dd793a3ab9775976b911fe6cf1bf454817181fd114a53c7df59207"
   },
   "source": {
-    "revision": "36edcf7a1968a2ba59ecdf6eca6f6cb90c40222e",
-    "dirty": false
+    "revision": "d6a26eabc5a38687f894925fd18705241492fa07",
+    "dirty": true
   }
 }

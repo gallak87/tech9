@@ -1,0 +1,36 @@
+{
+  "meadow": {
+    "url": "assets/levels/oriel/workshop-meadow-grass.glb",
+    "bounds": [
+      [-0.228839, 0.003013, -0.244946],
+      [0.18309, 0.248246, 0.213096]
+    ],
+    "visualBounds": [
+      [-0.228839, 0.003013, -0.244946],
+      [0.18309, 0.248246, 0.213096]
+    ],
+    "triangles": [],
+    "node": "grass_short_lod",
+    "visualTriangles": 194,
+    "proxy": "none",
+    "sourceHash": "cba6b845dcd02837872c30b44970ad02de5df6fbdd39bdac9feae05393f40dce",
+    "castShadow": false
+  },
+  "shore": {
+    "url": "assets/levels/oriel/workshop-meadow-grass.glb",
+    "bounds": [
+      [-0.00508, 0, -0.001653],
+      [0.034998, 0.205972, 0.070857]
+    ],
+    "visualBounds": [
+      [-0.00508, 0, -0.001653],
+      [0.034998, 0.205972, 0.070857]
+    ],
+    "triangles": [],
+    "node": "grass_tiny",
+    "visualTriangles": 40,
+    "proxy": "none",
+    "sourceHash": "cba6b845dcd02837872c30b44970ad02de5df6fbdd39bdac9feae05393f40dce",
+    "castShadow": false
+  }
+}

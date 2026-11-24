@@ -1858,6 +1858,57 @@
       ]
     },
     {
+      "id": "editor-glasswake-glacier-kit",
+      "source": "assets/editor/glasswake/build_glacier_kit.py and assets/editor/glasswake/glacier-kit.blend",
+      "creator": "VECTOR//NOVA project contributors",
+      "provenance": "Five editor-only closed ice forms authored in Blender from the Glasswake concept and the registered Glasswake material palette. Long escarpments, stepped terraces, seracs, buttresses and talus are seeded beside the surveyed editor route. The kit manifest records dimensions, closedness, triangle counts and source/export hashes.",
+      "rights": "Project-authored models and tool with the existing project-owned Glasswake material and image provenance.",
+      "sourceAssets": [
+        "assets/editor/glasswake/build_glacier_kit.py",
+        "assets/editor/glasswake/glacier-kit.blend",
+        "assets/editor/kits/glasswake.json",
+        "src/editor/kits/glasswake-assets.json"
+      ],
+      "runtimeAssets": ["public/assets/editor/glasswake/glacier-kit.glb"],
+      "borrowedAssets": ["glasswake-comet"],
+      "provenanceRecord": "assets/editor/glasswake/manifest.json"
+    },
+    {
+      "id": "editor-oriel-meadow-grass",
+      "source": "../../worldkit/modules/landscape/assets/runtime/forest-kit.glb",
+      "creator": "Rob Tuytel (photography), Rico Cilliers (modeling), Worldkit project contributors (runtime preparation)",
+      "provenance": "The Oriel Workshop excerpt retains the two named MeadowGrass prototypes with original transforms and mesh attributes. The extraction script rebuilds the compact GLB from the local registered Worldkit source with 512-pixel alpha, normal and surface maps and preserves cutout coverage. Seeded placement groups dry-ground tufts within terrain reservations as decorative instances.",
+      "rights": "Grass Medium 01 is CC0 1.0 through Poly Haven. The excerpt retains the registered source provenance.",
+      "sourceAssets": [
+        "assets/editor/oriel/extract-meadow-grass.py",
+        "assets/editor/oriel/meadow-grass.json",
+        "src/editor/kits/oriel-meadow-assets.json"
+      ],
+      "runtimeAssets": ["public/assets/levels/oriel/workshop-meadow-grass.glb"],
+      "provenanceRecords": [
+        "../../worldkit/modules/landscape/assets/runtime/ASSETS.md",
+        "../../worldkit/modules/landscape/assets/art/sources/manifest.json"
+      ]
+    },
+    {
+      "id": "editor-zephyr-light-islands",
+      "source": "assets/editor/zephyr/build_light_islands.py",
+      "creator": "VECTOR//NOVA project contributors",
+      "provenance": "Workshop terrace and shard variants derived from the authored Zephyr Basilica Blender library. Blender simplifies the rock bodies while retaining the original masonry, bronze and planting geometry. The kit records source and export hashes, and the Workshop uses the trusted exported bounds for route clearance.",
+      "rights": "Project-owned derivatives of the registered Zephyr Basilica scenery.",
+      "sourceAssets": [
+        "assets/editor/zephyr/build_light_islands.py",
+        "assets/editor/kits/zephyr.json",
+        "src/editor/kits/zephyr-assets.json"
+      ],
+      "runtimeAssets": [
+        "public/assets/levels/zephyr/editor-island-terrace.glb",
+        "public/assets/levels/zephyr/editor-island-shard.glb"
+      ],
+      "borrowedAssets": ["zephyr-basilica"],
+      "provenanceRecord": "assets/editor/zephyr/manifest.json"
+    },
+    {
       "id": "editor-production-biome-adapters",
       "source": "src/editor/production-biomes.js, src/editor/production-environment.js and src/editor/procedural-assemblies.js",
       "creator": "VECTOR//NOVA project contributors",
@@ -1872,6 +1923,8 @@
         "src/editor/static-biomes.js",
         "src/editor/static-biome-plans.js",
         "src/editor/static-biome-finishes.js",
+        "src/editor/glasswake-finish.js",
+        "src/editor/glasswake-terrain.js",
         "src/editor/procedural-biomes.js",
         "src/editor/nightweir-biome.js",
         "src/editor/vesper-biome.js",
@@ -1885,6 +1938,7 @@
         "nacre-tempest",
         "vesper-forest",
         "glasswake-comet",
+        "editor-glasswake-glacier-kit",
         "cindercoil-caldera",
         "saffron-leviathan",
         "zephyr-basilica",

@@ -21,17 +21,17 @@
       "waterLevel": -50
     },
     "layoutVersion": 4,
-    "framing": "selected first road point, then two zoom-out steps"
+    "framing": "first-point vista tilted to show the inhabited cylinder"
   },
   "documentFingerprint": "6b12378cdffba4798164c3a7c578ff0ec4f9ad85c4ce2c4f667693bb99a3319a",
   "documentIdentity": "custom-oriel-v8-3d596a26",
   "roadFingerprint": "0c5ce4a3a64d530dffcddef0bfa3805329922b770bd702b31b585eaccc137b46",
   "camera": {
     "mode": "orbit",
-    "position": [-511.538288090164, 266.92958173598237, 618.7368667206131],
+    "position": [-563.6114235508035, 94.22343974385801, 623.7372725132252],
     "quaternion": [
-      -0.20880453566143964, -0.34339484666878795, -0.07859462265875518,
-      0.9123067085457927
+      -0.0009191022439820571, -0.39401856336141655, -0.00039401869470099345,
+      0.9191019376146146
     ],
     "fov": 48,
     "near": 0.5,
@@ -45,10 +45,10 @@
     "height": 400,
     "format": "webp",
     "quality": 0.86,
-    "sha256": "3bdc9046ba769eefa1bd9da4bc3ae9f622b1e645b2d9192799462f4ba55cd99d"
+    "sha256": "23f9a2080076cb92d31d231e5a2c9f21964c4a06ec1036fea8f344c7604df4d4"
   },
   "source": {
-    "revision": "36edcf7a1968a2ba59ecdf6eca6f6cb90c40222e",
-    "dirty": false
+    "revision": "d6a26eabc5a38687f894925fd18705241492fa07",
+    "dirty": true
   }
 }

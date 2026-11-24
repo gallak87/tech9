@@ -134,10 +134,11 @@ export function createRavelCanopies({ track, finish = null, layout, clears }) {
     const forward = frame.tangent.clone();
     if (layout) forward.setY(0).normalize();
     const centre = frame.position.clone();
+    const lateral = new T.Vector3().crossVectors(up, forward);
     if (layout)
       centre
         .addScaledVector(forward, def.ahead ?? 0)
-        .addScaledVector(new T.Vector3().crossVectors(up, forward), def.side);
+        .addScaledVector(lateral, def.side);
     forward.applyAxisAngle(up, def.yaw);
     const right = layout
       ? new T.Vector3().crossVectors(up, forward)
@@ -173,7 +174,16 @@ export function createRavelCanopies({ track, finish = null, layout, clears }) {
         }
       return !clears || clears(bounds.expandByScalar(30));
     };
-    while (!clearance() && extra < 1800) extra += 150;
+    if (def.lateralClearanceStep) {
+      for (let attempt = 0; attempt < 3 && !clearance(); attempt++) {
+        extra = 150;
+        if (clearance()) break;
+        centre.addScaledVector(lateral, def.lateralClearanceStep);
+        extra = 0;
+      }
+    } else {
+      while (!clearance() && extra < 1800) extra += 150;
+    }
     if (clears && !clearance()) continue;
     if (i === 1 && !layout)
       group.userData.ravelAscentCollector = {

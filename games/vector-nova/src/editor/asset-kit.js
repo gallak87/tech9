@@ -264,6 +264,7 @@ export function createAssetKit({
   loadTexture = defaultLoadTexture,
   cache = sharedCache,
   tileSize = 8192,
+  tileOffset = 0,
   signal = null,
 }) {
   const group = new T.Group();
@@ -420,7 +421,9 @@ export function createAssetKit({
           batches = new Map();
         for (const record of records.filter((record) => record.asset === id)) {
           const e = record.matrix.elements;
-          const key = `${Math.floor(e[12] / tileSize)}:${Math.floor(e[14] / tileSize)}`;
+          const column = Math.floor((e[12] + tileOffset) / tileSize);
+          const row = Math.floor((e[14] + tileOffset) / tileSize);
+          const key = `${column}:${row}`;
           if (!batches.has(key)) batches.set(key, []);
           batches.get(key).push(record);
         }

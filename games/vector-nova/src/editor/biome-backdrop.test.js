@@ -5,6 +5,7 @@ import { resolve } from 'node:path';
 import * as T from 'three';
 import { EDITOR_BIOMES } from './biomes.js';
 import { createEditorBackdrop } from './biome-backdrop.js';
+import { createOrielShoulders } from './oriel-shoulders.js';
 import { createUmbraBackdrop } from '../levels/umbra/backdrop/index.js';
 
 const fakeTexture = () => {
@@ -63,6 +64,12 @@ test('all17 backdrops use existing registered assets, follow arbitrary cameras a
       loaded.every((value) => value.count() === 1),
       biome.id,
     );
+    for (const { texture } of loaded)
+      assert.equal(
+        Boolean(texture.userData.editorPanorama),
+        biome.id !== 'orbital',
+        biome.id,
+      );
   }
   assert(
     verified.size >= 15,
@@ -193,6 +200,88 @@ test('Helion keeps its opaque photosphere and additive corona behind the road', 
     'large Workshop overviews can fit between the eye and corona',
   );
   part.dispose();
+});
+
+test('Oriel fits the same shell material to revised route bounds', async () => {
+  const backdrop = await createEditorBackdrop(
+    {
+      biome: 'oriel',
+      points: [
+        { x: -50, y: 100, z: 0 },
+        { x: 600, y: 200, z: 2700 },
+      ],
+    },
+    { preview: true },
+  );
+  const material = backdrop.group.children[0].material;
+  const { cylinderAlongX, cylinderCenter, cylinderRadius } = material.uniforms;
+  assert.equal(cylinderAlongX.value, false);
+  assert.equal(cylinderCenter.value.z, 1350);
+  assert.equal(cylinderRadius.value, 1315);
+  assert(cylinderCenter.value.y > 420);
+  backdrop.fitTrack({
+    bounds: new T.Box3(
+      new T.Vector3(-1313, -6, -1340),
+      new T.Vector3(1222, 503, 1270),
+    ),
+  });
+  assert(
+    cylinderRadius.value > 2100 && cylinderRadius.value < 2250,
+    'Harbor braid has a closer shell with space around the route',
+  );
+  assert(cylinderCenter.value.y > 503);
+  assert(Math.hypot(1267.5, cylinderCenter.value.y + 6) < cylinderRadius.value);
+  backdrop.fitTrack({
+    bounds: new T.Box3(
+      new T.Vector3(4000, 700, 1500),
+      new T.Vector3(14000, 2200, 5200),
+    ),
+  });
+  assert.equal(cylinderAlongX.value, true);
+  assert(Math.hypot(1850, cylinderCenter.value.y - 700) < cylinderRadius.value);
+  assert(cylinderRadius.value < 3700);
+  assert.equal(cylinderCenter.value.x, 9000);
+  assert.equal(cylinderCenter.value.z, 3350);
+  assert(cylinderCenter.value.y > 2600);
+  assert.equal(backdrop.group.children[0].material, material);
+  backdrop.dispose();
+});
+
+test('Oriel curves both outside edges beyond either orientation of the road', () => {
+  for (const [x, z] of [
+    [1240, 990],
+    [990, 1240],
+  ]) {
+    const bounds = new T.Box3(
+      new T.Vector3(-x, 0, -z),
+      new T.Vector3(x, 450, z),
+    );
+    const geometry = createOrielShoulders(
+      { bounds },
+      { seed: 6104, surfaceHeight: () => 0 },
+    );
+    const positions = geometry.getAttribute('position');
+    const sides = new Set();
+    let top = -Infinity;
+    for (let i = 0; i < positions.count; i++) {
+      const lateral = x > z ? positions.getZ(i) : positions.getX(i);
+      assert(
+        Math.abs(lateral) >= 1159.9,
+        'turf stays outside the road plus buffer',
+      );
+      if (Math.abs(lateral) < 1260)
+        assert(
+          positions.getY(i) < 15,
+          'the near part of the bank rises gently',
+        );
+      sides.add(Math.sign(lateral));
+      top = Math.max(top, positions.getY(i));
+    }
+    assert.deepEqual([...sides], [-1, 1]);
+    assert(top > bounds.max.y, 'both banks rise into the backdrop');
+    assert.equal(geometry.getAttribute('shoulderOpacity').getX(0), 0);
+    geometry.dispose();
+  }
 });
 
 test('Umbra keeps the authored silhouette and depth occlusion in the editor and custom races', async () => {

@@ -42,6 +42,24 @@ test('full packages every original and bonus course without exposing bonus conte
     assert.equal(includePublic(`assets/levels/${id}/world.glb`, 'demo'), false);
   }
 });
+test('Workshop assets ship in full only, with registered runtime files', () => {
+  for (const path of [
+    'assets/editor/environments/oriel-civic-gardens-v1.webp',
+    'assets/editor/environments/worldspire-mineral-spires-v1.webp',
+    'assets/editor/glasswake/glacier-kit.glb',
+    'assets/editor/nightweir/nightweir-editor-kit.glb',
+    'assets/editor/surfaces/rock-boulder-normal-1k.jpg',
+  ]) {
+    assert.equal(includePublic(path, 'full'), true, path);
+    assert.equal(includePublic(path, 'demo'), false, path);
+  }
+  for (const path of [
+    'assets/editor/environments/oriel-civic-gardens-v1.json',
+    'assets/editor/environments/worldspire-scratch.webp',
+    'assets/editor/glasswake/glacier-kit.blend',
+  ])
+    assert.equal(includePublic(path, 'full'), false, path);
+});
 test('the full policy includes all nine sequential mode courses and their runtime stills, while the demo excludes them', () => {
   const expected = [
     'zephyr-skywell',

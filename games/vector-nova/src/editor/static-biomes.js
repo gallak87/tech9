@@ -9,12 +9,23 @@ import nomadAssets from './kits/nomad-assets.json' with { type: 'json' };
 import orielAssets from './kits/oriel-assets.json' with { type: 'json' };
 import worldspireAssets from './kits/worldspire-assets.json' with { type: 'json' };
 import { finishZephyrMaterial } from '../levels/zephyr/environment/materials.js';
-import { finishIceMaterial } from '../levels/glasswake/environment/materials.js';
 import { finishThermalMaterial } from '../levels/helion/environment/materials.js';
 import { finishUmbraMaterial } from '../levels/umbra/environment/materials.js';
 import { finishWorldspireMineral } from '../levels/worldspire/environment/mineral-materials.js';
 import { finishNomadSalt } from '../levels/nomad/salt-material.js';
 import { buildRavelSails } from './ravel-sails.js';
+import { finishGlasswakeProp } from './glasswake-finish.js';
+import {
+  finishGlasswakeTerrain,
+  glasswakeHorizon,
+} from './glasswake-terrain.js';
+import {
+  finishWorldspireUndercast,
+  settleWorldspireInClouds,
+} from './worldspire-terrain.js';
+import { buildOrielExterior, finishOrielTerrain } from './oriel-terrain.js';
+import { buildOrielWater } from './oriel-water.js';
+import { loadEditorWorldspireLandmark } from './worldspire-landmark.js';
 import {
   createIndustrialBiomeFinish,
   industrialCoordinates,
@@ -69,6 +80,7 @@ const descriptors = Object.freeze({
     grounded: false,
     waterEnabled: false,
     limit: 48,
+    tileOffset: 2048,
     textures: {
       stone: assetURL('assets/levels/zephyr/zephyr-limestone-v1.png'),
     },
@@ -80,13 +92,12 @@ const descriptors = Object.freeze({
     grounded: true,
     waterEnabled: false,
     limit: 120,
+    // A generated circuit around the origin can share batches across both banks.
+    tileOffset: 2048,
     textures: { ice: assetURL('assets/levels/glasswake/ice-surface-v1.png') },
-    finishMaterial: (material, asset, textures) =>
-      finishIceMaterial(material, textures.ice),
-    finishTerrain(materials, textures) {
-      materials.soil.name = 'Glasswake / frost terrain';
-      finishIceMaterial(materials.soil, textures.ice);
-    },
+    finishMaterial: finishGlasswakeProp,
+    exteriorRelief: glasswakeHorizon,
+    finishTerrain: finishGlasswakeTerrain,
   }),
   saffron: descriptor('saffron', saffronAssets, planSaffron, {
     name: 'Saffron / fossil desert',
@@ -180,17 +191,36 @@ const descriptors = Object.freeze({
     waterEnabled: true,
     limit: 140,
     createFinish: createOrielBiomeFinish,
+    finishTerrain: finishOrielTerrain,
+    build(context) {
+      const grass = buildOrielExterior(context);
+      const water = buildOrielWater(context);
+      return {
+        group: grass?.group,
+        ready: grass?.ready,
+        get ownedTextures() {
+          return grass?.ownedTextures;
+        },
+        stats: staticContactStats(context.placement),
+        update: water?.update,
+        dispose() {
+          grass?.dispose();
+        },
+      };
+    },
   }),
   worldspire: descriptor('worldspire', worldspireAssets, planWorldspire, {
     name: 'Worldspire / solitary mineral monolith',
     grounded: true,
     waterEnabled: false,
     limit: 1,
+    loadAsset: loadEditorWorldspireLandmark,
+    finishTerrain: finishWorldspireUndercast,
     textures: {
       exposure: assetURL('assets/levels/worldspire/mineral-v2.png'),
       mineral: assetURL('assets/levels/worldspire/fractured-obsidian-v1.png'),
     },
-    finishMaterial(material, asset, textures) {
+    finishMaterial(material, asset, textures, { plan } = {}) {
       if (/bronze|pale portal/i.test(material.name))
         finishZephyrMaterial(material);
       if (
@@ -209,6 +239,7 @@ const descriptors = Object.freeze({
         )
       )
         finishWorldspireMineral(material, textures.mineral, textures.exposure);
+      settleWorldspireInClouds(material, plan?.seaLevel ?? 0);
     },
   }),
 });

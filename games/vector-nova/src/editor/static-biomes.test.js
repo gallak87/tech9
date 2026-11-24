@@ -6,6 +6,7 @@ import * as T from 'three';
 import { staticBiomeDescriptor } from './static-biomes.js';
 import { generateDocument } from './document.js';
 import { createEditorTrack } from './track.js';
+import { PLAYABLE_STARTERS } from './playable-starters.js';
 import { createRegionPlan } from './region-plan.js';
 import {
   createProductionPlacement,
@@ -14,6 +15,7 @@ import {
 import { createAssetKit } from './asset-kit.js';
 import { STATIC_CONTACT_FACE_LIMIT } from './static-biome-plans.js';
 import { createIndustrialBiomeFinish } from './static-biome-finishes.js';
+import { buildRavelSails } from './ravel-sails.js';
 
 const families = [
   'zephyr',
@@ -49,6 +51,54 @@ function resolved(doc) {
   descriptor.plan(doc, track, plan, placement);
   return { descriptor, track, plan, placement };
 }
+
+test('Ravel keeps its collector sails on a route with protected jumps', (t) => {
+  const doc = generateDocument({
+    biome: 'ravel',
+    seed: 42017,
+    environmentSeed: 42,
+    length: 5000,
+    bendiness: 0.55,
+    elevation: 0.55,
+    jumpFrequency: 'normal',
+    jumpSize: 'mixed',
+  });
+  const { track, placement } = resolved(doc);
+  assert.equal(track.jumps.length, 2);
+  const sails = buildRavelSails({ track, doc, placement });
+  t.after(() => sails.dispose());
+  const collectors = sails.group.children.filter((mesh) => !mesh.isBatchedMesh);
+  assert(collectors.length >= 3);
+  for (const mesh of collectors)
+    assert(
+      placement.clears(mesh.geometry.boundingBox.clone().expandByScalar(30)),
+    );
+});
+
+test('Zephyr fullness fills the Harbor braid with clear islands at seed 6104', () => {
+  const starter = PLAYABLE_STARTERS.find(({ id }) => id === 'harbor');
+  for (const sceneryPreset of ['basilica-isles-v1', 'garden-isles-v1']) {
+    const counts = [0.1, 0.5, 1].map((density) => {
+      const doc = generateDocument({
+        ...starter.options,
+        biome: 'zephyr',
+        sceneryPreset,
+        density,
+      });
+      const { descriptor, placement } = resolved(doc);
+      let triangles = 0;
+      for (const record of placement.placements) {
+        assert(placement.clears(record.bounds), record.id);
+        triangles += descriptor.assets[record.asset].visualTriangles;
+      }
+      assert(triangles <= 700000);
+      return placement.placements.length;
+    });
+    assert(counts[0] >= 5 && counts[0] <= 8, sceneryPreset);
+    assert(counts[1] >= 16, sceneryPreset);
+    assert(counts[2] >= counts[1] + 5, sceneryPreset);
+  }
+});
 
 test('all nine static production families are deterministic, route-cleared and source-budgeted through 20km', () => {
   assert.equal(staticBiomeDescriptor('nightweir'), null);
@@ -123,6 +173,64 @@ test('all nine static production families are deterministic, route-cleared and s
           'one whole monolith retains its authored sector composition',
         );
     }
+});
+
+test('Glasswake seeds produce varied canyon walls whose coverage grows with scenery fullness', () => {
+  const { options } = PLAYABLE_STARTERS.find(({ id }) => id === 'canyon');
+  const canyon = (environmentSeed, density, sceneryPreset = 'glacier-v1') => {
+    const { placement, track } = resolved(
+      generateDocument({
+        ...options,
+        biome: 'glasswake',
+        sceneryPreset,
+        environmentSeed,
+        density,
+      }),
+    );
+    for (const { bounds } of placement.placements)
+      assert(
+        placement.clears(bounds),
+        'preserves the route and jump corridors',
+      );
+    const walls = placement.placements.filter(({ id }) =>
+      id.startsWith('glacier-wall-'),
+    );
+    const nearRoad = [];
+    for (let s = 0; s < track.length; s += 50) {
+      const { position } = track.sample(s);
+      for (const { bounds } of walls)
+        if (bounds.distanceToPoint(position) < 250)
+          nearRoad.push(bounds.max.y - position.y);
+    }
+    assert(nearRoad.length > 0);
+    return {
+      walls,
+      canyonHeight: Math.max(...nearRoad),
+    };
+  };
+  const low = canyon(42, 0.25);
+  const medium = canyon(42, 0.7);
+  const full = canyon(42, 1);
+  const another = canyon(4294967295, 1);
+  assert(low.walls.length < medium.walls.length);
+  assert(medium.walls.length < full.walls.length);
+  for (const layout of [full, another]) {
+    assert(new Set(layout.walls.map(({ asset }) => asset)).size >= 4);
+    assert(layout.canyonHeight > 350);
+    assert(
+      layout.walls.filter((wall) =>
+        layout.walls.some(
+          (other) => wall !== other && wall.bounds.intersectsBox(other.bounds),
+        ),
+      ).length >=
+        layout.walls.length / 2,
+      'adjoining wall segments create longer ice faces',
+    );
+  }
+  const profiles = ({ walls }) => walls.map(({ id, asset }) => [id, asset]);
+  assert.notDeepEqual(profiles(full), profiles(another));
+  const shelf = canyon(11142, 0.7, 'frozen-shelf-v1');
+  assert(shelf.canyonHeight < medium.canyonHeight);
 });
 
 test('selected real GLB prototypes load inside trusted bounds with independent owned materials', async () => {

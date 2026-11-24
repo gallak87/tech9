@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "blender": "5.2.3 LTS",
+  "concept": "assets/levels/glasswake/scene-reference.png",
+  "materialSource": "public/assets/levels/glasswake/glasswake-environment-v5.glb",
+  "assets": [
+    {
+      "name": "escarpment",
+      "sizeMetres": [206, 565, 560],
+      "triangles": 1536,
+      "closed": true
+    },
+    {
+      "name": "terrace",
+      "sizeMetres": [257, 406, 600],
+      "triangles": 1536,
+      "closed": true
+    },
+    {
+      "name": "seracs",
+      "sizeMetres": [191, 650, 495],
+      "triangles": 1536,
+      "closed": true
+    },
+    {
+      "name": "buttress",
+      "sizeMetres": [252, 525, 470],
+      "triangles": 1536,
+      "closed": true
+    },
+    {
+      "name": "talus",
+      "sizeMetres": [154, 100, 325],
+      "triangles": 1536,
+      "closed": true
+    }
+  ],
+  "sha256": {
+    "assets/editor/glasswake/build_glacier_kit.py": "aa9e729c65a2d02a112667ef09d7afedac3739dc65abcbaf333dc4731513c204",
+    "assets/editor/glasswake/glacier-kit.blend": "b610cb2a0432a5eade1369df5fc10fb48c4f684d9cc6eac142bc21694220581e",
+    "public/assets/editor/glasswake/glacier-kit.glb": "d9d89c9034b3968b1d6a9d63ba4d6e148a2010ab4573656d264b86ead48ed0b9",
+    "public/assets/levels/glasswake/glasswake-environment-v5.glb": "6a11c2ddc97ccd0560ab28aba3003884e5c8cfb9450bdee6411c97cd0be91cf6"
+  }
+}

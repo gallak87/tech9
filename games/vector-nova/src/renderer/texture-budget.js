@@ -33,7 +33,9 @@ export function createTextureBudget({ createCanvas = defaultCanvas } = {}) {
         mipmaps: texture.mipmaps,
         anisotropy: texture.anisotropy,
         lowSource: null,
+        lowSize: null,
         lowMipmaps: null,
+        firstLowMip: 0,
         swapping: false,
         onDispose: null,
       };
@@ -54,16 +56,19 @@ export function createTextureBudget({ createCanvas = defaultCanvas } = {}) {
           (mip) => Math.max(mip.width, mip.height) <= maxSize,
         );
         if (first > 0) {
-          record.lowMipmaps ??= record.mipmaps.slice(first);
-          record.lowSource ??= new TextureSource({
-            width: record.lowMipmaps[0].width,
-            height: record.lowMipmaps[0].height,
-          });
+          if (record.firstLowMip !== first) {
+            record.firstLowMip = first;
+            record.lowMipmaps = record.mipmaps.slice(first);
+            record.lowSource = new TextureSource({
+              width: record.lowMipmaps[0].width,
+              height: record.lowMipmaps[0].height,
+            });
+          }
           source = record.lowSource;
           mipmaps = record.lowMipmaps;
         }
       } else {
-        if (!record.lowSource) {
+        if (record.lowSize !== maxSize) {
           const scale = maxSize / Math.max(image.width, image.height);
           const canvas = createCanvas(
             Math.max(1, Math.round(image.width * scale)),
@@ -71,8 +76,11 @@ export function createTextureBudget({ createCanvas = defaultCanvas } = {}) {
           );
           const context = canvas.getContext('2d');
           if (!context) return;
+          if (texture.userData.editorPanorama)
+            context.imageSmoothingQuality = 'high';
           context.drawImage(image, 0, 0, canvas.width, canvas.height);
           record.lowSource = new TextureSource(canvas);
+          record.lowSize = maxSize;
         }
         source = record.lowSource;
       }
@@ -98,15 +106,28 @@ export function createTextureBudget({ createCanvas = defaultCanvas } = {}) {
     }
   }
   return {
-    apply(scene, { textureSize = Infinity, anisotropy = Infinity } = {}) {
+    apply(
+      scene,
+      {
+        textureSize = Infinity,
+        editorPanoramaSize = textureSize,
+        anisotropy = Infinity,
+      } = {},
+    ) {
       if (disposed) return;
       const seen = new Set();
       const objects = new WeakSet();
+      const applyTexture = (texture) => {
+        if (seen.has(texture)) return;
+        seen.add(texture);
+        const maxSize = texture.userData.editorPanorama
+          ? editorPanoramaSize
+          : textureSize;
+        visitTexture(texture, maxSize, anisotropy);
+      };
       const visit = (value) => {
         if (value?.isTexture) {
-          if (seen.has(value)) return;
-          seen.add(value);
-          visitTexture(value, textureSize, anisotropy);
+          applyTexture(value);
         } else if (value && typeof value === 'object' && !objects.has(value)) {
           objects.add(value);
           if (Array.isArray(value)) value.forEach(visit);
@@ -117,9 +138,7 @@ export function createTextureBudget({ createCanvas = defaultCanvas } = {}) {
       scene.traverse((object) => {
         for (const material of [object.material].flat().filter(Boolean)) {
           for (const texture of Object.values(material)) {
-            if (!texture?.isTexture || seen.has(texture)) continue;
-            seen.add(texture);
-            visitTexture(texture, textureSize, anisotropy);
+            if (texture?.isTexture) applyTexture(texture);
           }
           for (const uniform of Object.values(material.uniforms ?? {}))
             visit(uniform.value);

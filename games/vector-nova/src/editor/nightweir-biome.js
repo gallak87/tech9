@@ -15,7 +15,7 @@ import {
 import { finishNightweirWindows } from '../levels/nightweir/environment/blackstart.js';
 import { createNightweirBasinMaterial } from '../levels/nightweir/environment/basin-material.js';
 import { createNacreOceanNormals } from '../levels/nacre/environment/ocean-normals.js';
-import { fillStaticRoadside } from './static-biome-plans.js';
+import { roadsideScenerySites } from './roadside-scenery.js';
 
 const assets = Object.fromEntries(
   Object.entries(metadata).map(([id, asset]) => [
@@ -23,6 +23,91 @@ const assets = Object.fromEntries(
     { ...asset, url: assetURL(asset.url) },
   ]),
 );
+const basinHorizon = {
+  offsets: [400, 900, 1700, 3100, 5200, 8200, 13500],
+  heightAt(x, z, offset, plan) {
+    const phase = (plan.seed % 853) * 0.035;
+    const ridge = 0.48 + 0.52 * Math.sin(x * 0.0011 - z * 0.00066 + phase) ** 2;
+    const front = (offset - 1660) / 1210;
+    const rear = (offset - 4900) / 2700;
+    return (
+      ridge * (430 * Math.exp(-front * front) + 590 * Math.exp(-rear * rear))
+    );
+  },
+};
+
+function buildBankWorks({ doc, track, plan, placement, owner, materials }) {
+  const sites = roadsideScenerySites(track, doc.settings.density, 11);
+  const factories = ['generating-house', 'brick-pressureworks'];
+  const civic = ['municipal-wing', 'residential-court', 'public-gallery'];
+  const up = new T.Vector3(0, 1, 0);
+  const industrial = doc.settings.sceneryPreset === 'industrial';
+  let count = 0;
+  for (const site of sites) {
+    const family = industrial || site.id % 3 === 0 ? factories : civic;
+    const asset = family[Math.floor(placement.random() * family.length)];
+    const [lo, hi] = assets[asset].bounds;
+    const scale = new T.Vector3(
+      1.32 + placement.random() * 0.38,
+      1.22 + placement.random() * 0.48,
+      1.18 + placement.random() * 0.3,
+    );
+    const halfWidth = ((hi[0] - lo[0]) * scale.x) / 2 + 13;
+    const halfDepth = ((hi[2] - lo[2]) * scale.z) / 2 + 9;
+    const height = (hi[1] - lo[1]) * scale.y;
+    const side = placement.random() < 0.5 ? -1 : 1;
+    const yaw = site.yaw + (side * Math.PI) / 2;
+    const rotation = new T.Quaternion().setFromAxisAngle(up, yaw);
+    for (const offset of [95, -95, 155, -155, 230, -230, 315, -315]) {
+      const center = site.position
+        .clone()
+        .addScaledVector(site.right, side * offset);
+      const transform = new T.Matrix4()
+        .makeRotationY(yaw)
+        .setPosition(center.x, 0, center.z);
+      let top = -Infinity;
+      let bottom = Infinity;
+      for (const u of [-halfWidth, 0, halfWidth]) {
+        for (const v of [-halfDepth, 0, halfDepth]) {
+          const p = new T.Vector3(u, 0, v).applyMatrix4(transform);
+          const ground = plan.surfaceHeight(p.x, p.z);
+          bottom = Math.min(bottom, ground - 1.25);
+          top = Math.max(top, ground + 0.7, plan.waterHeight(p.x, p.z) + 2);
+        }
+      }
+      if (top - bottom > 32 || site.position.y - top > height + 65) continue;
+      const foundation = new T.Box3(
+        new T.Vector3(-halfWidth, bottom, -halfDepth),
+        new T.Vector3(halfWidth, top, halfDepth),
+      ).applyMatrix4(transform);
+      if (!placement.clears(foundation)) continue;
+      if (
+        !placement.place(asset, {
+          id: `bank-works-${site.id}`,
+          x: center.x,
+          y: top - 0.1,
+          z: center.z,
+          yaw,
+          scale,
+          embed: 0,
+          solid: false,
+        })
+      )
+        continue;
+      owner.block(
+        'Nightweir / bank works foundation',
+        materials.concrete,
+        center.setY((top + bottom) / 2),
+        new T.Vector3(halfWidth * 2, top - bottom, halfDepth * 2),
+        rotation,
+      );
+      count++;
+      break;
+    }
+  }
+  return count;
+}
+
 function createFinish(context) {
   if (context.collectSolid) return null;
   const substrate = new T.MeshStandardMaterial();
@@ -70,6 +155,8 @@ export const nightweirBiomeDescriptor = {
   limit: 640,
   grounded: true,
   waterEnabled: true,
+  farGround: true,
+  exteriorRelief: basinHorizon,
   textures: {
     brick: assetURL('assets/levels/nightweir/fired-brick-v1.png'),
     roof: assetURL('assets/levels/nightweir/zinc-roof-v1.png'),
@@ -132,12 +219,9 @@ nwWindowNormal=normalize(mat3(modelMatrix)*nwN);`,
     );
   },
   build(context) {
+    const bankWorks = buildBankWorks(context);
     const town = buildNightweirDistricts(context);
-    const { doc, track, plan, placement } = context;
-    fillStaticRoadside(doc, track, plan, placement, assets, {
-      grounded: true,
-      waterEnabled: true,
-    });
+    town.stats.bankWorks = bankWorks;
     return town;
   },
 };

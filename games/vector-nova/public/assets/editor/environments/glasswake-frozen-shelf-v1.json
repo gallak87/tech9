@@ -21,20 +21,20 @@
       "waterLevel": -28
     },
     "layoutVersion": 4,
-    "framing": "selected first road point, then two zoom-out steps"
+    "framing": "road overview tilted to show the glacial shelf faces and distant ice banks"
   },
   "documentFingerprint": "ce3e7d7be52678da07d29609927fce367962dfd829bbd34f78a9a2acde643386",
   "documentIdentity": "custom-glasswake-v8-2c9024d0",
   "roadFingerprint": "0c5ce4a3a64d530dffcddef0bfa3805329922b770bd702b31b585eaccc137b46",
   "camera": {
     "mode": "orbit",
-    "position": [-511.538288090164, 266.92958173598237, 618.7368667206131],
+    "position": [-1728.1541863345685, 692.5120752163455, 1003.8151518700442],
     "quaternion": [
-      -0.20880453566143964, -0.34339484666878795, -0.07859462265875518,
-      0.9123067085457927
+      -0.1297604435720184, -0.46983859407712664, -0.07004830636664407,
+      0.8703488711860243
     ],
     "fov": 48,
-    "near": 0.5,
+    "near": 1.0199550202230023,
     "far": 200000
   },
   "viewport": [1280, 800],
@@ -45,10 +45,10 @@
     "height": 400,
     "format": "webp",
     "quality": 0.86,
-    "sha256": "35e13f84d0ae5587b693eb5f9f55ba1196354418167668ed43c4afc7b29c181c"
+    "sha256": "e7b3f565ab402701ea7601281b7ea5a285c4fb7891938f6768055614b43b42f5"
   },
   "source": {
-    "revision": "36edcf7a1968a2ba59ecdf6eca6f6cb90c40222e",
-    "dirty": false
+    "revision": "d6a26eabc5a38687f894925fd18705241492fa07",
+    "dirty": true
   }
 }

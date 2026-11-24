@@ -21,20 +21,20 @@
       "waterLevel": -50
     },
     "layoutVersion": 4,
-    "framing": "selected first road point, then two zoom-out steps"
+    "framing": "orbit overview showing the collector sails and the road"
   },
   "documentFingerprint": "d0e6edf9122c96a7421d52c6204cd92fcb122de61819502823ea013bac36407d",
   "documentIdentity": "custom-ravel-v8-a94d11b5",
   "roadFingerprint": "0c5ce4a3a64d530dffcddef0bfa3805329922b770bd702b31b585eaccc137b46",
   "camera": {
     "mode": "orbit",
-    "position": [-511.538288090164, 266.92958173598237, 618.7368667206131],
+    "position": [770.0140375178433, 1354.6166942063433, 1285.725282116093],
     "quaternion": [
-      -0.20880453566143964, -0.34339484666878795, -0.07859462265875518,
-      0.9123067085457927
+      -0.31278680612564097, 0.2658041080478665, 0.09163890311294524,
+      0.9072568001921258
     ],
     "fov": 48,
-    "near": 0.5,
+    "near": 1.0199550202230023,
     "far": 200000
   },
   "viewport": [1280, 800],
@@ -45,10 +45,10 @@
     "height": 400,
     "format": "webp",
     "quality": 0.86,
-    "sha256": "338de2e7c606d85838fb86e16211f369ebc637526959f7c52f594e5f29a421f6"
+    "sha256": "d3e7ac141e7d42bb0008b5869d90fff28c610d31d1a08e83a5a95c3104beb725"
   },
   "source": {
-    "revision": "36edcf7a1968a2ba59ecdf6eca6f6cb90c40222e",
-    "dirty": false
+    "revision": "d6a26eabc5a38687f894925fd18705241492fa07",
+    "dirty": true
   }
 }

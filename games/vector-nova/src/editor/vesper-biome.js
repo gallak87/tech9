@@ -7,7 +7,21 @@ import { createFoliageWind } from '@worldkit/environment/weather';
 import { assetURL } from '../assets/url.js';
 import { createProceduralAssemblies } from './procedural-assemblies.js';
 import { createDistrictWater } from './district-water.js';
-import { fillRoadsideKit } from './roadside-scenery.js';
+
+const forestHorizon = {
+  offsets: [420, 1050, 1950, 3350, 5600, 8800, 14000],
+  heightAt(x, z, offset, plan) {
+    const phase = (plan.seed % 701) * 0.06;
+    const ridge = 0.54 + 0.46 * Math.sin(x * 0.0012 + z * 0.0008 + phase) ** 2;
+    const foothill = (offset - 2050) / 1700;
+    const distance = (offset - 5750) / 3100;
+    return (
+      ridge *
+      (240 * Math.exp(-foothill * foothill) +
+        475 * Math.exp(-distance * distance))
+    );
+  },
+};
 
 function forestSource(context) {
   const kit = createLivingForestKit({
@@ -169,6 +183,8 @@ export const vesperBiomeDescriptor = {
   id: 'vesper-living-forest-v1',
   grounded: true,
   waterEnabled: true,
+  farGround: true,
+  exteriorRelief: forestHorizon,
   limit: 245,
   clearanceMargin: 3,
   createFinish(context) {
@@ -187,68 +203,121 @@ export const vesperBiomeDescriptor = {
     const { placement, plan, track, doc, owner } = context;
     const random = placement.random;
     const wet = doc.settings.sceneryPreset.includes('river');
-    const limit = Math.round(65 + doc.settings.density * 78);
+    const density = doc.settings.density;
+    const limit = Math.round(65 + density * 84);
+    const rootedGroves = [];
     let trees = 0;
-    const tree = (id, x, z, scale = 1) => {
+    const tree = (id, asset, x, z, scale, yaw) => {
       if (trees >= limit) return;
-      const asset = 'grove-' + (trees % 3);
+      if (
+        rootedGroves.some(
+          (grove) => (x - grove.x) ** 2 + (z - grove.z) ** 2 < 54 ** 2,
+        )
+      )
+        return false;
       if (
         kit.emit(asset, {
           id,
           x,
           z,
           scale,
-          yaw: random() * Math.PI * 2,
-          embed: 0.015,
+          yaw,
+          embed: 0.035,
           overlap: true,
         })
-      )
+      ) {
         trees++;
+        rootedGroves.push({ x, z });
+        return true;
+      }
+      return false;
     };
     if (track) {
-      const stations = Math.min(70, Math.ceil(track.length / 180));
+      const length = track.finishDistance ?? track.length;
+      const stations = Math.min(76, Math.ceil(length / 155));
+      const phase = Math.floor(random() * 7);
       for (let i = 0; i < stations; i++) {
-        const distance = ((i + 0.4) / stations) * track.length;
+        const distance = ((i + 0.24 + 0.5 * random()) / stations) * length;
         if (track.isJumpProtected?.(distance)) continue;
         const frame = track.sample(distance);
-        const right = new T.Vector3(
-          frame.right.x,
-          0,
-          frame.right.z,
-        ).normalize();
-        for (const side of [-1, 1])
-          for (const offset of [135, 205]) {
+        const forward = frame.tangent.clone().setY(0).normalize();
+        const right = new T.Vector3(forward.z, 0, -forward.x);
+        const primary = Math.floor((i + phase) / 4) % 2 ? -1 : 1;
+        const clearing = (i + phase) % 7 === 6;
+        for (const side of [primary, -primary]) {
+          const leaf = random();
+          const variation = random();
+          const yaw = random() * Math.PI * 2;
+          const asset = 'grove-' + Math.floor(leaf * 3);
+          const height = kit.localBounds[asset].getSize(new T.Vector3()).y;
+          if (side !== primary && (clearing || variation > density * 0.94))
+            continue;
+          const along = (variation - 0.5) * 85;
+          for (const offset of [110, 158, 220, 294, 365]) {
             const p = frame.position
               .clone()
-              .addScaledVector(right, side * offset);
-            tree(
-              'road-grove-' + i + '-' + side + '-' + offset,
-              p.x,
-              p.z,
-              0.78 + random() * 0.4,
+              .addScaledVector(right, side * offset)
+              .addScaledVector(forward, along);
+            const ground = plan.surfaceHeight(p.x, p.z);
+            if (ground < plan.waterHeight(p.x, p.z) - (wet ? 2 : 7)) continue;
+            // Place the canopy at racing height even along high bridges.
+            // Broad scaled roots are still seated in the regional slope.
+            const crown = frame.position.y + (wet ? 42 : 64) + 72 * variation;
+            const scale = T.MathUtils.clamp(
+              (crown - ground) / (height * 0.82),
+              1.08,
+              wet ? 2.8 : 3.25,
             );
+            const id = 'road-grove-' + i + '-' + side;
+            if (!tree(id, asset, p.x, p.z, scale, yaw)) continue;
+            if (!clearing && variation < 0.3 + density * 0.42) {
+              p.addScaledVector(right, 63 * side).addScaledVector(
+                forward,
+                variation < 0.4 ? -64 : 68,
+              );
+              if (plan.surfaceHeight(p.x, p.z) >= plan.waterHeight(p.x, p.z))
+                tree(
+                  id + '-sister',
+                  'grove-' + ((Math.floor(leaf * 3) + 1) % 3),
+                  p.x,
+                  p.z,
+                  0.72 * scale,
+                  yaw + 1.35,
+                );
+            }
+            break;
           }
+        }
       }
     }
     const b = plan.bounds,
       step = 190;
-    let index = 0;
-    for (let z = b.min.z + 200; z < b.max.z - 180 && trees < limit; z += step)
-      for (
-        let x = b.min.x + 200;
-        x < b.max.x - 180 && trees < limit;
-        x += step
-      ) {
+    const candidates = [];
+    for (let z = b.min.z + 200; z < b.max.z - 180; z += step)
+      for (let x = b.min.x + 200; x < b.max.x - 180; x += step) {
         const px = x + (random() - 0.5) * 130,
           pz = z + (random() - 0.5) * 130;
         if (
           plan.surfaceHeight(px, pz) <
-            plan.waterHeight(px, pz) + (wet ? 12 : 4) ||
-          random() > 0.82
+          plan.waterHeight(px, pz) + (wet ? 12 : 4)
         )
           continue;
-        tree('interior-grove-' + index++, px, pz, 0.8 + random() * 0.4);
+        candidates.push({ x: px, z: pz, rank: random() });
       }
+    // Fill the regional canopy in seeded order instead of exhausting the
+    // stand budget in the first corner of the survey grid.
+    candidates.sort((a, b) => a.rank - b.rank);
+    for (const [index, { x, z }] of candidates.entries()) {
+      if (trees >= limit) break;
+      tree(
+        'interior-grove-' + index,
+        'grove-' + Math.floor(random() * 3),
+        x,
+        z,
+        0.8 + random() * 0.7,
+        random() * Math.PI * 2,
+      );
+    }
     // A small number of old-growth silhouettes anchor the broad grove field.
     for (const [i, district] of plan.districts.entries()) {
       if (i % 7 || i > 21) continue;
@@ -284,12 +353,6 @@ export const vesperBiomeDescriptor = {
           understory++;
       }
     }
-    fillRoadsideKit(context, kit, {
-      families: ['grove-0', 'grove-1', 'grove-2'],
-      limit: 14,
-      size: 1.85,
-      dry: true,
-    });
     const ready = kit.ready.then(() => {
       if (owner.isDisposed() || context.collectSolid) return;
       owner.group.traverse((mesh) => {

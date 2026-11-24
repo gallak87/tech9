@@ -51,11 +51,7 @@ import { getShip } from '../ships/catalog.js';
 import { WORLD_PRESETS } from './world-presets.js';
 import { ROAD_PRESETS, roadPresetOptions } from './road-presets.js';
 import { PLAYABLE_STARTERS } from './playable-starters.js';
-import {
-  EDITOR_BIOMES,
-  editorBiome,
-  isExperimentalEditorBiome,
-} from './biomes.js';
+import { EDITOR_BIOMES, editorBiome, isEditorBiome } from './biomes.js';
 import { findNextSuitableJump } from './jump-placement.js';
 import { prepareJumpEdit } from './jump-authoring.js';
 import {
@@ -83,6 +79,12 @@ const escape = (value) =>
 const rounded = (number, digits = 0) => Number(number.toFixed(digits));
 const button = (action, text, extra = '') =>
   `<button type="button" data-editor-action="${action}" ${extra}>${text}</button>`;
+const exitActions = new Set(['exit', 'exit-home']);
+const recoveryActions = new Set([
+  'recover-draft',
+  'discard-recovery',
+  ...exitActions,
+]);
 const option = (value, text, selected) =>
   `<option value="${value}" ${selected ? 'selected' : ''}>${text}</option>`;
 const uid = (prefix) =>
@@ -121,15 +123,11 @@ export function createTrackEditor(
     onPreviewReady,
     onPreviewError,
     shipId = 'kestrel',
-    showExperimentalBiomes = false,
     document: initial,
     library = createTrackLibrary(),
     recovery = createDraftRecovery(),
   } = {},
 ) {
-  const biomeChoices = showExperimentalBiomes
-    ? EDITOR_BIOMES
-    : EDITOR_BIOMES.filter(({ id }) => !isExperimentalEditorBiome(id));
   const previewShip = getShip(shipId);
   let doc = validateDocument(
     initial ?? createDocument({ seed: 42017, blank: true }),
@@ -292,7 +290,7 @@ export function createTrackEditor(
   host.classList.add('track-editor-host');
   host.innerHTML = `<div class="track-workshop workshop-direct workshop-strip-editor" aria-label="Track Workshop">
     <header class="workshop-header" data-editor-header>
-      <div class="workshop-wordmark">VECTOR<span>//</span>NOVA<small data-editor-course-label>TRACK EDITOR</small></div>
+      ${button('exit-home', 'VECTOR<span>//</span>NOVA<small data-editor-course-label>TRACK EDITOR</small>', 'class="workshop-wordmark" aria-label="VECTOR//NOVA Track Editor — Return to main menu" title="Return to main menu"')}
       <div class="workshop-document-actions" role="group" aria-label="Track commands">
         <div class="workshop-file-control">
           ${button('tab-library', 'File', 'aria-expanded="false" aria-controls="workshop-file-panel"')}
@@ -305,7 +303,7 @@ export function createTrackEditor(
       <div class="workshop-header-course">${courseTypeControl()}</div>
       <div class="workshop-header-actions">
         ${button('undo', 'Undo', 'aria-label="Undo edit"')}${button('redo', 'Redo', 'aria-label="Redo edit"')}
-        ${button('exit', 'Back', 'aria-label="Leave Workshop"')}
+        ${button('exit', 'Exit Editor')}
       </div>
     </header>
     <section class="workshop-recovery" data-editor-recovery hidden aria-labelledby="workshop-recovery-name"></section>
@@ -1147,7 +1145,7 @@ export function createTrackEditor(
       : 'Route point';
   }
   function courseTypeControl() {
-    return `<label class="workshop-label">Course type<select data-editor-field="course-type" aria-label="Course type">${option('circuit', 'Circuit', doc.courseType !== 'downhill')}${option('downhill', 'Downhill', doc.courseType === 'downhill')}</select></label>`;
+    return `<select data-editor-field="course-type" aria-label="Course type">${option('circuit', 'Circuit', doc.courseType !== 'downhill')}${option('downhill', 'Downhill', doc.courseType === 'downhill')}</select>`;
   }
   function selectedRange() {
     return selectedPointRange(doc.points, pointSelection);
@@ -1611,15 +1609,13 @@ export function createTrackEditor(
       ['sceneryPreset', 'density', 'waterLevel'].some(
         (key) => pending[key] !== doc.settings[key],
       );
-    const biomeCards = biomeChoices
-      .map((entry) =>
-        button(
-          `choose-biome-${entry.id}`,
-          `<img src="${escape(environmentThumbnail(entry.id, entry.presets[0].id))}" alt="" loading="lazy"><strong>${escape(entry.label)}</strong>`,
-          `class="workshop-biome-card" aria-pressed="${entry.id === pending.biome}"`,
-        ),
-      )
-      .join('');
+    const biomeCards = EDITOR_BIOMES.map((entry) =>
+      button(
+        `choose-biome-${entry.id}`,
+        `<img src="${escape(environmentThumbnail(entry.id, entry.presets[0].id))}" alt="" loading="lazy"><strong>${escape(entry.label)}</strong>`,
+        `class="workshop-biome-card" aria-pressed="${entry.id === pending.biome}"`,
+      ),
+    ).join('');
     const presetCards = presets
       .map((preset) =>
         button(
@@ -1629,11 +1625,8 @@ export function createTrackEditor(
         ),
       )
       .join('');
-    const existingBiome = biomeChoices.some(({ id }) => id === pending.biome)
-      ? ''
-      : option(pending.biome, family.label, true);
     return `<section class="workshop-section workshop-scenery-palette">
-      <label class="workshop-label">Biome<select data-editor-field="biome" aria-label="World family">${existingBiome}${biomeChoices.map((entry) => option(entry.id, entry.label, entry.id === pending.biome)).join('')}</select></label>
+      <label class="workshop-label">Biome<select data-editor-field="biome" aria-label="World family">${EDITOR_BIOMES.map((entry) => option(entry.id, entry.label, entry.id === pending.biome)).join('')}</select></label>
       ${details('biomes', 'Browse biomes', `<div class="workshop-biome-cards" role="group" aria-label="Biome choices">${biomeCards}</div>`)}
       <div class="workshop-world-presets" role="group" aria-label="Scenery swatches">${presetCards}</div>
       ${selectedStyle ? `<p class="workshop-help">${escape(selectedStyle.description)}</p>` : ''}
@@ -1893,9 +1886,7 @@ export function createTrackEditor(
         busy ||
         node.dataset.editorBaseDisabled === 'true' ||
         (Boolean(recoveryEntry) &&
-          !['recover-draft', 'discard-recovery', 'exit'].includes(
-            node.dataset.editorAction,
-          ));
+          !recoveryActions.has(node.dataset.editorAction));
       if (!node.dataset.editorAction) continue;
       const action = node.dataset.editorAction;
       if (action === 'tab-route') node.disabled = busy || selected < 0;
@@ -2061,11 +2052,7 @@ export function createTrackEditor(
   }
   async function action(name, meta = {}) {
     if (disposed || busy) return;
-    if (
-      recoveryEntry &&
-      !['recover-draft', 'discard-recovery', 'exit'].includes(name)
-    )
-      return;
+    if (recoveryEntry && !recoveryActions.has(name)) return;
     cancelActiveDrag();
     if (
       ['apply-road-finish', 'clear-road-finish'].includes(name) ||
@@ -2973,9 +2960,9 @@ export function createTrackEditor(
       viewport.zoom(name === 'zoom-in' ? -1 : 1);
       return;
     }
-    if (name === 'exit') {
+    if (exitActions.has(name)) {
       flushRecovery();
-      onExit(clone(doc));
+      onExit(clone(doc), { toHome: name === 'exit-home' });
       return;
     }
     if (TEST_ACTIONS.has(name)) {
@@ -3246,7 +3233,7 @@ export function createTrackEditor(
         );
       if (field === 'environment-density') environmentDraft.density = number;
       if (field === 'biome') {
-        if (!biomeChoices.some(({ id }) => id === value)) return;
+        if (!isEditorBiome(value)) return;
         environmentDraft.biome = value;
         const preset = (editorBiome(value).presets ?? WORLD_PRESETS)[0];
         Object.assign(environmentDraft, {

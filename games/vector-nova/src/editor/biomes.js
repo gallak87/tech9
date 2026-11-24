@@ -82,7 +82,7 @@ export const EDITOR_BIOMES = freeze([
       0.45,
     ),
     '#243a4a',
-    ['#657682', 0.00038],
+    ['#667984', 0.00023],
   ),
   biome(
     'halcyon',
@@ -220,7 +220,7 @@ export const EDITOR_BIOMES = freeze([
       1.05,
     ),
     '#081722',
-    ['#587b7b', 0.0006],
+    ['#577373', 0.00028],
   ),
   biome(
     'glasswake',
@@ -309,8 +309,8 @@ export const EDITOR_BIOMES = freeze([
     ],
     road(
       'ceramic',
-      ['#d3b47b', '#ac8b61', '#745e47', '#ead5a4', '#8c7251', '#ffca78'],
-      0.45,
+      ['#c6a052', '#ac8b61', '#745e47', '#ead5a4', '#8c7251', '#ffca78'],
+      0.32,
       0.06,
     ),
     environment(
@@ -321,7 +321,7 @@ export const EDITOR_BIOMES = freeze([
       0.8,
     ),
     '#b7a4a2',
-    ['#b8a5a3', 0.00017],
+    ['#b8a5a3', 0.00011],
   ),
   biome(
     'zephyr',
@@ -357,7 +357,7 @@ export const EDITOR_BIOMES = freeze([
       1.1,
     ),
     '#a18eac',
-    ['#a9b0c6', 0.00046],
+    ['#aaa1b6', 0.000095],
   ),
   biome(
     'helion',
@@ -489,7 +489,7 @@ export const EDITOR_BIOMES = freeze([
       1.5,
     ),
     '#b4c5cf',
-    ['#bac5c9', 0.00005],
+    ['#cec9be', 0.00005],
   ),
   biome(
     'colossus',
@@ -622,15 +622,12 @@ export const EDITOR_BIOMES = freeze([
       0.65,
     ),
     '#b5c7bc',
-    ['#a5c6cf', 0.00026],
+    ['#afc3b8', 0.00016],
   ),
 ]);
 
 export function isEditorBiome(id) {
   return EDITOR_BIOMES.some((value) => value.id === id);
-}
-export function isExperimentalEditorBiome(id) {
-  return id === 'oriel' || id === 'worldspire';
 }
 export function editorBiome(id = 'nightweir') {
   const value = EDITOR_BIOMES.find((entry) => entry.id === id);

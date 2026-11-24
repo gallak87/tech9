@@ -1,6 +1,6 @@
 import * as T from 'three';
 import { assetURL } from '../assets/url.js';
-import { replaceShader } from '../renderer/shader-patch.js';
+import { appendShaderPatch, replaceShader } from '../renderer/shader-patch.js';
 import { editorBiome } from './biomes.js';
 
 const empty = () => ({ ready: Promise.resolve(), dispose() {} });
@@ -93,8 +93,36 @@ async function createFinish(
     texture.colorSpace = T.SRGBColorSpace;
     texture.wrapS = texture.wrapT = T.RepeatWrapping;
     texture.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
-    material.name = 'Glasswake / Fresh fracture travel bands';
+    material.name = 'Glasswake / Fresh fracture editor deck';
     finishIceMaterial(material, texture);
+    // Frosted travel bands give the chase view a continuous deck reference.
+    // Leave the centre and margins transparent so supports read through them.
+    appendShaderPatch(material, ':editor-glasswake-travel-bands', (shader) => {
+      const anchor = '#include <begin_vertex>';
+      shader.vertexShader =
+        'varying float glasswakeDeckAcross;\n' +
+        replaceShader(
+          shader.vertexShader,
+          anchor,
+          anchor + '\nglasswakeDeckAcross = uv.x;',
+        );
+      const roughness = '#include <metalnessmap_fragment>';
+      shader.fragmentShader =
+        'varying float glasswakeDeckAcross;\n' +
+        replaceShader(
+          shader.fragmentShader,
+          roughness,
+          `${roughness}
+          float across = abs(glasswakeDeckAcross - .5);
+          float frostBand = smoothstep(.105,.13,across)
+            * (1. - smoothstep(.285,.31,across));
+          vec3 windpack = vec3(.48,.57,.63) * (.77 + iceLuma*.34 + grain*.08);
+          diffuseColor.rgb = mix(diffuseColor.rgb, windpack, frostBand*.82);
+          diffuseColor.a = mix(diffuseColor.a, .99, frostBand);
+          roughnessFactor = mix(roughnessFactor, .88, frostBand);
+          `,
+        );
+    });
     return {
       ready: Promise.resolve(),
       dispose() {
@@ -102,7 +130,14 @@ async function createFinish(
       },
     };
   }
-  if (kind === 'ceramic' && id !== 'saffron') {
+  if (id === 'saffron') {
+    const { finishSaffronGlass } =
+      await import('../levels/saffron/track/glass-finish.js');
+    if (!alive()) return null;
+    finishSaffronGlass(material);
+    return empty();
+  }
+  if (kind === 'ceramic') {
     const [{ finishThermalMaterial }, maps] = await Promise.all([
       import('../levels/helion/environment/materials.js'),
       id === 'cindercoil'

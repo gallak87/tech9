@@ -54,6 +54,10 @@ const action = (page, key) => page.locator(`[data-editor-action="${key}"]`);
 const section = (page, key) => page.locator(`[data-editor-section="${key}"]`);
 const inspector = (page) => page.locator('[data-editor-authoring]');
 const toolbar = (page) => page.getByRole('group', { name: 'Viewport tools' });
+const wordmark = (page) =>
+  page.getByRole('button', {
+    name: 'VECTOR//NOVA Track Editor — Return to main menu',
+  });
 const state = (page) =>
   page.evaluate(() => window.__VN_FRONTEND.getState().editor);
 const tapOrClick = (control) => (responsive ? control.tap() : control.click());
@@ -75,7 +79,7 @@ async function ready(page) {
   await page.waitForFunction(
     () => {
       const editor = window.__VN_FRONTEND.getState().editor;
-      return !editor?.busy && editor.preview?.worldReady;
+      return editor && !editor.busy && editor.preview?.worldReady;
     },
     null,
     { timeout: 90000 },
@@ -225,6 +229,25 @@ async function structure(page) {
             !el.closest('.workshop-canvas'),
         ),
     );
+  const course = page.getByRole('combobox', { name: 'Course type' });
+  const exit = page.getByRole('button', { name: 'Exit Editor', exact: true });
+  await uncovered(course, 'course selector');
+  await uncovered(exit, 'Exit Editor');
+  await uncovered(wordmark(page), 'Track Editor wordmark');
+  assert.equal(await exit.innerText(), 'Exit Editor');
+  assert.doesNotMatch(
+    await page.locator('.workshop-header-course').innerText(),
+    /course type/i,
+    'the selector retains its accessible label without visible label text',
+  );
+  const courseBox = await course.boundingBox();
+  const exitBox = await exit.boundingBox();
+  assert(
+    Math.abs(
+      courseBox.y + courseBox.height / 2 - (exitBox.y + exitBox.height / 2),
+    ) <= 1,
+    'the course selector is vertically centered on the header actions',
+  );
   for (const key of globalGroups)
     assert(
       await action(page, key).evaluate((el) => !el.closest('.workshop-canvas')),
@@ -250,6 +273,43 @@ async function structure(page) {
     0,
     'viewport tools match the game’s square menu controls',
   );
+}
+
+async function exitChecks(page) {
+  const editorEntry = page.locator('[data-action="track-editor"]');
+  const expectMainMenu = async () => {
+    await page.waitForFunction(
+      () => window.__VN_FRONTEND.getState().screen === 'home',
+    );
+    assert(
+      await editorEntry.evaluate((el) => el === document.activeElement),
+      'leaving the editor returns focus to its main-menu entry',
+    );
+  };
+  if (responsive) await tapOrClick(action(page, 'exit'));
+  else {
+    await action(page, 'context-road').focus();
+    await pad(page, 12);
+    assert(
+      await action(page, 'exit').evaluate(
+        (el) => el === document.activeElement,
+      ),
+    );
+    await pad(page, 0);
+  }
+  await expectMainMenu();
+  await tapOrClick(editorEntry);
+  await ready(page);
+  if (responsive) await tapOrClick(wordmark(page));
+  else {
+    await action(page, 'tab-library').press('Shift+Tab');
+    assert(
+      await wordmark(page).evaluate((el) => el === document.activeElement),
+    );
+    await page.keyboard.press('Enter');
+  }
+  await expectMainMenu();
+  console.log('PASS Exit Editor and wordmark return to the main menu');
 }
 
 async function mapCameraChecks(page) {
@@ -355,7 +415,9 @@ async function mapCameraChecks(page) {
     'Escape dismisses only Map and returns focus to its toggle',
   );
   await openMap();
-  await page.locator('.workshop-wordmark').click();
+  await page
+    .locator('[data-editor-header]')
+    .click({ position: { x: 1, y: 1 } });
   assert.equal(
     (await state(page)).mapOpen,
     false,
@@ -835,6 +897,7 @@ try {
     console.log('PASS Draw continues after inline point-height editing');
   }
   await mapCameraChecks(page);
+  await exitChecks(page);
 } finally {
   clearTimeout(watchdog);
   await context.close();

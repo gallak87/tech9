@@ -271,6 +271,7 @@ export function createProductionEnvironment(
     context.materials = materials;
     const grounded = descriptor.grounded ?? !biome.road.suspended;
     const waterEnabled = descriptor.waterEnabled ?? profile.waterEnabled;
+    const hasFarGround = grounded && (descriptor.farGround ?? !waterEnabled);
     const region = buildRegionEnvironment(
       {
         ...plan,
@@ -285,16 +286,34 @@ export function createProductionEnvironment(
     if (!waterEnabled)
       for (const mesh of [...owner.group.children])
         if (mesh.userData.regionWater) owner.group.remove(mesh);
-    if (grounded && !waterEnabled && descriptor.farGround !== false) {
+    if (hasFarGround) {
       const far = owner.solid(
         name + ' / distant land',
-        createFarGroundGeometry(plan),
+        createFarGroundGeometry(plan, { relief: descriptor.exteriorRelief }),
         materials.soil,
         { kind: 'terrain' },
         collectSolid,
       );
       far.castShadow = false;
       far.userData.regionFarGround = true;
+      if (waterEnabled && !collectSolid) {
+        // Carry the reservoir surface into the next hillside so water never
+        // cuts off on the edge of the rectangular survey.
+        const exteriorWater = createFarGroundGeometry(
+          {
+            ...plan,
+            seaLevel: plan.seaLevel - 2,
+            terrain: { ...plan.terrain, heights: plan.terrain.waterHeights },
+          },
+          { size: 1, relief: { offsets: [620], heightAt: () => 0 } },
+        );
+        const banks = owner.solid(
+          name + ' / distant reservoir banks',
+          exteriorWater,
+          materials.water,
+        );
+        banks.castShadow = false;
+      }
     }
     const records = descriptor.plan?.(doc, track, plan, placement);
     if (records?.then)
@@ -331,6 +350,7 @@ export function createProductionEnvironment(
           ? { loadTexture: descriptor.loadTexture }
           : {}),
         tileSize: descriptor.tileSize ?? 4096,
+        tileOffset: descriptor.tileOffset,
       });
       borrow(kit);
     }
@@ -360,7 +380,7 @@ export function createProductionEnvironment(
       terrainStyle:
         descriptor.terrainStyle ??
         (grounded ? 'surveyed-ground' : 'floating-regions'),
-      ...(grounded && !waterEnabled ? { farGroundY: plan.seaLevel - 28 } : {}),
+      ...(hasFarGround ? { farGroundY: plan.seaLevel - 28 } : {}),
       features: {
         [descriptor.feature ?? doc.biome + '-production']:
           placement.accepted.length,

@@ -169,6 +169,7 @@ function abort(signal) {
 }
 async function panorama(id, loadTexture, signal) {
   const [source, yaw] = SKIES[id];
+  const glacierHorizon = id === 'glasswake';
   const texture = await loadTexture(assetURL(`assets/levels/${source}`));
   if (signal?.aborted) {
     texture.dispose();
@@ -183,17 +184,26 @@ async function panorama(id, loadTexture, signal) {
     name: `Editor ${id} / registered sky radiance`,
     side: T.BackSide,
     depthWrite: false,
-    uniforms: { panorama: { value: texture }, yaw: { value: yaw } },
+    uniforms: {
+      panorama: { value: texture },
+      yaw: { value: yaw },
+      ...(glacierHorizon
+        ? { haze: { value: new T.Color(editorBiome(id).renderer.fog.color) } }
+        : {}),
+    },
     vertexShader:
       'varying vec3 ray;void main(){ray=position;vec4 p=projectionMatrix*modelViewMatrix*vec4(position,1.);gl_Position=p.xyww;}',
     fragmentShader: `varying vec3 ray;uniform sampler2D panorama;uniform float yaw;
+      ${glacierHorizon ? 'uniform vec3 haze;' : ''}
       void main(){vec3 d=normalize(ray);float u=fract(atan(d.z,d.x)/6.2831853+yaw);float v=asin(clamp(d.y,-1.,1.))/3.14159265+.5;
       vec3 dx=dFdx(d),dy=dFdy(d);float a=.96/(6.2831853*max(dot(d.xz,d.xz),.000001));float b=1./(3.14159265*sqrt(max(1.-d.y*d.y,.000001)));
       vec2 ux=vec2((d.x*dx.z-d.z*dx.x)*a,dx.y*b),uy=vec2((d.x*dy.z-d.z*dy.x)*a,dy.y*b);
       float pu=u*.96;vec3 color=textureGrad(panorama,vec2(pu,v),ux,uy).rgb;
       if(pu<.04)color=mix(textureGrad(panorama,vec2(pu+.96,v),ux,uy).rgb,color,smoothstep(0.,.04,pu));
       float pv=d.y>0.?.99:.01;vec3 pole=(textureLod(panorama,vec2(.125,pv),3.).rgb+textureLod(panorama,vec2(.375,pv),3.).rgb+textureLod(panorama,vec2(.625,pv),3.).rgb+textureLod(panorama,vec2(.875,pv),3.).rgb)*.25;
-      color=mix(color,pole,smoothstep(.96,.998,abs(d.y)));gl_FragColor=vec4(color,1.);
+      color=mix(color,pole,smoothstep(.96,.998,abs(d.y)));
+      ${glacierHorizon ? 'color=mix(haze,color*.65,smoothstep(-.025,.15,d.y));' : ''}
+      gl_FragColor=vec4(color,1.);
       #include <tonemapping_fragment>
       #include <colorspace_fragment>
       }`,
@@ -219,7 +229,7 @@ async function panorama(id, loadTexture, signal) {
     },
   };
 }
-async function procedural(id, signal) {
+async function procedural(id, document, track, signal) {
   if (id === 'vesper-forest') {
     const { createVesperBackdrop } =
       await import('../levels/vesper-forest/backdrop/index.js');
@@ -232,10 +242,9 @@ async function procedural(id, signal) {
     return createRavelBackdrop();
   }
   if (id === 'oriel') {
-    const { createOrielBackdrop } =
-      await import('../levels/oriel/backdrop/index.js');
+    const { createEditorOrielBackdrop } = await import('./oriel-backdrop.js');
     abort(signal);
-    return createOrielBackdrop();
+    return createEditorOrielBackdrop(document, track);
   }
   throw new Error('Missing registered backdrop for ' + id);
 }
@@ -279,17 +288,24 @@ export async function createEditorBackdrop(
 ) {
   const id = editorBiome(document.biome).id;
   abort(signal);
+  const loadPanorama = async (url) => {
+    const texture = await loadTexture(url);
+    // An equirectangular panorama covers 360 degrees. A typical camera
+    // displays only a small fraction of the image across the entire canvas.
+    texture.userData.editorPanorama = true;
+    return texture;
+  };
   let source;
   if (id === 'nightweir') {
     const { createNightweirBackdrop } =
       await import('../levels/nightweir/backdrop/index.js');
     abort(signal);
-    source = await createNightweirBackdrop({ loadTexture });
+    source = await createNightweirBackdrop({ loadTexture: loadPanorama });
   } else if (id === 'nacre' && document.environment?.layoutVersion >= 4) {
     const { createNacreBackdrop } =
       await import('../levels/nacre/backdrop/index.js');
     abort(signal);
-    const skyTexture = await loadTexture(
+    const skyTexture = await loadPanorama(
       assetURL('assets/levels/nacre/nacre-storm-sky-v1.png'),
     );
     const storm = createNacreBackdrop({ settings, skyTexture });
@@ -338,10 +354,13 @@ export async function createEditorBackdrop(
     abort(signal);
     source = celestial(
       id === 'helion'
-        ? await module.createHelionBackdrop({ settings, loadTexture })
+        ? await module.createHelionBackdrop({
+            settings,
+            loadTexture: loadPanorama,
+          })
         : await module.createUmbraBackdrop({
             settings,
-            loadTexture,
+            loadTexture: loadPanorama,
             distant: true,
           }),
       id,
@@ -349,8 +368,8 @@ export async function createEditorBackdrop(
     );
   } else {
     source = SKIES[id]
-      ? await panorama(id, loadTexture, signal)
-      : await procedural(id, signal);
+      ? await panorama(id, loadPanorama, signal)
+      : await procedural(id, document, track, signal);
   }
   let disposed = false;
   const dispose = () => {

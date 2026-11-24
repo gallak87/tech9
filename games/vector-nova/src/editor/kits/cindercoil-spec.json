@@ -28,5 +28,25 @@
     "file": "cindercoil-hero-kit-v7.glb",
     "node": "ash_pocket",
     "proxy": "exact"
+  },
+  "rupture-wall": {
+    "file": "cindercoil-hero-kit-v7.glb",
+    "node": "rupture_wall",
+    "proxy": "none"
+  },
+  "cascade-0": {
+    "file": "cindercoil-hero-kit-v7.glb",
+    "node": "cascade_0",
+    "proxy": "none"
+  },
+  "cascade-1": {
+    "file": "cindercoil-hero-kit-v7.glb",
+    "node": "cascade_1",
+    "proxy": "none"
+  },
+  "cascade-2": {
+    "file": "cindercoil-hero-kit-v7.glb",
+    "node": "cascade_2",
+    "proxy": "none"
   }
 }

@@ -3,10 +3,6 @@
     "file": "island-terrace.glb",
     "proxy": "exact"
   },
-  "shard": {
-    "file": "island-shard.glb",
-    "proxy": "exact"
-  },
   "abbey": {
     "file": "abbey-quarter.glb",
     "proxy": "none"
@@ -17,6 +13,14 @@
   },
   "halo": {
     "file": "broken-halo.glb",
+    "proxy": "exact"
+  },
+  "terrace-light": {
+    "file": "editor-island-terrace.glb",
+    "proxy": "exact"
+  },
+  "shard-light": {
+    "file": "editor-island-shard.glb",
     "proxy": "exact"
   }
 }

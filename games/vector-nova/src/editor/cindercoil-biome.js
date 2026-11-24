@@ -18,9 +18,104 @@ const assets = Object.fromEntries(
   ]),
 );
 
+const scarpParts = ['rupture-wall', 'cascade-0', 'cascade-1', 'cascade-2'];
+const scarpBounds = scarpParts.reduce(
+  (result, id) => {
+    const [min, max] = assets[id].bounds;
+    return result.union(
+      new T.Box3(new T.Vector3(...min), new T.Vector3(...max)),
+    );
+  },
+  // Include the molten apron below the three curtains.
+  new T.Box3(new T.Vector3(-174, -1, 43), new T.Vector3(174, 3, 174)),
+);
+const up = new T.Vector3(0, 1, 0);
+const calderaRim = {
+  offsets: [170, 350, 540, 790, 1080, 1550, 2250, 3550, 5800],
+  heightAt(x, z, offset, plan) {
+    const terrain = plan.terrain;
+    const angle = Math.atan2(
+      z - terrain.minZ - (terrain.nz * terrain.dz) / 2,
+      x - terrain.minX - (terrain.nx * terrain.dx) / 2,
+    );
+    const phase = (plan.seed % 997) * 0.037;
+    const breakInRim = 0.31 + 0.69 * Math.abs(Math.sin(angle + phase)) ** 0.5;
+    const crest =
+      0.8 + 0.16 * Math.sin(angle * 5 + phase) + 0.08 * Math.sin(angle * 17);
+    const inner = (offset - 790) / 530;
+    const outer = (offset - 2870) / 1300;
+    return (
+      (890 * Math.exp(-(inner ** 2)) + 465 * Math.exp(-(outer ** 2))) *
+      breakInRim *
+      crest
+    );
+  },
+};
+
+function placeMoltenScarp(track, plan, placement, density) {
+  if (!track) return;
+  const random = placement.random;
+  const firstSide = random() < 0.5 ? -1 : 1;
+  const scale = 0.93 + random() * 0.26;
+  const length = track.finishDistance ?? track.length;
+  const matrix = new T.Matrix4();
+  const bounds = new T.Box3();
+  const rotation = new T.Quaternion();
+  for (const [index, fractions] of [
+    [0, [0.21, 0.29, 0.4, 0.51]],
+    [1, [0.64, 0.75, 0.87]],
+  ]) {
+    if (index && (density < 0.85 || length < 5100)) break;
+    placeSection(index, fractions);
+  }
+
+  function placeSection(index, fractions) {
+    for (const fraction of fractions) {
+      const station = length * fraction;
+      if (track.isJumpProtected?.(station)) continue;
+      const frame = track.sample(station);
+      const heading = Math.atan2(frame.tangent.x, frame.tangent.z);
+      const right = new T.Vector3(Math.cos(heading), 0, -Math.sin(heading));
+      const preferredSide = index ? -firstSide : firstSide;
+      for (const side of [preferredSide, -preferredSide]) {
+        rotation.setFromAxisAngle(up, heading - side * (Math.PI / 2 - 0.21));
+        for (const offset of [385, 520, 655]) {
+          const position = frame.position
+            .clone()
+            .addScaledVector(right, offset * side);
+          position.y = plan.surfaceHeight(position.x, position.z) + 3;
+          matrix.compose(position, rotation, new T.Vector3().setScalar(scale));
+          if (
+            !placement.acceptBounds(
+              bounds.copy(scarpBounds).applyMatrix4(matrix),
+              {
+                id: 'molten-scarp-' + index,
+                asset: 'rupture-wall',
+                solid: false,
+              },
+            )
+          )
+            continue;
+          for (const asset of scarpParts)
+            placement.add({
+              id: 'molten-scarp-' + index + '-' + asset,
+              asset,
+              matrix,
+              overlap: true,
+              solid: false,
+            });
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+}
+
 export const cindercoilBiomeDescriptor = {
   name: 'Cindercoil caldera geology',
   limit: 120,
+  exteriorRelief: calderaRim,
   assets,
   textures: {
     basalt: assetURL('assets/levels/cindercoil/basalt-albedo-v1.png'),
@@ -66,6 +161,7 @@ export const cindercoilBiomeDescriptor = {
     materials.soil.needsUpdate = true;
   },
   plan(doc, track, plan, placement) {
+    placeMoltenScarp(track, plan, placement, doc.settings.density);
     const random = placement.random;
     const furnace = doc.settings.sceneryPreset.includes('furnace');
     const families = furnace
@@ -75,9 +171,10 @@ export const cindercoilBiomeDescriptor = {
           'fractured-ridge',
           'basalt-cluster',
         ]
-      : ['basalt-cluster', 'talus-apron', 'fractured-ridge', 'ash-pocket'];
+      : ['basalt-cluster', 'fractured-ridge', 'talus-apron', 'hollow-tower'];
     for (const [i, district] of plan.districts.entries()) {
-      const asset = families[i % families.length];
+      if (random() > doc.settings.density) continue;
+      const asset = families[Math.floor(random() * families.length)];
       const range = assets[asset].bounds;
       const width = Math.max(
         range[1][0] - range[0][0],
@@ -88,7 +185,7 @@ export const cindercoilBiomeDescriptor = {
         x: district.x,
         z: district.z,
         yaw: district.yaw + (random() - 0.5) * 0.8,
-        scale: (160 + random() * 150) / width,
+        scale: (205 + random() * 215) / width,
         embed: asset === 'hollow-tower' ? 0.08 : 0.28,
         solid: false,
       });
@@ -98,7 +195,11 @@ export const cindercoilBiomeDescriptor = {
     let remainingContactFaces = 90000;
     if (track)
       for (
-        let i = 0, n = Math.min(42, Math.ceil(track.length / 190));
+        let i = 0,
+          n = Math.min(
+            42,
+            Math.ceil(track.length / (540 - doc.settings.density * 345)),
+          );
         i < n;
         i++
       ) {
@@ -106,12 +207,7 @@ export const cindercoilBiomeDescriptor = {
         if (track.isJumpProtected?.(distance)) continue;
         const frame = track.sample(distance),
           right = new T.Vector3(frame.right.x, 0, frame.right.z).normalize();
-        const asset =
-          i % 4 === 0 && furnace
-            ? 'hollow-tower'
-            : i % 3
-              ? 'basalt-cluster'
-              : 'fractured-ridge';
+        const asset = families[Math.floor(random() * families.length)];
         const range = assets[asset].bounds,
           width = Math.max(
             range[1][0] - range[0][0],
@@ -129,8 +225,8 @@ export const cindercoilBiomeDescriptor = {
               x: p.x,
               z: p.z,
               yaw: Math.atan2(frame.tangent.x, frame.tangent.z),
-              scale: (110 + random() * 70) / width,
-              embed: 0.22,
+              scale: (150 + random() * 115) / width,
+              embed: asset === 'hollow-tower' ? 0.11 : 0.22,
               solid,
             })
           ) {
@@ -145,10 +241,10 @@ export const cindercoilBiomeDescriptor = {
       ? ['hollow-tower', 'broken-lava-tube', 'fractured-ridge']
       : ['fractured-ridge', 'broken-lava-tube', 'hollow-tower', 'talus-apron'];
     for (const site of roadsideScenerySites(track, doc.settings.density, 24)) {
-      const asset = vents[site.id % vents.length];
+      const asset = vents[Math.floor(random() * vents.length)];
       const [min, max] = assets[asset].bounds;
       const scale =
-        (95 + random() * 50) / Math.max(max[0] - min[0], max[2] - min[2]);
+        (115 + random() * 70) / Math.max(max[0] - min[0], max[2] - min[2]);
       const footprint =
         (Math.hypot(max[0] - min[0], max[2] - min[2]) * scale) / 2;
       for (const offset of site.offsets) {
@@ -179,6 +275,23 @@ export const cindercoilBiomeDescriptor = {
     for (const mesh of context.owner.group.children)
       if (mesh.material === context.materials.soil)
         colorCalderaTerrain(mesh.geometry);
+    for (const scarp of context.placement.placements) {
+      if (scarp.asset !== 'rupture-wall') continue;
+      const lava = createLavaPool(
+        165,
+        58,
+        context.cinder.materials.lava,
+        (context.plan.seed & 255) + 7,
+      ).geometry;
+      lava.translate(0, 1, 108);
+      lava.applyMatrix4(scarp.matrix);
+      const toe = context.owner.solid(
+        'Cindercoil / lava crust at the foot of the escarpment',
+        lava,
+        context.cinder.materials.lava,
+      );
+      toe.castShadow = false;
+    }
     // Lava remains a landscape surface. Active floor heat is a separately
     // deferred hazard feature; its visual never covers the road or flight path.
     for (const [i, basin] of context.plan.basins.entries()) {

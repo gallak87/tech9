@@ -130,5 +130,69 @@
     "visualTriangles": 1000,
     "proxy": "exact-rendered-indexed",
     "sourceHash": "df5b60455dbe8762dd34e5dabd05009619a3b241c3964575582de22cea58ac73"
+  },
+  "rupture-wall": {
+    "url": "assets/levels/cindercoil/cindercoil-hero-kit-v7.glb",
+    "bounds": [
+      [-239.379517, -35.446182, -79.07782],
+      [246.054535, 283.037262, 56.126263]
+    ],
+    "visualBounds": [
+      [-239.379517, -35.446182, -79.07782],
+      [246.054535, 283.037262, 56.126263]
+    ],
+    "triangles": [],
+    "node": "rupture_wall",
+    "visualTriangles": 20768,
+    "proxy": "none",
+    "sourceHash": "df5b60455dbe8762dd34e5dabd05009619a3b241c3964575582de22cea58ac73"
+  },
+  "cascade-0": {
+    "url": "assets/levels/cindercoil/cindercoil-hero-kit-v7.glb",
+    "bounds": [
+      [-157.300446, -4.63433, -36.357582],
+      [-63.726818, 269.816559, 135.917984]
+    ],
+    "visualBounds": [
+      [-157.300446, -4.63433, -36.357582],
+      [-63.726818, 269.816559, 135.917984]
+    ],
+    "triangles": [],
+    "node": "cascade_0",
+    "visualTriangles": 12334,
+    "proxy": "none",
+    "sourceHash": "df5b60455dbe8762dd34e5dabd05009619a3b241c3964575582de22cea58ac73"
+  },
+  "cascade-1": {
+    "url": "assets/levels/cindercoil/cindercoil-hero-kit-v7.glb",
+    "bounds": [
+      [-50.02631, -4.376631, -36.357582],
+      [42.594517, 289.816559, 128.742188]
+    ],
+    "visualBounds": [
+      [-50.02631, -4.376631, -36.357582],
+      [42.594517, 289.816559, 128.742188]
+    ],
+    "triangles": [],
+    "node": "cascade_1",
+    "visualTriangles": 12284,
+    "proxy": "none",
+    "sourceHash": "df5b60455dbe8762dd34e5dabd05009619a3b241c3964575582de22cea58ac73"
+  },
+  "cascade-2": {
+    "url": "assets/levels/cindercoil/cindercoil-hero-kit-v7.glb",
+    "bounds": [
+      [57.640774, -4.481229, -36.357582],
+      [154.172913, 248.816559, 135.74675]
+    ],
+    "visualBounds": [
+      [57.640774, -4.481229, -36.357582],
+      [154.172913, 248.816559, 135.74675]
+    ],
+    "triangles": [],
+    "node": "cascade_2",
+    "visualTriangles": 12276,
+    "proxy": "none",
+    "sourceHash": "df5b60455dbe8762dd34e5dabd05009619a3b241c3964575582de22cea58ac73"
   }
 }

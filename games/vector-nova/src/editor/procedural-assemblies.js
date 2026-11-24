@@ -230,34 +230,56 @@ export function createProceduralAssemblies(context, source) {
 export function planManufacturedSites(
   context,
   kit,
-  { floating = false, families, limit = 40, spacing = 300 } = {},
+  { floating = false, dry = false, families, limit = 40, spacing = 300 } = {},
 ) {
   const { track, plan, placement, doc } = context;
   const random = placement.random;
+  const density = doc.settings.density;
+  const choose = () => families[Math.floor(random() * families.length)];
+  const onDryGround = (x, z, radius) =>
+    !dry ||
+    [
+      [x, z],
+      [x - radius, z],
+      [x + radius, z],
+      [x, z - radius],
+      [x, z + radius],
+    ].every(
+      ([px, pz]) => plan.surfaceHeight(px, pz) > plan.waterHeight(px, pz) + 2,
+    );
   let count = 0;
   if (track) {
+    const length = track.finishDistance ?? track.length;
     const stations = Math.min(
       floating ? 26 : 36,
-      Math.ceil(track.length / spacing),
+      Math.ceil((length * (0.38 + density * 0.62)) / spacing),
     );
+    const firstSide = random() < 0.5 ? -1 : 1;
     for (let i = 0; i < stations && count < limit; i++) {
-      const distance = ((i + 0.45) / stations) * track.length;
+      const distance = ((i + 0.28 + random() * 0.38) / stations) * length;
+      const asset = choose();
+      const scale = floating ? 0.8 + random() * 0.45 : 0.78 + random() * 0.48;
+      const height = 0.4 + random() * 0.2;
+      const skew = (random() - 0.5) * 0.35;
       if (track.isJumpProtected?.(distance)) continue;
       const frame = track.sample(distance),
-        side = i % 2 ? -1 : 1;
+        side = i % 2 ? -firstSide : firstSide;
       const right = new T.Vector3(frame.right.x, 0, frame.right.z).normalize();
-      const asset = families[i % families.length],
-        local = kit.localBounds[asset];
+      const local = kit.localBounds[asset];
       const size = local.getSize(new T.Vector3());
-      const scale = floating ? 0.8 + random() * 0.45 : 0.85 + random() * 0.3;
       const half = (Math.hypot(size.x, size.z) * scale) / 2;
-      for (const extra of [0, 90, 190]) {
+      for (const [sign, extra] of [
+        [side, 0],
+        [-side, 0],
+        [side, 95],
+        [-side, 95],
+        [side, 190],
+      ]) {
         const position = frame.position
           .clone()
-          .addScaledVector(right, side * (half + 90 + extra));
-        const y = floating
-          ? frame.position.y - size.y * scale * (0.4 + random() * 0.2)
-          : null;
+          .addScaledVector(right, sign * (half + 90 + extra));
+        if (!onDryGround(position.x, position.z, half * 0.5)) continue;
+        const y = floating ? frame.position.y - size.y * scale * height : null;
         if (
           kit.emit(asset, {
             id: 'route-' + i,
@@ -267,7 +289,7 @@ export function planManufacturedSites(
             scale,
             yaw:
               Math.atan2(frame.tangent.x, frame.tangent.z) +
-              (floating ? (random() - 0.5) * 0.35 : 0),
+              (floating ? skew : 0),
           })
         ) {
           count++;
@@ -278,9 +300,18 @@ export function planManufacturedSites(
   }
   for (const [i, district] of plan.districts.entries()) {
     if (count >= limit) break;
-    if (random() > 0.32 + doc.settings.density * 0.65) continue;
-    const asset = families[(i + 1) % families.length];
+    if (random() > 0.32 + density * 0.65) continue;
+    const asset = choose();
     const size = kit.localBounds[asset].getSize(new T.Vector3());
+    const scale = 0.9 + random() * 0.35;
+    if (
+      !onDryGround(
+        district.x,
+        district.z,
+        Math.max(size.x, size.z) * scale * 0.25,
+      )
+    )
+      continue;
     const y = floating ? district.y + 80 - size.y * 0.5 : null;
     if (
       kit.emit(asset, {
@@ -289,7 +320,7 @@ export function planManufacturedSites(
         z: district.z,
         y,
         yaw: district.yaw,
-        scale: 0.9 + random() * 0.35,
+        scale,
       })
     )
       count++;

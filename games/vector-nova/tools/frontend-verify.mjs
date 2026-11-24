@@ -3153,23 +3153,35 @@ try {
         });
         await page.locator('#home').click();
         assert.equal((await front(page)).screen, 'home');
-        const setupGaps = await page
+        const setupLayout = await page
           .locator('.menu-wide')
           .evaluate((layout) => {
             const resume = layout.querySelector(
               '[data-action="resume-session"]',
             );
+            const tabs = layout.querySelector('.course-sources button');
             const modes = layout.querySelector('.mode-picker');
-            const picker =
-              layout.querySelector('.menu-track-picker').firstElementChild;
-            const bottom = resume.getBoundingClientRect().bottom;
-            return [modes, picker].map(
-              (panel) => panel.getBoundingClientRect().top - bottom,
-            );
+            const textTop = (element) => {
+              const range = document.createRange();
+              range.selectNodeContents(element);
+              return range.getBoundingClientRect().top;
+            };
+            const resumeBounds = resume.getBoundingClientRect();
+            return {
+              modeGap: modes.getBoundingClientRect().top - resumeBounds.bottom,
+              tabOffset:
+                textTop(tabs) - textTop(resume.querySelector('strong')),
+              sideBySide:
+                tabs.getBoundingClientRect().left > resumeBounds.right,
+            };
           });
         assert.ok(
-          setupGaps.every((gap) => gap >= 0 && gap <= 32),
-          `Resume should sit close to both setup columns, got ${setupGaps.join('/')} px`,
+          setupLayout.modeGap >= 4 && setupLayout.modeGap <= 12,
+          `Mode grid should sit just below Resume, got ${setupLayout.modeGap}px`,
+        );
+        assert.ok(
+          setupLayout.sideBySide && Math.abs(setupLayout.tabOffset) <= 8,
+          `Track sources should sit beside the Resume title, got ${setupLayout.tabOffset}px offset`,
         );
         await page.locator('[data-action="resume-session"]').click();
         assert.ok(

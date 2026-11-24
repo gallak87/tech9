@@ -1,5 +1,7 @@
 import { DEMO_REQUIREMENTS } from '../../src/progression/edition.js';
 import { COURSE_IDS } from '../../src/levels/access.js';
+import { EDITOR_BIOMES } from '../../src/editor/biomes.js';
+import { environmentThumbnailPath } from '../../src/editor/environment-thumbnails.js';
 
 export const demoLevels = ['halcyon', 'nacre'];
 export const fullLevels = [
@@ -43,10 +45,27 @@ const demoShared = [
   'assets/levels/nightweir/fired-brick-v1.png',
   'assets/levels/nightweir/zinc-roof-v1.png',
 ];
+const workshopAssets = new Set([
+  ...EDITOR_BIOMES.flatMap(({ id, presets }) =>
+    presets.map((preset) => environmentThumbnailPath(id, preset.id)),
+  ),
+  'assets/editor/glasswake/glacier-kit.glb',
+  'assets/editor/nightweir/nightweir-editor-kit.glb',
+  ...[
+    'forest-granite-diff.jpg',
+    'rock-boulder-normal-1k.jpg',
+    'leaf-spray-v1.png',
+    'worn-enamel-v1.png',
+    'rolled-steel-v1.png',
+    'silver-bark-color-v1.png',
+  ].map((name) => `assets/editor/surfaces/${name}`),
+]);
 export function includePublic(path, edition) {
   const policy = editionPolicy(edition);
   if (/\.(?:map|blend|py|md|wav)$/.test(path) || path.endsWith('previews.json'))
     return false;
+  if (path.startsWith('assets/editor/'))
+    return edition === 'full' && workshopAssets.has(path);
   if (/^assets\/completion\//.test(path))
     return (
       edition === 'full' &&

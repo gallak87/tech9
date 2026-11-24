@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "blender": "5.2.3 LTS",
+  "editableSource": "assets/levels/zephyr/zephyr-asset-library.blend",
+  "provenance": "Project-owned Zephyr islands with Blender bevel welding and collapse applied only to the dark rock body. Pale strata, architecture, plants and baked vertex colors remain in the export.",
+  "islands": {
+    "island-terrace": {
+      "source": "public/assets/levels/zephyr/island-terrace.glb",
+      "runtime": "public/assets/levels/zephyr/editor-island-terrace.glb",
+      "sourceTriangles": 33416,
+      "runtimeTriangles": 12311,
+      "sha256": "7144d9e64cc43c790d69a4c4b3d7fd55e038f0d3ae503fc9578fda8ba03038cb"
+    },
+    "island-shard": {
+      "source": "public/assets/levels/zephyr/island-shard.glb",
+      "runtime": "public/assets/levels/zephyr/editor-island-shard.glb",
+      "sourceTriangles": 36808,
+      "runtimeTriangles": 12311,
+      "sha256": "d8965af9408fe63660062468ca5a93db403f8cf29d98644d987d67b9a37f42c8"
+    }
+  }
+}

@@ -2,7 +2,10 @@ import * as T from 'three';
 
 /** Land beyond the surveyed rectangle, joined to its exact retained edge.
  * The centre stays open: the surveyed terrain owns every interior surface. */
-export function createFarGroundGeometry(plan, { size = 200000 } = {}) {
+export function createFarGroundGeometry(
+  plan,
+  { size = 200000, relief = null } = {},
+) {
   const { nx, nz, dx, dz, minX, minZ, heights } = plan.terrain;
   if (
     !Number.isInteger(nx) ||
@@ -22,8 +25,10 @@ export function createFarGroundGeometry(plan, { size = 200000 } = {}) {
     depth = nz * dz,
     cx = minX + width / 2,
     cz = minZ + depth / 2,
-    hx = Math.max(size / 2, width / 2 + dx),
-    hz = Math.max(size / 2, depth / 2 + dz),
+    offsets = relief?.offsets ?? [],
+    reach = offsets.at(-1) ?? 0,
+    hx = Math.max(size / 2, width / 2 + reach + dx),
+    hz = Math.max(size / 2, depth / 2 + reach + dz),
     outerMinX = cx - hx,
     outerMinZ = cz - hz,
     outerWidth = 2 * hx,
@@ -35,9 +40,10 @@ export function createFarGroundGeometry(plan, { size = 200000 } = {}) {
   for (let x = nx; x > 0; x--) perimeter.push([x, nz, x / nx, 1]);
   for (let z = nz; z > 0; z--) perimeter.push([0, z, 0, z / nz]);
   const count = perimeter.length,
-    positions = new Float32Array(count * 2 * 3),
+    lastRing = offsets.length + 1,
+    positions = new Float32Array(count * (lastRing + 1) * 3),
     normals = new Float32Array(positions.length),
-    uv = new Float32Array(count * 2 * 2),
+    uv = new Float32Array(count * (lastRing + 1) * 2),
     indices = [],
     normal = new T.Vector3(),
     at = (x, z) => z * (nx + 1) + x;
@@ -55,7 +61,7 @@ export function createFarGroundGeometry(plan, { size = 200000 } = {}) {
     if (!Number.isFinite(y))
       throw new TypeError('Exterior land needs finite terrain edge heights');
     positions.set([x, y, z], i * 3);
-    positions.set([ox, floor, oz], (count + i) * 3);
+    positions.set([ox, floor, oz], (lastRing * count + i) * 3);
     normal
       .set(
         -(heights[at(x1, gz)] - heights[at(x0, gz)]) / ((x1 - x0) * dx),
@@ -64,17 +70,38 @@ export function createFarGroundGeometry(plan, { size = 200000 } = {}) {
       )
       .normalize();
     normals.set(normal.toArray(), i * 3);
-    normals.set([0, 1, 0], (count + i) * 3);
+    normals.set([0, 1, 0], (lastRing * count + i) * 3);
     uv.set([x / 20, z / 20], i * 2);
-    uv.set([ox / 20, oz / 20], (count + i) * 2);
+    uv.set([ox / 20, oz / 20], (lastRing * count + i) * 2);
+    for (const [ring, offset] of offsets.entries()) {
+      const vertex = (ring + 1) * count + i,
+        rx = x + (2 * u - 1) * offset,
+        rz = z + (2 * v - 1) * offset;
+      positions.set(
+        [rx, floor + relief.heightAt(rx, rz, offset, plan), rz],
+        vertex * 3,
+      );
+      uv.set([rx / 20, rz / 20], vertex * 2);
+    }
     const next = (i + 1) % count;
-    indices.push(i, next, count + next, i, count + next, count + i);
+    for (let ring = 0; ring < lastRing; ring++) {
+      const a = ring * count + i,
+        b = ring * count + next,
+        c = a + count,
+        d = b + count;
+      indices.push(a, b, d, a, d, c);
+    }
   }
   const geometry = new T.BufferGeometry();
   geometry.setAttribute('position', new T.BufferAttribute(positions, 3));
   geometry.setAttribute('normal', new T.BufferAttribute(normals, 3));
   geometry.setAttribute('uv', new T.BufferAttribute(uv, 2));
   geometry.setIndex(indices);
+  if (reach) {
+    const seam = normals.slice(0, count * 3);
+    geometry.computeVertexNormals();
+    normals.set(seam);
+  }
   geometry.computeBoundingBox();
   geometry.computeBoundingSphere();
   return geometry;

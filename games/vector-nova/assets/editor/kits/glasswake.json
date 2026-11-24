@@ -1,42 +1,27 @@
 {
-  "rubble-shelf": {
-    "file": "glasswake-environment-v5.glb",
-    "node": "rubble_shelf",
+  "glacier-escarpment": {
+    "file": "assets/editor/glasswake/glacier-kit.glb",
+    "node": "escarpment",
     "proxy": "exact"
   },
-  "basal-strata": {
-    "file": "glasswake-environment-v5.glb",
-    "node": "basal_strata",
+  "glacier-terrace": {
+    "file": "assets/editor/glasswake/glacier-kit.glb",
+    "node": "terrace",
     "proxy": "exact"
   },
-  "far-fragment": {
-    "file": "glasswake-environment-v5.glb",
-    "node": "far_fragment",
+  "glacier-seracs": {
+    "file": "assets/editor/glasswake/glacier-kit.glb",
+    "node": "seracs",
     "proxy": "exact"
   },
-  "bell-vault": {
-    "file": "glasswake-environment-v5.glb",
-    "node": "bell_vault",
+  "glacier-buttress": {
+    "file": "assets/editor/glasswake/glacier-kit.glb",
+    "node": "buttress",
     "proxy": "exact"
   },
-  "bridge-arch": {
-    "file": "glasswake-environment-v5.glb",
-    "node": "bridge_arch",
-    "proxy": "exact"
-  },
-  "dock-mast": {
-    "file": "glasswake-environment-v5.glb",
-    "node": "dock_mast",
-    "proxy": "exact"
-  },
-  "cliff-0": {
-    "file": "glasswake-environment-v5.glb",
-    "node": "cliff_0",
-    "proxy": "exact"
-  },
-  "cliff-1": {
-    "file": "glasswake-environment-v5.glb",
-    "node": "cliff_1",
+  "glacier-talus": {
+    "file": "assets/editor/glasswake/glacier-kit.glb",
+    "node": "talus",
     "proxy": "exact"
   }
 }

@@ -17,6 +17,21 @@ const assets = Object.fromEntries(
     { ...value, url: assetURL(value.url) },
   ]),
 );
+const horizonEnd = 16800;
+const limestoneHorizon = {
+  offsets: [760, 1530, 2700, 4450, 6800, 10600, horizonEnd],
+  heightAt(x, z, offset, plan) {
+    if (offset === horizonEnd) return 0;
+    const phase = (plan.seed % 769) * 0.043;
+    const fault = x * 0.0012 - z * 0.00086 + phase;
+    const ashlar = 0.32 + 0.68 * Math.abs(Math.sin(fault)) ** 1.7;
+    const front = (offset - 2950) / 2000;
+    const rear = (offset - 7150) / 3600;
+    return (
+      ashlar * (920 * Math.exp(-front * front) + 680 * Math.exp(-rear * rear))
+    );
+  },
+};
 function randomFor(seed) {
   let state = seed >>> 0;
   return () => {
@@ -122,9 +137,9 @@ export function planShatterlineKit(doc, track, plan) {
   // bedding rather than repeated isolated upright boulders.
   const b = plan.bounds;
   const step = Math.max(
-    440,
+    600,
     Math.sqrt(
-      ((b.max.x - b.min.x) * (b.max.z - b.min.z)) / (28 + fullness * 20),
+      ((b.max.x - b.min.x) * (b.max.z - b.min.z)) / (20 + fullness * 20),
     ),
   );
   let rockIndex = 0;
@@ -138,15 +153,20 @@ export function planShatterlineKit(doc, track, plan) {
         random() > 0.42 ? 'geology-bedded-ridge' : 'geology-eroded-bluff',
         px,
         pz,
-        0.14 + random() * 0.16,
-        0.25 + random() * 0.55,
-        { embed: 0.43, overlap: true },
+        [
+          0.26 + random() * 0.23,
+          0.16 + random() * 0.28,
+          0.24 + random() * 0.19,
+        ],
+        0.25 + random() * 0.75 + (rockIndex % 2) * Math.PI,
+        { embed: 0.37, overlap: true },
       );
     }
   // Readable roadside geology and civic anchors at racing scale. These are
   // candidates around the route, never replacements for the authored road.
   if (track) {
     const stations = Math.min(40, Math.ceil(track.length / 190));
+    const bankPhase = Math.floor(random() * 8);
     for (let i = 0; i < stations; i++) {
       const distance = ((i + 0.4) / stations) * track.length;
       if (track.isJumpProtected?.(distance)) continue;
@@ -157,49 +177,57 @@ export function planShatterlineKit(doc, track, plan) {
         frame.right.z,
       ).normalize();
       const yaw = Math.atan2(frame.tangent.x, frame.tangent.z);
-      const side = i % 2 ? -1 : 1;
-      for (const bank of [-1, 1]) {
-        // Only exposed high cut faces receive strata. The other banks retain
-        // open views, while adjoining bedded masses overlap into the hillside.
-        const scale = 0.9 + random() * 0.2;
-        for (const offset of [220, 310, 410]) {
+      const highBank = Math.floor((i + bankPhase) / 4) % 2 ? -1 : 1;
+      for (const bank of [highBank, -highBank]) {
+        // Several consecutive shelves form a single fault face. Lower cuts
+        // on the opposite bank leave sightlines through the canyon exits.
+        const scale = 0.86 + random() * 0.38;
+        const high = bank === highBank;
+        if (!high && random() > 0.26 + fullness * 0.44) continue;
+        for (const offset of [230, 310, 410, 530]) {
           const p = frame.position
             .clone()
             .addScaledVector(flatRight, bank * offset);
-          if (plan.surfaceHeight(p.x, p.z) < frame.position.y - 28) continue;
+          if (
+            plan.surfaceHeight(p.x, p.z) <
+            frame.position.y - (high ? 72 : 18)
+          )
+            continue;
           if (
             place(
               'road-cut-' + i + '-' + bank,
               i % 3 ? 'geology-bedded-ridge' : 'geology-eroded-bluff',
               p.x,
               p.z,
-              [0.095 * scale, 0.17 * scale, 0.16 * scale],
-              yaw + 0.15,
-              { embed: 0.48, overlap: true },
+              [0.13 * scale, (high ? 0.23 : 0.125) * scale, 0.23 * scale],
+              yaw + (bank > 0 ? 0.14 : Math.PI - 0.13),
+              { embed: 0.41, overlap: true },
             )
           )
             break;
         }
       }
       if (i % (campus ? 2 : 3) === 0) {
-        const p = frame.position
-          .clone()
-          .addScaledVector(flatRight, -side * (175 + random() * 55));
-        const start = placements.length,
-          reserved = occupied.length;
         const asset = i % 2 ? 'crown-broken' : 'crown-severed';
-        const scale = 0.72 + random() * 0.32;
+        const variance = random();
+        const scale = 0.82 + variance * 0.33;
         const remnantYaw = yaw + (random() - 0.5) * 0.22;
-        const crown = place(
-          'accelerator-remnant-' + i,
-          asset,
-          p.x,
-          p.z,
-          scale,
-          remnantYaw,
-          { embed: 0.2 },
-        );
-        if (crown) {
+        for (const offset of [185 + variance * 55, 290, 390]) {
+          const p = frame.position
+            .clone()
+            .addScaledVector(flatRight, -highBank * offset);
+          const start = placements.length,
+            reserved = occupied.length;
+          const crown = place(
+            'accelerator-remnant-' + i,
+            asset,
+            p.x,
+            p.z,
+            scale,
+            remnantYaw,
+            { embed: 0.2 },
+          );
+          if (!crown) continue;
           let supported = true;
           // Broad original load-bearing pylons visibly hold the broken upper
           // cassettes. Reject the entire assembly if a bearing would hit a road.
@@ -228,7 +256,7 @@ export function planShatterlineKit(doc, track, plan) {
           if (!supported) {
             placements.length = start;
             occupied.length = reserved;
-          }
+          } else break;
         }
       }
     }
@@ -322,7 +350,7 @@ export function createShatterlineEditorEnvironment(
     }
   const far = owner.solid(
     'Shatterline / distant limestone land',
-    createFarGroundGeometry(plan),
+    createFarGroundGeometry(plan, { relief: limestoneHorizon }),
     soil,
     { kind: 'terrain' },
     collectSolid,
@@ -335,6 +363,8 @@ export function createShatterlineEditorEnvironment(
     assets,
     placements,
     collectSolid,
+    tileSize: 8192,
+    tileOffset: 4096,
     textures: {
       limestone: assetURL('assets/levels/shatterline/limestone-v1.png'),
     },

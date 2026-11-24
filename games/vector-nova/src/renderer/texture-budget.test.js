@@ -134,3 +134,33 @@ test('ShaderMaterial sky image maps are budgeted before their first reflection d
   sky.dispose();
   data.dispose();
 });
+
+test('editor panoramas keep their own bounded resolution across resize and quality changes', () => {
+  const sky = new Texture({ width: 3072, height: 1536 });
+  const source = sky.source;
+  sky.userData.editorPanorama = true;
+  const wall = new Texture({ width: 2048, height: 2048 });
+  const scene = sceneWith(wall);
+  scene.add(new Mesh(undefined, { uniforms: { panorama: { value: sky } } }));
+  const draws = [];
+  const budget = createTextureBudget({
+    createCanvas: (width, height) => ({
+      width,
+      height,
+      getContext: () => ({ drawImage: () => draws.push(width) }),
+    }),
+  });
+  for (const cap of [2048, 1024, 1024, 2048]) {
+    budget.apply(scene, { textureSize: 512, editorPanoramaSize: cap });
+    assert.equal(sky.image.width, cap);
+    assert.equal(sky.image.height, cap / 2);
+    assert.equal(wall.image.width, 512);
+  }
+  assert.deepEqual(draws, [512, 2048, 1024, 2048]);
+  budget.apply(scene);
+  assert.equal(sky.source, source);
+  assert.equal(wall.image.width, 2048);
+  budget.dispose();
+  sky.dispose();
+  wall.dispose();
+});

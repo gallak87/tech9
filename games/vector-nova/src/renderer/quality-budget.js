@@ -10,6 +10,7 @@ export function graphicsBudget(
     pixelRatio: Math.min(dpr, low ? (mobile ? 0.85 : 1) : mobile ? 1 : 1.25),
     shadowSize: low ? 1024 : shadowSize,
     textureSize: low ? 512 : Infinity,
+    editorPanoramaSize: low ? (mobile ? 1024 : 2048) : Infinity,
     anisotropy: low ? 2 : Infinity,
     postEffects: !low,
   };

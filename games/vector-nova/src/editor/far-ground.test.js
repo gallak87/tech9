@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as T from 'three';
 import { createFarGroundGeometry } from './far-ground.js';
+import { glasswakeHorizon } from './glasswake-terrain.js';
 
 function plan({ nx = 4, nz = 3, dx = 125, dz = 90 } = {}) {
   const heights = new Float32Array((nx + 1) * (nz + 1));
@@ -222,4 +223,28 @@ test('a minimal one-cell survey still closes all four sides', () => {
     /finite rectangular terrain grid/,
   );
   geometry.dispose();
+});
+
+test('glacier relief rises beyond the exact surveyed seam', () => {
+  const p = { ...plan(), seed: 42 };
+  const flat = createFarGroundGeometry(p);
+  const ridge = createFarGroundGeometry(p, { relief: glasswakeHorizon });
+  const seamLength = (p.terrain.nx + p.terrain.nz) * 2 * 3;
+  for (const key of ['position', 'normal'])
+    assert.deepEqual(
+      ridge.getAttribute(key).array.slice(0, seamLength),
+      flat.getAttribute(key).array.slice(0, seamLength),
+    );
+  assert(ridge.boundingBox.max.y > 150);
+  const mesh = meshFor(ridge);
+  const cast = (x, z) =>
+    new T.Raycaster(
+      new T.Vector3(x, 1000, z),
+      new T.Vector3(0, -1, 0),
+    ).intersectObject(mesh);
+  assert.equal(cast(-650, 580).length, 0);
+  assert(cast(-2200, 580)[0].point.y > p.seaLevel);
+  mesh.material.dispose();
+  flat.dispose();
+  ridge.dispose();
 });

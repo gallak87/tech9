@@ -1,0 +1,14 @@
+{
+  "meadow": {
+    "file": "workshop-meadow-grass.glb",
+    "node": "grass_short_lod",
+    "proxy": "none",
+    "castShadow": false
+  },
+  "shore": {
+    "file": "workshop-meadow-grass.glb",
+    "node": "grass_tiny",
+    "proxy": "none",
+    "castShadow": false
+  }
+}

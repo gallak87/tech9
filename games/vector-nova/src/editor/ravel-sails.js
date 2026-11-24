@@ -12,21 +12,27 @@ export function buildRavelSails({
   if (!track || collectSolid) return null;
   const length = track.finishDistance ?? track.length;
   const folded = doc.settings.sceneryPreset === 'folded-canopies-v1';
-  const size = Math.min(1, length / 5800);
-  const layout = [0.15, 0.34, 0.65, 0.86, 0.96]
-    .slice(0, Math.round(2 + doc.settings.density * 3))
-    .map((fraction, i) => ({
-      s: length * fraction,
-      length: (i % 2 ? 820 : 620) * size,
-      width: (i % 2 ? 490 : 410) * size,
-      side: (i % 2 ? 1 : -1) * (250 + 95 * size),
-      ahead: 660 * size,
-      lift: (i % 2 ? 174 : 138) * size + 40,
-      sag: (folded ? 142 : 96) * size,
-      yaw: i % 2 ? 0.21 : -0.33,
-      lean: (i % 2 ? -245 : 225) * size,
-      fold: folded && i === 1,
-    }));
+  const size = Math.min(1.25, Math.max(0.56, length / 5200));
+  const random = placement.random;
+  const firstSide = random() < 0.5 ? -1 : 1;
+  const count = Math.round(2 + doc.settings.density * 4);
+  const layout = Array.from({ length: count }, (_, i) => {
+    const side = i % 2 ? -firstSide : firstSide;
+    const width = (670 + random() * 315) * size;
+    return {
+      s: (length * (i + 0.3 + random() * 0.44)) / count,
+      length: (820 + random() * 410) * size,
+      width,
+      side: side * (0.5 * width + track.width * 0.5 + 125),
+      lateralClearanceStep: side * (width * 0.42 + 100),
+      ahead: (180 + random() * 210) * size,
+      lift: (310 + random() * 158) * size,
+      sag: (folded ? 185 : 120) * size,
+      yaw: side * (0.28 + random() * 0.3),
+      lean: -side * (260 + random() * 115) * size,
+      fold: folded && i % 3 === 1,
+    };
+  });
   const finish = createRavelFoilFinish(renderer);
   try {
     const sails = createRavelCanopies({

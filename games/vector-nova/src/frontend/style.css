@@ -759,10 +759,10 @@ body[data-screen='results'] :where(#app) .front-footer {
 :where(#app) .music-player .music-progress {
   position: absolute;
   height: 2px;
-  width: var(--progress, 0%);
-  left: 0;
-  bottom: -1px;
-  background: #c21818;
+  inset-inline: 6px;
+  bottom: 1px;
+  background: linear-gradient(#c21818 0 0) left / var(--progress, 0%) 100%
+    no-repeat;
   pointer-events: none;
 }
 :where(#app) .music-player input[type='range'] {

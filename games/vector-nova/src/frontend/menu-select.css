@@ -1,0 +1,148 @@
+#app .menu-select {
+  --select-chevron: #c9c9cc;
+  --select-chevron-inset: 13px;
+  --select-icon-size: 7px;
+  --select-surface: var(--menu-grain), var(--menu-button-surface);
+  --select-divider: linear-gradient(#ffffff30, #ffffff30) right 33px center /
+    1px 58% no-repeat;
+  appearance: none;
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: 7px 40px 7px 12px;
+  border: 1px solid #62646a;
+  border-radius: 3px;
+  background:
+    linear-gradient(
+        45deg,
+        transparent 42%,
+        var(--select-chevron) 44% 66%,
+        transparent 68%
+      )
+      right calc(var(--select-chevron-inset) + 5px) center / 5px 5px no-repeat,
+    linear-gradient(
+        -45deg,
+        transparent 42%,
+        var(--select-chevron) 44% 66%,
+        transparent 68%
+      )
+      right var(--select-chevron-inset) center / 5px 5px no-repeat,
+    var(--select-divider),
+    var(--select-surface);
+  color: #f0edeb;
+  box-shadow: inset 0 1px #ffffff13;
+  font: 600 18px/1.15 var(--menu-display, 'Arial Narrow', Arial, sans-serif);
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+  cursor: pointer;
+  color-scheme: dark;
+}
+
+#app .menu-select:where(.menu-select--compact) {
+  --select-chevron-inset: 2px;
+  --select-icon-size: 5px;
+  --select-divider: none;
+  --select-surface: transparent;
+  min-height: 0;
+  padding: 0 16px 0 1px;
+  border-color: transparent;
+  box-shadow: none;
+  font-size: 15px;
+  letter-spacing: 0.025em;
+  text-transform: none;
+}
+
+#app .menu-select:is(:hover, :focus-visible) {
+  --select-chevron: var(--menu-focus);
+  border-color: var(--menu-focus);
+}
+
+@supports (appearance: base-select) and selector(::picker(select)) {
+  @media (hover: hover) and (pointer: fine) {
+    #app .menu-select,
+    #app .menu-select::picker(select) {
+      appearance: base-select;
+    }
+
+    #app .menu-select {
+      align-items: center;
+      padding-inline-end: 15px;
+      background: var(--select-divider), var(--select-surface);
+    }
+
+    #app .menu-select:where(.menu-select--compact) {
+      padding-inline-end: 4px;
+    }
+
+    #app .menu-select::picker-icon {
+      content: '';
+      width: var(--select-icon-size);
+      height: var(--select-icon-size);
+      flex: none;
+      margin-inline-start: auto;
+      border-right: 2px solid var(--select-chevron);
+      border-bottom: 2px solid var(--select-chevron);
+      rotate: 45deg;
+      translate: 0 -2px;
+    }
+
+    #app .menu-select:open {
+      --select-chevron: var(--menu-focus);
+      border-color: var(--menu-focus);
+    }
+
+    #app .menu-select:open::picker-icon {
+      rotate: 225deg;
+      translate: 0 2px;
+    }
+
+    #app .menu-select::picker(select) {
+      margin-block: 4px;
+      padding: 3px;
+      border: 1px solid transparent;
+      border-radius: 3px;
+      background:
+        var(--menu-grain) padding-box,
+        var(--menu-surface) padding-box,
+        var(--card-edge-reflection, none),
+        #55575b border-box;
+      background-origin: border-box;
+      box-shadow: 0 8px 22px #000a;
+    }
+
+    #app .menu-select option {
+      min-height: 40px;
+      padding: 7px 9px;
+      border-radius: 2px;
+      color: #f0edeb;
+      font: inherit;
+    }
+
+    #app .menu-select option:checked {
+      background-color: #ef393924;
+    }
+
+    #app .menu-select option:is(:hover, :focus-visible) {
+      background-color: #513033;
+      outline: 1px solid var(--menu-focus);
+      outline-offset: -1px;
+    }
+
+    #app .menu-select:where(.menu-select--compact) option {
+      font-size: 17px;
+    }
+
+    #app .menu-select option::checkmark {
+      color: var(--menu-focus);
+    }
+  }
+}
+
+@media (forced-colors: active) {
+  #app .menu-select {
+    appearance: auto;
+    padding-inline-end: 12px;
+    border-color: ButtonText;
+    background: ButtonFace;
+    color: ButtonText;
+  }
+}

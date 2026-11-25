@@ -10,7 +10,7 @@ export function controllerSettingsView(settings, { freestyle = false } = {}) {
   return `<section class="controller-settings" aria-labelledby="controller-heading">
     <h2 id="controller-heading">Controller</h2>
     <p class="controller-status" role="status">Connect a controller to test.</p>
-    <label><span>Button layout</span><select data-setting="controllerPreset">${Object.entries(
+    <label><span>Button layout</span><select class="menu-select" data-setting="controllerPreset">${Object.entries(
       CONTROLLER_PRESETS,
     )
       .map(

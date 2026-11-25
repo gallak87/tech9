@@ -47,12 +47,12 @@ export function createMusicPlayer(
       : (compact.matches && (driving || !isMenuVisible())) ||
         (compactMenu && narrowMenu.matches);
   const root = document.createElement('aside');
-  root.className = 'music-player';
+  root.className = 'music-player menu-card';
   root.dataset.musicPlayer = '';
   root.setAttribute('aria-label', 'Music player');
   root.innerHTML = `
     <button type="button" class="music-compact-toggle" aria-expanded="false" aria-controls="music-panel" aria-label="Expand Tunes">TUNES</button>
-    <div id="music-panel">
+    <div id="music-panel" class="menu-card">
     <header class="music-heading">
       <div class="music-transport">
         <div class="music-keyed"><button type="button" class="music-previous" aria-label="Previous song" aria-keyshortcuts="," title="Previous song · ,">${icon('<path d="m14 6-6 6 6 6"/>')}</button><kbd aria-hidden="true">,</kbd></div>
@@ -61,7 +61,7 @@ export function createMusicPlayer(
       </div>
       <div class="music-identity">
         <div class="music-eyebrow"><span>TUNES</span><span class="music-status" role="status">Ready</span></div>
-        <select class="music-song" aria-label="Song"></select>
+        <select class="music-song menu-select menu-select--compact" aria-label="Song"></select>
       </div>
       <div class="music-keyed"><button type="button" class="music-expand" aria-expanded="true" aria-controls="music-controls" aria-label="Collapse music player" aria-keyshortcuts="/" title="Collapse · /">${icon('<path d="m7 14 5-5 5 5"/>')}</button><kbd aria-hidden="true">/</kbd></div>
     </header>
@@ -101,6 +101,8 @@ export function createMusicPlayer(
   const panel = root.querySelector('#music-panel');
   const controls = root.querySelector('#music-controls');
   const picker = root.querySelector('.music-song');
+  const songPickerOpen = () =>
+    CSS.supports('selector(select:open)') && picker.matches(':open');
   const status = root.querySelector('.music-status');
   const seek = root.querySelector('[aria-label="Music position"]');
   const volume = root.querySelector('[aria-label="Music volume"]');
@@ -429,11 +431,17 @@ export function createMusicPlayer(
     'keydown',
     (event) => {
       if (suspended || document.querySelector('.completion-cinematic')) return;
-      if (event.code === 'Escape' && root.hasAttribute('data-menu-active')) {
-        event.preventDefault();
-        event.stopPropagation();
-        close();
-        return;
+      if (event.code === 'Escape') {
+        if (songPickerOpen()) {
+          event.stopPropagation();
+          return;
+        }
+        if (root.hasAttribute('data-menu-active')) {
+          event.preventDefault();
+          event.stopPropagation();
+          close();
+          return;
+        }
       }
       const step =
         event.code === 'Comma' ? -1 : event.code === 'Period' ? 1 : 0;
@@ -461,7 +469,12 @@ export function createMusicPlayer(
   );
   listen(root, 'keydown', (event) => {
     event.stopPropagation();
-    if (event.key !== 'Tab' || !root.hasAttribute('data-menu-active')) return;
+    if (
+      event.key !== 'Tab' ||
+      !root.hasAttribute('data-menu-active') ||
+      songPickerOpen()
+    )
+      return;
     const items = [...root.querySelectorAll('button, select, input')].filter(
       (el) =>
         !el.disabled &&

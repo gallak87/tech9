@@ -50,7 +50,7 @@ function pieceGeometry(source, triangles) {
 // of geometry; callers retain their normal material/texture lifecycle.
 export function batchStaticWorld(
   root,
-  { cellSize = 640, minTriangles = 2000 } = {},
+  { cellSize = 640, minTriangles = 2000, dense = null } = {},
 ) {
   root.updateWorldMatrix(true, true);
   const inverse = root.matrixWorld.clone().invert();
@@ -88,6 +88,10 @@ export function batchStaticWorld(
     const index = geometry.index;
     const count = index?.count ?? position.count;
     if (count / 3 < minTriangles) return;
+    // Give the densest meshes tighter bounds without increasing the number of
+    // draw ranges for terrain and small architectural accents across the map.
+    const size =
+      dense && count / 3 >= dense.minTriangles ? dense.cellSize : cellSize;
     const matrix = new Matrix4().multiplyMatrices(inverse, object.matrixWorld);
     const cells = new Map();
     for (let triangle = 0; triangle < count; triangle += 3) {
@@ -101,7 +105,7 @@ export function batchStaticWorld(
         point.z += position.getZ(id) / 3;
       }
       point.applyMatrix4(matrix);
-      const key = `${Math.floor(point.x / cellSize)},${Math.floor(point.y / cellSize)},${Math.floor(point.z / cellSize)}`;
+      const key = `${Math.floor(point.x / size)},${Math.floor(point.y / size)},${Math.floor(point.z / size)}`;
       if (!cells.has(key)) cells.set(key, []);
       cells.get(key).push(...ids);
     }

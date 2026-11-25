@@ -19,6 +19,7 @@ import { createGraphicsContext } from './graphics-context.js';
 import { racingLens, racingBlurStrength } from './racing-lens.js';
 import { graphicsBudget } from './quality-budget.js';
 import { createTextureBudget } from './texture-budget.js';
+import { createStaticSunShadows } from './static-sun-shadows.js';
 
 export async function createRenderer(
   host,
@@ -131,6 +132,9 @@ export async function createRenderer(
     sun.shadow.radius = options.sunShadowRadius ?? 1;
     sun.shadow.intensity = options.sunShadowIntensity ?? 1;
     scene.add(sun, sun.target);
+    let staticSunShadows;
+    const useStaticSunShadows = () =>
+      settings.quality === 'high' && !mobileGraphics() && innerWidth >= 760;
     // Soft cool back light is a sky contribution, deliberately below the sunset key.
     const fill = new T.DirectionalLight(
       backdrop?.fillColor ?? '#a7caff',
@@ -264,10 +268,20 @@ export async function createRenderer(
     window.addEventListener('resize', apply);
     lifetime.defer(() => window.removeEventListener('resize', apply));
     const sunOffset = backdrop.sunDirection.clone().multiplyScalar(700);
+    function drawBeauty(dt, withComposition) {
+      if (withComposition) composer.render(dt);
+      else renderer.render(scene, camera);
+    }
     return {
       renderer,
       graphics,
       assets: backdrop.assets ?? {},
+      registerStaticShadowCasters(root) {
+        staticSunShadows ??= lifetime.own(
+          createStaticSunShadows(renderer, scene, sun),
+        );
+        staticSunShadows.register(root);
+      },
       // The level owns its pass; the renderer only borrows it before tone mapping.
       attachWorldPass(pass) {
         const detach = attachWorldPass(composer, pass, { beauty, output });
@@ -417,9 +431,12 @@ export async function createRenderer(
         racingBlur.enabled =
           settings.quality === 'high' &&
           racingBlur.uniforms.strength.value > 0.0001;
-        if (needsComposition || racingBlur.enabled) {
-          composer.render(dt);
-        } else renderer.render(scene, camera);
+        const withComposition = needsComposition || racingBlur.enabled;
+        if (staticSunShadows?.available)
+          staticSunShadows.draw(useStaticSunShadows(), () =>
+            drawBeauty(dt, withComposition),
+          );
+        else drawBeauty(dt, withComposition);
         maxima.calls = Math.max(maxima.calls, renderer.info.render.calls);
         maxima.triangles = Math.max(
           maxima.triangles,
@@ -493,7 +510,10 @@ export async function createRenderer(
         await waitForLoadPaint(signal);
         graphics.check();
         // Replace the temporary all-visible draw before loading can disappear.
-        composer.render(0);
+        if (staticSunShadows?.available && useStaticSunShadows()) {
+          renderer.shadowMap.needsUpdate = true;
+          staticSunShadows.draw(true, () => composer.render(0));
+        } else composer.render(0);
         // Startup-only synchronization: readiness follows actual first-pass work,
         // including shadow, AO and antialias programs, not just submission.
         await graphics.waitForGPU();
@@ -550,6 +570,7 @@ export async function createRenderer(
           ratio *
           ratio *
           (settings.quality === 'high' ? 92 : composed ? 24 : 0);
+        const staticShadows = staticSunShadows?.metrics;
         return {
           frames: times.length,
           resources: performance.getEntriesByType('resource').reduce(
@@ -586,6 +607,7 @@ export async function createRenderer(
             (geometryBytes +
               textureBytes +
               budget.shadowSize * budget.shadowSize * 4 +
+              (staticShadows?.bytes ?? 0) +
               postBytes +
               heatBytes +
               (cityReflection ? 12 : 8) * 1024 * 1024) /
@@ -600,6 +622,7 @@ export async function createRenderer(
           presentation: backdrop?.getPresentation?.() ?? null,
           pipeline: {
             shadowSize: budget.shadowSize,
+            ...(staticShadows ? { staticShadows } : {}),
             textureLimit: Number.isFinite(budget.textureSize)
               ? budget.textureSize
               : null,

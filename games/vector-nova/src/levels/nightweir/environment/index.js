@@ -177,7 +177,13 @@ export async function createNightweirEnvironment({
       finishNightweirSkyVisibility(material);
     }
   });
-  batchStaticWorld(root, { cellSize: 480 });
+  batchStaticWorld(root, {
+    cellSize: 480,
+    // Without multi-draw, each additional visible piece costs a separate draw.
+    dense: view?.renderer?.extensions?.has('WEBGL_multi_draw')
+      ? { cellSize: 240, minTriangles: 30_000 }
+      : null,
+  });
   // Transparent falling water must blend in linear HDR before tone mapping on
   // both presets. This borrowed pipeline marker keeps Low's AO/bloom disabled;
   // it adds no draw, target or shader of its own.
@@ -186,6 +192,7 @@ export async function createNightweirEnvironment({
   linearWater.render = () => {};
   const detachComposition = view?.attachWorldPass?.(linearWater);
   group.add(root);
+  view?.registerStaticShadowCasters?.(root);
   const water = createNightweirWater(track);
   group.add(water.group, blackstart.group);
   const gateLamps = Array.from({ length: 3 }, () => {

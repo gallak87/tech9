@@ -134,6 +134,36 @@ test('transparent and moving/instanced content remain owned by their existing pr
   mesh.material.dispose();
 });
 
+test('only dense meshes use the finer cell size and every triangle is retained', () => {
+  const root = new Group();
+  const material = new MeshStandardMaterial();
+  const makeGeometry = (positions) =>
+    new BufferGeometry().setAttribute(
+      'position',
+      new Float32BufferAttribute(positions, 3),
+    );
+  const first = [0, 0, 0, 1, 0, 0, 0, 1, 0];
+  const second = [60, 0, 0, 61, 0, 0, 60, 1, 0];
+  const third = [70, 0, 0, 71, 0, 0, 70, 1, 0];
+  root.add(
+    new Mesh(makeGeometry([...first, ...second]), material),
+    new Mesh(makeGeometry([...first, ...second, ...third]), material),
+  );
+
+  const before = worldTriangles(root);
+  assert.deepEqual(
+    batchStaticWorld(root, {
+      cellSize: 100,
+      minTriangles: 1,
+      dense: { cellSize: 50, minTriangles: 3 },
+    }),
+    { sourceMeshes: 2, batches: 1, pieces: 3 },
+  );
+  assert.deepEqual(worldTriangles(root), before);
+  root.children[0].dispose();
+  material.dispose();
+});
+
 test('hidden ancestry, mesh children and unsupported GPU attribute layouts retain their owners', () => {
   const root = new Group(),
     hidden = new Group();

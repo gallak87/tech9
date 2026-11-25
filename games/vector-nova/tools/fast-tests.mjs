@@ -46,6 +46,7 @@ export const FAST_TESTS = Object.freeze([
   'src/renderer/quality-budget.test.js',
   'src/renderer/racing-lens.test.js',
   'src/renderer/static-batches.test.js',
+  'src/renderer/static-sun-shadows.test.js',
   'src/renderer/texture-budget.test.js',
   'src/renderer/texture-memory.test.js',
   'src/ships/engine-preview.test.js',

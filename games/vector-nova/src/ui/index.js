@@ -22,6 +22,22 @@ const coreReserveMarkup = `<div class="energy">
   <div id="energy-meter" class="energy-track" style="--reserve-segments: ${RESERVE_SEGMENT_COUNT}; --reserve-color: ${deviceCSSColor('vector')}" role="meter" aria-labelledby="energy-label" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100" aria-valuetext="100% remaining">${reserveSegments}</div>
 </div>`;
 
+const setText = (element, text) => {
+  if (element.textContent !== text) element.textContent = text;
+};
+
+function rosterGap(entry) {
+  if (entry.direction === 'self') return '0.0s';
+  const sign = entry.direction === 'ahead' ? '−' : '+';
+  if (entry.seconds !== null) {
+    const seconds = entry.seconds.toFixed(1);
+    return `${seconds === '0.0' ? '' : sign}${seconds}s`;
+  }
+  if (entry.lapGap > 0)
+    return `${sign}${entry.lapGap} LAP${entry.lapGap === 1 ? '' : 'S'}`;
+  return entry.finished ? 'FINISHED' : '—';
+}
+
 const SPEED_GAUGE_LIMIT = 800;
 const speedGaugeScale = Array.from({ length: 17 }, (_, index) => {
   const progress = index / 16;
@@ -178,6 +194,12 @@ export function createUI(
   roster.className = 'hud-card hidden';
   roster.setAttribute('aria-label', 'Race timing and placements');
   roster.innerHTML = `<div class="roster-heading"><span></span><b></b></div><ol></ol><div class="roster-laps"></div><p class="roster-hint"></p>`;
+  const [rosterTitle, rosterSubtitle] =
+    roster.querySelector('.roster-heading').children;
+  const rosterList = roster.querySelector('ol');
+  const rosterLaps = roster.querySelector('.roster-laps');
+  const rosterHint = roster.querySelector('.roster-hint');
+  const rosterRows = new Map();
   const minimap = $('minimap');
   const sidebar = document.createElement('div');
   sidebar.className = 'race-hud-side';
@@ -218,13 +240,15 @@ export function createUI(
     lastLap.prepend(lastLapFlag.canvas);
     $('hud').append(lastLap);
   }
-  let rosterKey = '',
-    currentCompetition = null;
+  let currentCompetition = null;
+  let rosterFinished = null;
+  let shownLapTimes = [];
   function updateRoster() {
     const driving = oldMode === 'racing' || oldMode === 'countdown';
-    const finished = sprint && driving && currentCompetition?.playerFinished;
-    const showingResults = finished;
-    const data = finished
+    const showingResults = Boolean(
+      sprint && driving && currentCompetition?.playerFinished,
+    );
+    const data = showingResults
       ? currentCompetition.results
       : driving &&
           currentCompetition?.enabled &&
@@ -235,90 +259,99 @@ export function createUI(
     root.classList.toggle('has-live-race', Boolean(data));
     if (!data) return;
     const rows = showingResults ? data.standings : (data.relative?.field ?? []);
-    const gapText = (entry) => {
-      if (entry.direction === 'self') return '0.0s';
-      const sign = entry.direction === 'ahead' ? '−' : '+';
-      if (entry.seconds !== null) {
-        const seconds = entry.seconds.toFixed(1);
-        return `${seconds === '0.0' ? '' : sign}${seconds}s`;
+    if (showingResults !== rosterFinished) {
+      rosterFinished = showingResults;
+      rosterTitle.textContent = showingResults
+        ? 'SPRINT COMPLETE'
+        : 'RACE ORDER';
+      rosterSubtitle.textContent = showingResults
+        ? `${metadata.name.toUpperCase()} · SPRINT`
+        : 'GAP TO YOU';
+      rosterHint.classList.toggle('hidden', !showingResults);
+    }
+    let nextRow = rosterList.firstElementChild;
+    for (const entry of rows) {
+      const color = racerColors[entry.id];
+      let view = rosterRows.get(entry.id);
+      if (!view) {
+        const row = document.createElement('li');
+        row.className = 'classification-row';
+        row.dataset.racer = entry.id;
+        row.style.setProperty('--racer-color', color);
+        row.classList.toggle('is-player', entry.id === 'player');
+        const place = document.createElement('b');
+        const name = document.createElement('span');
+        const duration = document.createElement('small');
+        row.append(place, name, duration);
+        view = { row, place, name, duration, color, durationLabel: null };
+        rosterRows.set(entry.id, view);
       }
-      if (entry.lapGap > 0)
-        return `${sign}${entry.lapGap} LAP${entry.lapGap === 1 ? '' : 'S'}`;
-      return entry.finished ? 'FINISHED' : '—';
-    };
-    const key = JSON.stringify({
-      finished,
-      playerColor: racerColors.player,
-      rows: rows.map((entry) => ({
-        ...entry,
-        seconds: entry.seconds == null ? null : entry.seconds.toFixed(1),
-        currentLapTime: undefined,
-        distance: undefined,
-        speed: undefined,
-        lateral: undefined,
-      })),
-    });
-    if (key === rosterKey) return;
-    rosterKey = key;
-    roster.querySelector('.roster-heading span').textContent = finished
-      ? 'SPRINT COMPLETE'
-      : 'RACE ORDER';
-    const heading = roster.querySelector('.roster-heading b');
-    heading.textContent = showingResults
-      ? `${metadata.name.toUpperCase()} · ${sprint ? 'SPRINT' : '2 LAPS'}`
-      : 'GAP TO YOU';
-    const entries = rows.map((entry) => {
-      const row = document.createElement('li');
-      row.className = 'classification-row';
-      row.dataset.racer = entry.id;
-      row.style.setProperty('--racer-color', racerColors[entry.id]);
-      row.classList.toggle('is-player', entry.id === 'player');
-      const place = document.createElement('b');
-      place.textContent =
-        entry.position === null ? '—' : String(entry.position).padStart(2, '0');
-      const name = document.createElement('span');
-      name.textContent =
-        entry.id === 'player' ? 'YOU' : entry.name.toUpperCase();
-      const duration = document.createElement('small');
-      duration.textContent = showingResults
+      if (view.color !== color) {
+        view.color = color;
+        view.row.style.setProperty('--racer-color', color);
+      }
+      if (view.row === nextRow) nextRow = nextRow.nextElementSibling;
+      else rosterList.insertBefore(view.row, nextRow);
+      setText(
+        view.place,
+        entry.position === null ? '—' : String(entry.position).padStart(2, '0'),
+      );
+      setText(
+        view.name,
+        entry.id === 'player' ? 'YOU' : entry.name.toUpperCase(),
+      );
+      const duration = showingResults
         ? entry.finished
           ? `${fmt(entry.totalTime)}${entry.valid ? '' : ' *'}`
           : 'IN PROGRESS'
-        : gapText(entry);
-      if (!showingResults)
-        duration.setAttribute(
-          'aria-label',
-          entry.direction === 'self'
-            ? 'Your reference time'
-            : `${gapText(entry)} ${entry.direction === 'ahead' ? 'ahead of' : 'behind'} you`,
-        );
-      row.append(place, name, duration);
-      return row;
-    });
-    roster.querySelector('ol').replaceChildren(...entries);
-    const player = showingResults
-      ? rows.find((entry) => entry.id === 'player')
-      : null;
-    roster.querySelector('.roster-laps').replaceChildren(
-      ...(player?.lapTimes ?? []).map((duration, index) => {
-        const row = document.createElement('div');
-        const label = document.createElement('span');
-        label.textContent = sprint ? 'DESCENT TIME' : `LAP ${index + 1}`;
-        const value = document.createElement('b');
-        value.textContent = fmt(duration);
-        row.append(label, value);
-        return row;
-      }),
+        : rosterGap(entry);
+      setText(view.duration, duration);
+      const durationLabel = showingResults
+        ? null
+        : entry.direction === 'self'
+          ? 'Your reference time'
+          : `${duration} ${entry.direction === 'ahead' ? 'ahead of' : 'behind'} you`;
+      if (view.durationLabel !== durationLabel) {
+        view.durationLabel = durationLabel;
+        if (durationLabel === null) view.duration.removeAttribute('aria-label');
+        else view.duration.setAttribute('aria-label', durationLabel);
+      }
+    }
+    while (nextRow) {
+      const staleRow = nextRow;
+      nextRow = staleRow.nextElementSibling;
+      staleRow.remove();
+    }
+    const lapTimes = showingResults
+      ? (rows.find((entry) => entry.id === 'player')?.lapTimes ?? [])
+      : [];
+    if (
+      lapTimes.length !== shownLapTimes.length ||
+      lapTimes.some((duration, index) => duration !== shownLapTimes[index])
+    ) {
+      shownLapTimes = lapTimes;
+      rosterLaps.replaceChildren(
+        ...lapTimes.map((duration) => {
+          const row = document.createElement('div');
+          const label = document.createElement('span');
+          label.textContent = 'DESCENT TIME';
+          const value = document.createElement('b');
+          value.textContent = fmt(duration);
+          row.append(label, value);
+          return row;
+        }),
+      );
+    }
+    setText(
+      rosterHint,
+      showingResults
+        ? rows.some((entry) => entry.finished && !entry.valid)
+          ? '* Untimed: run invalidated'
+          : currentCompetition.enabled
+            ? 'Field remains live until each rival finishes'
+            : 'Solo descent recorded'
+        : '',
     );
-    const hint = roster.querySelector('.roster-hint');
-    hint.textContent = showingResults
-      ? rows.some((entry) => entry.finished && !entry.valid)
-        ? `* Untimed: ${sprint ? 'run' : 'lap'} invalidated`
-        : currentCompetition.enabled
-          ? 'Field remains live until each rival finishes'
-          : 'Solo descent recorded'
-      : '';
-    hint.classList.toggle('hidden', !showingResults);
   }
   const pausePanel = $('pause-panel');
   pausePanel.setAttribute('role', 'dialog');
@@ -469,11 +502,16 @@ export function createUI(
       actions.settings();
     };
   const ctx = minimap.getContext('2d');
-  const points = [];
-  for (let s = 0; s < track.length; s += track.length / 180)
-    points.push(track.sample(s).position.clone());
-  if (sprint) points.push(track.sample(track.length).position.clone());
-  const mapPaths = track.mapPaths ?? [{ points, closed: !sprint }];
+  const mapWidth = minimap.width;
+  const mapHeight = minimap.height;
+  let mapPaths = track.mapPaths;
+  if (!mapPaths) {
+    const points = [];
+    for (let s = 0; s < track.length; s += track.length / 180)
+      points.push(track.sample(s).position.clone());
+    if (sprint) points.push(track.sample(track.length).position.clone());
+    mapPaths = [{ points, closed: !sprint }];
+  }
   const allMapPoints = mapPaths.flatMap((path) => path.points);
   const xs = allMapPoints.map((p) => p.x),
     zs = allMapPoints.map((p) => p.z),
@@ -482,12 +520,42 @@ export function createUI(
     spanX = Math.max(...xs) - minX,
     spanZ = Math.max(...zs) - minZ,
     scale = Math.min(170 / spanX, 120 / spanZ);
-  const mapLeft = (200 - spanX * scale) / 2;
-  const mapTop = (150 - spanZ * scale) / 2;
+  const mapLeft = (mapWidth - spanX * scale) / 2;
+  const mapTop = (mapHeight - spanZ * scale) / 2;
   const coord = (p) => [
     mapLeft + (p.x - minX) * scale,
     mapTop + (p.z - minZ) * scale,
   ];
+  // Project the track once and stroke the same outlines beneath the live dots.
+  const mapOutlines = mapPaths.map(({ points, color, closed }) => {
+    const outline = new Path2D();
+    points.forEach((point, index) => {
+      const [x, y] = coord(point);
+      if (index) outline.lineTo(x, y);
+      else outline.moveTo(x, y);
+    });
+    if (closed) outline.closePath();
+    return { outline, color: color ?? '#dbe8e1cc' };
+  });
+  const mapEndpoints = sprint
+    ? [
+        [0, 'START', '#8adcc9'],
+        [track.finishDistance, 'FINISH', '#ffca84'],
+      ].map(([distance, label, color]) => {
+        const [x, y] = coord(track.sample(distance).position);
+        return { x, y, label, color };
+      })
+    : [];
+  const dot = (position, color, radius) => {
+    const [x, y] = coord(position);
+    ctx.fillStyle = color;
+    ctx.strokeStyle = '#0c1926';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  };
   let mapHeading = 0;
   let oldMode = '';
   const fmt = (t) => formatTime(t, 2);
@@ -805,58 +873,36 @@ export function createUI(
         root.querySelector('.timing > span').textContent = sprint
           ? 'ELAPSED'
           : 'LAP TIME';
-      ctx.clearRect(0, 0, 200, 150);
+      ctx.clearRect(0, 0, mapWidth, mapHeight);
       ctx.lineWidth = 2.5;
-      ctx.strokeStyle = '#dbe8e1cc';
-      for (const path of mapPaths) {
-        ctx.strokeStyle = path.color ?? '#dbe8e1cc';
-        ctx.beginPath();
-        path.points.forEach((p, i) => {
-          const [x, y] = coord(p);
-          i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
-        });
-        if (path.closed) ctx.closePath();
-        ctx.stroke();
+      for (const { outline, color } of mapOutlines) {
+        ctx.strokeStyle = color;
+        ctx.stroke(outline);
       }
-      const dot = (position, color, radius) => {
-        const [x, y] = coord(position);
+      for (const { x, y, label, color } of mapEndpoints) {
         ctx.fillStyle = color;
-        ctx.strokeStyle = '#0c1926';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(x, y, radius, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-      };
-      if (sprint) {
-        const marker = (distance, label, color) => {
-          const point = track.sample(distance).position;
-          const [x, y] = coord(point);
-          ctx.fillStyle = color;
-          ctx.fillRect(x - 3, y - 3, 6, 6);
-          ctx.font = 'bold 9px sans-serif';
-          ctx.fillText(
-            label,
-            x < 155 ? x + 7 : x - 39,
-            Math.min(146, Math.max(10, y + 3)),
-          );
-        };
-        marker(0, 'START', '#8adcc9');
-        marker(track.finishDistance, 'FINISH', '#ffca84');
+        ctx.fillRect(x - 3, y - 3, 6, 6);
+        ctx.font = 'bold 9px sans-serif';
+        ctx.fillText(
+          label,
+          x < 155 ? x + 7 : x - 39,
+          Math.min(146, Math.max(10, y + 3)),
+        );
       }
       if (competition?.enabled) {
-        for (const rival of competition.standings.filter(
-          (entry) => entry.id !== 'player' && !entry.eliminated,
-        )) {
-          const frame = track.sample(rival.distance);
-          const surface = track.mapPaths
-            ? track.sampleSurface?.(rival.distance, rival.lateral)
+        for (const rival of competition.standings) {
+          if (rival.id === 'player' || rival.eliminated) continue;
+          let position = track.mapPaths
+            ? track.sampleSurface?.(rival.distance, rival.lateral)?.position
             : null;
+          if (!position) {
+            const frame = track.sample(rival.distance);
+            position = frame.position
+              .clone()
+              .addScaledVector(frame.right, rival.lateral);
+          }
           dot(
-            surface?.position ??
-              frame.position
-                .clone()
-                .addScaledVector(frame.right, rival.lateral),
+            position,
             racerColors[rival.id] ?? '#e7edf0',
             rival.team === 'quarry' ||
               rival.id === competition.relative?.ahead?.id ||

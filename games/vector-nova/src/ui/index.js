@@ -9,6 +9,28 @@ import {
   RACE_FIELD_SIZE,
 } from '../race/roster.js';
 import { halcyonGraphicsDefaults } from '../progression/index.js';
+import { deviceCSSColor } from '../pickups/theme.js';
+import { getShip } from '../ships/catalog.js';
+
+const SPEED_GAUGE_LIMIT = 800;
+const speedGaugeScale = [0, 200, 400, 600, SPEED_GAUGE_LIMIT]
+  .map(
+    (mark) =>
+      `<span style="--tick-position: ${mark / SPEED_GAUGE_LIMIT}"><span>${mark}</span></span>`,
+  )
+  .join('');
+const speedGaugeMarkup = `<div class="speed" role="group" aria-label="Speedometer">
+  <div class="speed-gauge-face" aria-hidden="true">
+    <div class="speed-gauge-track"></div>
+    <div class="speed-gauge-scale">${speedGaugeScale}</div>
+    <div class="speed-gauge-needle"></div>
+    <div class="speed-gauge-hub"></div>
+  </div>
+  <div class="speed-gauge-readout">
+    <strong id="speed">000</strong><span class="speed-gauge-unit">KM/H</span>
+    <i id="boost-status">MAGNETIC DRIVE</i>
+  </div>
+</div>`;
 
 export function createUI(
   host,
@@ -25,9 +47,9 @@ export function createUI(
   root.dataset.freestyle = String(metadata.freestyle === true);
   root.classList.toggle('jump-playtest', Boolean(playtest));
   host.append(root);
-  root.innerHTML = `<header class="masthead"><a class="wordmark" href="#" aria-label="Vector Nova home">VECTOR<span>//</span>NOVA</a><div class="edition"><i></i> <span></span></div><button class="quiet" id="pause-button" aria-label="Pause">Ⅱ</button></header>
+  root.innerHTML = `<header class="masthead"><a class="wordmark" href="#" aria-label="Vector Nova home">VECTOR<span>//</span>NOVA</a><div class="edition"><i></i> <span></span></div></header>
  <section id="pause-panel" class="modal hidden"><h2>Paused</h2><button id="resume" class="primary">Resume <span aria-hidden="true">→</span></button><button id="pause-results" class="hidden">Results</button><section class="pause-quick-settings" aria-label="Quick settings">${import.meta.env?.VN_DESKTOP ? fullscreenSetting() : ''}<label>Graphics <select id="quality"><option value="high">High</option><option value="low">Low</option></select></label><label>Game effects <input id="volume" type="range" min="0" max="1" step=".05" value="${settings.volume}"></label><label>Reduced motion <input id="motion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label></section><div class="pause-restart"><button id="restart">Restart race</button></div><nav class="pause-secondary" aria-label="Session options"><button id="home">Race setup</button><button id="pause-settings">Settings</button>${actions.openTunes ? '<button id="pause-tunes" aria-controls="music-panel">Tunes</button>' : ''}</nav></section>
- <section id="hud" class="hidden"><div class="top-telemetry"><div class="position hidden"><span>POSITION</span><b id="position">1 / ${RACE_FIELD_SIZE}</b><small id="position-state"></small></div><div class="lap"><span>PRACTICE LAP</span><b id="lap">01</b></div><div class="timing"><span>LAP TIME</span><b id="time">00:00.000</b><small id="last">LAST —</small><small id="best">SET YOUR FIRST CLEAN LAP</small></div></div><div class="telemetry"><div class="energy"><span>CORE RESERVE <b id="energy-label">100%</b></span><div class="energy-track"><i id="energy-fill"></i></div><small id="energy-state">BOOST USES CORE RESERVE</small></div><div class="speed"><strong id="speed">000</strong><span>KM/H</span><i id="boost-status">MAGNETIC DRIVE</i></div></div><canvas id="minimap" width="200" height="150" aria-label="Track map"></canvas></section>
+ <section id="hud" class="hidden"><div class="top-telemetry"><div class="position hidden"><span>POSITION</span><b id="position">1 / ${RACE_FIELD_SIZE}</b><small id="position-state"></small></div><div class="lap"><span>PRACTICE LAP</span><b id="lap">01</b></div><div class="timing"><span>LAP TIME</span><b id="time">00:00.000</b><small id="time-split" class="hidden"></small><small id="last">LAST —</small><small id="best"></small></div></div><div class="telemetry"><div class="energy"><span id="energy-label">CORE RESERVE</span><div id="energy-meter" class="energy-track" style="--reserve-color: ${deviceCSSColor('vector')}" role="meter" aria-labelledby="energy-label" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100" aria-valuetext="100% remaining"><i aria-hidden="true"></i></div></div>${speedGaugeMarkup}</div><canvas id="minimap" width="200" height="150" aria-label="Track map"></canvas></section>
  ${!import.meta.env?.VN_DESKTOP ? '<footer id="legend"><div class="legend-movement"><kbd>WASD</kbd><span class="legend-or" aria-hidden="true">/</span><kbd aria-label="Arrow keys">↑←↓→</kbd><span>MOVEMENT</span></div><div class="legend-direction"><kbd>W</kbd><kbd>↑</kbd><span>THROTTLE</span></div><div class="legend-direction"><kbd>A</kbd><kbd>D</kbd><span>STEER</span></div><div class="legend-direction"><kbd>S</kbd><span>BRAKE</span></div><div><kbd>SPACE</kbd><span>AIRBRAKE</span></div><div class="legend-boost"><kbd>SHIFT</kbd><span>BOOST</span></div><div><kbd>R</kbd><span>RECOVER / RETRY</span></div><div><kbd>ESC</kbd><span>PAUSE</span></div></footer>' : ''}
  <div id="touch" class="hidden" role="group" aria-label="Touch driving controls">
   <div class="touch-steer" data-touch-control="steer" role="group" aria-label="Steering: drag left or right; pull down for airbrake. Release to center.">
@@ -38,6 +60,12 @@ export function createUI(
   </div>
  </div>`;
   const $ = (id) => root.querySelector('#' + id);
+  const timeSplit = $('time-split');
+  const reserveMeter = $('energy-meter');
+  const speedValue = $('speed');
+  const speedGauge = speedValue.closest('.speed');
+  const boostStatus = $('boost-status');
+  let speedShipId = null;
   if (sprint) {
     root.classList.add('sprint-course');
     $('restart').textContent = 'Restart sprint';
@@ -125,7 +153,11 @@ export function createUI(
   roster.className = 'hidden';
   roster.setAttribute('aria-label', 'Race timing and placements');
   roster.innerHTML = `<div class="roster-heading"><span></span><b></b></div><ol></ol><div class="roster-laps"></div><p class="roster-hint"></p>`;
-  root.append(roster);
+  const minimap = $('minimap');
+  const raceMap = document.createElement('div');
+  raceMap.className = 'race-map-housing';
+  minimap.before(raceMap);
+  raceMap.append(minimap, roster);
   const lights = document.createElement('section');
   lights.id = 'start-lights';
   lights.className = 'hidden';
@@ -140,7 +172,9 @@ export function createUI(
   finish.id = 'race-finish';
   finish.className = 'hidden';
   finish.setAttribute('role', 'status');
-  finish.innerHTML = '<span>FINISH</span><strong></strong><small></small>';
+  finish.innerHTML =
+    '<div class="finish-checker" aria-hidden="true"></div><span></span><strong></strong><small></small>';
+  const finishCaption = finish.querySelector('span');
   root.append(finish);
   let rosterKey = '',
     currentCompetition = null;
@@ -157,7 +191,6 @@ export function createUI(
         : null;
     roster.classList.toggle('hidden', !data);
     root.classList.toggle('has-live-race', Boolean(data));
-    if (roster.parentElement !== root) root.append(roster);
     if (!data) return;
     const rows = showingResults ? data.standings : (data.relative?.field ?? []);
     const gapText = (entry) => {
@@ -196,6 +229,12 @@ export function createUI(
       row.dataset.racer = entry.id;
       row.style.setProperty('--racer-color', racerColors[entry.id]);
       row.classList.toggle('is-player', entry.id === 'player');
+      row.classList.toggle(
+        'is-nearby',
+        !showingResults &&
+          (entry.id === data.relative?.ahead?.id ||
+            entry.id === data.relative?.behind?.id),
+      );
       const place = document.createElement('b');
       place.textContent =
         entry.position === null ? '—' : String(entry.position).padStart(2, '0');
@@ -369,7 +408,6 @@ export function createUI(
   bind('pause-results', actions.results);
   bind('restart', actions.restart);
   bind('home', actions.home);
-  bind('pause-button', actions.pause);
   root.querySelector('.wordmark').onclick = (e) => {
     e.preventDefault();
     actions.home();
@@ -382,7 +420,7 @@ export function createUI(
       settings.reducedMotion = $('motion').checked;
       actions.settings();
     };
-  const ctx = $('minimap').getContext('2d');
+  const ctx = minimap.getContext('2d');
   const points = [];
   for (let s = 0; s < track.length; s += track.length / 180)
     points.push(track.sample(s).position.clone());
@@ -393,16 +431,16 @@ export function createUI(
     zs = allMapPoints.map((p) => p.z),
     minX = Math.min(...xs),
     minZ = Math.min(...zs),
-    scale = Math.min(
-      170 / (Math.max(...xs) - minX),
-      120 / (Math.max(...zs) - minZ),
-    );
-  const mapLeft = sprint ? (200 - (Math.max(...xs) - minX) * scale) / 2 : 15;
-  const mapTop = sprint ? (150 - (Math.max(...zs) - minZ) * scale) / 2 : 15;
+    spanX = Math.max(...xs) - minX,
+    spanZ = Math.max(...zs) - minZ,
+    scale = Math.min(170 / spanX, 120 / spanZ);
+  const mapLeft = (200 - spanX * scale) / 2;
+  const mapTop = (150 - spanZ * scale) / 2;
   const coord = (p) => [
     mapLeft + (p.x - minX) * scale,
     mapTop + (p.z - minZ) * scale,
   ];
+  let mapHeading = 0;
   let oldMode = '';
   const fmt = (t) => formatTime(t, 2);
   return {
@@ -439,13 +477,14 @@ export function createUI(
       const player = result.standings?.find((entry) => entry.id === 'player');
       const valid = result.playerValid ?? player?.valid;
       const position = player?.position;
+      const suffix = ['TH', 'ST', 'ND', 'RD'][position] ?? 'TH';
+      finishCaption.classList.toggle('hidden', !valid || !position);
+      finishCaption.textContent = position === 1 ? 'VICTORY' : 'FINISH';
       finish.querySelector('strong').textContent = !valid
         ? 'UNTIMED FINISH'
-        : position === 1
-          ? 'VICTORY'
-          : position
-            ? `P${position} · FINISH`
-            : 'RACE COMPLETE';
+        : position
+          ? `${position}${suffix}`
+          : 'RACE COMPLETE';
       finish.querySelector('small').textContent = valid
         ? `${fmt(result.playerTotalTime)} · ${metadata.name}`
         : 'LAP INVALIDATED · SESSION RECORDED';
@@ -484,10 +523,6 @@ export function createUI(
       if (mode !== 'fly') closeFlySettings(false);
       $('fly-controls')?.classList.toggle('hidden', mode !== 'fly');
       root.querySelector('.masthead').inert = mode === 'paused';
-      $('pause-button').classList.toggle(
-        'hidden',
-        mode !== 'racing' && mode !== 'countdown',
-      );
       if (mode === 'paused') $('resume').focus({ preventScroll: true });
       else if (root.contains(document.activeElement))
         document.activeElement.blur();
@@ -501,6 +536,8 @@ export function createUI(
         freestylePractice = null,
         gamepad = false,
         competition = null,
+        mapPosition = null,
+        mapForward = null,
         trial = null,
         cup = null,
       } = {},
@@ -554,20 +591,40 @@ export function createUI(
             ? 'FREE DRIVE'
             : 'RACE LAP'
           : 'PRACTICE LAP';
-      $('speed').textContent = String(Math.round(s.speed * 3.6)).padStart(
-        3,
-        '0',
-      );
+      const speed = Math.round(s.speed * 3.6);
+      const digits = String(speed).padStart(3, '0');
+      if (speedValue.textContent !== digits) {
+        speedValue.textContent = digits;
+        speedGauge.classList.toggle('has-four-digits', digits.length > 3);
+        speedGauge.style.setProperty(
+          '--speed-progress',
+          String(Math.min(1, Math.max(0, speed / SPEED_GAUGE_LIMIT))),
+        );
+      }
+      if (speedShipId !== s.shipId) {
+        speedShipId = s.shipId;
+        const accent = getShip(speedShipId).liveryAccent;
+        speedGauge.style.setProperty(
+          '--speed-gauge-color',
+          `#${accent.toString(16).padStart(6, '0')}`,
+        );
+      }
       $('time').textContent = fmt(r.elapsed);
       $('lap').textContent = sprint
         ? `${Math.min(r.complete ? 100 : 99, Math.max(0, Math.floor((100 * courseDistance) / track.finishDistance)))}%`
         : competition?.enabled && !competition.playerFinished
           ? `${Math.min(r.lap, 2)}/2`
           : String(r.lap).padStart(2, '0');
-      $('energy-label').textContent = `${Math.round(s.energy)}%`;
-      $('energy-fill').style.width = `${s.energy}%`;
-      $('energy-fill').style.background = s.energy < 25 ? '#ef764e' : '#a9d0c9';
-      $('boost-status').textContent =
+      const lowReserve = s.energy < 25;
+      const reserveValue = String(Math.round(s.energy));
+      const reserveText = `${reserveValue}% remaining${lowReserve ? ', low reserve' : ''}`;
+      reserveMeter.style.setProperty('--reserve-level', String(s.energy / 100));
+      reserveMeter.classList.toggle('is-low', lowReserve);
+      if (reserveMeter.getAttribute('aria-valuetext') !== reserveText) {
+        reserveMeter.setAttribute('aria-valuenow', reserveValue);
+        reserveMeter.setAttribute('aria-valuetext', reserveText);
+      }
+      const driveStatus =
         motion?.mode === 'recovery'
           ? motion.flight?.manualRecovery
             ? 'CONTACT TEST · R TO REPEAT'
@@ -581,15 +638,12 @@ export function createUI(
               : s.boosting
                 ? 'BOOST ENGAGED'
                 : 'MAGNETIC DRIVE';
-      $('boost-status').classList.toggle(
+      if (boostStatus.textContent !== driveStatus)
+        boostStatus.textContent = driveStatus;
+      boostStatus.classList.toggle(
         'active',
-        s.boosting || motion?.vectorActive,
+        Boolean(s.boosting || motion?.vectorActive),
       );
-      $('energy-state').textContent = motion?.vectorActive
-        ? 'VECTOR DRIVE · FREE PROPULSION'
-        : s.energy < 25
-          ? 'LOW RESERVE · RELEASE BOOST TO RECOVER'
-          : 'BOOST USES CORE RESERVE';
       $('last').textContent = sprint
         ? r.complete
           ? 'DESCENT COMPLETE'
@@ -611,7 +665,7 @@ export function createUI(
             : 'LAP INVALIDATED · RESET'
           : r.best
             ? `BEST ${fmt(r.best)}`
-            : 'SET YOUR FIRST CLEAN LAP';
+            : '';
       $('home').textContent = metadata.editorTest
         ? 'Back to editor'
         : 'Race setup';
@@ -623,6 +677,14 @@ export function createUI(
         $('restart').textContent = 'Retry cup race · earlier scores kept';
         root.querySelector('.lap > span').textContent =
           `CUP ${cup.eventIndex + 1}/${cup.eventCount}`;
+      }
+      const delta = trial?.delta == null ? '' : formatDelta(trial.delta);
+      const split = delta ? `S${trial.sector} Δ ${delta}` : '';
+      if (timeSplit.textContent !== split) {
+        timeSplit.textContent = split;
+        timeSplit.classList.toggle('hidden', !split);
+        timeSplit.classList.toggle('faster', delta.startsWith('−'));
+        timeSplit.classList.toggle('slower', delta.startsWith('+'));
       }
       if (trial) {
         $('restart').textContent = 'Retry Time Trial';
@@ -646,21 +708,24 @@ export function createUI(
           const caption = root.querySelector('.timing > span');
           if (!trial.valid) caption.textContent = 'LAP INVALID';
           else if (storageNote) caption.textContent = storageNote;
-          else if (trial.delta != null)
-            caption.textContent = `S${trial.sector} Δ ${formatDelta(trial.delta)}`;
+          else if (
+            trial.start === 'standing' &&
+            trial.standingBest == null &&
+            trial.flyingBest == null
+          )
+            caption.textContent = 'SET YOUR FIRST CLEAN LAP';
           $('last').textContent =
             `STANDING BEST: ${trial.standingBest == null ? 'PENDING' : fmt(trial.standingBest)}`;
           $('best').textContent =
             `FLYING BEST: ${trial.flyingBest == null ? 'PENDING' : fmt(trial.flyingBest)}`;
         } else {
-          $('last').textContent =
-            trial.delta != null
-              ? `S${trial.sector} Δ ${formatDelta(trial.delta)}`
-              : trial.ghost
-                ? 'PERSONAL GHOST'
-                : trial.best
-                  ? 'BEST TIME · NO GHOST'
-                  : 'SET YOUR FIRST BEST';
+          $('last').textContent = split
+            ? ''
+            : trial.ghost
+              ? 'PERSONAL GHOST'
+              : trial.best
+                ? 'BEST TIME · NO GHOST'
+                : 'SET YOUR FIRST BEST';
           $('best').textContent = !trial.valid
             ? 'UNRANKED · R TO RETRY'
             : (trial.best ? `BEST ${fmt(trial.best)}` : 'NO DEVICES') +
@@ -683,11 +748,11 @@ export function createUI(
         if (path.closed) ctx.closePath();
         ctx.stroke();
       }
-      const dot = (position, color, radius, player = false) => {
+      const dot = (position, color, radius) => {
         const [x, y] = coord(position);
         ctx.fillStyle = color;
-        ctx.strokeStyle = player ? '#ffffff' : '#0c1926';
-        ctx.lineWidth = player ? 1.5 : 2;
+        ctx.strokeStyle = '#0c1926';
+        ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.arc(x, y, radius, 0, Math.PI * 2);
         ctx.fill();
@@ -723,21 +788,46 @@ export function createUI(
                 .clone()
                 .addScaledVector(frame.right, rival.lateral),
             racerColors[rival.id],
-            3.5,
+            rival.id === competition.relative?.ahead?.id ||
+              rival.id === competition.relative?.behind?.id
+              ? 3.5
+              : 2.8,
           );
         }
       }
-      const world = motion?.currentPose?.position;
-      dot(
-        world
-          ? { x: world[0], z: world[2] }
-          : ((track.mapPaths
-              ? track.sampleSurface?.(s.distance, s.lateral)?.position
-              : null) ?? track.sample(s.distance).position),
-        racerColors.player,
-        4,
-        true,
-      );
+      const frame =
+        mapPosition && mapForward
+          ? null
+          : (track.sampleSurface?.(s.distance, s.lateral) ??
+            track.sample(s.distance));
+      const [x, y] = coord(mapPosition ?? frame.position);
+      const forwardX =
+        mapForward?.x ??
+        frame.tangent.x * Math.cos(s.heading) +
+          frame.right.x * Math.sin(s.heading);
+      const forwardZ =
+        mapForward?.z ??
+        frame.tangent.z * Math.cos(s.heading) +
+          frame.right.z * Math.sin(s.heading);
+      // A nearly vertical nose has no reliable direction on the X/Z map.
+      if (forwardX ** 2 + forwardZ ** 2 > 0.001)
+        mapHeading = Math.atan2(forwardZ, forwardX);
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(mapHeading);
+      ctx.fillStyle = racerColors.player;
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1.5;
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(7, 0);
+      ctx.lineTo(-4.5, 4.5);
+      ctx.lineTo(-2, 0);
+      ctx.lineTo(-4.5, -4.5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
     },
     setCountdown(step) {
       lights.classList.toggle('hidden', step === null);

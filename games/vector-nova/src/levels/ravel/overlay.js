@@ -48,9 +48,6 @@ export function createRavelOverlay({ host, track, developer = false }) {
       api.loadScenario(entry.scenario, 7);
       api.clearInput?.();
       api.resume?.();
-      // The selected pause control has just become hidden. Keep keyboard and
-      // controller focus on the ordinary visible session control instead.
-      host.querySelector('#pause-button')?.focus({ preventScroll: true });
     } finally {
       launching = false;
       drive.disabled = !activeAPI();

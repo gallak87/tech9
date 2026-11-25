@@ -741,10 +741,6 @@ body[data-screen='results'] :where(#app) #interface {
 :where(#app) #interface .masthead .edition {
   display: none;
 }
-:where(#app) #interface .quiet {
-  font-size: 14px;
-  padding: 8px 12px;
-}
 :where(#app) #interface #minimap {
   top: 220px;
 }
@@ -776,9 +772,6 @@ body[data-screen='results'] :where(#app) #interface {
   }
   :where(#app) #interface .wordmark {
     white-space: nowrap;
-  }
-  :where(#app) #interface #pause-button {
-    margin-left: auto;
   }
 }
 :where(#app) .music-player.is-compact {

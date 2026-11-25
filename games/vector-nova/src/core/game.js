@@ -1581,7 +1581,6 @@ export async function createGame({
             else restart(false, true, false);
             audio.unlock().catch(() => {});
           },
-          pause,
           resume,
           restart: retrySession,
           ...(!import.meta.env?.VN_DESKTOP
@@ -1791,7 +1790,8 @@ export async function createGame({
     const localYaw = new T.Quaternion(),
       localRoll = new T.Quaternion();
     const upAxis = new T.Vector3(0, 1, 0),
-      forwardAxis = new T.Vector3(0, 0, 1);
+      forwardAxis = new T.Vector3(0, 0, 1),
+      mapForward = new T.Vector3();
     function pose(s, alpha = 1, feedback = {}) {
       const worldPose = runtime.pose?.(alpha);
       const surface = track.sampleSurface?.(s.distance, s.lateral);
@@ -2143,6 +2143,10 @@ export async function createGame({
       ui.update(state, race, motionFeedback, {
         practice: definition.practiceSectionsUntimed && scenario !== 'staging',
         competition: standings,
+        mapPosition: ship.group.position,
+        mapForward: mapForward
+          .copy(forwardAxis)
+          .applyQuaternion(ship.group.quaternion),
         lastResults,
         gamepad: input.gamepadPresent,
         trial: trial?.snapshot(),

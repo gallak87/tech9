@@ -601,7 +601,8 @@ export function createCupFinish(options) {
         touchPoints: [],
       });
       assert.equal(await pad.getAttribute('data-active'), 'false');
-      await page.locator('#pause-button').tap();
+      await page.keyboard.press('Escape');
+      await page.locator('#pause-panel').waitFor();
       assert.equal(await page.locator('#pause-difficulty').isVisible(), false);
       await page.locator('#restart').tap();
       assert.equal(

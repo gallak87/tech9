@@ -91,7 +91,8 @@ try {
     assert.equal(state.level, saved);
     assert.equal(state.rivals, mode === 'quick-race' ? 10 : 0);
     assert.equal(state.trial, mode === 'time-trial');
-    await page.locator('#pause-button').click();
+    await page.keyboard.press('Escape');
+    await page.locator('#pause-panel').waitFor();
     assert.equal(await page.locator('#home').innerText(), 'Race setup');
     await page.locator('#home').click();
     console.log(mode, state);

@@ -303,12 +303,6 @@ body {
   color: #c8c8c8;
   font-size: 9px;
 }
-:where(#app) .quiet {
-  margin-left: auto;
-  font-size: 19px;
-  background: #19191999;
-  padding: 8px 16px;
-}
 :where(#app) .panel {
   position: absolute;
   top: 25%;
@@ -680,12 +674,26 @@ body {
   font-weight: 400;
 }
 :where(#app) .timing b {
+  position: relative;
+  isolation: isolate;
   display: block;
+  width: max-content;
+  color: #fff;
   font-size: 27px;
-  font-weight: 400;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.035em;
   margin-top: 5px;
+}
+:where(#app) .timing b::before {
+  content: '';
+  position: absolute;
+  inset: 0 -9px;
+  z-index: -1;
+  transform: skewX(-18deg);
+  border-top: 1px solid #797d80;
+  border-bottom: 1px solid #24282b;
+  background: linear-gradient(#3a3d40, #181b1e);
 }
 :where(#app) .timing small {
   display: block;
@@ -693,6 +701,20 @@ body {
   font-size: 8px;
   letter-spacing: 0.12em;
   color: #d5d5d5;
+}
+:where(#app) .timing :is(#last, #best):empty {
+  display: none;
+}
+:where(#app) #time-split {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+}
+:where(#app) #time-split.faster {
+  color: #9aebc4;
+}
+:where(#app) #time-split.slower {
+  color: #ffc487;
 }
 :where(#app) .telemetry {
   position: absolute;
@@ -709,54 +731,261 @@ body {
 :where(#app) .energy span {
   font-size: 9px;
   letter-spacing: 0.17em;
-  display: flex;
-  justify-content: space-between;
+  display: block;
 }
 :where(#app) .energy-track {
-  background: #2525259e;
-  height: 5px;
-  margin: 12px 0;
+  height: 8px;
+  margin-top: 7px;
+  border: 1px solid #61666a;
+  background: #181b1ee6;
+}
+:where(#app) .energy-track.is-low {
+  border-color: #ed835b;
+  background: #4c251be6;
 }
 :where(#app) .energy-track i {
-  height: 100%;
   display: block;
-  background: #c7c7c7;
-  transition: width 0.1s;
-}
-:where(#app) .energy small {
-  font-size: 7px;
-  letter-spacing: 0.1em;
+  height: 100%;
+  background: var(--reserve-color);
+  transform: scaleX(clamp(0, var(--reserve-level, 1), 1));
+  transform-origin: left center;
 }
 :where(#app) .speed {
-  display: flex;
-  align-items: baseline;
+  --speed-gauge-size: clamp(92px, min(12.7vw, calc(100dvh - 575px)), 184px);
+  --speed-gauge-start: -135deg;
+  --speed-gauge-sweep: 270deg;
+  --speed-gauge-angle: calc(
+    var(--speed-progress, 0) * var(--speed-gauge-sweep)
+  );
+  --speed-gauge-light: color-mix(
+    in srgb,
+    var(--speed-gauge-color, #fff) 68%,
+    #fff
+  );
   position: relative;
-  gap: 10px;
+  flex: 0 0 auto;
+  width: var(--speed-gauge-size);
+  aspect-ratio: 1;
+  text-align: center;
 }
-:where(#app) .speed strong {
-  font-size: 83px;
-  letter-spacing: -0.065em;
-  line-height: 1;
-  font-weight: 400;
-  font-variant-numeric: tabular-nums;
-  text-shadow: 0 2px 18px #1e1e1e;
-}
-:where(#app) .speed span {
-  font-size: 10px;
-  color: #d5d5d5;
-  letter-spacing: 0.1em;
-}
-:where(#app) .speed i {
+:where(#app) .speed-gauge-face,
+:where(#app) .speed-gauge-scale,
+:where(#app) .speed-gauge-scale > span,
+:where(#app) .speed-gauge-needle {
   position: absolute;
-  bottom: -17px;
-  left: 4px;
-  font-size: 8px;
-  letter-spacing: 0.2em;
-  font-style: normal;
-  color: #c8c8c8;
+  inset: 0;
 }
-:where(#app) .speed i.active {
-  color: #c41c1c;
+:where(#app) .speed-gauge-face {
+  overflow: hidden;
+  border: 1px solid #6a777e;
+  border-radius: 50%;
+  background: linear-gradient(
+    145deg,
+    #69787e,
+    #242b2f 43%,
+    #424f56 73%,
+    #151b20
+  );
+  box-shadow:
+    inset 0 0 0 1px #161b20,
+    0 2px 8px #000a;
+}
+:where(#app) .speed-gauge-face::before {
+  content: '';
+  position: absolute;
+  inset: 3%;
+  border: 1px solid #11181e;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 42% 30%, #263239, #151c21 70%);
+  box-shadow: inset 0 1px 4px #080e12;
+}
+:where(#app) .speed-gauge-track {
+  position: absolute;
+  inset: 5.5%;
+  border-radius: 50%;
+  background:
+    repeating-conic-gradient(
+      from var(--speed-gauge-start),
+      transparent 0deg 7deg,
+      #142129 7deg 8.4deg
+    ),
+    conic-gradient(
+      from var(--speed-gauge-start),
+      var(--speed-gauge-color, #fff) 0deg var(--speed-gauge-angle),
+      #34454e 0deg var(--speed-gauge-sweep),
+      transparent 0deg
+    );
+  mask-image:
+    radial-gradient(
+      farthest-side,
+      transparent 86%,
+      #000 87% 98%,
+      transparent 99%
+    ),
+    conic-gradient(
+      from var(--speed-gauge-start),
+      #000 0deg var(--speed-gauge-sweep),
+      transparent 0deg
+    );
+  mask-composite: intersect;
+}
+:where(#app) .speed-gauge-scale > span {
+  --gauge-tick-angle: calc(
+    var(--speed-gauge-start) + var(--tick-position) * var(--speed-gauge-sweep)
+  );
+  transform: rotate(var(--gauge-tick-angle));
+}
+:where(#app) .speed-gauge-scale > span::before,
+:where(#app) .speed-gauge-scale > span > span {
+  position: absolute;
+  left: 50%;
+}
+:where(#app) .speed-gauge-scale > span::before {
+  content: '';
+  top: 6%;
+  width: 1px;
+  height: 6%;
+  background: #e1e8eabf;
+  transform: translateX(-50%);
+}
+:where(#app) .speed-gauge-scale > span > span {
+  top: 17%;
+  color: #e0e8eb;
+  font-size: clamp(7px, calc(var(--speed-gauge-size) * 0.065), 12px);
+  font-variant-numeric: tabular-nums;
+  transform: translate(-50%, -50%) rotate(calc(-1 * var(--gauge-tick-angle)));
+}
+:where(#app) .speed-gauge-needle {
+  transform: rotate(calc(var(--speed-gauge-start) + var(--speed-gauge-angle)));
+  filter: drop-shadow(
+    0 0 3px color-mix(in srgb, var(--speed-gauge-color, #fff) 65%, transparent)
+  );
+}
+:where(#app) .speed-gauge-needle::before {
+  content: '';
+  position: absolute;
+  inset: 12% 43% 46%;
+  clip-path: polygon(50% 0, 94% 92%, 50% 100%, 6% 92%);
+  background: linear-gradient(
+    90deg,
+    var(--speed-gauge-color, #fff),
+    var(--speed-gauge-light) 43%,
+    #f7fdff 50%,
+    var(--speed-gauge-color, #fff) 64%,
+    #24303a
+  );
+}
+:where(#app) .speed-gauge-hub {
+  position: absolute;
+  inset: 43.5%;
+  border: 1px solid #64747f;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    var(--speed-gauge-light) 0 15%,
+    var(--speed-gauge-color, #fff) 18% 34%,
+    #19262d 39% 51%,
+    #45545d 57% 64%,
+    #1c242b 70%
+  );
+  box-shadow: 0 1px 3px #06090d;
+}
+:where(#app) .speed-gauge-readout {
+  position: absolute;
+  top: 57%;
+  left: 50%;
+  display: grid;
+  justify-items: center;
+  gap: 1px;
+  width: 70%;
+  transform: translateX(-50%);
+}
+:where(#app) #speed {
+  color: #f6fbfd;
+  font-size: calc(var(--speed-gauge-size) * 0.22);
+  letter-spacing: -0.045em;
+  line-height: 1;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 3px #0b1016;
+}
+:where(#app) .speed.has-four-digits #speed {
+  font-size: calc(var(--speed-gauge-size) * 0.16);
+}
+:where(#app) .speed-gauge-unit {
+  color: #dce6e9;
+  font-size: clamp(6px, calc(var(--speed-gauge-size) * 0.054), 10px);
+  line-height: 1;
+  letter-spacing: 0.09em;
+}
+:where(#app) #boost-status {
+  margin-top: 1px;
+  color: #c3ced4;
+  font-size: clamp(6px, calc(var(--speed-gauge-size) * 0.048), 9px);
+  font-style: normal;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+:where(#app) #boost-status.active {
+  color: var(--speed-gauge-light);
+}
+@media (max-height: 700px) {
+  :where(#app) .speed {
+    --speed-gauge-size: clamp(64px, calc(100dvh - 500px), 136px);
+  }
+}
+@media (max-width: 760px) {
+  :where(#app) .speed {
+    --speed-gauge-size: 72px;
+  }
+}
+@media (max-height: 570px) and (orientation: landscape) {
+  :where(#app) .speed {
+    --speed-gauge-size: 84px;
+  }
+}
+@media (max-width: 760px), (max-height: 625px) {
+  :where(#app) .speed-gauge-scale > span > span {
+    display: none;
+  }
+  :where(#app) .speed-gauge-readout {
+    top: 56%;
+    gap: 0;
+    width: 76%;
+  }
+  :where(#app) #speed {
+    font-size: calc(var(--speed-gauge-size) * 0.25);
+  }
+  :where(#app) .speed.has-four-digits #speed {
+    font-size: calc(var(--speed-gauge-size) * 0.21);
+  }
+  :where(#app) #boost-status {
+    max-width: 100%;
+    margin-top: 0;
+    overflow: hidden;
+    letter-spacing: 0;
+    text-overflow: ellipsis;
+  }
+}
+@media (max-height: 350px) and (orientation: landscape) {
+  :where(#app) .speed {
+    --speed-gauge-size: 58px;
+  }
+  :where(#app) #boost-status {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+}
+:where(#app) .race-map-housing {
+  display: contents;
+  --race-map-width: 210px;
+  --race-map-surface: linear-gradient(#272c30f2, #15181ced);
+  --race-map-rim: #8790987a;
 }
 :where(#app) #minimap {
   position: absolute;
@@ -765,8 +994,8 @@ body {
   width: 160px;
   height: 120px;
   filter: drop-shadow(0 2px 6px #000);
-  background: #171717b3;
-  border: 1px solid #e3e3e32e;
+  background: var(--race-map-surface);
+  border: 1px solid var(--race-map-rim);
   border-radius: 8px;
 }
 :where(#app) #loading {
@@ -983,14 +1212,8 @@ body {
   :where(#app) .telemetry {
     bottom: 155px;
   }
-  :where(#app) .speed strong {
-    font-size: 55px;
-  }
   :where(#app) .energy {
     width: 160px;
-  }
-  :where(#app) .energy small {
-    font-size: 6px;
   }
   :where(#app) #minimap {
     top: 90px;
@@ -1089,24 +1312,18 @@ body {
   text-shadow: 0 1px 4px #101010f2;
 }
 :where(#app) .top-telemetry span,
-:where(#app) .timing small,
-:where(#app) .speed i {
+:where(#app) .timing small {
   color: #eaeaea;
 }
 :where(#app) .timing small {
   font-size: 10px;
 }
-:where(#app) .energy small {
-  font-size: 9px;
-}
-
 @media (min-width: 761px) {
   :where(#app) #legend {
     gap: clamp(12px, 1.5vw, 22px);
   }
   :where(#app) kbd,
-  :where(#app) .timing small,
-  :where(#app) .energy small {
+  :where(#app) .timing small {
     font-size: 13px;
   }
   :where(#app) #legend span,
@@ -1141,8 +1358,7 @@ body {
     width: 310px;
   }
   :where(#app) .top-telemetry span,
-  :where(#app) .energy span,
-  :where(#app) .speed i {
+  :where(#app) .energy span {
     font-size: 11px;
   }
 }
@@ -1289,38 +1505,10 @@ body {
   }
   :where(#app)
     #interface:is(.compact-landscape, .has-racing).driving
-    .telemetry {
-    bottom: 92px;
-  }
-  :where(#app) #interface:is(.compact-landscape, .has-racing).driving .energy {
-    width: 160px;
-  }
-  :where(#app)
-    #interface:is(.compact-landscape, .has-racing).driving
     .energy
     span {
     font-size: 8px;
     letter-spacing: 0.08em;
-  }
-  :where(#app)
-    #interface:is(.compact-landscape, .has-racing).driving
-    .energy
-    small {
-    font-size: 8px;
-    line-height: 1.2;
-  }
-  :where(#app)
-    #interface:is(.compact-landscape, .has-racing).driving
-    .speed
-    strong {
-    font-size: 48px;
-  }
-  :where(#app) #interface:is(.compact-landscape, .has-racing).driving .speed {
-    gap: 6px;
-  }
-  :where(#app) #interface:is(.compact-landscape, .has-racing).driving .speed i {
-    font-size: 8px;
-    bottom: -14px;
   }
   :where(#app) #interface:is(.compact-landscape, .has-racing).driving #legend,
   :where(#app)
@@ -1345,19 +1533,7 @@ body {
     font-size: 8px;
   }
   :where(#app) #interface.portrait-compact-hud.driving .energy-track {
-    margin: 6px 0;
-  }
-  :where(#app) #interface.portrait-compact-hud.driving .energy small {
-    display: block;
-    font-size: 8px;
-    line-height: 1.2;
-  }
-  :where(#app) #interface.portrait-compact-hud.driving .speed strong {
-    font-size: 34px;
-  }
-  :where(#app) #interface.portrait-compact-hud.driving .speed i {
-    font-size: 8px;
-    bottom: -14px;
+    margin-top: 6px;
   }
 }
 
@@ -1918,6 +2094,9 @@ body {
 }
 :where(#app) #race-roster:not(.in-paddock) {
   padding: 12px;
+  background: var(--race-map-surface);
+  border: 1px solid var(--race-map-rim);
+  border-radius: 8px;
 }
 :where(#app) .roster-heading span {
   display: block;
@@ -1972,6 +2151,13 @@ body {
 :where(#app) #race-roster li.is-player {
   background: #c41c1c14;
 }
+:where(#app) #race-roster:not(.in-paddock) li.is-nearby {
+  background: color-mix(in srgb, var(--racer-color) 9%, transparent);
+  color: #fff;
+}
+:where(#app) #race-roster:not(.in-paddock) li.is-player {
+  background: color-mix(in srgb, var(--racer-color) 15%, transparent);
+}
 :where(#app) .position small {
   display: block;
   margin-top: 4px;
@@ -1984,7 +2170,7 @@ body {
   color: #c7c7c7;
 }
 :where(#app) #race-roster li.is-player > span {
-  color: #c41c1c;
+  color: var(--racer-color);
   font-weight: 700;
 }
 :where(#app) .roster-laps {
@@ -2152,22 +2338,25 @@ body {
 
 :where(#app) #race-finish {
   position: absolute;
-  top: 32%;
+  top: clamp(92px, 23vh, 220px);
   left: 50%;
   transform: translateX(-50%);
+  display: grid;
+  justify-items: center;
+  gap: 8px;
   width: min(540px, 88vw);
-  padding: 20px 28px;
-  border-top: 2px solid #dedede;
-  background: linear-gradient(
-    90deg,
-    #09090900,
-    #090909df 18%,
-    #090909df 82%,
-    #09090900
-  );
   text-align: center;
+  text-shadow:
+    0 1px 2px #101010,
+    0 2px 5px #101010;
   pointer-events: none;
   animation: finish-reveal 220ms ease-out;
+}
+:where(#app) #race-finish .finish-checker {
+  width: clamp(48px, 9vmin, 86px);
+  aspect-ratio: 1;
+  background: conic-gradient(#f5f4ef 25%, #222 0 50%, #f5f4ef 0 75%, #222 0) 0
+    0 / 50% 50%;
 }
 :where(#app) #race-finish > span,
 :where(#app) #race-finish > small {
@@ -2178,7 +2367,6 @@ body {
 }
 :where(#app) #race-finish strong {
   display: block;
-  margin: 9px 0;
   font-size: clamp(30px, 5vw, 66px);
   line-height: 1;
   letter-spacing: -0.04em;
@@ -2203,16 +2391,47 @@ body {
   }
 }
 
-/* Shared field placement respects the existing compact world HUD options. */
-/* The full ten-pilot field shares one narrow column with its map. */
+/* Share one housing where the map and full field fit above driving telemetry. */
 @media (min-width: 761px) and (min-height: 571px) {
-  :where(#app) #interface.has-live-race #minimap {
+  :where(#app)
+    #interface.has-live-race:not([data-event], [data-freestyle='true'])
+    .race-map-housing {
+    position: absolute;
     top: 88px;
+    right: 4vw;
+    display: grid;
+    justify-items: center;
+    gap: 8px;
+    width: var(--race-map-width);
+    padding-top: 6px;
+    background: var(--race-map-surface);
+    border: 1px solid var(--race-map-rim);
+    border-radius: 8px;
+    box-shadow: 0 3px 8px #0007;
+    pointer-events: none;
+  }
+  :where(#app)
+    #interface.has-live-race:not([data-event], [data-freestyle='true'])
+    .race-map-housing
+    > #minimap {
+    position: static;
     width: 130px;
     height: 98px;
+    background: #15181c99;
+    border-color: #87909838;
+    border-radius: 4px;
+    filter: none;
   }
-  :where(#app) #interface.has-live-race #race-roster:not(.in-paddock) {
-    top: 200px;
+  :where(#app)
+    #interface.has-live-race:not([data-event], [data-freestyle='true'])
+    .race-map-housing
+    > #race-roster:not(.in-paddock) {
+    position: static;
+    width: 100%;
+    background: none;
+    border: 0;
+    border-top: 1px solid #87909838;
+    border-radius: 0;
   }
   :where(#app) #race-roster:not(.in-paddock) li {
     padding-top: 3px;
@@ -2221,8 +2440,11 @@ body {
   }
 }
 @media (max-width: 760px), (max-height: 700px) {
+  :where(#app) .race-map-housing {
+    --race-map-width: 150px;
+  }
   :where(#app) #race-roster:not(.in-paddock) {
-    width: 150px;
+    width: var(--race-map-width);
     padding: 6px;
   }
   :where(#app) #race-roster:not(.in-paddock) .roster-heading span,
@@ -2336,7 +2558,9 @@ body {
   :where(#app) #interface.driving #legend {
     display: none;
   }
-  :where(#app) #interface.driving:not(.portrait-compact-hud) .telemetry {
+  :where(#app)
+    #interface.driving:where(:not(.portrait-compact-hud))
+    .telemetry {
     bottom: calc(max(16px, env(safe-area-inset-bottom)) + 200px);
   }
 }
@@ -2350,66 +2574,22 @@ body {
     height: 144px;
     font-size: 9px;
   }
-  :where(#app) #interface.driving:not(.portrait-compact-hud) .telemetry {
+  :where(#app) #interface.driving .telemetry {
     left: calc(max(3vw, env(safe-area-inset-left)) + 160px);
     right: calc(max(3vw, env(safe-area-inset-right)) + 116px);
     bottom: calc(max(16px, env(safe-area-inset-bottom)) + 20px);
   }
-  :where(#app) #interface.driving:not(.portrait-compact-hud) .energy {
+  :where(#app) #interface.driving .energy {
     width: clamp(90px, 16vw, 150px);
   }
-  :where(#app) #interface.driving:not(.portrait-compact-hud) .energy small {
-    display: none;
-  }
-  :where(#app) #interface.driving:not(.portrait-compact-hud) .speed strong {
-    font-size: 40px;
-  }
   :where(#app) #interface.driving #race-roster:not(.in-paddock) {
+    top: 76px;
     right: calc(max(3vw, env(safe-area-inset-right)) + 124px);
   }
 }
-
-/* These levels retain their upper portrait HUD, but landscape telemetry must
-   sit between the two touch pads instead of inheriting the portrait opt-out. */
-@media (max-height: 570px) and (orientation: landscape) {
-  :where(#app)
-    #interface:is(
-      [data-level='nightweir'],
-      [data-level='halcyon'],
-      [data-level='nomad']
-    ).driving
-    .telemetry {
-    left: calc(max(3vw, env(safe-area-inset-left)) + 160px);
-    right: calc(max(3vw, env(safe-area-inset-right)) + 116px);
-    bottom: calc(max(16px, env(safe-area-inset-bottom)) + 20px);
-  }
-  :where(#app)
-    #interface:is(
-      [data-level='nightweir'],
-      [data-level='halcyon'],
-      [data-level='nomad']
-    ).driving
-    .energy {
-    width: clamp(90px, 16vw, 150px);
-  }
-  :where(#app)
-    #interface:is(
-      [data-level='nightweir'],
-      [data-level='halcyon'],
-      [data-level='nomad']
-    ).driving
-    .energy
-    small {
-    display: none;
-  }
-  :where(#app)
-    #interface:is(
-      [data-level='nightweir'],
-      [data-level='halcyon'],
-      [data-level='nomad']
-    ).driving
-    .speed
-    strong {
-    font-size: 40px;
+@media (max-height: 350px) and (orientation: landscape) {
+  :where(#app) #interface.driving #race-roster:not(.in-paddock) li {
+    margin-bottom: 1px;
+    padding-block: 1px;
   }
 }

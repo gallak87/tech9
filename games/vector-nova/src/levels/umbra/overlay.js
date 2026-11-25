@@ -19,12 +19,13 @@ export function createUmbraOverlay({ host, track, view, shape = false }) {
     @media(max-height:450px) and (max-width:700px) {
       .umbra-layout #interface.driving .telemetry { bottom:80px; }
       .umbra-layout #interface.driving .energy-track { margin:6px 0; }
-      .umbra-layout #interface.driving .energy small { font-size:7px; }
-      .umbra-layout #interface.driving .speed strong { font-size:42px; }
       .umbra-layout #interface #race-roster:not(.in-paddock) li,
       .umbra-layout #interface #race-roster:not(.in-paddock) li > b,
       .umbra-layout #interface #race-roster:not(.in-paddock) li > small { font-size:7px; }
       .umbra-layout #interface #race-roster:not(.in-paddock) li { padding-top:1px; padding-bottom:1px; margin-bottom:1px; }
+    }
+    @media(max-height:450px) and (max-width:700px) and (orientation:landscape) {
+      .umbra-layout #interface.driving .speed { translate:0 calc(60px - max(16px, env(safe-area-inset-bottom))); }
     }
   `;
   const field = document.createElement('div');

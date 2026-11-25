@@ -120,8 +120,9 @@ try {
       window.__VN.getSnapshot().mode === 'racing',
   );
   assert.equal(
-    await page.evaluate(() => document.activeElement.id),
-    'pause-button',
+    await page.locator('#pause-panel:focus-within').count(),
+    0,
+    'starting a scenario moves focus out of the pause panel',
   );
   for (const scenario of ['ascent-wave', 'fan-wave', 'crest-rising']) {
     await tap(9);
@@ -147,8 +148,9 @@ try {
       scenario,
     );
     assert.equal(
-      await page.evaluate(() => document.activeElement.id),
-      'pause-button',
+      await page.locator('#pause-panel:focus-within').count(),
+      0,
+      'controller start moves focus out of the pause panel',
     );
   }
   await tap(9);

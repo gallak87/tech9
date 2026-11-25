@@ -628,7 +628,8 @@ try {
       (await page.evaluate(() => window.__VN.getSnapshot().vehicle.distance)) >
         start + 1,
     );
-    await page.locator('#pause-button').tap();
+    await page.keyboard.press('Escape');
+    await page.locator('#pause-panel').waitFor();
     assert.equal(await page.locator('#home').textContent(), 'Back to editor');
     await page.locator('#home').tap();
     await action(page, 'test').waitFor();

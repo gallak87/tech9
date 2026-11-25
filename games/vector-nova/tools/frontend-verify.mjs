@@ -1872,9 +1872,10 @@ try {
           assert.ok(before.track.length > 0);
           assert.equal((await front(page)).intent, mode);
           if (racers) assert.equal(before.competition.standings.length, racers);
+          const hud = mode === 'race' ? '.top-telemetry' : `.${mode}-hud`;
           const [map, telemetry] = await Promise.all([
             page.locator('#minimap').boundingBox(),
-            page.locator(`.${mode}-hud`).boundingBox(),
+            page.locator(hud).boundingBox(),
           ]);
           assert.ok(map && telemetry, `${id} shows the map and mode HUD`);
           assert.equal(map.y, telemetry.y, `${id} aligns the two HUD corners`);

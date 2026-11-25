@@ -661,7 +661,8 @@ test('rival presentation follows banked/inverted world frames and owns cleanup',
 test('a rejected rival asset releases already loaded racing meshes', async () => {
   const racers = createHalcyonRacers({ track });
   const scene = new Scene();
-  let disposals = 0;
+  const loaded = [];
+  const disposed = [];
   await assert.rejects(
     createRacerPresentation({
       racers,
@@ -669,11 +670,12 @@ test('a rejected rival asset releases already loaded racing meshes', async () =>
       track,
       loadRival: async (id) => {
         if (id === 'latch') throw new Error('missing rival');
+        loaded.push(id);
         const group = new Group();
         return {
           group,
           dispose() {
-            disposals++;
+            disposed.push(id);
             group.removeFromParent();
           },
         };
@@ -681,7 +683,8 @@ test('a rejected rival asset releases already loaded racing meshes', async () =>
     }),
     /missing rival/,
   );
-  assert.equal(disposals, 1);
+  assert.ok(loaded.length > 0);
+  assert.deepEqual(disposed.toSorted(), loaded.toSorted());
   assert.equal(scene.children.length, 0);
   racers.dispose();
 });

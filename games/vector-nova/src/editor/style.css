@@ -1126,6 +1126,26 @@
   background: var(--workshop-accent);
   transform: skew(-12deg);
 }
+.workshop-framed-tile {
+  position: relative;
+  isolation: isolate;
+}
+.workshop-framed-tile::after {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background: var(--card-edge-reflection, none);
+  mask: var(--card-edge-mask);
+  mask-composite: exclude;
+  opacity: var(--workshop-tile-reflection-opacity, 0.42);
+  pointer-events: none;
+}
+.workshop-framed-tile[aria-pressed='true'] {
+  --workshop-tile-reflection-opacity: 0.25;
+}
 .workshop-options-scroll,
 .workshop-strip-groups {
   flex: 1 1 0;
@@ -2101,7 +2121,7 @@
   font-weight: 700;
 }
 .workshop-recovery figure {
-  position: relative;
+  --workshop-tile-reflection-opacity: 0.72;
   flex: 0 1 420px;
   min-width: 0;
   aspect-ratio: 30 / 19;

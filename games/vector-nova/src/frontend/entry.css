@@ -180,7 +180,7 @@
   isolation: isolate;
   --menu-edge: #43464a;
   --entry-slot-accent: transparent;
-  --entry-slot-face: linear-gradient(146deg, #27292c, #1a1b1d 57%, #111214);
+  --entry-slot-face: var(--card-enamel-surface);
   --menu-surface:
     linear-gradient(90deg, var(--entry-slot-accent) 0 4px, transparent 4px),
     var(--entry-slot-face);

@@ -313,7 +313,9 @@
   min-height: 0;
   max-height: 340px;
   padding: 1px;
-  background: linear-gradient(150deg, #b5bcc5, #555960 56%, #7b8087);
+  background:
+    var(--card-edge-reflection, none),
+    linear-gradient(150deg, #b5bcc5, #555960 56%, #7b8087);
 }
 .circuit-hero,
 .circuit-hero > .detail-image {
@@ -438,6 +440,29 @@
   background: #ffffff03;
   text-align: left;
   min-height: 44px;
+}
+.menu-layout button.circuit-card:not(:hover, :focus-visible)::before,
+.menu-layout
+  .mode-picker
+  button:not([aria-pressed='true'], :hover, :focus-visible)::before,
+.menu-layout :is(.records-toolbar, .event-guide, .freestyle-guide)::before,
+.menu-layout button.menu-selection:not(:hover, :focus-visible)::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  z-index: 1;
+  padding: 1px;
+  border-radius: inherit;
+  background: var(--card-edge-reflection, none);
+  mask: var(--card-edge-mask);
+  mask-composite: exclude;
+  opacity: 0.45;
+  pointer-events: none;
+}
+.menu-layout button.menu-selection:not(:hover, :focus-visible)::after {
+  inset: 0 0 0 calc(var(--menu-selection-padding) + 42px);
+  padding-left: 2px;
+  border-radius: 4px;
 }
 .menu-layout .circuit-card.selected {
   border-color: #aaadb044;
@@ -812,6 +837,7 @@
   width: min(100%, var(--race-control-width));
 }
 .front-content .mode-picker button {
+  position: relative;
   grid-column: span 3;
   display: flex;
   align-items: center;
@@ -1139,6 +1165,7 @@
   color: #aaa;
 }
 .records-toolbar {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
   gap: 12px;
@@ -1278,6 +1305,7 @@
   }
 }
 :is(.event-guide, .freestyle-guide) {
+  position: relative;
   padding: 7px 12px;
   margin-top: 12px;
   border: 1px solid #ffffff25;

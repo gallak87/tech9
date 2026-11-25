@@ -33,6 +33,7 @@
   margin: 0 auto 12px;
 }
 .garage-fleet button {
+  position: relative;
   min-width: 0;
   padding: 3px 0 8px;
   border: 1px solid #ffffff30;
@@ -264,6 +265,7 @@
   gap: 6px;
 }
 .garage-equipment-card {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 7px;
@@ -309,6 +311,7 @@
   border-top: 1px solid #ffffff18;
 }
 #front-shell .garage-core-toggle {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -556,6 +559,24 @@
 .front-content.dedicated-garage
   :is(.garage-fleet button, .garage-equipment-card) {
   background: var(--menu-grain), var(--menu-button-surface);
+}
+.front-content.dedicated-garage
+  :is(.garage-fleet button, .garage-equipment-card, .garage-core-toggle):not(
+    [aria-pressed='true'],
+    :hover,
+    :focus-visible
+  )::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  z-index: 1;
+  padding: 1px;
+  border-radius: inherit;
+  background: var(--card-edge-reflection, none);
+  mask: var(--card-edge-mask);
+  mask-composite: exclude;
+  opacity: 0.45;
+  pointer-events: none;
 }
 .front-content.dedicated-garage .garage-fleet button[data-preview='true'] {
   border-color: #aaaab28c;

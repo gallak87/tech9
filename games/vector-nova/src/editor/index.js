@@ -805,7 +805,7 @@ export function createTrackEditor(
         <div class="workshop-recovery-actions">${button('recover-draft', 'Continue draft', 'class="workshop-primary"')}${button('discard-recovery', 'Start fresh')}</div>
         <p class="workshop-fresh-note">Starting fresh clears this backup. Saved levels stay in your library.</p>
         <p role="alert" data-recovery-alert></p></div>
-        <figure><img src="${escape(environmentThumbnail(draft.biome, draft.settings.sceneryPreset))}" alt="">${route ? `<svg viewBox="0 0 300 190" role="img" aria-label="Draft route outline"><path d="${route.path}"/><circle cx="${route.start[0]}" cy="${route.start[1]}" r="3.5"/></svg>` : ''}</figure>`;
+        <figure class="workshop-framed-tile"><img src="${escape(environmentThumbnail(draft.biome, draft.settings.sceneryPreset))}" alt="">${route ? `<svg viewBox="0 0 300 190" role="img" aria-label="Draft route outline"><path d="${route.path}"/><circle cx="${route.start[0]}" cy="${route.start[1]}" r="3.5"/></svg>` : ''}</figure>`;
     }
     if (!choosing) node.replaceChildren();
     const error = root.querySelector('[data-editor-recovery-error]');
@@ -1227,7 +1227,7 @@ export function createTrackEditor(
     const distance = (index) =>
       `${((fractionAt(index) * analysis.length) / 1000).toFixed(2)} km`;
     const metrics = (pairs) =>
-      `<dl class="workshop-inspector-metrics">${pairs.map(([label, value]) => `<div><dt>${label}</dt><dd>${value}</dd></div>`).join('')}</dl>`;
+      `<dl class="workshop-inspector-metrics">${pairs.map(([label, value]) => `<div class="workshop-framed-tile"><dt>${label}</dt><dd>${value}</dd></div>`).join('')}</dl>`;
     const span = selectedRange();
     if (inspector === 'shape' && span) {
       const rise = Math.round(
@@ -1491,7 +1491,7 @@ export function createTrackEditor(
       button(
         `road-preset-${preset.id}`,
         escape(preset.label),
-        `class="workshop-road-card" aria-pressed="${matchingPreset?.id === preset.id}" ${preset.circuitOnly && doc.courseType === 'downhill' ? `disabled title="${escape(preset.label)} is a Circuit preset"` : ''}`,
+        `class="workshop-road-card workshop-framed-tile" aria-pressed="${matchingPreset?.id === preset.id}" ${preset.circuitOnly && doc.courseType === 'downhill' ? `disabled title="${escape(preset.label)} is a Circuit preset"` : ''}`,
       ),
     ).join('');
     const shapeControls = [
@@ -1543,7 +1543,7 @@ export function createTrackEditor(
       button(
         `palette-point-${index}`,
         `<span>${escape(label)}</span><small>${((fractionAt(index) * analysis.length) / 1000).toFixed(2)} km</small>`,
-        `class="workshop-road-anchor" aria-pressed="${selected === index}"`,
+        `class="workshop-road-anchor workshop-framed-tile" aria-pressed="${selected === index}"`,
       );
     const anchors = [];
     if (doc.points.length) anchors.push(anchor(0, pointLabel(0)));
@@ -1555,7 +1555,7 @@ export function createTrackEditor(
     if (doc.courseType === 'downhill' && doc.points.length > 1)
       anchors.push(anchor(doc.points.length - 1, 'Runout end'));
 
-    return `${button('tab-generate', 'Create road <span aria-hidden="true">↗</span>', 'class="workshop-palette-create" aria-controls="workshop-palette-generate"')}<h3>Starter tracks</h3>${renderStarterChoices('palette')}${anchors.length ? `<h3>Route anchors</h3><div class="workshop-road-anchors">${anchors.join('')}</div>` : ''}`;
+    return `${button('tab-generate', 'Create road <span aria-hidden="true">↗</span>', 'class="workshop-palette-create workshop-framed-tile" aria-controls="workshop-palette-generate"')}<h3>Starter tracks</h3>${renderStarterChoices('palette')}${anchors.length ? `<h3>Route anchors</h3><div class="workshop-road-anchors">${anchors.join('')}</div>` : ''}`;
   }
   function renderStarterChoices(location) {
     return `<div class="workshop-starter-choices">${PLAYABLE_STARTERS.map(
@@ -1563,7 +1563,7 @@ export function createTrackEditor(
         button(
           `starter-${location}-${id}`,
           `<span class="workshop-starter-art"><img alt="" src="${escape(environmentThumbnail(options.biome, options.sceneryPreset))}"><svg viewBox="0 0 300 190" aria-hidden="true"><path d="${starterOutlines[id]}"/></svg></span><span class="workshop-starter-info"><strong>${escape(name)}</strong><small>${escape(summary)}</small></span>`,
-          'class="workshop-starter-card"',
+          'class="workshop-starter-card workshop-framed-tile"',
         ),
     ).join(
       '',
@@ -1613,7 +1613,7 @@ export function createTrackEditor(
       button(
         `choose-biome-${entry.id}`,
         `<img src="${escape(environmentThumbnail(entry.id, entry.presets[0].id))}" alt="" loading="lazy"><strong>${escape(entry.label)}</strong>`,
-        `class="workshop-biome-card" aria-pressed="${entry.id === pending.biome}"`,
+        `class="workshop-biome-card workshop-framed-tile" aria-pressed="${entry.id === pending.biome}"`,
       ),
     ).join('');
     const presetCards = presets
@@ -1621,7 +1621,7 @@ export function createTrackEditor(
         button(
           `preset-${preset.id}`,
           `<img src="${escape(environmentThumbnail(family.id, preset.id))}" alt="" loading="lazy"><strong>${escape(preset.label)}</strong>`,
-          `class="workshop-world-card" aria-pressed="${pending.sceneryPreset === preset.id}"`,
+          `class="workshop-world-card workshop-framed-tile" aria-pressed="${pending.sceneryPreset === preset.id}"`,
         ),
       )
       .join('');

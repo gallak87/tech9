@@ -67,6 +67,7 @@
 }
 .menu-layout .cup-picker .cup-card,
 .cup-picker .cup-card {
+  --cup-card-edge: #55565a;
   position: relative;
   isolation: isolate;
   display: flex;
@@ -136,12 +137,22 @@
 }
 .menu-layout .cup-picker .cup-card.is-bonus,
 .cup-picker .cup-card.is-bonus {
+  --cup-card-edge: #896b50;
   grid-column: 1 / -1;
   width: 100%;
   max-width: 100%;
   aspect-ratio: 6 / 1;
   min-height: 94px;
   border-color: #c79c6e55;
+}
+:is(.menu-layout .cup-picker, .cup-picker)
+  .cup-card:not(:hover, :focus-visible, [aria-pressed='true']) {
+  border-color: transparent;
+  background:
+    linear-gradient(#101114, #101114) padding-box,
+    linear-gradient(#10111480, #10111480) border-box,
+    var(--card-edge-reflection, none) border-box,
+    var(--cup-card-edge);
 }
 .cup-bonus-badge {
   margin-left: auto;
@@ -189,8 +200,11 @@
   height: 178px;
   min-height: 0;
   overflow: hidden;
-  background: #121216;
-  border-bottom: 1px solid var(--cup-accent);
+  background:
+    linear-gradient(#121216, #121216) padding-box,
+    var(--card-edge-reflection, none) border-box,
+    var(--cup-accent);
+  border-bottom: 1px solid transparent;
 }
 .cup-hero-trophy {
   width: 28%;
@@ -238,9 +252,14 @@
   width: min(1180px, 100%);
   min-height: clamp(420px, 70vh, 660px);
   margin: auto;
-  background: #0e0e12;
-  border: 1px solid #ffffff24;
-  border-top: 2px solid var(--cup-accent);
+  background:
+    linear-gradient(#0e0e12, #0e0e12) padding-box,
+    var(--card-edge-reflection, none) border-box,
+    linear-gradient(var(--cup-accent), var(--cup-accent)) top / 100% 2px
+      no-repeat border-box,
+    #303034;
+  border: 1px solid transparent;
+  border-top-width: 2px;
 }
 .cup-victory::after {
   content: '';

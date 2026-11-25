@@ -36,6 +36,36 @@
   --hud-accent-deep: #a81010;
   --hud-side: max(13px, 4vw);
   --hud-top: 108px;
+  --card-edge-reflection:
+    radial-gradient(
+      ellipse at 103% 87%,
+      #e2e7eb8a,
+      #d5dce348 16%,
+      transparent 44%
+    ),
+    linear-gradient(
+      158deg,
+      #f1f4f653,
+      #e9edf127 18%,
+      transparent 34%,
+      #14171b4d 59%,
+      transparent 79%
+    );
+  --card-edge-mask:
+    linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  --card-enamel-light: radial-gradient(
+    ellipse 105% 94% at 100% 0%,
+    #e5e8eb29,
+    #e5e8eb13 40%,
+    transparent 75%
+  );
+  --card-enamel-light-soft: radial-gradient(
+    ellipse 105% 94% at 100% 0%,
+    #e5e8eb0e,
+    #e5e8eb06 40%,
+    transparent 75%
+  );
+  --card-enamel-surface: linear-gradient(164deg, #27282b, #1a1c1f 58%, #141516);
 }
 
 @media (max-width: 760px), (max-height: 750px) {
@@ -90,15 +120,26 @@
     #424549 68%,
     #75797c
   );
-  --hud-card-outline: polygon(
+  --hud-card-corners:
+    5px 0, calc(100% - var(--hud-card-cut, 11px)) 0,
+    100% var(--hud-card-cut, 11px), 100% calc(100% - 5px),
+    calc(100% - 5px) 100%, var(--hud-card-cut, 11px) 100%,
+    0 calc(100% - var(--hud-card-cut, 11px)), 0 5px;
+  --hud-card-outline: polygon(var(--hud-card-corners));
+  /* Trace both contours so the light does not show through translucent faces. */
+  --hud-card-rim: polygon(
+    evenodd,
+    var(--hud-card-corners),
     5px 0,
-    calc(100% - var(--hud-card-cut, 11px)) 0,
-    100% var(--hud-card-cut, 11px),
-    100% calc(100% - 5px),
-    calc(100% - 5px) 100%,
-    var(--hud-card-cut, 11px) 100%,
-    0 calc(100% - var(--hud-card-cut, 11px)),
-    0 5px
+    6px 1px,
+    calc(100% - var(--hud-card-cut, 11px) - 1px) 1px,
+    calc(100% - 1px) calc(var(--hud-card-cut, 11px) + 1px),
+    calc(100% - 1px) calc(100% - 6px),
+    calc(100% - 6px) calc(100% - 1px),
+    calc(var(--hud-card-cut, 11px) + 1px) calc(100% - 1px),
+    1px calc(100% - var(--hud-card-cut, 11px) - 1px),
+    1px 6px,
+    6px 1px
   );
   isolation: isolate;
 }
@@ -124,21 +165,60 @@
   content: '';
   position: absolute;
   pointer-events: none;
-  clip-path: var(--hud-card-outline);
 }
 
 :where(#app) :is(.hud-card, .menu-card)::before {
   z-index: -2;
   inset: 0;
-  background: var(--hud-card-edge);
+  clip-path: var(--hud-card-rim);
+  background: var(--card-edge-reflection), var(--hud-card-edge);
 }
 
 :where(#app) :is(.hud-card, .menu-card)::after {
+  --hud-card-finish: repeating-linear-gradient(
+    132deg,
+    #fff0 0 2px,
+    #ffffff04 2px 3px
+  );
+  --hud-card-face: var(--hud-card-surface);
   z-index: -1;
   inset: 1px;
+  clip-path: var(--hud-card-outline);
   background:
-    repeating-linear-gradient(132deg, #fff0 0 2px, #ffffff04 2px 3px),
-    var(--hud-card-surface);
+    var(--hud-card-finish), var(--hud-card-face), var(--hud-card-edge);
+}
+
+:where(#app)
+  :is(.hud-card, .menu-card):where(
+    #pause-panel,
+    .result-panel,
+    .cup-results-panel,
+    .settings-preferences,
+    .career-summary,
+    .garage-performance,
+    .loading-copy,
+    .workshop-file-menu,
+    .workshop-map-popover,
+    .workshop-profile,
+    .workshop-validation
+  )::after {
+  --hud-card-finish: var(--card-enamel-light);
+  --hud-card-face: var(--card-enamel-surface);
+}
+
+:where(#app) .entry-profile-row.menu-card::after {
+  --hud-card-finish: var(--card-enamel-light);
+}
+
+:where(#app)
+  .hud-card:where(
+    .top-telemetry,
+    #race-roster,
+    .eliminator-hud,
+    .interceptor-hud,
+    .ic-boss-strip
+  )::after {
+  --hud-card-finish: var(--card-enamel-light-soft);
 }
 
 :where(#app) .hud-card--fade {

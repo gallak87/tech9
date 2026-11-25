@@ -149,9 +149,14 @@
     #front-shell .settings-form select::picker(select) {
       margin-block: 4px;
       padding: 3px;
-      border: 1px solid #676970;
+      border: 1px solid transparent;
       border-radius: 3px;
-      background: var(--menu-grain), var(--menu-surface);
+      background:
+        var(--menu-grain) padding-box,
+        var(--menu-surface) padding-box,
+        var(--card-edge-reflection, none),
+        #55575b border-box;
+      background-origin: border-box;
       box-shadow: 0 8px 22px #000a;
     }
 

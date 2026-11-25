@@ -662,6 +662,25 @@ body {
   letter-spacing: 0.055em;
   text-transform: uppercase;
 }
+@supports (mask-composite: exclude) {
+  :where(#app) #pause-panel :is(button:not(.primary), label) {
+    position: relative;
+  }
+  :where(#app)
+    #pause-panel
+    :is(button:not(.primary, :hover, :focus), label:not(:focus-within))::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    padding: 1px;
+    border-radius: inherit;
+    background: var(--card-edge-reflection);
+    mask: var(--card-edge-mask);
+    mask-composite: exclude;
+    opacity: 0.45;
+    pointer-events: none;
+  }
+}
 :where(#app) #pause-panel select {
   min-height: 30px;
   max-width: 62%;
@@ -2934,6 +2953,7 @@ body {
     .actions button,
     #inspection-tools button
   ) {
+  position: relative;
   border: 1px solid #ffffff39;
   border-radius: 4px;
   background: var(
@@ -2981,6 +3001,7 @@ body {
   outline-color: var(--menu-focus, #ff7771);
 }
 #inspection-panel .ship-stats {
+  position: relative;
   padding: 7px 8px;
   border: 1px solid #ffffff2b;
   border-radius: 4px;
@@ -2988,6 +3009,32 @@ body {
     --menu-button-surface,
     linear-gradient(135deg, #28292c, #17181b)
   );
+}
+#inspection-panel .ship-stats::before,
+#inspection-panel
+  :is(
+    .inspection-tabs button,
+    .ship-picker button,
+    .actions button,
+    #inspection-tools button
+  ):not(
+    [aria-selected='true'],
+    [aria-checked='true'],
+    [aria-pressed='true'],
+    :hover,
+    :focus-visible
+  )::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  z-index: 1;
+  padding: 1px;
+  border-radius: inherit;
+  background: var(--card-edge-reflection, none);
+  mask: var(--card-edge-mask);
+  mask-composite: exclude;
+  opacity: 0.45;
+  pointer-events: none;
 }
 @media (min-width: 761px) and (min-height: 571px) {
   :where(#app) #inspection-tools {

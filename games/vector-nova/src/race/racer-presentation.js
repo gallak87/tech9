@@ -14,7 +14,6 @@ export async function createRacerPresentation({
   racers,
   scene,
   track,
-  wakeSurface = null,
   combat = null,
   settings = {},
   loadRival = createRivalPreview,
@@ -32,7 +31,7 @@ export async function createRacerPresentation({
         hitFeedback: null,
         pickups: null,
         wake: null,
-        yaw: new Quaternion(),
+        trackOrientation: new Quaternion(),
         roll: new Quaternion(),
       };
       ships.push(entry);
@@ -45,13 +44,7 @@ export async function createRacerPresentation({
         opponent.runtime,
         settings,
       );
-      entry.wake = createRivalWake(
-        scene,
-        track,
-        wakeSurface,
-        ship.group,
-        opponent.specification,
-      );
+      entry.wake = createRivalWake(scene, ship.group, opponent.specification);
     }
   } catch (error) {
     ships.forEach(({ ship, hitFeedback, pickups, wake }) => {
@@ -88,7 +81,7 @@ export async function createRacerPresentation({
       for (const {
         ship,
         opponent,
-        yaw,
+        trackOrientation,
         roll,
         hitFeedback,
         pickups,
@@ -169,6 +162,7 @@ export async function createRacerPresentation({
           drivePower,
         });
         const pose = opponent.runtime.pose(blend);
+        let wakeOrientation;
         if (pose) {
           ship.group.position.copy(pose.position);
           ship.group.quaternion.copy(pose.quaternion);
@@ -176,6 +170,8 @@ export async function createRacerPresentation({
             roll.setFromAxisAngle(forward, state.steer * 0.08);
             ship.group.quaternion.multiply(roll);
           }
+          wakeOrientation =
+            pose.grounded === false ? ship.group.quaternion : pose.quaternion;
         } else {
           const previous = opponent.prev;
           const distance = MathUtils.lerp(
@@ -198,18 +194,19 @@ export async function createRacerPresentation({
             .copy(frame.position)
             .addScaledVector(frame.right, lateral)
             .addScaledVector(frame.up, 0.72);
-          yaw.setFromAxisAngle(up, heading);
+          trackOrientation
+            .setFromAxisAngle(up, heading)
+            .premultiply(frame.quaternion);
           roll.setFromAxisAngle(forward, state.steer * 0.08);
-          ship.group.quaternion
-            .copy(frame.quaternion)
-            .multiply(yaw)
-            .multiply(roll);
+          ship.group.quaternion.copy(trackOrientation).multiply(roll);
+          wakeOrientation = trackOrientation;
         }
         if (disabled) wake?.reset();
         else
           wake?.update({
             opponent,
-            pose,
+            quaternion: wakeOrientation,
+            recovering: pose?.recovering,
             blend,
             speed,
             boost: Number(Boolean(catapulting || state.boosting)),

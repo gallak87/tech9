@@ -1,18 +1,19 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Euler, Quaternion, Vector3 } from 'three';
-import { createAirborneWake } from './airborne-wake.js';
+import { createLatticeLayout } from '../levels/orbital/track/lattice.js';
+import { createLevel2Track } from '../levels/orbital/track/model.js';
+import { createGlideWake } from './glide-wake.js';
 
 const bounds = { min: [-1.8, -0.3, -3.8], max: [1.8, 1.25, 3] };
 const accent = 0xff674f;
 const frameTime = 1 / 60;
 
 function harness(t) {
-  const wake = createAirborneWake();
+  const wake = createGlideWake();
   const { mesh } = wake;
   const state = {
     active: true,
-    airborne: true,
     resetCount: 0,
     speed: 110,
     quaternion: new Quaternion(),
@@ -90,20 +91,46 @@ test('The world-space wake follows the banked underside along a bounded curved p
   assert.ok(fromHead.cross(chord).length() / chord.length() > 0.06);
 });
 
-test('Scallop phase repeats over the emitted path distance', (t) => {
+test('The center and edges stay aligned to a straight driven line', (t) => {
   const { mesh, state, tick } = harness(t);
-  tick();
-  state.position.z += 0.9;
-  tick();
-  const { ripplePhase } = mesh.material.uniforms;
-  const phase = ripplePhase.value;
-  const sample = drawnRows(mesh)[0];
-  assert.ok(phase > 0);
+  for (let step = 0; step < 25; step++) {
+    state.position.z += 1.4;
+    tick();
+  }
+  const rows = drawnRows(mesh);
+  const { position } = mesh.geometry.attributes;
+  assert.equal(rows.length, 25);
+  for (let row = 0; row < rows.length; row++) {
+    assert.equal(rows[row].x, state.position.x);
+    assert.equal(position.getX(row * 4), position.getX(0));
+    assert.equal(position.getX(row * 4 + 1), position.getX(1));
+  }
+});
 
-  state.position.z += 3.1;
-  tick();
-  assert.ok(Math.abs(ripplePhase.value - phase) < 1e-9);
-  assert.ok(drawnRows(mesh)[1].distanceTo(sample) < 1e-5);
+test('Asterion Orbital open lattice keeps a connected wake across the gaps', (t) => {
+  const { mesh, state, tick } = harness(t);
+  const track = createLevel2Track();
+  const lattice = createLatticeLayout(track);
+  const start = lattice.spans[0].start;
+  assert.equal(lattice.surfaceCoverage(start + 16, 0), 1);
+  assert.equal(lattice.surfaceCoverage(start + 40, 0), 0);
+  const expected = [];
+  for (let step = 14; step <= 49; step++) {
+    const frame = track.sample(start + step);
+    state.position.copy(frame.position).addScaledVector(frame.up, 0.72);
+    state.quaternion.copy(frame.quaternion);
+    tick();
+    expected.unshift(
+      new Vector3(0, bounds.min[1] - 0.12, -0.57)
+        .applyQuaternion(state.quaternion)
+        .add(state.position),
+    );
+  }
+  const rows = drawnRows(mesh);
+  assert.equal(rows.length, expected.length);
+  assert.equal(mesh.geometry.drawRange.count, (rows.length - 1) * 12);
+  for (const [index, row] of rows.entries())
+    assert.ok(row.distanceTo(expected[index]) < 0.0002);
 });
 
 test('An airborne trick leaves both hull-local axes of each emitted row in the wake', (t) => {
@@ -138,35 +165,37 @@ test('An airborne trick leaves both hull-local axes of each emitted row in the w
   }
 });
 
-test('Pause freezes the flight trace and landing fades its last rows in place', (t) => {
+test('A single wake carries the takeoff arc through touchdown and freezes on pause', (t) => {
   const { mesh, state, tick, fly } = harness(t);
-  fly(16);
+  for (const y of [0, 0, 0.6, 1.7, 2.5, 1.8, 0.5, 0, 0]) {
+    state.position.z += 1.5;
+    state.position.y = 15 + y;
+    tick();
+  }
+  const rows = drawnRows(mesh);
+  assert.equal(rows.length, 9);
+  assert.ok(Math.abs(rows[0].y - rows.at(-1).y) < 1e-6);
+  assert.ok(rows[4].y > rows[0].y + 2);
+
   const { geometry } = mesh;
   const positions = geometry.attributes.position.array.slice();
   const fades = geometry.attributes.fade.array.slice();
   const indexCount = geometry.drawRange.count;
   const { opacity } = mesh.material.uniforms;
-  const airborneOpacity = opacity.value;
+  const visibleOpacity = opacity.value;
   assert.ok(mesh.visible && Math.max(...fades) > 0);
 
   tick({ paused: true, position: state.position.clone().addScalar(12) });
   assert.deepEqual(geometry.attributes.position.array, positions);
   assert.deepEqual(geometry.attributes.fade.array, fades);
   assert.equal(geometry.drawRange.count, indexCount);
-  assert.equal(opacity.value, airborneOpacity);
+  assert.equal(opacity.value, visibleOpacity);
 
-  const head = drawnRows(mesh)[0];
-  state.position.add(new Vector3(0, -0.35, 1.3));
-  for (let step = 0; step < 4; step++) tick({ airborne: false });
-  assert.ok(mesh.visible);
-  assert.ok(drawnRows(mesh)[0].distanceTo(head) < 1e-6);
-  assert.ok(opacity.value > 0 && opacity.value < airborneOpacity);
-  for (let step = 0; step < 13; step++) tick({ airborne: false });
-  assert.equal(mesh.visible, false);
-  assert.equal(geometry.drawRange.count, 0);
+  fly(1);
+  assert.ok(drawnRows(mesh)[1].distanceTo(rows[0]) < 1e-6);
 });
 
-test('Reset, reduced motion, inactive mode and teleport discard flight history', (t) => {
+test('Reset, reduced motion, inactive mode and teleport discard wake history', (t) => {
   const { mesh, state, tick, fly } = harness(t);
   for (const invalidate of [
     () => ({ resetCount: ++state.resetCount }),

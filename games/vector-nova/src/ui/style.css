@@ -726,7 +726,9 @@ body {
   align-items: flex-end;
 }
 :where(#app) .energy {
-  width: 250px;
+  --reserve-gauge-width: 250px;
+  --reserve-gauge-scale: 0.9;
+  width: calc(var(--reserve-gauge-width) * var(--reserve-gauge-scale));
 }
 :where(#app) .energy span {
   font-size: 10px;
@@ -737,7 +739,7 @@ body {
   display: grid;
   grid-template-columns: repeat(var(--reserve-segments), minmax(0, 1fr));
   gap: clamp(1px, 0.26vw, 4px);
-  height: clamp(15px, 2vw, 21px);
+  height: calc(clamp(15px, 2vw, 21px) * var(--reserve-gauge-scale));
   margin-top: 7px;
   padding: clamp(2px, 0.3vw, 3px) 6px;
   border: 1px solid #61666a;
@@ -771,7 +773,12 @@ body {
   transform-origin: left center;
 }
 :where(#app) .speed {
-  --speed-gauge-size: clamp(92px, min(20.3vw, calc(100dvh - 575px)), 294px);
+  --speed-gauge-base-size: clamp(
+    92px,
+    min(20.3vw, calc(100dvh - 575px)),
+    294px
+  );
+  --speed-gauge-size: calc(var(--speed-gauge-base-size) * 0.85);
   --speed-gauge-start: -135deg;
   --speed-gauge-sweep: 270deg;
   --speed-gauge-angle: calc(
@@ -953,17 +960,17 @@ body {
 }
 @media (max-height: 700px) {
   :where(#app) .speed {
-    --speed-gauge-size: clamp(64px, calc(100dvh - 500px), 170px);
+    --speed-gauge-base-size: clamp(64px, calc(100dvh - 500px), 170px);
   }
 }
 @media (max-width: 760px) {
   :where(#app) .speed {
-    --speed-gauge-size: 76px;
+    --speed-gauge-base-size: 76px;
   }
 }
 @media (max-height: 570px) and (orientation: landscape) {
   :where(#app) .speed {
-    --speed-gauge-size: clamp(58px, calc(100dvh - 304px), 134px);
+    --speed-gauge-base-size: clamp(58px, calc(100dvh - 304px), 134px);
   }
 }
 @media (max-width: 760px), (max-height: 625px) {
@@ -1230,7 +1237,7 @@ body {
     bottom: 155px;
   }
   :where(#app) .energy {
-    width: 200px;
+    --reserve-gauge-width: 200px;
   }
   :where(#app) #minimap {
     top: 90px;
@@ -1372,7 +1379,7 @@ body {
     min-width: 24px;
   }
   :where(#app) .energy {
-    width: min(388px, 46vw);
+    --reserve-gauge-width: min(388px, 46vw);
   }
   :where(#app) .top-telemetry span {
     font-size: 11px;
@@ -2599,7 +2606,7 @@ body {
     bottom: calc(max(16px, env(safe-area-inset-bottom)) + 20px);
   }
   :where(#app) #interface.driving .energy {
-    width: clamp(90px, 16vw, 150px);
+    --reserve-gauge-width: clamp(90px, 16vw, 150px);
   }
   :where(#app) #interface.driving #race-roster:not(.in-paddock) {
     top: 76px;

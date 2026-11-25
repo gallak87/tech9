@@ -38,8 +38,7 @@ import * as T from 'three';
 import { createFleetShip } from '../ships/fleet.js';
 import { loadShipSelection, saveShipSelection } from '../ships/catalog.js';
 import { createRenderer } from '../renderer/index.js';
-import { createGlideTrail } from '../renderer/glide-trail.js';
-import { createAirborneWake } from '../renderer/airborne-wake.js';
+import { createGlideWake } from '../renderer/glide-wake.js';
 import {
   createVehicleState,
   STEERING_ASSIST,
@@ -305,12 +304,6 @@ export async function createGame({
       }),
     );
     const { road, environment } = world;
-    const roadCoverage =
-      road.userData.surfaceCoverage ??
-      track.surfaceCoverage ??
-      (track.isGap
-        ? (distance, lateral) => Number(!track.isGap(distance, lateral))
-        : undefined);
     let finishMarker = null;
     if (!blockout) {
       finishMarker = lifetime.own(
@@ -334,19 +327,8 @@ export async function createGame({
     lifetime.defer(() => ship.group.removeFromParent());
     const shipBounds = new T.Box3().setFromObject(ship.group);
     scene.add(ship.group);
-    const wakeSurface = {
-      surfaceStep:
-        definition.renderer?.contact?.surfaceStep ?? road.userData.surfaceStep,
-      coverageAt: roadCoverage,
-    };
-    const glideTrail = racingEnabled
-      ? lifetime.own(createGlideTrail({ track, ...wakeSurface }))
-      : null;
-    if (glideTrail) scene.add(glideTrail.mesh);
-    const airborneWake = racingEnabled
-      ? lifetime.own(createAirborneWake())
-      : null;
-    if (airborneWake) scene.add(airborneWake.mesh);
+    const glideWake = racingEnabled ? lifetime.own(createGlideWake()) : null;
+    if (glideWake) scene.add(glideWake.mesh);
     // One district-scale radiance probe gives the craft real nearby architecture
     // in its reflections. It is a static approximation, generated from this scene.
     const reflectionPoint = track
@@ -615,7 +597,6 @@ export async function createGame({
             racers,
             scene,
             track,
-            wakeSurface,
             combat,
             settings,
             loadRival: definition.racing.loadRival,
@@ -715,7 +696,7 @@ export async function createGame({
       }
       audio.resetEnvironment();
       effects.reset();
-      airborneWake?.reset();
+      glideWake?.reset();
       if (reason !== 'manual-recover') racerPresentation?.resetWakes();
       raceFeedback.reset();
       resetLandingFeedback();
@@ -1788,10 +1769,12 @@ export async function createGame({
       { signal: listeners.signal },
     );
     const localYaw = new T.Quaternion(),
-      localRoll = new T.Quaternion();
+      localRoll = new T.Quaternion(),
+      wakeQuaternion = new T.Quaternion();
     const upAxis = new T.Vector3(0, 1, 0),
       forwardAxis = new T.Vector3(0, 0, 1),
-      mapForward = new T.Vector3();
+      mapForward = new T.Vector3(),
+      wakePosition = new T.Vector3();
     function pose(s, alpha = 1, feedback = {}) {
       const worldPose = runtime.pose?.(alpha);
       const surface = track.sampleSurface?.(s.distance, s.lateral);
@@ -1803,12 +1786,16 @@ export async function createGame({
       ship.group.quaternion.copy(f.quaternion);
       localYaw.setFromAxisAngle(upAxis, s.heading);
       localRoll.setFromAxisAngle(forwardAxis, s.steer * 0.08);
-      ship.group.quaternion.multiply(localYaw).multiply(localRoll);
+      ship.group.quaternion.multiply(localYaw);
       if (worldPose) {
         ship.group.position.copy(worldPose.position);
         ship.group.quaternion.copy(worldPose.quaternion);
-        if (worldPose.steeringBank) ship.group.quaternion.multiply(localRoll);
       }
+      // Sample the driven path before the cosmetic steering roll and rattle.
+      wakePosition.copy(ship.group.position);
+      wakeQuaternion.copy(ship.group.quaternion);
+      if (!worldPose || worldPose.steeringBank)
+        ship.group.quaternion.multiply(localRoll);
       if (worldPose?.grounded !== false && feedback.hullHeave) {
         ship.group.translateY(feedback.hullHeave);
         ship.group.rotateX(feedback.hullPitch);
@@ -2076,7 +2063,7 @@ export async function createGame({
       });
       interceptorEffects?.update(frame);
       const catapulting = motionFeedback.vectorActive === true;
-      const grounded = worldPose?.grounded !== false;
+      const airborne = worldPose?.grounded === false;
       const glideBoost = catapulting
         ? 1
         : (feedback.boost ?? Number(s.boosting));
@@ -2102,32 +2089,19 @@ export async function createGame({
         ship.group.position,
       );
       world.update(frame);
-      const hull = ship.group.userData.bounds;
       const wakeActive = mode === 'racing' || mode === 'paused';
       const wakeTime = T.MathUtils.lerp(prev.time, state.time, alpha);
-      glideTrail?.update({
-        active: wakeActive,
-        paused: mode === 'paused',
-        grounded,
-        state: s,
-        time: wakeTime,
-        boost: glideBoost,
-        accent: ship.selected.liveryAccent,
-        tail: hull.min[2],
-        hullWidth: hull.max[0] - hull.min[0],
-        reducedMotion: settings.reducedMotion,
-      });
-      airborneWake?.update({
+      glideWake?.update({
         active: wakeActive && !worldPose?.recovering,
         paused: mode === 'paused',
-        airborne: !grounded,
         time: wakeTime,
         resetCount: s.resetCount,
-        position: ship.group.position,
-        quaternion: ship.group.quaternion,
-        bounds: hull,
+        position: airborne ? ship.group.position : wakePosition,
+        quaternion: airborne ? ship.group.quaternion : wakeQuaternion,
+        bounds: ship.group.userData.bounds,
         accent: ship.selected.liveryAccent,
         speed: s.speed,
+        boost: glideBoost,
         reducedMotion: settings.reducedMotion,
       });
       finishMarker?.update();

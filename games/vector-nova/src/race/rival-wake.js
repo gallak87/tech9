@@ -1,38 +1,24 @@
 import { MathUtils } from 'three';
-import { createAirborneWake } from '../renderer/airborne-wake.js';
-import { createGlideTrail } from '../renderer/glide-trail.js';
-import { interpolateSurfaceLateral } from '../track/surface.js';
+import { createGlideWake } from '../renderer/glide-wake.js';
 import { RACER_COLORS } from './roster.js';
 
-const rivalWakeReach = 30;
-
-export function createRivalWake(scene, track, surface, ship, specification) {
+export function createRivalWake(scene, ship, specification) {
   const accent = specification.color ?? RACER_COLORS[specification.id];
   const { bounds } = ship.userData;
-  if (!surface || !bounds || !accent) return null;
+  if (!bounds || !accent) return null;
 
-  const ground = createGlideTrail({
-    track,
-    ...surface,
-    strengthScale: 0.55,
-    reach: rivalWakeReach,
-  });
-  const air = createAirborneWake({
+  const wake = createGlideWake({
     strengthScale: 0.65,
-    reach: rivalWakeReach,
+    reach: 30,
     duration: 0.6,
   });
-  ground.mesh.name = `${specification.name} / ground glide trail`;
-  air.mesh.name = `${specification.name} / airborne glide wake`;
-  scene.add(ground.mesh, air.mesh);
+  wake.mesh.name = `${specification.name} / glide wake`;
+  scene.add(wake.mesh);
 
-  const hullWidth = bounds.max[0] - bounds.min[0];
-  const deposited = {};
   let visible = false;
 
   function reset() {
-    ground.reset();
-    air.reset();
+    wake.reset();
     visible = false;
   }
 
@@ -40,7 +26,8 @@ export function createRivalWake(scene, track, surface, ship, specification) {
     reset,
     update({
       opponent,
-      pose,
+      quaternion,
+      recovering,
       blend,
       speed,
       boost,
@@ -59,52 +46,19 @@ export function createRivalWake(scene, track, surface, ship, specification) {
 
       visible = true;
       const { state, prev = state } = opponent;
-      const time = MathUtils.lerp(prev.time, state.time, blend);
-      const grounded = pose?.grounded !== false;
-      deposited.time = state.time;
-      deposited.resetCount = state.resetCount;
-      if (grounded) {
-        deposited.distance = MathUtils.lerp(
-          prev.distance,
-          state.distance,
-          blend,
-        );
-        deposited.lateral = interpolateSurfaceLateral(
-          track,
-          prev,
-          state,
-          blend,
-        );
-        deposited.heading = MathUtils.lerp(prev.heading, state.heading, blend);
-      }
-      ground.update({
-        active: true,
-        grounded,
-        state: deposited,
-        time,
-        speed,
-        boost,
-        accent,
-        tail: bounds.min[2],
-        hullWidth,
-        visibility,
-      });
-      air.update({
-        active: !pose?.recovering,
-        airborne: !grounded,
-        time,
+      wake.update({
+        active: !recovering,
+        time: MathUtils.lerp(prev.time, state.time, blend),
         resetCount: state.resetCount,
         position: ship.position,
-        quaternion: ship.quaternion,
+        quaternion,
         bounds,
         accent,
         speed,
+        boost,
         visibility,
       });
     },
-    dispose() {
-      ground.dispose();
-      air.dispose();
-    },
+    dispose: wake.dispose,
   };
 }

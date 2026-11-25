@@ -12,14 +12,12 @@ import {
   UniformsUtils,
   Vector3,
 } from 'three';
-import { glideWakeAnchor } from './glide-trail.js';
 import {
+  glideWakeAnchor,
   playerWakeReach,
   wakeProfileGLSL,
-  wakeRipplePhase,
 } from './wake-profile.js';
 
-const landingFade = 0.2;
 const verticesPerRow = 4;
 const indicesPerSegment = 12;
 
@@ -33,12 +31,12 @@ function wakeSample() {
   };
 }
 
-// The air wake carries copies of the rendered hull pose in scene space. The
-// road wake can therefore remain on the deck when this ribbon lifts away.
-export function createAirborneWake({
+// Emitted rows stay at the hull poses that produced them, across road gaps,
+// takeoffs and landings.
+export function createGlideWake({
   strengthScale = 1,
   reach = playerWakeReach,
-  duration = 0.72,
+  duration = 0.9,
 } = {}) {
   const geometry = new BufferGeometry();
   const capacity = Math.ceil(duration * 240) + 2;
@@ -71,14 +69,12 @@ export function createAirborneWake({
   const accentColor = new Color(0x9ed9ec);
   const length = { value: 0 };
   const opacity = { value: 0 };
-  const ripplePhase = { value: 0 };
   const material = new ShaderMaterial({
     uniforms: {
       ...UniformsUtils.clone(UniformsLib.fog),
       accent: { value: accentColor },
       wakeLength: length,
       opacity,
-      ripplePhase,
     },
     transparent: true,
     depthWrite: false,
@@ -98,12 +94,12 @@ export function createAirborneWake({
       }`,
     fragmentShader: `
       uniform vec3 accent;
-      uniform float wakeLength, opacity, ripplePhase;
+      uniform float wakeLength, opacity;
       varying vec3 wake;
       #include <fog_pars_fragment>
       ${wakeProfileGLSL}
       void main() {
-        vec4 profile = wakeProfile(accent, wake.x, wake.y, ripplePhase);
+        vec4 profile = wakeProfile(accent, wake.x);
         float front = smoothstep(0.0, 0.45, wake.y);
         float tail = 1.0 - smoothstep(0.41, 1.0, wake.y / max(wakeLength, 0.001));
         float alpha = opacity * wake.z * front * tail * profile.a;
@@ -113,14 +109,13 @@ export function createAirborneWake({
       }`,
   });
   const mesh = new Mesh(geometry, material);
-  mesh.name = 'Racing / airborne glide wake';
+  mesh.name = 'Racing / glide wake';
   mesh.visible = false;
   mesh.frustumCulled = false;
   mesh.renderOrder = 2;
   mesh.userData.aoExclude = mesh.userData.reflectionExclude = true;
 
   const samples = Array.from({ length: capacity }, wakeSample);
-  const ground = wakeSample();
   const point = new Vector3();
   const edge = new Vector3();
   const depth = new Vector3();
@@ -131,8 +126,6 @@ export function createAirborneWake({
   let lastTime = -Infinity;
   let lastReset;
   let lastAccent;
-  let lastAirborne = false;
-  let landedAt = -Infinity;
   let disposed = false;
 
   function clearPath() {
@@ -141,32 +134,22 @@ export function createAirborneWake({
     geometry.setDrawRange(0, 0);
     mesh.visible = false;
     opacity.value = 0;
-    ripplePhase.value = 0;
   }
 
   function reset() {
     clearPath();
-    ground.time = -Infinity;
     lastTime = -Infinity;
-    lastAirborne = false;
-    landedAt = -Infinity;
   }
 
-  function store(sample, point, edge, depth, time, fade) {
-    sample.point.copy(point);
+  function append(time, fade) {
+    head = (head + 1) % capacity;
+    count = Math.min(capacity, count + 1);
+    const sample = samples[head];
+    sample.point.copy(origin);
     sample.edge.copy(edge);
     sample.depth.copy(depth);
     sample.time = time;
     sample.fade = fade;
-  }
-
-  function append(point, edge, depth, time, fade, distance = 0) {
-    // New travel offsets the shader's head-relative distance, so each scallop
-    // stays on the part of the path that emitted it.
-    ripplePhase.value = wakeRipplePhase(distance, ripplePhase.value);
-    head = (head + 1) % capacity;
-    count = Math.min(capacity, count + 1);
-    store(samples[head], point, edge, depth, time, fade);
   }
 
   function draw(time) {
@@ -232,7 +215,6 @@ export function createAirborneWake({
     update({
       active,
       paused = false,
-      airborne,
       time,
       resetCount,
       position,
@@ -240,6 +222,7 @@ export function createAirborneWake({
       bounds,
       accent = 0x9ed9ec,
       speed,
+      boost = 0,
       visibility = 1,
       reducedMotion = false,
     }) {
@@ -255,44 +238,30 @@ export function createAirborneWake({
       if (paused || time <= lastTime) return;
 
       const [left, bottom, tail] = bounds.min;
+      const pressure = MathUtils.clamp(boost, 0, 1);
       origin
         .set(0, bottom - 0.12, glideWakeAnchor(tail))
         .applyQuaternion(quaternion)
         .add(position);
-      const halfWidth = (bounds.max[0] - left) * 0.25;
+      const halfWidth = (bounds.max[0] - left) * (0.25 + 0.021 * pressure);
       edge.set(halfWidth * 1.16, 0, 0).applyQuaternion(quaternion);
       depth.set(0, halfWidth * 0.24, 0).applyQuaternion(quaternion);
-      const fade = 0.34 * strengthScale * MathUtils.smoothstep(speed, 15, 36);
-      if (airborne) {
-        const previous = lastAirborne ? samples[head] : ground;
+      const fade =
+        (0.34 + 0.1 * pressure) *
+        strengthScale *
+        MathUtils.smoothstep(speed, 75 / 3.6, 140 / 3.6);
+      let distance = 0;
+      if (count) {
+        const previous = samples[head];
         const elapsed = time - previous.time;
-        const distance = origin.distanceTo(previous.point);
-        const adjacent = elapsed <= 0.12 && distance <= 3 + 2 * speed * elapsed;
-        if (!lastAirborne || !adjacent) clearPath();
-        if (!lastAirborne && adjacent && distance > 0.015)
-          append(
-            ground.point,
-            ground.edge,
-            ground.depth,
-            ground.time,
-            ground.fade,
-          );
-        if (!count || distance > 0.015)
-          append(origin, edge, depth, time, fade, count ? distance : 0);
-        accentColor.set(accent);
-        opacity.value = visibility;
-        draw(time);
-      } else {
-        if (lastAirborne) landedAt = time;
-        if (mesh.visible) {
-          opacity.value =
-            visibility *
-            (1 - MathUtils.smoothstep(time - landedAt, 0, landingFade));
-          if (opacity.value === 0) clearPath();
-        }
-        store(ground, origin, edge, depth, time, fade);
+        distance = origin.distanceTo(previous.point);
+        if (elapsed >= duration || distance > 3 + 2 * speed * elapsed)
+          clearPath();
       }
-      lastAirborne = airborne;
+      if (fade > 0 && (!count || distance > 0.015)) append(time, fade);
+      accentColor.set(accent);
+      opacity.value = visibility;
+      draw(time);
       lastTime = time;
     },
     dispose() {

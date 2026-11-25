@@ -80,7 +80,7 @@ test('rivals follow their own speed, boost/Vector, simulation clock and live gra
   }
 });
 
-test('rival wakes keep roster colors across takeoff, pause and touchdown, then clear outside range', async (t) => {
+test('each rival leaves one livery-colored wake through takeoff, pause and touchdown', async (t) => {
   const track = createTrack();
   const scene = new Scene();
   const cameraPosition = track.sample(80).position.clone();
@@ -90,25 +90,26 @@ test('rival wakes keep roster colors across takeoff, pause and touchdown, then c
       distance: 80,
       lateral: i === 0 ? -2 : 2,
       speed: 90,
+      steer: i === 0 ? 0.8 : -0.8,
     };
     const pose = {
       position: new Vector3(),
       quaternion: new Quaternion(),
       grounded: true,
+      steeringBank: true,
     };
     return {
       specification,
       state,
       prev: { ...state },
       pose,
-      runtime: { pose: () => pose },
+      runtime: { pose: () => (i === 0 ? pose : null) },
     };
   });
   const presentation = await createRacerPresentation({
     racers: { enabled: true, opponents },
     scene,
     track,
-    wakeSurface: {},
     loadRival: async () => {
       const group = new Group();
       group.userData.bounds = { min: [-2, 0, -3.6], max: [2, 1.3, 3.6] };
@@ -117,11 +118,16 @@ test('rival wakes keep roster colors across takeoff, pause and touchdown, then c
   });
   t.after(() => presentation.dispose());
   const settings = { quality: 'low' };
-  const [rook, latch] = opponents.map(({ specification: { name, color } }) => ({
-    color: color.slice(1),
-    ground: scene.getObjectByName(`${name} / ground glide trail`),
-    air: scene.getObjectByName(`${name} / airborne glide wake`),
+  const [rook, latch] = opponents.map((opponent) => ({
+    opponent,
+    color: opponent.specification.color.slice(1),
+    wake: scene.getObjectByName(`${opponent.specification.name} / glide wake`),
   }));
+  assert.equal(scene.children.filter((child) => child.isMesh).length, 2);
+
+  const right = new Vector3(1, 0, 0);
+  const forward = new Vector3(0, 0, 1);
+  const flightRoll = new Quaternion().setFromAxisAngle(forward, Math.PI / 3);
 
   function step(rookHeight = 0, mode = 'racing') {
     for (const [i, { state, prev, pose }] of opponents.entries()) {
@@ -131,66 +137,75 @@ test('rival wakes keep roster colors across takeoff, pause and touchdown, then c
       const frame = track.sample(state.distance);
       const height = i === 0 ? rookHeight : 0;
       pose.grounded = height === 0;
+      pose.steeringBank = pose.grounded;
       pose.position
         .copy(frame.position)
         .addScaledVector(frame.right, state.lateral)
         .addScaledVector(frame.up, 0.72 + height);
       pose.quaternion.copy(frame.quaternion);
+      if (!pose.grounded) pose.quaternion.multiply(flightRoll);
     }
     presentation.update({ mode, settings, cameraPosition });
   }
-  function front(mesh) {
+  function edge(mesh, row, side) {
     return new Vector3().fromBufferAttribute(
       mesh.geometry.attributes.position,
-      0,
+      row * 4 + side,
+    );
+  }
+  function wakeAxis(mesh, row = 0) {
+    return edge(mesh, row, 1)
+      .sub(edge(mesh, row, 0))
+      .normalize();
+  }
+  function assertPoseAxis(mesh, quaternion) {
+    assert.ok(
+      wakeAxis(mesh).dot(right.clone().applyQuaternion(quaternion)) > 0.99999,
     );
   }
 
   for (let i = 0; i < 24; i++) step();
   for (const rival of [rook, latch]) {
-    assert.ok(rival.ground.visible);
-    assert.equal(
-      rival.ground.material.uniforms.accent.value.getHexString(),
-      rival.color,
-    );
-    const { attributes, index, drawRange } = rival.ground.geometry;
-    const distances = Array.from(
-      index.array.subarray(0, drawRange.count),
-      (vertex) => attributes.trailDistance.getX(vertex),
-    );
-    assert.ok(
-      Math.abs(Math.max(...distances) - Math.min(...distances) - 30) < 1e-4,
-    );
-    assert.equal(rival.air.visible, false);
+    const { accent, wakeLength } = rival.wake.material.uniforms;
+    assert.ok(rival.wake.visible);
+    assert.equal(accent.value.getHexString(), rival.color);
+    assert.ok(Math.abs(wakeLength.value - 30) < 1e-5);
+    assertPoseAxis(rival.wake, rival.opponent.pose.quaternion);
   }
-  const takeoff = front(rook.ground);
-  for (let i = 1; i <= 24; i++) step(i * 0.4);
-  assert.ok(rook.ground.visible && rook.air.visible);
-  assert.deepEqual(front(rook.ground), takeoff);
-  assert.ok(Math.abs(rook.air.material.uniforms.wakeLength.value - 30) < 1e-5);
-  assert.equal(
-    rook.air.material.uniforms.accent.value.getHexString(),
-    rook.color,
-  );
-  assert.equal(latch.air.visible, false);
+  const fades = rook.wake.geometry.attributes.fade;
+  const cruiseFade = fades.getX(0);
+  rook.opponent.state.boosting = true;
+  step();
+  assert.ok(fades.getX(0) > cruiseFade);
 
-  const flight = front(rook.air);
-  step(2, 'paused');
-  assert.deepEqual(front(rook.air), flight);
-  assert.deepEqual(front(rook.ground), takeoff);
-  const { opacity } = rook.air.material.uniforms;
-  const airborneOpacity = opacity.value;
-  for (let i = 0; i < 4; i++) step();
-  assert.ok(rook.ground.visible && rook.air.visible);
-  assert.deepEqual(front(rook.air), flight);
-  assert.ok(opacity.value > 0 && opacity.value < airborneOpacity);
-  for (let i = 0; i < 13; i++) step();
-  assert.equal(rook.air.visible, false);
+  const takeoff = edge(rook.wake, 0, 0);
+  step(0.25);
+  assert.ok(rook.wake.visible && latch.wake.visible);
+  assert.deepEqual(edge(rook.wake, 1, 0), takeoff);
+  assertPoseAxis(rook.wake, rook.opponent.pose.quaternion);
+  for (let i = 2; i <= 14; i++) step(i * 0.25);
+
+  const flight = edge(rook.wake, 0, 0);
+  const flightIndices = rook.wake.geometry.drawRange.count;
+  step(3.5, 'paused');
+  assert.deepEqual(edge(rook.wake, 0, 0), flight);
+  assert.equal(rook.wake.geometry.drawRange.count, flightIndices);
+  for (let i = 13; i >= 1; i--) step(i * 0.25);
+  const arrival = edge(rook.wake, 0, 0);
+  step();
+  assert.ok(rook.wake.visible);
+  assert.deepEqual(edge(rook.wake, 1, 0), arrival);
+  assertPoseAxis(rook.wake, rook.opponent.pose.quaternion);
+
+  rook.opponent.pose.recovering = true;
+  step();
+  assert.equal(rook.wake.visible, false);
+  assert.equal(latch.wake.visible, true);
 
   cameraPosition.set(2000, 2000, 2000);
   step();
-  assert.equal(rook.ground.visible, false);
-  assert.equal(latch.ground.visible, false);
+  assert.equal(rook.wake.visible, false);
+  assert.equal(latch.wake.visible, false);
   presentation.dispose();
   assert.equal(scene.children.length, 0);
 });

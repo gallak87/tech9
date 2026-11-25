@@ -1,5 +1,5 @@
 import { MathUtils } from 'three';
-import { createGlideTrail } from '../renderer/glide-trail.js';
+import { createInspectionGlideTrail } from '../renderer/glide-trail.js';
 import { racingBlurStrength } from '../renderer/racing-lens.js';
 import { createEngineResponse } from './engine-response.js';
 
@@ -7,13 +7,12 @@ export const INSPECTION_DRIVING_SPEED = 400 / 3.6;
 const imprintRelease = 0.25;
 
 export function createInspectionSpeedPreview(stage) {
-  const trail = createGlideTrail();
+  const trail = createInspectionGlideTrail();
   const respond = createEngineResponse();
   const lens = { strength: 0, pressure: 0, time: 0 };
   const imprint = { active: false, fadeScale: 0 };
   const floorHeight =
     stage.floor.position.y + stage.floor.geometry.parameters.height / 2;
-  trail.mesh.name = 'Inspector / road glide trail';
   trail.mesh.position.y = floorHeight + 0.025;
   stage.scene.add(trail.mesh);
   let shipRoot;
@@ -64,7 +63,7 @@ export function createInspectionSpeedPreview(stage) {
         imprintRelease,
       );
       imprint.active = imprint.fadeScale > 0;
-      trail.preview(imprint);
+      trail.update(imprint);
       lens.strength =
         visible && high
           ? racingBlurStrength({

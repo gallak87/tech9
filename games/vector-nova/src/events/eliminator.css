@@ -5,6 +5,7 @@
   left: var(--hud-side, 4vw);
   box-sizing: border-box;
   width: 277px;
+  max-width: var(--hud-left-width);
   padding: 13px 18px 15px;
   color: #f1ece4;
   pointer-events: none;
@@ -122,8 +123,7 @@
   background: linear-gradient(90deg, #ff684f, #ffb44e);
 }
 #interface[data-event='eliminator'] #race-roster,
-#interface[data-event='eliminator'] .top-telemetry,
-#interface[data-event='eliminator'] #minimap {
+#interface[data-event='eliminator'] .top-telemetry {
   display: none !important;
 }
 .eliminator-summary {

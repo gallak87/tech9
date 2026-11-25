@@ -53,6 +53,8 @@ export function interceptorResultsView(
 export function createInterceptorPresentation({ host }) {
   const previousEvent = host.dataset.event;
   host.dataset.event = 'interceptor';
+  const layout = document.createElement('div');
+  layout.className = 'interceptor-layout';
   const root = document.createElement('section');
   root.className = 'interceptor-hud hud-card hud-card--fade';
   root.hidden = true;
@@ -81,7 +83,8 @@ export function createInterceptorPresentation({ host }) {
   counterattack.setAttribute('role', 'status');
   counterattack.hidden = true;
   boss.append(counterattack);
-  host.append(root, boss);
+  layout.append(root, boss);
+  host.append(layout);
   const targetLabel = root.querySelector('.ic-target strong'),
     difficulty = root.querySelector('.ic-identity small'),
     gap = root.querySelector('.ic-gap'),
@@ -231,8 +234,7 @@ export function createInterceptorPresentation({ host }) {
     },
     dispose() {
       disposed = true;
-      root.remove();
-      boss.remove();
+      layout.remove();
       if (host.dataset.event === 'interceptor') {
         if (previousEvent === undefined) delete host.dataset.event;
         else host.dataset.event = previousEvent;

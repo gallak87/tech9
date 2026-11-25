@@ -2178,9 +2178,12 @@ export async function createGame({
         (competition || track.closed === false) &&
         standings?.playerFinished
       ) {
+        // The field already returns an isolated result snapshot. Carry the ship
+        // into award settlement so the front end can reuse it at results reveal.
+        const liveResults = { ...standings.results, shipId: state.shipId };
         if (finishAt === null) {
           finishAt = state.time;
-          lastResults = structuredClone(standings.results);
+          lastResults = liveResults;
           ui.setFinish(lastResults);
           if (cupRace) {
             accumulator = 0;
@@ -2193,7 +2196,6 @@ export async function createGame({
             advanceCupFinish(0);
           }
         }
-        const liveResults = structuredClone(standings.results);
         const progress = cupProgress;
         if (cupRace) {
           lastResults = cupFinalResult ?? {
@@ -2931,6 +2933,7 @@ export async function createGame({
       reviewing: blockout,
     });
     await checkpoint('Warming graphics');
+    ui.warmRaceFlags();
     await view.warm();
     await checkpoint('Ready');
     host.querySelector('#loading')?.remove();

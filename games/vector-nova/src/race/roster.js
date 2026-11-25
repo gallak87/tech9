@@ -44,3 +44,36 @@ export const RACER_COLORS = Object.freeze({
   player: '#fb7959',
   ...Object.fromEntries(RACE_OPPONENTS.map(({ id, color }) => [id, color])),
 });
+
+const HUD_RIVAL_ALTERNATES = [
+  RACER_COLORS.player,
+  '#e7edf0',
+  '#a9e75e',
+  '#f28dbe',
+  '#9ca5ab',
+  '#79be69',
+  '#a0886d',
+  '#72747c',
+  '#c0c5cb',
+];
+const channels = (color) => [color >> 16, (color >> 8) & 255, color & 255];
+
+export function raceHudColors(playerAccent) {
+  const [r, g, b] = channels(playerAccent);
+  const clearsPlayerColor = (color) => {
+    const [red, green, blue] = channels(Number.parseInt(color.slice(1), 16));
+    // Reserve room around the livery shade so a nearby cyan or red marker does
+    // not look like the player when the map and race order are read at speed.
+    return Math.hypot(red - r, green - g, blue - b) >= 120;
+  };
+  const alternatives = HUD_RIVAL_ALTERNATES.filter(clearsPlayerColor);
+  return {
+    player: `#${playerAccent.toString(16).padStart(6, '0')}`,
+    ...Object.fromEntries(
+      RACE_OPPONENTS.map(({ id, color }) => [
+        id,
+        clearsPlayerColor(color) ? color : alternatives.shift(),
+      ]),
+    ),
+  };
+}

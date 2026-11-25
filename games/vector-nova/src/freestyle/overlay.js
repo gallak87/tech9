@@ -25,7 +25,7 @@ export function createFreestyleOverlay({
       : '');
   host.append(root);
   const air = document.createElement('section');
-  air.className = 'freestyle-air-readout fs-air hud-card';
+  air.className = 'freestyle-air-readout fs-air';
   air.setAttribute('aria-label', 'Unbanked air score');
   air.hidden = true;
   air.innerHTML =

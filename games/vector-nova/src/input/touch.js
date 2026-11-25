@@ -32,10 +32,6 @@ export function createTouchControls(signal, isEnabled) {
       pad.input = { steer, airbrake: y >= 0.7 };
       pad.element.dataset.airbrake = String(pad.input.airbrake);
       pad.element.style.setProperty('--touch-x', `${50 + steer * 36}%`);
-      pad.element.style.setProperty(
-        '--touch-y',
-        `${clamp(y, 0.42, 0.8) * 100}%`,
-      );
     } else {
       const zone = Math.min(3, Math.floor(y * 4));
       const power = powerZones[zone];

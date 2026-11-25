@@ -108,6 +108,7 @@ import {
   readArtView,
 } from '../core/art-pass.js';
 import '../ui/style.css';
+import '../ui/hud.css';
 import './style.css';
 import '../freestyle/style.css';
 import './menu.css';
@@ -1339,15 +1340,24 @@ export async function createFrontend(
         records.textContent = 'Time Trial records';
       } else updateResults(lastResults);
     }
+    const resultPanel =
+      screen === 'results'
+        ? content.querySelector('.result-panel, .cup-results-panel')
+        : null;
+    const actions = resultPanel?.querySelector(
+      '.results-actions, .cup-result-actions',
+    );
+    resultPanel?.classList.add('hud-card');
+    if (actions?.matches('.results-actions')) {
+      const heading = resultPanel.querySelector(':scope > .front-heading');
+      if (heading && heading.nextElementSibling !== actions)
+        heading.after(actions);
+    }
     if (
       screen === 'results' &&
       !loadedCustom &&
       (lastResults?.mode !== 'cup' || lastResults.final)
     ) {
-      const panel = content.querySelector('.result-panel, .cup-results-panel');
-      const actions = panel?.querySelector(
-        '.results-actions, .cup-result-actions',
-      );
       const progression =
         raceProgressView(
           rewardStart,
@@ -1357,19 +1367,19 @@ export async function createFrontend(
         ) +
         courseResultsView(rewardStart, profile(), catalog) +
         rewardsView(earnedRewards);
-      if (panel && progression) {
-        const heading = panel.firstElementChild;
+      if (resultPanel && progression) {
+        const heading = resultPanel.firstElementChild;
         const main = document.createElement('div');
         main.className = 'results-main';
-        main.append(...panel.childNodes);
+        main.append(...resultPanel.childNodes);
         const rewards = document.createElement('aside');
         rewards.className = 'result-rewards';
         rewards.setAttribute('aria-label', 'Rewards');
         rewards.innerHTML = progression;
-        panel.classList.add('results-with-rewards');
-        panel.append(heading);
-        if (actions) panel.append(actions);
-        panel.append(rewards, main);
+        resultPanel.classList.add('results-with-rewards');
+        resultPanel.append(heading);
+        if (actions) resultPanel.append(actions);
+        resultPanel.append(rewards, main);
       }
       if (lastResults?.mode === 'cup') {
         const equipmentActions = actions?.matches('.front-actions')

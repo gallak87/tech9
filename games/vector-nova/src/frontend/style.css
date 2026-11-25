@@ -505,34 +505,40 @@ body {
 }
 /* Results keep the finished circuit in view; the shell still owns focus/input. */
 body[data-screen='results'] :where(#app) #front-shell {
-  background: linear-gradient(90deg, #09090908 15%, #0909094d 60%, #09090999);
+  background: linear-gradient(180deg, #09090908 15%, #0909094d 65%, #09090980);
+  scrollbar-gutter: stable both-edges;
 }
 body[data-screen='results'] :where(#app) .front-header,
 body[data-screen='results'] :where(#app) .front-footer {
   background: #090909a8;
 }
 :where(#app) .front-content[data-page='results'] {
-  align-items: flex-end;
+  align-items: center;
   justify-content: flex-start;
 }
 :where(#app) .result-panel {
   width: min(550px, 100%);
   margin-block: auto;
   flex-shrink: 0;
-  padding: 24px;
-  background: #0c0c0ce8;
-  border: 1px solid #393939;
-  border-top: 2px solid #a81010;
+  padding: clamp(16px, 3vw, 28px);
   animation: results-arrive 320ms ease-out;
+}
+:where(#app) :is(.result-panel, .cup-results-panel).hud-card {
+  --hud-card-cut: clamp(13px, 2vw, 22px);
+  position: relative;
+  border: 0;
+  background: none;
+  color: #f0efec;
+  font-weight: 600;
 }
 @keyframes results-arrive {
   from {
     opacity: 0;
-    transform: translateX(12px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
-    transform: translateX(0);
+    transform: translateY(0);
   }
 }
 .reduced-motion :where(#app) .result-panel {
@@ -552,10 +558,31 @@ body[data-screen='results'] :where(#app) .front-footer {
   }
 }
 :where(#app) .result-panel .front-heading {
-  margin-bottom: 22px;
+  margin-bottom: 12px;
 }
-:where(#app) .result-panel .front-heading h1 {
-  font-size: clamp(28px, 3vw, 42px);
+:where(#app) :is(.result-panel, .cup-results-panel).hud-card .front-heading h1 {
+  font-size: clamp(32px, 4.8vw, 58px);
+  font-style: italic;
+  font-weight: 800;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+}
+:where(#app)
+  :is(.result-panel, .cup-results-panel).hud-card
+  .front-heading
+  h1::after {
+  content: '';
+  display: block;
+  width: 20px;
+  height: 3px;
+  margin-top: 8px;
+  background: var(--hud-accent);
+  transform: skewX(-24deg);
+}
+:where(#app) :is(.result-panel, .cup-results-panel).hud-card .kicker {
+  color: #c8c8c7;
+  font-size: 11px;
+  font-weight: 600;
 }
 :where(#app) .result-panel .results-layout {
   display: block;
@@ -575,10 +602,14 @@ body[data-screen='results'] :where(#app) .front-footer {
   margin: 0;
 }
 :where(#app) .result-panel .result-personal > strong {
-  font-size: 42px;
+  font-size: clamp(34px, 4.4vw, 49px);
+  font-style: italic;
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1;
 }
 :where(#app) .result-panel .result-personal > p {
-  font-size: 10px;
+  font-size: 12px;
 }
 :where(#app) .result-panel .lap-splits {
   grid-column: 2;
@@ -588,23 +619,31 @@ body[data-screen='results'] :where(#app) .front-footer {
   margin: 0;
 }
 :where(#app) .result-panel .lap-splits span {
-  font-size: 8px;
+  color: #c8c8c7;
+  font-size: 10px;
 }
 :where(#app) .result-panel .lap-splits b {
   margin-top: 3px;
   font-size: 16px;
+  font-style: italic;
+  font-weight: 700;
 }
 :where(#app) .result-panel .results-list li {
   grid-template-columns: 24px 1fr auto;
+  border-bottom-color: #ffffff26;
   padding: 7px 10px;
-  font-size: 12px;
+  font-size: 14px;
+}
+:where(#app) .result-panel .results-list li.you {
+  border-left-color: var(--hud-accent);
+  background: #d0181826;
 }
 :where(#app) .result-panel .results-list {
   max-height: min(36vh, 340px);
   overflow-y: auto;
 }
 :where(#app) .result-panel .results-note {
-  font-size: 10px;
+  font-size: 12px;
   margin: 12px 0 0;
 }
 :where(#app) .result-panel .results-actions {
@@ -615,9 +654,44 @@ body[data-screen='results'] :where(#app) .front-footer {
 }
 :where(#app) .result-panel .results-actions button {
   min-width: 0;
-  padding: 13px 8px;
-  font-size: 10px;
-  letter-spacing: 0.04em;
+}
+:where(#app)
+  #front-shell
+  :is(.result-panel, .cup-results-panel).hud-card
+  .front-actions
+  button {
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid #ffffff35;
+  border-radius: 4px;
+  background: linear-gradient(100deg, #ffffff06, #ffffff18 92%);
+  color: inherit;
+  font-size: clamp(12px, 1.8vw, 16px);
+  font-weight: 600;
+  letter-spacing: 0.075em;
+  line-height: 1.12;
+  text-transform: uppercase;
+}
+:where(#app)
+  #front-shell
+  :is(.result-panel, .cup-results-panel).hud-card
+  .front-actions
+  button.primary {
+  border-color: var(--hud-accent-deep);
+  background: linear-gradient(104deg, #ad1c1c, #561919 92%);
+  font-style: italic;
+  font-weight: 700;
+}
+:where(#app)
+  #front-shell
+  :is(.result-panel, .cup-results-panel).hud-card
+  .front-actions
+  button:not(:disabled):is(:hover, :focus) {
+  border-color: #ff7773;
+  box-shadow:
+    inset 0 0 0 1px #f63e3c99,
+    0 0 12px #f421215c;
+  outline: 0;
 }
 /* The persistent transport owns the same screen coordinates in every state. */
 :where(#app) .music-player {

@@ -233,6 +233,26 @@ body {
   height: 100%;
 }
 :where(#app) #interface {
+  --hud-column-gap: 10px;
+  --hud-map-width: 144px;
+  --hud-roster-width: 210px;
+  --speed-gauge-base-size: clamp(
+    92px,
+    min(20.3vw, calc(100dvh - 575px)),
+    294px
+  );
+  --speed-gauge-size: calc(var(--speed-gauge-base-size) * 0.85);
+  /* The corner cards and the lower gauge share this column's centre. */
+  --hud-column-width: max(
+    var(--hud-map-width),
+    var(--hud-roster-width),
+    var(--speed-gauge-size)
+  );
+  --hud-left-width: calc(
+    100vw - 2 * var(--hud-side) -
+      (var(--hud-column-width) + var(--hud-map-width)) / 2 -
+      var(--hud-column-gap)
+  );
   position: fixed;
   inset: 0;
   pointer-events: none;
@@ -893,7 +913,7 @@ body {
   display: flex;
   align-items: stretch;
   width: max-content;
-  max-width: calc(92vw - 116px);
+  max-width: var(--hud-left-width);
   padding: 10px 17px 11px 11px;
 }
 :where(#app) .top-telemetry > div {
@@ -1006,8 +1026,11 @@ body {
 :where(#app) .telemetry {
   position: absolute;
   bottom: 105px;
-  left: 4vw;
-  right: 4vw;
+  left: var(--hud-side);
+  right: calc(
+    var(--hud-side) +
+      max(0px, (var(--hud-column-width) - var(--speed-gauge-size)) / 2)
+  );
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
@@ -1078,12 +1101,6 @@ body {
   transform-origin: left center;
 }
 :where(#app) .speed {
-  --speed-gauge-base-size: clamp(
-    92px,
-    min(20.3vw, calc(100dvh - 575px)),
-    294px
-  );
-  --speed-gauge-size: calc(var(--speed-gauge-base-size) * 0.85);
   --speed-gauge-start: -135deg;
   --speed-gauge-sweep: 270deg;
   --speed-gauge-angle: calc(
@@ -1250,17 +1267,17 @@ body {
   color: var(--speed-gauge-light);
 }
 @media (max-height: 700px) {
-  :where(#app) .speed {
+  :where(#app) #interface {
     --speed-gauge-base-size: clamp(64px, calc(100dvh - 500px), 170px);
   }
 }
 @media (max-width: 760px) {
-  :where(#app) .speed {
+  :where(#app) #interface {
     --speed-gauge-base-size: 76px;
   }
 }
 @media (max-height: 570px) and (orientation: landscape) {
-  :where(#app) .speed {
+  :where(#app) #interface {
     --speed-gauge-base-size: clamp(58px, calc(100dvh - 304px), 134px);
   }
 }
@@ -1293,26 +1310,24 @@ body {
     clip-path: inset(50%);
   }
 }
-:where(#app) .race-map-housing {
-  display: contents;
-  --race-map-width: 210px;
-  --race-map-surface: linear-gradient(#272c30f2, #15181ced);
-  --race-map-rim: #8790987a;
+:where(#app) .race-hud-side {
+  position: absolute;
+  top: var(--hud-top);
+  right: var(--hud-side);
+  width: var(--hud-column-width);
+  display: grid;
+  justify-items: center;
+  gap: var(--hud-column-gap);
+  pointer-events: none;
 }
-:where(#app) .race-map-housing.hud-card::before,
-:where(#app) .race-map-housing.hud-card::after {
-  display: none;
+:where(#app) .race-minimap {
+  position: relative;
+  width: var(--hud-map-width);
 }
 :where(#app) #minimap {
-  position: absolute;
-  right: 4vw;
-  top: 210px;
-  width: 160px;
-  height: 120px;
-  filter: drop-shadow(0 2px 6px #000);
-  background: var(--race-map-surface);
-  border: 1px solid var(--race-map-rim);
-  border-radius: 8px;
+  display: block;
+  width: 100%;
+  height: auto;
 }
 :where(#app) #loading {
   position: absolute;
@@ -1335,9 +1350,10 @@ body {
   font-size: 38px;
 }
 :where(#app) #touch {
-  --touch-signal: #73f1d3;
-  --touch-rim: #79a8a17c;
-  --touch-surface: linear-gradient(150deg, #142a2bed, #0c171ced 70%);
+  --touch-signal: color-mix(in srgb, var(--hud-accent) 78%, white);
+  --touch-rim: color-mix(in srgb, var(--touch-signal) 46%, transparent);
+  --touch-glow: color-mix(in srgb, var(--touch-signal) 56%, transparent);
+  --touch-surface: linear-gradient(150deg, #2b1b1ded, #181317ed 70%);
 
   display: none;
   position: absolute;
@@ -1356,11 +1372,11 @@ body {
   border: 1px solid var(--touch-rim);
   background: var(--touch-surface);
   box-shadow:
-    inset 0 0 20px #9cf6ef0e,
+    inset 0 0 20px #ff9c9c14,
     0 3px 14px #0008;
   color: #f0efec;
   font-family: var(--hud-font, inherit);
-  font-size: 14px;
+  font-size: 12px;
   font-style: italic;
   font-weight: 700;
   letter-spacing: 0.09em;
@@ -1372,12 +1388,14 @@ body {
   pointer-events: none;
 }
 :where(#app) [data-touch-control][data-active='true'] {
-  border-color: #91e0d7c2;
+  border-color: var(--touch-signal);
 }
 :where(#app) .touch-steer {
+  --touch-steer-rail: 45%;
+
   width: clamp(154px, 46vw, 208px);
-  height: 106px;
-  border-radius: 56px;
+  height: 84px;
+  border-radius: 44px;
 }
 :where(#app) .touch-label,
 :where(#app) .touch-airbrake {
@@ -1391,12 +1409,12 @@ body {
   top: 5px;
 }
 :where(#app) .touch-airbrake {
-  bottom: 7px;
+  bottom: 6px;
   padding: 3px 12px;
   border: 1px solid var(--touch-rim);
   border-radius: 8px;
-  background: #152527ed;
-  font-size: 12px;
+  background: #2b1b20ed;
+  font-size: 10px;
   line-height: 1;
 }
 :where(#app) .touch-directions {
@@ -1408,7 +1426,7 @@ body {
 :where(#app) .touch-steer .touch-directions {
   left: 17px;
   right: 17px;
-  top: 42%;
+  top: var(--touch-steer-rail);
   transform: translateY(-50%);
 }
 :where(#app) .touch-directions i {
@@ -1416,7 +1434,7 @@ body {
   height: 10px;
   border: solid var(--touch-signal);
   border-width: 2px 2px 0 0;
-  filter: drop-shadow(0 0 3px #63f5d399);
+  filter: drop-shadow(0 0 3px var(--touch-glow));
 }
 :where(#app) .touch-steer .touch-directions i:first-child {
   transform: rotate(-135deg);
@@ -1432,8 +1450,9 @@ body {
 :where(#app) .touch-steer::before {
   left: 16%;
   right: 16%;
-  top: 42%;
+  top: var(--touch-steer-rail);
   height: 1px;
+  transform: translateY(-50%);
   background: linear-gradient(
     90deg,
     transparent,
@@ -1443,23 +1462,38 @@ body {
 }
 :where(#app) .touch-thumb {
   position: absolute;
-  left: var(--touch-x, 50%);
-  top: min(var(--touch-y, 42%), calc(100% - 36px));
-  width: 31px;
-  height: 31px;
   transform: translate(-50%, -50%);
-  border: 1px solid #a9ffe9;
+  border: 1px solid color-mix(in srgb, var(--touch-signal) 65%, white);
   border-radius: 50%;
-  background: linear-gradient(0deg, #268f83, #4cdcba 48%, #164946 57%);
+  background: linear-gradient(
+    0deg,
+    var(--hud-accent-deep),
+    var(--touch-signal) 48%,
+    #681f25 57%
+  );
   box-shadow:
-    inset 0 0 6px #b7fff25e,
-    0 0 13px #61ffd880;
+    inset 0 0 6px #ffd2d25e,
+    0 0 13px var(--touch-glow);
 }
 :where(#app) [data-touch-control][data-active='true'] .touch-thumb {
-  background: linear-gradient(0deg, #3dc6a8, #84f6d8 47%, #2b8578 55%);
+  background: linear-gradient(
+    0deg,
+    var(--hud-accent),
+    #ffabab 47%,
+    #94242b 55%
+  );
   box-shadow:
-    inset 0 0 6px #d8fff38f,
-    0 0 16px #61ffd8a1;
+    inset 0 0 6px #ffeaea8f,
+    0 0 16px var(--touch-glow);
+}
+:where(#app) .touch-steer .touch-thumb {
+  left: var(--touch-x, 50%);
+  top: var(--touch-steer-rail);
+  width: 26px;
+  height: 26px;
+}
+:where(#app) .touch-steer[data-airbrake='true'] .touch-thumb {
+  top: calc(var(--touch-steer-rail) + 7px);
 }
 :where(#app) .touch-steer[data-airbrake='true'] .touch-airbrake {
   border-color: var(--touch-signal);
@@ -1480,6 +1514,7 @@ body {
   bottom: 9%;
   left: var(--touch-power-rail);
   width: 1px;
+  transform: translateX(-50%);
   background: linear-gradient(
     180deg,
     transparent,
@@ -1508,8 +1543,8 @@ body {
   align-items: center;
   padding-left: 29px;
   border: 1px solid transparent;
-  border-bottom-color: #9bb8b73a;
-  font-size: 12px;
+  border-bottom-color: #cebcbc3a;
+  font-size: 11px;
   letter-spacing: 0.035em;
   white-space: nowrap;
 }
@@ -1517,7 +1552,7 @@ body {
   border-radius: 17px 17px 6px 6px;
 }
 :where(#app) .touch-power > [data-power-zone='neutral'] {
-  color: #b2c2c1;
+  color: #c8bcbc;
 }
 :where(#app) .touch-power > [data-power-zone='brake'] {
   border-radius: 6px 6px 17px 17px;
@@ -1526,10 +1561,10 @@ body {
 :where(#app) .touch-power[data-power='boost'] > [data-power-zone='boost'],
 :where(#app) .touch-power[data-power='go'] > [data-power-zone='go'],
 :where(#app) .touch-power[data-power='brake'] > [data-power-zone='brake'] {
-  border-color: #84efda82;
-  background: linear-gradient(90deg, #2e897759, #205c5470);
-  box-shadow: inset 0 0 9px #71f6e438;
-  color: #e9fff8;
+  border-color: var(--touch-rim);
+  background: linear-gradient(90deg, #b9343b6e, #62222a70);
+  box-shadow: inset 0 0 9px #ff8c8c38;
+  color: #fff0ef;
 }
 :where(#app) .touch-power .touch-thumb {
   left: var(--touch-power-rail);
@@ -1600,16 +1635,14 @@ body {
   :where(#app) .top-telemetry.hud-card {
     padding: 8px 10px 9px 8px;
   }
+  :where(#app) .top-telemetry > div {
+    padding-inline: clamp(5px, 1.6vw, 9px);
+  }
   :where(#app) .telemetry {
     bottom: 155px;
   }
   :where(#app) .energy {
     --reserve-gauge-width: 200px;
-  }
-  :where(#app) #minimap {
-    top: 90px;
-    width: 110px;
-    height: 85px;
   }
   :where(#app) .driving #legend {
     display: none;
@@ -1815,20 +1848,6 @@ body {
   }
 }
 
-/* Compact landscape keeps the map clear of speed and reserve telemetry. */
-@media (max-height: 570px) and (min-width: 761px) {
-  :where(#app) #interface.driving:not(.has-review) #minimap {
-    top: 145px;
-    left: auto;
-    right: 4vw;
-    bottom: auto;
-    width: 100px;
-    height: 75px;
-  }
-}
-
-/* Optional stacked review layout keeps controls beside the fitted circuit. */
-
 @media (max-width: 760px) {
   :where(#app) .timing small {
     display: block;
@@ -1861,7 +1880,7 @@ body {
 /* Shared racing and expansion review use disjoint short-landscape HUD regions. */
 @media (max-height: 570px) and (orientation: landscape) {
   :where(#app) #interface:is(.compact-landscape, .has-racing).driving .lap b {
-    font-size: 32px;
+    font-size: clamp(22px, 4.2vw, 32px);
   }
   :where(#app)
     #interface:is(.compact-landscape, .has-racing).driving
@@ -1874,14 +1893,6 @@ body {
     .timing
     small {
     font-size: 8px;
-  }
-  :where(#app) #interface:is(.compact-landscape, .has-racing).driving #minimap {
-    top: 76px;
-    left: auto;
-    right: 4vw;
-    bottom: auto;
-    width: 94px;
-    height: 70px;
   }
   :where(#app)
     #interface:is(.compact-landscape, .has-racing).driving
@@ -1905,6 +1916,14 @@ body {
     bottom: auto;
     align-items: flex-start;
   }
+  :where(#app)
+    #interface.portrait-compact-hud.has-live-race.driving:not(
+      [data-event],
+      [data-freestyle='true']
+    )
+    .telemetry {
+    top: calc(var(--hud-top) + var(--hud-map-width) * 0.75 + 176px);
+  }
   :where(#app) #interface.portrait-compact-hud.driving .energy {
     font-size: 8px;
     line-height: 1.2;
@@ -1914,17 +1933,6 @@ body {
   }
   :where(#app) #interface.portrait-compact-hud.driving .energy-track {
     margin-top: 6px;
-  }
-}
-
-/* Expansion review controls occupy their own desktop band above the map. */
-@media (min-width: 761px) and (min-height: 701px) {
-  :where(#app)
-    #interface.compact-landscape.driving:not(.has-live-race)
-    #minimap {
-    top: 428px;
-    height: clamp(80px, calc(100dvh - 625px), 120px);
-    width: calc(clamp(80px, calc(100dvh - 625px), 120px) * 4 / 3);
   }
 }
 
@@ -2455,28 +2463,11 @@ body {
 }
 /* Compact race timing beside the road, then beside the paddock menu. */
 :where(#app) #race-roster {
-  position: absolute;
-  top: 350px;
-  right: 4vw;
-  width: 210px;
-  padding: 16px;
-  background: rgba(21, 21, 21, 0.72);
-  border: 1px solid rgba(211, 211, 211, 0.28);
-  border-top: 2px solid var(--hud-action-accent);
+  position: relative;
+  width: var(--hud-roster-width);
+  padding: 12px;
   pointer-events: none;
   font-variant-numeric: tabular-nums;
-}
-:where(#app) #race-roster.in-paddock {
-  width: 248px;
-  top: 96px;
-  left: calc(4vw + 440px);
-  right: auto;
-}
-:where(#app) #race-roster:not(.in-paddock) {
-  padding: 12px;
-  background: var(--race-map-surface);
-  border: 1px solid var(--race-map-rim);
-  border-radius: 8px;
 }
 :where(#app) .roster-heading span {
   display: block;
@@ -2520,8 +2511,8 @@ body {
   font-size: 11px;
 }
 :where(#app) #race-roster:not(.in-paddock) li {
-  padding-top: 6px;
-  padding-bottom: 6px;
+  padding-block: 3px;
+  margin-bottom: 2px;
 }
 :where(#app) #race-roster li > b {
   color: #a9a9a9;
@@ -2704,6 +2695,11 @@ body {
     top: clamp(180px, 23vh, 225px);
   }
 }
+@media (max-width: 760px) and (max-height: 600px) and (orientation: portrait) {
+  :where(#app) #interface {
+    --hud-map-width: clamp(66px, 22vw, 72px);
+  }
+}
 @media (max-width: 760px) and (orientation: portrait),
   (max-width: 620px) and (orientation: landscape) {
   :where(#app)
@@ -2716,7 +2712,7 @@ body {
   }
 }
 
-:where(#app) #race-finish {
+:where(#app) :is(#race-finish, #last-lap) {
   position: absolute;
   top: clamp(92px, 23vh, 220px);
   left: 50%;
@@ -2732,11 +2728,27 @@ body {
   pointer-events: none;
   animation: finish-reveal 220ms ease-out;
 }
-:where(#app) #race-finish .finish-checker {
-  width: clamp(48px, 9vmin, 86px);
-  aspect-ratio: 1;
-  background: conic-gradient(#f5f4ef 25%, #222 0 50%, #f5f4ef 0 75%, #222 0) 0
-    0 / 50% 50%;
+:where(#app) :is(#race-finish, #last-lap) .finish-flag {
+  display: block;
+  width: clamp(112px, 17.5vmin, 170px);
+  height: auto;
+  margin-bottom: -5px;
+  filter: drop-shadow(0 3px 3px #090c11) drop-shadow(0 0 6px #10131b9c);
+  animation: finish-flag-snap 430ms cubic-bezier(0.12, 0.76, 0.35, 1) both;
+}
+@keyframes finish-flag-snap {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.72) rotate(-14deg);
+  }
+  63% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.04) rotate(3deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 :where(#app) #race-finish > span,
 :where(#app) #race-finish > small {
@@ -2745,12 +2757,18 @@ body {
   font-size: 11px;
   letter-spacing: 0.15em;
 }
-:where(#app) #race-finish strong {
+:where(#app) :is(#race-finish, #last-lap) strong {
   display: block;
   font-size: clamp(30px, 5vw, 66px);
   line-height: 1;
   letter-spacing: -0.04em;
   color: #fff;
+}
+:where(#app) #last-lap strong {
+  font-size: clamp(25px, 4vw, 51px);
+  font-style: italic;
+  font-weight: 800;
+  letter-spacing: 0.015em;
 }
 @keyframes finish-reveal {
   from {
@@ -2762,73 +2780,73 @@ body {
     translate: 0 0;
   }
 }
-.reduced-motion :where(#app) #race-finish {
+.reduced-motion :where(#app) :is(#race-finish, #last-lap),
+.reduced-motion :where(#app) :is(#race-finish, #last-lap) .finish-flag {
   animation: none;
 }
 @media (prefers-reduced-motion: reduce) {
-  :where(#app) #race-finish {
+  :where(#app) :is(#race-finish, #last-lap),
+  :where(#app) :is(#race-finish, #last-lap) .finish-flag {
     animation: none;
   }
 }
 
-/* Share one housing where the map and full field fit above driving telemetry. */
-@media (min-width: 761px) and (min-height: 571px) {
-  :where(#app)
-    #interface.has-live-race:not([data-event], [data-freestyle='true'])
-    .race-map-housing {
-    position: absolute;
-    top: 88px;
-    right: 4vw;
-    display: grid;
-    justify-items: center;
-    gap: 8px;
-    width: var(--race-map-width);
-    padding: 7px 1px 1px;
-    pointer-events: none;
+@media (max-width: 760px) {
+  :where(#app) #interface {
+    --hud-map-width: clamp(66px, 22vw, 106px);
+    --hud-roster-width: 134px;
+  }
+}
+@media (max-width: 760px) and (orientation: portrait) {
+  :where(#app) #interface {
+    --hud-roster-width: clamp(100px, 33vw, 134px);
   }
   :where(#app)
-    #interface.has-live-race:not([data-event], [data-freestyle='true'])
-    .race-map-housing.hud-card::before,
-  :where(#app)
-    #interface.has-live-race:not([data-event], [data-freestyle='true'])
-    .race-map-housing.hud-card::after {
-    display: block;
+    #interface.has-live-race:not([data-event], [data-freestyle='true']) {
+    --hud-left-width: calc(
+      100vw - 2 * var(--hud-side) - var(--hud-column-width) -
+        var(--hud-column-gap)
+    );
   }
-  :where(#app)
-    #interface.has-live-race:not([data-event], [data-freestyle='true'])
-    .race-map-housing
-    > #minimap {
-    position: static;
-    width: 130px;
-    height: 98px;
-    background: #15181c99;
-    border-color: #87909838;
-    border-radius: 4px;
-    filter: none;
+}
+@media (max-width: 400px) and (orientation: portrait) {
+  :where(#app) .top-telemetry.hud-card {
+    padding-inline: 7px;
   }
-  :where(#app)
-    #interface.has-live-race:not([data-event], [data-freestyle='true'])
-    .race-map-housing
-    > #race-roster:not(.in-paddock) {
-    position: static;
-    width: 100%;
-    background: none;
-    border: 0;
-    border-top: 1px solid #87909838;
-    border-radius: 0;
+  :where(#app) .top-telemetry > div {
+    padding-inline: 4px;
   }
-  :where(#app) #race-roster:not(.in-paddock) li {
-    padding-top: 3px;
-    padding-bottom: 3px;
-    margin-bottom: 2px;
+  :where(#app) .top-telemetry span {
+    font-size: 10px;
+  }
+  :where(#app) .position b {
+    font-size: 22px;
+  }
+  :where(#app) .lap b,
+  :where(#app) .timing b {
+    font-size: 19px;
+  }
+}
+@media (max-width: 360px) and (orientation: portrait) {
+  :where(#app) #interface {
+    --hud-column-gap: 7px;
+    --hud-roster-width: 100px;
+  }
+  :where(#app) .top-telemetry.hud-card {
+    padding-inline: 5px;
+  }
+  :where(#app) .top-telemetry > div {
+    padding-inline: 3px;
+  }
+  :where(#app) .position b {
+    font-size: 19px;
+  }
+  :where(#app) .timing b {
+    font-size: 15px;
   }
 }
 @media (max-width: 760px), (max-height: 700px) {
-  :where(#app) .race-map-housing {
-    --race-map-width: 150px;
-  }
-  :where(#app) #race-roster:not(.in-paddock) {
-    width: var(--race-map-width);
+  :where(#app) #race-roster {
     padding: 6px;
   }
   :where(#app) #race-roster:not(.in-paddock) .roster-heading span,
@@ -2842,8 +2860,8 @@ body {
   :where(#app) #race-roster:not(.in-paddock) li {
     grid-template-columns: 14px 1fr auto;
     gap: 4px;
-    margin-bottom: 2px;
-    padding: 2px 4px;
+    margin-bottom: 1px;
+    padding: 1px 4px;
     line-height: 1.1;
   }
   :where(#app) #race-roster:not(.in-paddock) li,
@@ -2852,9 +2870,25 @@ body {
     font-size: 8px;
   }
 }
-@media (max-height: 570px) {
-  :where(#app) #race-roster:not(.in-paddock) {
-    top: 152px;
+/* On short landscape displays the roster fits beside the map, above the touch rail. */
+@media (max-height: 570px) and (orientation: landscape),
+  (max-width: 760px) and (orientation: landscape) {
+  :where(#app) #interface {
+    --hud-map-width: clamp(68px, 12vw, 100px);
+    --hud-roster-width: clamp(108px, 19vw, 150px);
+    --hud-column-width: var(--hud-map-width);
+  }
+  :where(#app)
+    #interface.has-live-race:not([data-event], [data-freestyle='true']) {
+    --hud-left-width: calc(
+      100vw - 2 * var(--hud-side) - var(--hud-map-width) -
+        var(--hud-roster-width) - 2 * var(--hud-column-gap)
+    );
+  }
+  :where(#app) #race-roster {
+    position: absolute;
+    top: 0;
+    right: calc(100% + var(--hud-column-gap));
   }
 }
 
@@ -2951,7 +2985,7 @@ body {
 @media (max-height: 570px) and (orientation: landscape) {
   :where(#app) .touch-steer {
     width: 144px;
-    height: 96px;
+    height: 80px;
   }
   :where(#app) .touch-power {
     width: 100px;
@@ -2968,9 +3002,10 @@ body {
   :where(#app) #interface.driving .energy {
     --reserve-gauge-width: clamp(90px, 16vw, 150px);
   }
-  :where(#app) #interface.driving #race-roster:not(.in-paddock) {
-    top: 76px;
-    right: calc(max(3vw, env(safe-area-inset-right)) + 124px);
+}
+@media (max-width: 760px) and (max-height: 699px) and (orientation: portrait) {
+  :where(#app) #interface.driving .telemetry {
+    bottom: calc(max(16px, env(safe-area-inset-bottom)) + 182px);
   }
 }
 @media (max-height: 350px) and (orientation: landscape) {

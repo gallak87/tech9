@@ -1943,6 +1943,25 @@ try {
             ),
           ),
         );
+        const equipment = page.locator('.equipment-hud');
+        await equipment.waitFor({ state: 'visible' });
+        const togglePause = () =>
+          input === 'keyboard' ? key(page, 'Escape') : pad(page, 9);
+        await togglePause();
+        await page.locator('#pause-panel').waitFor({ state: 'visible' });
+        await equipment.waitFor({ state: 'hidden', timeout: 5000 });
+        assert.equal(
+          await page
+            .locator('#resume')
+            .evaluate((button) => button.matches(':focus')),
+          true,
+        );
+        await page
+          .locator('#pause-tunes')
+          .click({ trial: true, timeout: 5000 });
+        await togglePause();
+        await page.locator('#pause-panel').waitFor({ state: 'hidden' });
+        await equipment.waitFor({ state: 'visible' });
       }
     },
   );

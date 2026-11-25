@@ -59,6 +59,7 @@
     #legend,
     #start-lights,
     #race-finish,
+    #last-lap,
     #sprint-finish-actions
   ) {
   font-family: var(--hud-font);
@@ -127,10 +128,10 @@
 
 :where(#app) .hud-card--fade {
   --hud-card-surface: linear-gradient(
-    140deg,
-    #303236fa,
-    #1d1e22e8 50%,
-    #111215a6
+    to bottom,
+    #303236ad,
+    #202125e6 56%,
+    #141518
   );
   --hud-card-edge: linear-gradient(
     144deg,

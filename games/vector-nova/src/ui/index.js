@@ -1,14 +1,12 @@
 import { fullscreenSetting } from './desktop-controls.js';
 import { controllerLayout } from '../input/gamepad.js';
 import { createDevTools } from './dev-tools.js';
+import { createFinishFlag } from './finish-flag.js';
 import './style.css';
 import './hud.css';
 import { formatTime, formatDelta } from '../race/timing.js';
 import { presentationDistance } from '../race/course.js';
-import {
-  RACER_COLORS as racerColors,
-  RACE_FIELD_SIZE,
-} from '../race/roster.js';
+import { raceHudColors, RACE_FIELD_SIZE } from '../race/roster.js';
 import { halcyonGraphicsDefaults } from '../progression/index.js';
 import { deviceCSSColor } from '../pickups/theme.js';
 import { getShip } from '../ships/catalog.js';
@@ -91,7 +89,8 @@ export function createUI(
   const speedValue = $('speed');
   const speedGauge = speedValue.closest('.speed');
   const boostStatus = $('boost-status');
-  let speedShipId = null;
+  let hudShipId = null;
+  let racerColors = raceHudColors(getShip().liveryAccent);
   if (sprint) {
     root.classList.add('sprint-course');
     $('restart').textContent = 'Restart sprint';
@@ -176,14 +175,17 @@ export function createUI(
   }
   const roster = document.createElement('aside');
   roster.id = 'race-roster';
-  roster.className = 'hidden';
+  roster.className = 'hud-card hidden';
   roster.setAttribute('aria-label', 'Race timing and placements');
   roster.innerHTML = `<div class="roster-heading"><span></span><b></b></div><ol></ol><div class="roster-laps"></div><p class="roster-hint"></p>`;
   const minimap = $('minimap');
-  const raceMap = document.createElement('div');
-  raceMap.className = 'race-map-housing hud-card';
-  minimap.before(raceMap);
-  raceMap.append(minimap, roster);
+  const sidebar = document.createElement('div');
+  sidebar.className = 'race-hud-side';
+  const mapPanel = document.createElement('div');
+  mapPanel.className = 'race-minimap hud-card';
+  minimap.replaceWith(sidebar);
+  mapPanel.append(minimap);
+  sidebar.append(mapPanel, roster);
   const lights = document.createElement('section');
   lights.id = 'start-lights';
   lights.className = 'hidden';
@@ -198,10 +200,24 @@ export function createUI(
   finish.id = 'race-finish';
   finish.className = 'hidden';
   finish.setAttribute('role', 'status');
-  finish.innerHTML =
-    '<div class="finish-checker" aria-hidden="true"></div><span></span><strong></strong><small></small>';
+  finish.innerHTML = '<span></span><strong></strong><small></small>';
+  const finishFlag = createFinishFlag();
+  finish.prepend(finishFlag.canvas);
   const finishCaption = finish.querySelector('span');
   root.append(finish);
+  const lastLapFlag =
+    racing && !sprint && !metadata.eventType && !metadata.freestyle
+      ? createFinishFlag({ checkered: false })
+      : null;
+  const lastLap = lastLapFlag ? document.createElement('section') : null;
+  if (lastLap) {
+    lastLap.id = 'last-lap';
+    lastLap.className = 'hidden';
+    lastLap.setAttribute('role', 'status');
+    lastLap.innerHTML = '<strong>FINAL LAP</strong>';
+    lastLap.prepend(lastLapFlag.canvas);
+    $('hud').append(lastLap);
+  }
   let rosterKey = '',
     currentCompetition = null;
   function updateRoster() {
@@ -232,6 +248,7 @@ export function createUI(
     };
     const key = JSON.stringify({
       finished,
+      playerColor: racerColors.player,
       rows: rows.map((entry) => ({
         ...entry,
         seconds: entry.seconds == null ? null : entry.seconds.toFixed(1),
@@ -508,8 +525,13 @@ export function createUI(
     setResultsAvailable(available) {
       $('pause-results').classList.toggle('hidden', !available);
     },
+    warmRaceFlags() {
+      finishFlag.warm();
+      lastLapFlag?.warm();
+    },
     setFinish(result) {
       finish.classList.toggle('hidden', !result);
+      finishFlag.setVisible(Boolean(result));
       if (!result) return;
       const player = result.standings?.find((entry) => entry.id === 'player');
       const valid = result.playerValid ?? player?.valid;
@@ -579,7 +601,13 @@ export function createUI(
         cup = null,
       } = {},
     ) {
+      if (!suspended) finishFlag.update(settings.reducedMotion);
       currentCompetition = competition;
+      if (hudShipId !== s.shipId) {
+        hudShipId = s.shipId;
+        racerColors = raceHudColors(getShip(hudShipId).liveryAccent);
+        speedGauge.style.setProperty('--speed-gauge-color', racerColors.player);
+      }
       $('pause-race-settings')?.classList.toggle(
         'hidden',
         !competition?.enabled || !!cup,
@@ -630,6 +658,17 @@ export function createUI(
           : 'PRACTICE LAP';
       const showLapProgress =
         !sprint && competition?.enabled && !competition.playerFinished;
+      if (lastLap) {
+        const showFlag =
+          oldMode === 'racing' &&
+          showLapProgress &&
+          r.lap === competition.laps &&
+          r.lap > 1 &&
+          r.elapsed < 2;
+        lastLap.classList.toggle('hidden', !showFlag);
+        lastLapFlag.setVisible(showFlag);
+        if (!suspended) lastLapFlag.update(settings.reducedMotion);
+      }
       lapProgress.classList.toggle('hidden', !showLapProgress);
       lapProgress.classList.toggle(
         'on-final-lap',
@@ -643,14 +682,6 @@ export function createUI(
         speedGauge.style.setProperty(
           '--speed-progress',
           String(Math.min(1, Math.max(0, speed / SPEED_GAUGE_LIMIT))),
-        );
-      }
-      if (speedShipId !== s.shipId) {
-        speedShipId = s.shipId;
-        const accent = getShip(speedShipId).liveryAccent;
-        speedGauge.style.setProperty(
-          '--speed-gauge-color',
-          `#${accent.toString(16).padStart(6, '0')}`,
         );
       }
       $('time').textContent = fmt(r.elapsed);
@@ -831,8 +862,9 @@ export function createUI(
               frame.position
                 .clone()
                 .addScaledVector(frame.right, rival.lateral),
-            racerColors[rival.id],
-            rival.id === competition.relative?.ahead?.id ||
+            racerColors[rival.id] ?? '#e7edf0',
+            rival.team === 'quarry' ||
+              rival.id === competition.relative?.ahead?.id ||
               rival.id === competition.relative?.behind?.id
               ? 3.5
               : 2.8,

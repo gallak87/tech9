@@ -1,13 +1,19 @@
-[data-event='interceptor'] {
-  --ic-hud-top: var(--hud-top, 108px);
+.interceptor-layout {
+  position: absolute;
+  top: var(--hud-top);
+  left: var(--hud-side);
+  z-index: 5;
+  display: grid;
+  grid-template-columns: minmax(0, 294px) minmax(0, 1fr);
+  align-items: start;
+  gap: var(--hud-column-gap);
+  width: var(--hud-left-width);
+  pointer-events: none;
 }
 .interceptor-hud {
-  position: absolute;
-  top: var(--ic-hud-top);
-  left: var(--hud-side, 4vw);
-  z-index: 5;
+  position: relative;
   box-sizing: border-box;
-  width: 294px;
+  min-width: 0;
   padding: 13px 18px 14px;
   color: #f1ece4;
   text-shadow: 0 2px 5px #000;
@@ -86,12 +92,8 @@
   letter-spacing: 0.045em;
 }
 .interceptor-boss {
-  position: absolute;
-  top: var(--ic-hud-top);
-  left: 50%;
-  z-index: 5;
-  width: min(520px, 42vw);
-  transform: translateX(-50%);
+  justify-self: center;
+  width: min(100%, 520px);
   pointer-events: none;
   color: #fff1ed;
   font-family: var(--hud-font, system-ui);
@@ -264,7 +266,6 @@
 }
 #interface[data-event='interceptor'] #race-roster,
 #interface[data-event='interceptor'] .top-telemetry,
-#interface[data-event='interceptor'] #minimap,
 #interface[data-event='interceptor'] #legend {
   display: none !important;
 }
@@ -346,17 +347,11 @@
     padding-block: 10px;
   }
 }
-@media (max-width: 1240px) {
-  .interceptor-boss {
-    width: min(520px, calc(100vw - 56px));
-  }
-  .interceptor-hud {
-    top: calc(var(--ic-hud-top) + 65px);
-  }
-}
 @media (max-width: 760px) {
+  .interceptor-layout {
+    grid-template-columns: minmax(0, 250px) minmax(0, 1fr);
+  }
   .interceptor-hud {
-    width: 250px;
     padding-inline: 12px;
   }
   .ic-boss-strip {
@@ -372,5 +367,10 @@
   }
   .interceptor-result-stats {
     gap: 18px 25px;
+  }
+}
+@media (max-width: 620px), (max-width: 760px) and (orientation: portrait) {
+  .interceptor-layout {
+    grid-template-columns: minmax(0, 250px);
   }
 }

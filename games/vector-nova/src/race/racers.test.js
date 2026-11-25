@@ -7,12 +7,14 @@ import { createVehicleState, STEERING_ASSIST } from '../physics/index.js';
 import { createHalcyonSimulationRuntime } from '../levels/halcyon/device-runtime.js';
 import { createHalcyonDevices } from '../levels/halcyon/devices.js';
 import { createRace } from './index.js';
+import { SHIPS } from '../ships/catalog.js';
 import {
   RACE_FIELD_SIZE,
   RACE_OPPONENTS,
   RACER_COLORS,
   RACE_ORDER,
   createRaceGrid,
+  raceHudColors,
 } from './roster.js';
 import { VEHICLE_HULL as HULL } from '../physics/hull.js';
 import {
@@ -65,6 +67,24 @@ test('ten-pilot grid has five separated rows and independent simulation owners',
   } finally {
     racers.dispose();
   }
+});
+
+test('the race HUD reserves the selected ship accent for the player', () => {
+  for (const ship of SHIPS) {
+    const colors = raceHudColors(ship.liveryAccent);
+    assert.equal(
+      colors.player,
+      `#${ship.liveryAccent.toString(16).padStart(6, '0')}`,
+    );
+    assert.equal(new Set(Object.values(colors)).size, RACE_FIELD_SIZE);
+    for (const color of Object.values(colors))
+      assert.match(color, /^#[0-9a-f]{6}$/);
+  }
+  const shrike = SHIPS.find((ship) => ship.id === 'shrike');
+  const colors = raceHudColors(shrike.liveryAccent);
+  assert.notEqual(colors.rook, RACER_COLORS.rook);
+  assert.notEqual(colors.manta, RACER_COLORS.manta);
+  assert.equal(colors.mule, RACER_COLORS.mule);
 });
 function playerWithTwoLaps({ valid = true } = {}) {
   const playerState = createVehicleState();

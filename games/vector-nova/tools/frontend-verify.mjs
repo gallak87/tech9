@@ -554,7 +554,20 @@ try {
               { mode, id, won },
             );
             const label = `${mode} ${id} ${won ? 'win' : 'loss'} via ${input}`;
-            const actions = page.locator('.result-panel .results-actions');
+            const panel = page.locator('.result-panel');
+            const actions = panel.locator('.results-actions');
+            const appearance = await panel.evaluate((element) => {
+              const { left, right } = element.getBoundingClientRect();
+              return {
+                centered: Math.abs((left + right) / 2 - innerWidth / 2) < 1,
+                bevel: getComputedStyle(element, '::before').clipPath,
+                headingFont: getComputedStyle(element.querySelector('h1'))
+                  .fontFamily,
+              };
+            });
+            assert.ok(appearance.centered, label);
+            assert.match(appearance.bevel, /^polygon\(/, label);
+            assert.match(appearance.headingFont, /Barlow Condensed/, label);
             const primary = page.locator('.front-content .primary');
             assert.equal(await primary.count(), 1, label);
             assert.equal(
@@ -1840,6 +1853,13 @@ try {
           assert.ok(before.track.length > 0);
           assert.equal((await front(page)).intent, mode);
           if (racers) assert.equal(before.competition.standings.length, racers);
+          const [map, telemetry] = await Promise.all([
+            page.locator('#minimap').boundingBox(),
+            page.locator(`.${mode}-hud`).boundingBox(),
+          ]);
+          assert.ok(map && telemetry, `${id} shows the map and mode HUD`);
+          assert.equal(map.y, telemetry.y, `${id} aligns the two HUD corners`);
+          assert.ok(telemetry.x + telemetry.width < map.x);
           if (id === 'eliminator-nomad') {
             assert.equal(
               await page.locator('.elim-identity').innerText(),
@@ -1857,10 +1877,6 @@ try {
             );
             assert.equal(
               await page.locator('#interface .top-telemetry').isVisible(),
-              false,
-            );
-            assert.equal(
-              await page.locator('#interface #minimap').isVisible(),
               false,
             );
           }
@@ -3209,6 +3225,23 @@ try {
           await page.locator('#race-roster li').count(),
           RACE_FIELD_SIZE,
         );
+        for (const cue of ['#last-lap', '#race-finish']) {
+          const flag = page.locator(`${cue} .finish-flag`);
+          assert.equal(await flag.isVisible(), false);
+          assert.ok(
+            await flag.evaluate((canvas) => {
+              const ctx = canvas.getContext('2d');
+              const { data } = ctx.getImageData(
+                canvas.width / 2,
+                canvas.height / 2,
+                1,
+                1,
+              );
+              return data[3] > 0;
+            }),
+            `${cue} has a raster before the first lap ends`,
+          );
+        }
         await page.keyboard.press('Escape');
         assert.equal((await snapshot(page)).mode, 'paused');
         await page.evaluate(() => {
@@ -3422,32 +3455,53 @@ try {
         await page.waitForFunction(
           () => window.__VN.getSnapshot().mode === 'racing',
         );
-        const layout = await page.evaluate(() => {
-          const rect = (selector) =>
-            document.querySelector(selector).getBoundingClientRect().toJSON();
-          return {
-            roster: rect('#race-roster'),
-            map: rect('#minimap'),
-            speed: rect('.telemetry .speed'),
-            rows: [...document.querySelectorAll('#race-roster li')].map(
-              (row) => ({
-                id: row.dataset.racer,
-                color: getComputedStyle(row).getPropertyValue('--racer-color'),
-              }),
-            ),
-          };
-        });
+        const readLayout = () =>
+          page.evaluate(() => {
+            const rect = (selector) =>
+              document.querySelector(selector).getBoundingClientRect().toJSON();
+            return {
+              roster: rect('#race-roster'),
+              map: rect('#minimap'),
+              telemetry: rect('.top-telemetry'),
+              speed: rect('.telemetry .speed'),
+              shipAccent: getComputedStyle(document.querySelector('.speed'))
+                .getPropertyValue('--speed-gauge-color')
+                .trim(),
+              rows: [...document.querySelectorAll('#race-roster li')].map(
+                (row) => ({
+                  id: row.dataset.racer,
+                  color:
+                    getComputedStyle(row).getPropertyValue('--racer-color'),
+                }),
+              ),
+            };
+          });
+        const layout = await readLayout();
         assert.equal(layout.rows.length, RACE_FIELD_SIZE);
         assert.equal(
           new Set(layout.rows.map(({ color }) => color)).size,
           RACE_FIELD_SIZE,
         );
-        assert.ok(layout.map.bottom < layout.roster.top);
-        assert.ok(layout.roster.bottom < layout.speed.top);
-        assert.ok(
-          layout.roster.left > 1280 * 0.7,
-          'field stays away from the chase craft',
+        assert.equal(
+          layout.rows.find(({ id }) => id === 'player').color,
+          layout.shipAccent,
         );
+        function assertAlignedHud({ map, roster, speed, telemetry }, width) {
+          const center = ({ left, width }) => left + width / 2;
+          assert.ok(Math.abs(center(map) - center(roster)) < 0.5);
+          assert.ok(Math.abs(center(map) - center(speed)) < 0.5);
+          assert.equal(map.top, telemetry.top);
+          assert.ok(map.bottom < roster.top);
+          assert.ok(roster.bottom < speed.top);
+          assert.ok(
+            roster.left > width * 0.7,
+            'field stays away from the chase craft',
+          );
+        }
+        assertAlignedHud(layout, 1280);
+        await page.setViewportSize({ width: 1440, height: 900 });
+        assertAlignedHud(await readLayout(), 1440);
+        await page.setViewportSize({ width: 1280, height: 720 });
         await page.keyboard.press('Escape');
         await page.locator('#home').click();
         await page.goto(url('inspect=1&ship=kestrel&level=halcyon&dev=1'));

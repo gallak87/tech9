@@ -5,6 +5,7 @@
   left: var(--hud-side, 4vw);
   box-sizing: border-box;
   width: 252px;
+  max-width: var(--hud-left-width);
   pointer-events: none;
   color: #f3f1e9;
   text-shadow: 0 2px 5px #000;
@@ -111,17 +112,18 @@
   margin: 3px 0 0;
 }
 .freestyle-air-readout {
-  --hud-card-cut: 7px;
   position: fixed;
   z-index: 6;
   width: 174px;
-  padding: 7px 12px 9px;
   box-sizing: border-box;
   transform: translate(-50%, -100%);
   pointer-events: none;
   color: #d9f8ff;
+  font-family: var(--hud-font, system-ui);
   font-variant-numeric: tabular-nums;
-  text-shadow: 0 2px 5px #000c;
+  text-shadow:
+    0 2px 4px #000,
+    0 0 10px #000d;
 }
 .freestyle-air-readout[hidden],
 .freestyle-air-readout [hidden] {
@@ -136,13 +138,14 @@
 }
 .fs-air-score {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: baseline;
-  gap: 12px;
+  gap: 8px;
   color: #a5e5f5;
 }
 .fs-air-score > span {
   font-size: 10px;
+  font-weight: 600;
   letter-spacing: 0.115em;
   color: #b2ccd5;
 }
@@ -333,8 +336,7 @@
 }
 #interface[data-freestyle='true'] .top-telemetry,
 #interface[data-freestyle='true'] #race-roster,
-#interface[data-freestyle='true'] #legend,
-#interface[data-freestyle='true'] #minimap {
+#interface[data-freestyle='true'] #legend {
   display: none !important;
 }
 .freestyle-results .fs-result-score {

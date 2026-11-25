@@ -37,7 +37,7 @@ export function createEquipmentPresentation({ host, scene, activate }) {
       const slots = equipment?.slots ?? [];
       const visible =
         !suspended &&
-        ['racing', 'countdown', 'paused'].includes(mode) &&
+        (mode === 'racing' || mode === 'countdown') &&
         slots.some(Boolean);
       hud.hidden = !visible;
       const next = slots.map((slot) => slot?.id ?? '').join(',');

@@ -45,7 +45,10 @@ export function createTouchControls(signal, isEnabled) {
         brake: power === 'brake' ? 1 : 0,
       };
       pad.element.dataset.power = power;
-      pad.element.style.setProperty('--touch-y', `${zone * 25 + 12.5}%`);
+      pad.element.style.setProperty(
+        '--touch-y',
+        `${clamp(y, 0.125, 0.875) * 100}%`,
+      );
     }
   }
 

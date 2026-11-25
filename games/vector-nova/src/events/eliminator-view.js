@@ -124,19 +124,23 @@ export function createEliminatorPresentation({
   const previousEvent = host.dataset.event;
   host.dataset.event = 'eliminator';
   const root = document.createElement('section');
-  root.className = 'eliminator-hud';
+  root.className = 'eliminator-hud hud-card hud-card--fade';
   root.hidden = true;
   root.setAttribute('aria-label', 'Eliminator timing and position');
-  root.innerHTML = `<span class="elim-identity">ELIMINATOR / ${finishAtCourseEnd ? 'MOVING CONVOY' : 'LAST RACER STANDING'}</span><div class="elim-order"><strong>1 <small>/ 10</small></strong><span>ACTIVE POSITION</span></div><div class="elim-countdown"><span>NEXT CUT</span><b>22.0<small>s</small></b></div><div class="elim-risk"><span>AT RISK</span><b>—</b></div><p class="elim-last">${finishAtCourseEnd ? 'Survive the cuts or finish first.' : 'Keep clear of last place.'}</p>`;
+  root.innerHTML = `<span class="elim-identity">ELIMINATOR${finishAtCourseEnd ? ' / MOVING CONVOY' : ''}</span>
+    <div class="elim-countdown"><span>NEXT CUT</span><strong><b>22.0</b><small>s</small></strong></div>
+    <div class="elim-cut-rail" aria-hidden="true"><i></i></div>
+    <div class="elim-risk"><span>AT RISK</span><b>—</b></div>
+    <div class="elim-foot"><strong class="elim-order">1 / 10</strong><span class="elim-last" hidden></span></div>`;
   host.append(root);
-  const position = root.querySelector('.elim-order strong'),
+  const position = root.querySelector('.elim-order'),
     countdown = root.querySelector('.elim-countdown b'),
+    cutRail = root.querySelector('.elim-cut-rail i'),
     risk = root.querySelector('.elim-risk b'),
     last = root.querySelector('.elim-last');
   let disposed = false,
     visuals = null,
-    elapsed = 0,
-    lastCut = null;
+    elapsed = 0;
   // Results import this module too. Resolve the already-used Three chunk only
   // when a real session creates its owner, with a late-disposal guard.
   if (scene)
@@ -155,34 +159,31 @@ export function createEliminatorPresentation({
         return;
       }
       elapsed = data.elapsed;
-      position.innerHTML = `${data.playerPosition} <small>/ ${data.remaining}</small>`;
+      position.textContent = `${data.playerPosition} / ${data.remaining}`;
       const remaining = Math.max(0, (data.nextCut ?? elapsed) - elapsed);
-      countdown.innerHTML = `${remaining.toFixed(1)}<small>s</small>`;
+      const removed = data.eliminated?.at(-1);
+      const cutWindow = Math.max(
+        1,
+        (data.nextCut ?? elapsed) - (removed?.at ?? 0),
+      );
+      countdown.textContent = remaining.toFixed(1);
+      cutRail.style.transform = `scaleX(${Math.min(1, remaining / cutWindow)})`;
       const danger = data.standings?.find((row) => row.id === data.atRiskId);
       risk.textContent =
         danger?.id === 'player' ? 'YOU' : (danger?.name ?? '—');
       root.dataset.risk = String(data.atRiskId === 'player');
       root.dataset.imminent = String(remaining <= 3);
-      const removed = data.eliminated?.at(-1);
-      last.textContent = lastCut
-        ? `${lastCut.name} cut · ${lastCut.remaining} remain`
-        : removed
-          ? `${removed.name} cut · ${data.remaining} remain`
-          : finishAtCourseEnd
-            ? 'Survive the cuts or finish first.'
-            : 'First cut ahead. Keep clear of last place.';
+      last.textContent = removed
+        ? `${removed.id === 'player' ? 'YOU' : removed.name} CUT`
+        : finishAtCourseEnd
+          ? 'Survive the cuts or finish first.'
+          : '';
+      last.hidden = !last.textContent;
       visuals?.update(elapsed, !!frame.settings?.reducedMotion, !root.hidden);
     },
     trigger(event) {
       if (disposed || event?.type !== 'eliminator-cut' || !event.payload)
         return;
-      lastCut = {
-        name:
-          event.payload.id === 'player'
-            ? 'YOU'
-            : (event.payload.name ?? event.payload.id),
-        remaining: event.payload.remaining,
-      };
       const point = event.payload.position;
       if (
         Array.isArray(point) &&
@@ -192,7 +193,6 @@ export function createEliminatorPresentation({
         visuals?.trigger(point, event.payload.elapsed ?? elapsed);
     },
     reset() {
-      lastCut = null;
       elapsed = 0;
       root.hidden = true;
       visuals?.reset();

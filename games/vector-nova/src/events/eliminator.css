@@ -1,91 +1,125 @@
 .eliminator-hud {
   position: absolute;
   z-index: 5;
-  top: 108px;
-  left: 28px;
-  width: 250px;
-  padding: 15px 18px 12px;
+  top: var(--hud-top, 108px);
+  left: var(--hud-side, 4vw);
+  box-sizing: border-box;
+  width: 277px;
+  padding: 13px 18px 15px;
   color: #f1ece4;
-  background: linear-gradient(90deg, #101013e8, #10101390 85%, transparent);
-  border-left: 2px solid #c77445;
   pointer-events: none;
-  font-variant-numeric: tabular-nums;
   text-shadow: 0 2px 5px #000;
 }
 .eliminator-hud[hidden] {
   display: none;
 }
-.elim-identity,
-.elim-order > span,
-.elim-countdown > span,
-.elim-risk > span {
-  font-size: 9px;
-  letter-spacing: 0.14em;
-  color: #afa9a2;
-}
 .elim-identity {
   display: block;
-  font-size: 8px;
-  white-space: nowrap;
-}
-.elim-order {
-  margin: 12px 0 16px;
-}
-.elim-order strong {
-  display: block;
-  font-size: 35px;
-  line-height: 1.15;
-  font-weight: 700;
-}
-.elim-order strong small {
-  font-size: 19px;
-  font-weight: 400;
-  color: #a8a39b;
+  padding: 0 0 5px 7px;
+  border-bottom: 1px solid #ffffff24;
+  box-shadow: inset 2px 0 var(--hud-accent, #ef3939);
+  font-size: 12px;
+  font-style: italic;
+  letter-spacing: 0.18em;
+  color: #c6beb5;
 }
 .elim-countdown {
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   gap: 12px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #ffffff23;
+  margin-top: 3px;
+  white-space: nowrap;
+  font-size: 18px;
+  font-style: italic;
+  font-weight: 650;
+  letter-spacing: 0.065em;
+}
+.elim-countdown strong {
+  min-width: 0;
+  padding-left: 13px;
+  border-left: 1px solid #ffffff35;
+  font-size: 47px;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
 }
 .elim-countdown b {
-  font-size: 30px;
-  line-height: 1.1;
-  font-weight: 600;
-  color: #edb57a;
+  font-weight: inherit;
 }
 .elim-countdown small {
-  margin-left: 3px;
-  font-size: 12px;
-  font-weight: 400;
-  color: #bdb0a1;
+  margin-left: 5px;
+  font-size: 20px;
+}
+.elim-cut-rail {
+  height: 6px;
+  margin: 2px 4px 10px;
+  transform: skewX(-25deg);
+  background: #d63c3e29;
+  mask-image: repeating-linear-gradient(
+    90deg,
+    #000 0 calc(12.5% - 3px),
+    transparent calc(12.5% - 3px) 12.5%
+  );
+}
+.elim-cut-rail i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #ffb44e, #ffcb76);
+  transform-origin: left;
 }
 .elim-risk {
   display: flex;
-  justify-content: space-between;
   align-items: baseline;
   gap: 12px;
-  padding-top: 10px;
+  padding: 3px 8px;
+  border: 1px solid #ffffff38;
+  border-radius: 3px;
+  font-size: 15px;
+  font-style: italic;
+  letter-spacing: 0.045em;
+  line-height: 1.2;
+  color: #c5bab4;
+  text-transform: uppercase;
 }
 .elim-risk b {
-  font-size: 13px;
-  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  padding-left: 11px;
+  border-left: 1px solid #ffffff40;
+  color: #fff3eb;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.elim-foot {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-top: 9px;
+  font-size: 14px;
+  font-style: italic;
+  line-height: 1;
+}
+.elim-order {
+  font-size: 20px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 .elim-last {
-  min-height: 25px;
-  margin: 10px 0 0;
-  font-size: 10px;
-  line-height: 1.5;
-  color: #aba49b;
+  min-width: 0;
+  overflow: hidden;
+  padding-left: 11px;
+  border-left: 1px solid #ffffff31;
+  color: #b4aaa3;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
-.eliminator-hud[data-risk='true'] {
-  border-color: #ef6653;
+.eliminator-hud[data-risk='true'] .elim-risk {
+  border-color: var(--hud-accent, #e74545);
+  background: linear-gradient(100deg, #bd25263c, #bd252609);
+  color: #ff6d66;
 }
-.eliminator-hud[data-risk='true'] .elim-risk b,
-.eliminator-hud[data-imminent='true'] .elim-countdown b {
-  color: #ff8b68;
+.eliminator-hud[data-imminent='true'] .elim-cut-rail i {
+  background: linear-gradient(90deg, #ff684f, #ffb44e);
 }
 #interface[data-event='eliminator'] #race-roster,
 #interface[data-event='eliminator'] .top-telemetry,
@@ -139,29 +173,22 @@
 }
 @media (max-height: 750px) {
   .eliminator-hud {
-    top: 87px;
-    padding-top: 12px;
-    padding-bottom: 9px;
+    padding-block: 11px;
   }
-  .elim-order {
-    margin: 9px 0 12px;
-  }
-  .elim-order strong {
-    font-size: 30px;
-  }
-  .elim-countdown b {
-    font-size: 26px;
+  .elim-countdown strong {
+    font-size: 40px;
   }
 }
 @media (max-width: 760px) {
   .eliminator-hud {
-    left: 13px;
-    width: 210px;
+    width: 224px;
     padding-inline: 12px;
   }
-  .elim-identity {
-    font-size: 7px;
-    letter-spacing: 0.1em;
+  .elim-countdown {
+    font-size: 16px;
+  }
+  .elim-countdown strong {
+    font-size: 36px;
   }
   .eliminator-results li {
     grid-template-columns: 20px 1fr;

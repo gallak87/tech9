@@ -2083,6 +2083,7 @@ export async function createGame({
         pose: runtime.pose(alpha),
         mode,
         suspended,
+        gamepad: frame.gamepad,
         reducedMotion: settings.reducedMotion,
         settings,
         events: equipmentEvents.splice(0),

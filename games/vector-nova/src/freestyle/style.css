@@ -1,66 +1,88 @@
 .freestyle-hud {
   position: absolute;
   z-index: 5;
-  top: 112px;
-  left: 32px;
+  top: var(--hud-top, 108px);
+  left: var(--hud-side, 4vw);
+  box-sizing: border-box;
   width: 252px;
   pointer-events: none;
   color: #f3f1e9;
   text-shadow: 0 2px 5px #000;
-  background: linear-gradient(90deg, #071015dd, #07101588 82%, transparent);
-  padding: 14px 16px 16px 14px;
-  border-left: 2px solid #d45335;
+  padding: 13px 16px 14px;
   font-variant-numeric: tabular-nums;
 }
 .freestyle-hud[hidden],
 .freestyle-hud [hidden] {
   display: none;
 }
+.fs-score {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  column-gap: 10px;
+}
 .fs-score > span,
 .fs-phase {
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.17em;
-  color: #aec1c9;
+  color: #d0c7c0;
+}
+.fs-score > span {
+  grid-column: 1 / -1;
+  padding: 0 0 4px 7px;
+  border-bottom: 1px solid #ffffff22;
+  box-shadow: inset 2px 0 var(--hud-accent, #ef3939);
+  color: #f0e8df;
+  font-size: 16px;
+  font-style: italic;
+  font-weight: 700;
+  line-height: 1.08;
 }
 .fs-score > strong {
   display: block;
-  font-size: 36px;
-  line-height: 1.2;
-  font-weight: 750;
-  letter-spacing: -0.04em;
+  font-size: 38px;
+  line-height: 1.12;
+  font-style: italic;
+  font-weight: 800;
   text-shadow: 0 0 calc(var(--fs-score-glow, 0) * 20px)
     var(--fs-grade-color, #8ff5c4);
 }
 .fs-score > small {
-  font-size: 10px;
-  letter-spacing: 0.18em;
-  color: #b5c5cb;
+  padding-left: 8px;
+  border-left: 1px solid #ffffff26;
+  font-size: 11px;
+  letter-spacing: 0.095em;
+  color: #c7bdb5;
 }
 .fs-score small b {
-  font-size: 19px;
+  font-size: 21px;
+  font-style: italic;
   letter-spacing: 0;
-  color: #f7b184;
-  margin-left: 10px;
+  color: #f4867b;
+  margin-left: 4px;
 }
 .fs-links {
   display: flex;
-  gap: 5px;
-  margin: 12px 0;
+  gap: 3px;
+  margin: 6px 2px 8px;
 }
 .fs-links i {
-  width: 36px;
-  height: 27px;
+  flex: 1;
+  min-width: 0;
+  height: 21px;
   display: grid;
   place-items: center;
-  font-size: 10px;
+  font-size: 13px;
   font-style: normal;
-  border: 1px solid #56636b;
-  color: #a0afb7;
-  transform: skew(-12deg);
+  border: 1px solid #ffffff25;
+  background: linear-gradient(155deg, #ffffff14, #ffffff05);
+  color: #d1cbc3;
+  transform: skew(-16deg);
 }
 .fs-links i[data-state='current'] {
-  border-color: #df9c6c;
-  color: #f9d4ae;
+  border-color: #e9ad76;
+  background: linear-gradient(155deg, #a86f3c5c, #6e462438);
+  color: #ffe1bc;
 }
 .fs-links i[data-state='clean'] {
   background: #365d56;
@@ -83,28 +105,23 @@
   border-color: #925c52;
 }
 .fs-transfer {
-  font-size: 17px;
-  margin: 5px 0 0;
+  font-size: 20px;
+  font-style: italic;
+  line-height: 1.1;
+  margin: 3px 0 0;
 }
 .freestyle-air-readout {
+  --hud-card-cut: 7px;
   position: fixed;
   z-index: 6;
-  width: 184px;
-  padding: 10px 14px 11px;
+  width: 174px;
+  padding: 7px 12px 9px;
   box-sizing: border-box;
   transform: translate(-50%, -100%);
   pointer-events: none;
   color: #d9f8ff;
   font-variant-numeric: tabular-nums;
   text-shadow: 0 2px 5px #000c;
-  background: linear-gradient(
-    90deg,
-    #07151b00,
-    #07151bc9 18%,
-    #07151bc9 82%,
-    #07151b00
-  );
-  border-bottom: 1px solid #b7eef53b;
 }
 .freestyle-air-readout[hidden],
 .freestyle-air-readout [hidden] {
@@ -125,14 +142,15 @@
   color: #a5e5f5;
 }
 .fs-air-score > span {
-  font-size: 8px;
-  letter-spacing: 0.16em;
-  color: #9abcc8;
+  font-size: 10px;
+  letter-spacing: 0.115em;
+  color: #b2ccd5;
 }
 .fs-air-score > strong {
   font-size: 30px;
   line-height: 1;
-  font-weight: 850;
+  font-style: italic;
+  font-weight: 800;
   letter-spacing: -0.035em;
   text-shadow:
     0 2px 5px #000c,
@@ -171,6 +189,7 @@
   justify-items: center;
   pointer-events: none;
   color: var(--fs-grade-color);
+  font-family: var(--hud-font, system-ui);
   font-variant-numeric: tabular-nums;
   text-align: center;
   text-shadow:
@@ -193,6 +212,7 @@
 .fs-bank-points {
   font-size: clamp(32px, 3.5vw, 56px);
   font-weight: 800;
+  font-style: italic;
   letter-spacing: -0.055em;
   line-height: 1.1;
   transform: translate(
@@ -357,12 +377,10 @@
 }
 @media (max-height: 750px) {
   .freestyle-hud {
-    top: 90px;
-    padding-top: 12px;
-    padding-bottom: 12px;
+    padding-block: 12px;
   }
   .fs-links {
-    margin: 10px 0 14px;
+    margin-block: 6px 8px;
   }
   .fs-controls {
     margin-top: 10px;
@@ -374,8 +392,6 @@
 }
 @media (max-width: 760px) {
   .freestyle-hud {
-    left: 14px;
-    top: 86px;
     width: 225px;
     padding: 12px;
   }

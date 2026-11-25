@@ -14,18 +14,28 @@ export function createHelionOverlay(host, telemetry) {
     padding: '0',
     textShadow: '0 1px 4px #000, 0 0 8px #000',
     color: '#f5ede0',
-    font: '600 11px/1.5 system-ui',
-    letterSpacing: '.07em',
+    font: 'italic 700 13px/1.15 var(--hud-font, system-ui)',
+    letterSpacing: '.08em',
     pointerEvents: 'none',
     zIndex: '6',
     display: 'none',
   });
   const readout = document.createElement('div');
+  Object.assign(readout.style, {
+    display: 'flex',
+    justifyContent: 'space-between',
+    gap: '8px',
+    fontVariantNumeric: 'tabular-nums',
+  });
+  readout.innerHTML =
+    '<span>HEAT <b>0</b> / 100</span><span>THRUST <b>100%</b></span>';
+  const [heatValue, thrustValue] = readout.querySelectorAll('b');
   const rail = document.createElement('div');
   Object.assign(rail.style, {
     height: '4px',
-    background: '#34474c',
+    background: 'linear-gradient(90deg, #394447, #6c372b)',
     margin: '5px 0',
+    transform: 'skewX(-16deg)',
   });
   const fill = document.createElement('div');
   Object.assign(fill.style, {
@@ -64,7 +74,7 @@ export function createHelionOverlay(host, telemetry) {
       h = own.height;
     const obstacles = [
       ...host.querySelectorAll(
-        '.lap,.timing,#minimap,#shape-controls,.energy,.speed,#touch,#legend,header',
+        '.top-telemetry,#minimap,#race-roster,#shape-controls,.energy,.speed,#touch,#legend,header,.interceptor-hud,.interceptor-boss',
       ),
     ]
       .filter((node) => getComputedStyle(node).display !== 'none')
@@ -131,12 +141,12 @@ export function createHelionOverlay(host, telemetry) {
       const short = height < 560 && width >= height;
       element.style.width = short ? '194px' : portrait ? '210px' : '236px';
 
-      element.style.padding = '0';
-      element.style.fontSize = short ? '10px' : '11px';
-      element.style.letterSpacing = short ? '.025em' : '.07em';
+      element.style.fontSize = short ? '11px' : '13px';
+      element.style.letterSpacing = short ? '.05em' : '.08em';
       const heat = telemetry.heat ?? 0;
       const power = telemetry.thrustScale ?? 1;
-      readout.textContent = `HEAT ${Math.round(heat)} / 100 · THRUST ${Math.round(power * 100)}%`;
+      heatValue.textContent = Math.round(heat);
+      thrustValue.textContent = `${Math.round(power * 100)}%`;
       fill.style.width = `${heat}%`;
       fill.style.background = power < 1 ? '#ff8542' : '#83d6ce';
       let hull = null;

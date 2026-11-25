@@ -500,62 +500,269 @@ body {
   width: 140px;
   accent-color: var(--hud-action-accent);
 }
-/* Keep quick adjustments beside the live session, with Resume easy to reach. */
+/* The branded titlebar is exclusive to the paused session. */
 :where(#app) #pause-panel {
+  --hud-card-cut: 22px;
+  --hud-card-edge: linear-gradient(
+    135deg,
+    #d2d5d6,
+    #777b7e 12%,
+    #484a4d 62%,
+    #676b6e
+  );
+
   top: calc(50% + 28px);
-  width: min(460px, calc(100vw - 32px));
+  width: min(440px, calc(100vw - 32px));
   max-height: calc(100dvh - 96px);
-  padding: 24px;
-  gap: 12px;
-  background: #171717f2;
-  color: #e8e8e8;
+  padding: 24px 26px;
+  gap: 13px;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  filter: drop-shadow(0 0 4px #cdd7df30) drop-shadow(0 7px 16px #000a);
+  font-family: var(--hud-font, inherit);
+  color: #f0efec;
+}
+:where(#app) .pause-brand {
+  display: flex;
+  align-items: center;
+  color: #dad9d6;
+  font-size: 15px;
+  font-style: italic;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+}
+:where(#app) .pause-brand span {
+  margin-inline: 0.1em;
+  color: var(--hud-accent, #d01818);
+}
+:where(#app) .pause-brand::after,
+:where(#app) #pause-quick-heading::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  margin-left: 17px;
+  background: linear-gradient(90deg, #ffffff52, #ffffff18);
 }
 :where(#app) #pause-panel h2 {
-  margin: 0 0 2px;
-  font-size: 26px;
-  line-height: 1.1;
+  margin: 12px 0 0;
+  font-size: clamp(40px, 7vw, 60px);
+  font-style: italic;
+  font-weight: 700;
+  letter-spacing: 0.025em;
+  line-height: 0.94;
+  text-transform: uppercase;
+}
+:where(#app) #pause-panel h2::after {
+  content: '';
+  display: block;
+  width: 20px;
+  height: 3px;
+  margin-top: 9px;
+  background: var(--hud-accent, #d01818);
+  transform: skewX(-24deg);
 }
 :where(#app) #pause-panel button {
   min-height: 40px;
-  padding: 10px 14px;
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0;
-  text-transform: none;
+  padding: 7px 14px;
+  border: 1px solid #ffffff35;
+  border-radius: 4px;
+  background: linear-gradient(100deg, #ffffff06, #ffffff18 92%);
+  color: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.075em;
+  line-height: 1.12;
+  text-transform: uppercase;
+}
+:where(#app)
+  #pause-panel
+  :is(button:not(:disabled):hover, button:focus, label:has(:focus)) {
+  border-color: #ff7773;
+  background: linear-gradient(100deg, #7f1414a6, #371616b8 70%), #202020;
+  box-shadow:
+    inset 0 0 0 1px #f63e3c99,
+    0 0 12px #f421215c;
+  outline: 0;
 }
 :where(#app) #pause-panel #resume {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  min-height: 48px;
-  font-size: 17px;
+  justify-content: flex-start;
+  gap: 12px;
+  min-height: 52px;
+  border-color: #a81010;
+  background: linear-gradient(104deg, #ad1c1c, #561919 92%);
+  font-size: 26px;
+  font-style: italic;
   font-weight: 700;
 }
+:where(#app) #pause-panel #resume:is(:hover, :focus) {
+  border-color: #ff8d88;
+  background: linear-gradient(104deg, #ba211f, #611717 92%);
+  box-shadow:
+    inset 0 0 0 1px #ff5854c4,
+    0 0 15px #eb292966;
+}
+:where(#app) #pause-panel #resume span {
+  font-family: system-ui, sans-serif;
+  font-style: normal;
+  font-size: 0.94em;
+  line-height: 1;
+}
 :where(#app) #pause-panel .pause-quick-settings {
-  border-block: 1px solid #ffffff25;
-  padding-block: 4px;
+  display: grid;
+  gap: 6px;
+}
+:where(#app) #pause-panel .pause-quick-settings--main {
+  padding-bottom: 12px;
+  border-bottom: 1px solid #ffffff2e;
+}
+:where(#app) #pause-quick-heading {
+  display: flex;
+  align-items: center;
+  margin: 2px 0;
+  font-size: 16px;
+  font-style: italic;
+  font-weight: 700;
+  letter-spacing: 0.095em;
+  text-transform: uppercase;
 }
 :where(#app) #pause-panel label {
   min-height: 40px;
   margin: 0;
+  padding: 3px 12px;
   gap: 12px;
-  font-size: 12px;
-  letter-spacing: 0;
+  border: 1px solid #ffffff1f;
+  border-radius: 4px;
+  background: linear-gradient(95deg, #ffffff0b, #ffffff07);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
 }
 :where(#app) #pause-panel select {
-  min-height: 34px;
-  width: 132px;
-  padding: 6px 10px;
-  font-size: 12px;
-  background: #262626;
-  border-color: #ffffff45;
+  min-height: 30px;
+  max-width: 62%;
+  padding: 4px 6px;
+  font: inherit;
+  background: #282828;
+  border-color: #ffffff31;
+  border-radius: 3px;
+  text-transform: uppercase;
 }
-:where(#app) #pause-panel input[type='range'] {
-  width: 132px;
-  flex-shrink: 0;
+:where(#app) #pause-panel .pause-choice {
+  position: relative;
+  display: block;
+  width: min(132px, 44%);
+  text-align: center;
 }
-:where(#app) #pause-panel input[type='checkbox'] {
-  accent-color: var(--hud-action-accent);
+:where(#app) #pause-panel .pause-choice select {
+  appearance: none;
+  width: 100%;
+  max-width: none;
+  background: transparent;
+  border: 0;
+  text-align: center;
+}
+:where(#app) #pause-panel .pause-choice option {
+  background: #282828;
+}
+:where(#app) #pause-panel .pause-choice::before,
+:where(#app) #pause-panel .pause-choice::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  border: solid #f46862;
+  border-width: 2px 2px 0 0;
+  pointer-events: none;
+}
+:where(#app) #pause-panel .pause-choice::before {
+  left: 5px;
+  transform: translateY(-50%) rotate(-135deg);
+}
+:where(#app) #pause-panel .pause-choice::after {
+  right: 5px;
+  transform: translateY(-50%) rotate(45deg);
+}
+:where(#app) #pause-panel label :is(select, input):focus {
+  outline: none;
+}
+:where(#app) #pause-panel #volume {
+  appearance: none;
+  width: min(132px, 44%);
+  margin: 0;
+  height: 26px;
+  background: transparent;
+  cursor: pointer;
+}
+:where(#app) #pause-panel #volume::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--hud-accent, #d01818) var(--pause-volume-fill, 0%),
+    #ffffff35 var(--pause-volume-fill, 0%)
+  );
+}
+:where(#app) #pause-panel #volume::-moz-range-track {
+  height: 6px;
+  border-radius: 4px;
+  background: #ffffff35;
+}
+:where(#app) #pause-panel #volume::-moz-range-progress {
+  height: 6px;
+  border-radius: 4px;
+  background: var(--hud-accent, #d01818);
+}
+:where(#app) #pause-panel #volume::-webkit-slider-thumb {
+  appearance: none;
+  width: 8px;
+  height: 15px;
+  margin-top: -4.5px;
+  border-radius: 3px;
+  background: #ff8b82;
+}
+:where(#app) #pause-panel #volume::-moz-range-thumb {
+  width: 8px;
+  height: 15px;
+  border: 0;
+  border-radius: 3px;
+  background: #ff8b82;
+}
+:where(#app) #pause-panel .pause-quick-settings input[type='checkbox'] {
+  appearance: none;
+  display: grid;
+  align-items: center;
+  flex: 0 0 40px;
+  height: 22px;
+  margin: 0;
+  padding: 2px;
+  border: 1px solid #ffffff57;
+  border-radius: 12px;
+  background: #161616;
+  cursor: pointer;
+}
+:where(#app) #pause-panel .pause-quick-settings input[type='checkbox']::before {
+  content: '';
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #a9a9a9;
+}
+:where(#app) #pause-panel .pause-quick-settings input[type='checkbox']:checked {
+  border-color: #f46862;
+  background: #7a1616;
+}
+:where(#app)
+  #pause-panel
+  .pause-quick-settings
+  input[type='checkbox']:checked::before {
+  justify-self: end;
+  background: #ffd1cc;
 }
 :where(#app) #pause-panel .pause-restart {
   display: grid;
@@ -572,11 +779,13 @@ body {
   flex-direction: column;
   align-items: stretch;
   gap: 5px;
+  padding: 5px 8px;
   font-size: 11px;
 }
 :where(#app) #pause-panel .difficulty-picker select {
   width: 100%;
-  min-height: 40px;
+  max-width: 100%;
+  min-height: 30px;
 }
 :where(#app) #pause-panel #restart {
   grid-column: 2;
@@ -599,17 +808,7 @@ body {
 }
 :where(#app) #pause-panel .pause-secondary {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
-  gap: 10px;
-}
-:where(#app) #pause-panel .pause-secondary button {
-  background: transparent;
-  border-color: #ffffff30;
-  color: #ccc;
-}
-:where(#app) #pause-panel .pause-secondary button:hover {
-  background: #ffffff09;
-  border-color: #aaa;
+  gap: 6px;
 }
 :where(#app) #pause-panel .pause-secondary kbd {
   margin-left: 4px;
@@ -617,22 +816,51 @@ body {
   font-size: 10px;
   color: #999;
 }
+@media (min-width: 761px) and (min-height: 571px) {
+  :where(#app) #pause-panel button:not(#resume) {
+    font-size: 18px;
+  }
+  :where(#app) #pause-panel .pause-quick-settings--main label {
+    font-size: 16px;
+  }
+}
 @media (min-width: 600px) and (max-height: 570px) {
-  :where(#app) #interface:not(.jump-playtest) #pause-panel {
+  :where(#app)
+    #interface:not(.jump-playtest)
+    #pause-panel:not(
+      :has(.pause-quick-settings:not(.pause-quick-settings--main))
+    ) {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+      'title title'
+      'settings resume'
+      'settings restart'
+      'settings actions';
     width: min(680px, calc(100vw - 32px));
     padding: 18px;
     gap: 10px 22px;
-    align-items: center;
+    align-items: start;
   }
-  :where(#app) #pause-panel .pause-quick-settings {
-    grid-column: 1;
-    grid-row: 2 / 4;
+  :where(#app) #pause-panel .pause-header {
+    grid-area: title;
   }
-  :where(#app) #pause-panel .pause-restart,
+  :where(#app) #pause-panel h2 {
+    font-size: 40px;
+  }
+  :where(#app) #pause-panel .pause-quick-settings--main {
+    grid-area: settings;
+    padding: 0;
+    border: 0;
+  }
+  :where(#app) #pause-panel #resume {
+    grid-area: resume;
+  }
+  :where(#app) #pause-panel .pause-restart {
+    grid-area: restart;
+  }
   :where(#app) #pause-panel .pause-secondary {
-    grid-column: 2;
+    grid-area: actions;
   }
   :where(#app) #pause-panel #pause-results:not(.hidden) {
     grid-column: 1 / -1;
@@ -641,10 +869,13 @@ body {
 @media (max-width: 499px) {
   :where(#app) #pause-panel {
     padding: 18px;
+    gap: 10px;
   }
-  :where(#app) #pause-panel input[type='range'],
-  :where(#app) #pause-panel select {
-    width: 112px;
+}
+@media (max-height: 570px) {
+  :where(#app) #pause-panel button:not(#resume),
+  :where(#app) #pause-panel label {
+    min-height: 34px;
   }
 }
 :where(#app) select {
@@ -653,25 +884,78 @@ body {
   border: 1px solid #777777;
   padding: 7px;
 }
-:where(#app) .top-telemetry {
+/* Shared timing positions stay consistent across race, practice, and Time Trial. */
+:where(#app) .top-telemetry.hud-card {
+  --hud-card-cut: 14px;
   position: absolute;
-  top: 120px;
-  left: 4vw;
-  right: 4vw;
+  top: var(--hud-top);
+  left: var(--hud-side);
   display: flex;
-  gap: 42px;
+  align-items: stretch;
+  width: max-content;
+  max-width: calc(92vw - 116px);
+  padding: 10px 17px 11px 11px;
+}
+:where(#app) .top-telemetry > div {
+  position: relative;
+  padding-inline: clamp(9px, 1.2vw, 18px);
+  min-width: 0;
+}
+:where(#app) .top-telemetry > div + div::before {
+  content: '';
+  position: absolute;
+  inset: 8px auto 2px 0;
+  width: 1px;
+  background: linear-gradient(#8d9298a6, #73767b66);
+  transform: skewX(-15deg);
+}
+:where(#app) .top-telemetry > .position::before,
+:where(#app) .top-telemetry > .position.hidden + .lap::before {
+  content: '';
+  position: absolute;
+  inset: 2px auto auto -10px;
+  width: 3px;
+  height: 22px;
+  background: var(--hud-accent);
+  box-shadow: 0 0 8px #e41d1d85;
+  transform: skewX(-16deg);
 }
 :where(#app) .top-telemetry span {
-  font-size: 9px;
-  letter-spacing: 0.14em;
-  color: #d6d6d6;
   display: block;
+  color: #e5e3e0;
+  font-size: 11px;
+  line-height: 1.15;
+  letter-spacing: 0.08em;
 }
 :where(#app) .lap b,
 :where(#app) .position b {
-  font-size: 42px;
-  line-height: 1.2;
-  font-weight: 400;
+  display: block;
+  margin-top: 2px;
+  font-size: clamp(25px, 4.4vw, 41px);
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+:where(#app) .lap b {
+  font-size: clamp(23px, 3.5vw, 31px);
+}
+:where(#app) .lap-progress {
+  display: flex;
+  gap: 2px;
+  width: min(100%, 51px);
+  margin-top: 6px;
+}
+:where(#app) .lap-progress > i {
+  flex: 1;
+  height: 3px;
+  background: #595d60;
+  transform: skewX(-15deg);
+}
+:where(#app) .lap-progress > i:first-child,
+:where(#app) .lap-progress.on-final-lap > i {
+  background: var(--hud-accent);
+  box-shadow: 0 0 4px #e41d1d80;
 }
 :where(#app) .timing b {
   position: relative;
@@ -679,16 +963,17 @@ body {
   display: block;
   width: max-content;
   color: #fff;
-  font-size: 27px;
-  font-weight: 600;
+  font-size: clamp(20px, 3.9vw, 28px);
+  font-weight: 800;
+  line-height: 1;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.035em;
-  margin-top: 5px;
+  margin-top: 4px;
+  padding: 1px 2px 3px;
 }
 :where(#app) .timing b::before {
   content: '';
   position: absolute;
-  inset: 0 -9px;
+  inset: 0 -5px;
   z-index: -1;
   transform: skewX(-18deg);
   border-top: 1px solid #797d80;
@@ -697,12 +982,14 @@ body {
 }
 :where(#app) .timing small {
   display: block;
-  margin-top: 4px;
-  font-size: 8px;
-  letter-spacing: 0.12em;
-  color: #d5d5d5;
+  margin-top: 3px;
+  font-size: 11px;
+  line-height: 1.1;
+  letter-spacing: 0.06em;
+  color: #dfdfdf;
 }
-:where(#app) .timing :is(#last, #best):empty {
+:where(#app) .timing :is(#last, #best):empty,
+:where(#app) .position #position-state:empty {
   display: none;
 }
 :where(#app) #time-split {
@@ -729,37 +1016,55 @@ body {
   --reserve-gauge-width: 250px;
   --reserve-gauge-scale: 0.9;
   width: calc(var(--reserve-gauge-width) * var(--reserve-gauge-scale));
+  padding-inline: 4px;
+  font-family: var(--hud-font, sans-serif);
 }
 :where(#app) .energy span {
-  font-size: 10px;
-  letter-spacing: 0.17em;
   display: block;
+  padding-left: 7px;
+  font-size: 10px;
+  font-style: italic;
+  font-weight: 600;
+  letter-spacing: 0.1em;
 }
 :where(#app) .energy-track {
   display: grid;
   grid-template-columns: repeat(var(--reserve-segments), minmax(0, 1fr));
-  gap: clamp(1px, 0.26vw, 4px);
-  height: calc(clamp(15px, 2vw, 21px) * var(--reserve-gauge-scale));
-  margin-top: 7px;
-  padding: clamp(2px, 0.3vw, 3px) 6px;
-  border: 1px solid #61666a;
-  border-radius: 999px;
-  background: #181b1ee6;
+  gap: clamp(2px, 0.3vw, 4px);
+  height: calc(clamp(15px, 2vw, 24px) * var(--reserve-gauge-scale));
+  margin-top: 4px;
+  padding: clamp(3px, 0.36vw, 5px) 7px;
+  transform: skewX(-24deg);
+  border: 1px solid #c7b9a48c;
+  border-left-color: color-mix(in srgb, var(--reserve-color) 72%, #888);
+  border-top-color: color-mix(in srgb, var(--reserve-color) 40%, #888);
+  border-radius: 5px;
+  background:
+    repeating-linear-gradient(135deg, #ffffff05 0 1px, transparent 1px 4px),
+    linear-gradient(145deg, #323134, #151517e8);
+  box-shadow: 0 2px 6px #0009;
 }
 :where(#app) .energy-track.is-low {
-  border-color: #ed835b;
-  background: #4c251be6;
+  border-color: #ef8963;
+  background:
+    repeating-linear-gradient(135deg, #ffffff05 0 1px, transparent 1px 4px),
+    linear-gradient(145deg, #572e24, #1e1516eb);
 }
 :where(#app) .energy-track > i {
   position: relative;
-  background: #343b40;
+  border-radius: 2px;
+  background: #59402270;
 }
 :where(#app) .energy-track > i::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: var(--reserve-color);
-  box-shadow: 0 0 4px color-mix(in srgb, var(--reserve-color) 58%, transparent);
+  border-radius: inherit;
+  background: linear-gradient(
+    color-mix(in srgb, var(--reserve-color) 85%, #fff),
+    var(--reserve-color)
+  );
+  box-shadow: 0 0 5px color-mix(in srgb, var(--reserve-color) 52%, transparent);
   transform: scaleX(
     clamp(
       0,
@@ -786,13 +1091,19 @@ body {
   );
   --speed-gauge-light: color-mix(
     in srgb,
-    var(--speed-gauge-color, #fff) 68%,
+    var(--speed-gauge-color, #fff) 78%,
     #fff
+  );
+  --speed-gauge-glow: color-mix(
+    in srgb,
+    var(--speed-gauge-color, #fff) 70%,
+    transparent
   );
   position: relative;
   flex: 0 0 auto;
   width: var(--speed-gauge-size);
   aspect-ratio: 1;
+  font-family: var(--hud-font, sans-serif);
   text-align: center;
 }
 :where(#app) .speed-gauge-face,
@@ -804,118 +1115,96 @@ body {
 }
 :where(#app) .speed-gauge-face {
   overflow: hidden;
-  border: 1px solid #6a777e;
-  border-radius: 50%;
-  background: linear-gradient(
-    145deg,
-    #69787e,
-    #242b2f 43%,
-    #424f56 73%,
-    #151b20
-  );
-  box-shadow:
-    inset 0 0 0 1px #161b20,
-    0 2px 8px #000a;
-}
-:where(#app) .speed-gauge-face::before {
-  content: '';
-  position: absolute;
-  inset: 3%;
-  border: 1px solid #11181e;
-  border-radius: 50%;
-  background: radial-gradient(ellipse at 42% 30%, #263239, #151c21 70%);
-  box-shadow: inset 0 1px 4px #080e12;
-}
-:where(#app) .speed-gauge-track {
-  position: absolute;
-  inset: 5.5%;
+  border: 1px solid color-mix(in srgb, var(--speed-gauge-light) 52%, #4c5558);
   border-radius: 50%;
   background:
-    repeating-conic-gradient(
-      from var(--speed-gauge-start),
-      transparent 0deg 7deg,
-      #142129 7deg 8.4deg
-    ),
-    conic-gradient(
-      from var(--speed-gauge-start),
-      var(--speed-gauge-color, #fff) 0deg var(--speed-gauge-angle),
-      #34454e 0deg var(--speed-gauge-sweep),
-      transparent 0deg
-    );
-  mask-image:
-    radial-gradient(
-      farthest-side,
-      transparent 86%,
-      #000 87% 98%,
-      transparent 99%
-    ),
-    conic-gradient(
-      from var(--speed-gauge-start),
-      #000 0deg var(--speed-gauge-sweep),
-      transparent 0deg
-    );
-  mask-composite: intersect;
+    repeating-linear-gradient(135deg, #ffffff05 0 1px, transparent 1px 4px),
+    radial-gradient(ellipse at 35% 25%, #2c3337, #101316ec 78%);
+  box-shadow:
+    inset 0 0 0 2px #10161b,
+    0 2px 8px #000a;
+}
+:where(#app) .speed-gauge-track,
+:where(#app) .speed-gauge-progress {
+  position: absolute;
+  inset: 5.5%;
+}
+:where(#app) .speed-gauge-track,
+:where(#app) .speed-gauge-progress::before {
+  border-radius: 50%;
+  mask-image: radial-gradient(
+    farthest-side,
+    transparent 85%,
+    #000 86% 98%,
+    transparent 99%
+  );
+}
+:where(#app) .speed-gauge-track {
+  background: conic-gradient(
+    from var(--speed-gauge-start),
+    color-mix(in srgb, var(--speed-gauge-color, #fff) 19%, #354146) 0deg
+      var(--speed-gauge-sweep),
+    transparent 0deg
+  );
+}
+:where(#app) .speed-gauge-progress {
+  filter: drop-shadow(0 0 4px var(--speed-gauge-glow));
+}
+:where(#app) .speed-gauge-progress::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: conic-gradient(
+    from var(--speed-gauge-start),
+    var(--speed-gauge-light) 0deg var(--speed-gauge-angle),
+    transparent 0deg
+  );
 }
 :where(#app) .speed-gauge-scale > span {
-  --gauge-tick-angle: calc(
-    var(--speed-gauge-start) + var(--tick-position) * var(--speed-gauge-sweep)
+  transform: rotate(
+    calc(
+      var(--speed-gauge-start) + var(--tick-position) * var(--speed-gauge-sweep)
+    )
   );
-  transform: rotate(var(--gauge-tick-angle));
-}
-:where(#app) .speed-gauge-scale > span::before,
-:where(#app) .speed-gauge-scale > span > span {
-  position: absolute;
-  left: 50%;
 }
 :where(#app) .speed-gauge-scale > span::before {
   content: '';
-  top: 6%;
+  position: absolute;
+  top: 13%;
+  left: 50%;
   width: 1px;
-  height: 6%;
-  background: #e1e8eabf;
+  height: 4%;
+  background: color-mix(in srgb, var(--speed-gauge-light) 38%, #777a7c);
   transform: translateX(-50%);
 }
-:where(#app) .speed-gauge-scale > span > span {
-  top: 17%;
-  color: #e0e8eb;
-  font-size: clamp(7px, calc(var(--speed-gauge-size) * 0.065), 19px);
-  font-variant-numeric: tabular-nums;
-  transform: translate(-50%, -50%) rotate(calc(-1 * var(--gauge-tick-angle)));
+:where(#app) .speed-gauge-scale > .speed-gauge-major::before {
+  height: 6%;
+  background: var(--speed-gauge-light);
 }
 :where(#app) .speed-gauge-needle {
   transform: rotate(calc(var(--speed-gauge-start) + var(--speed-gauge-angle)));
-  filter: drop-shadow(
-    0 0 3px color-mix(in srgb, var(--speed-gauge-color, #fff) 65%, transparent)
-  );
 }
 :where(#app) .speed-gauge-needle::before {
   content: '';
   position: absolute;
-  inset: 12% 43% 46%;
-  clip-path: polygon(50% 0, 94% 92%, 50% 100%, 6% 92%);
-  background: linear-gradient(
-    90deg,
-    var(--speed-gauge-color, #fff),
-    var(--speed-gauge-light) 43%,
-    #f7fdff 50%,
-    var(--speed-gauge-color, #fff) 64%,
-    #24303a
-  );
+  top: 7.5%;
+  bottom: 50%;
+  left: 50%;
+  width: clamp(1px, calc(var(--speed-gauge-size) * 0.011), 3px);
+  transform: translateX(-50%);
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--speed-gauge-light) 54%, #fff);
+  box-shadow:
+    0 0 3px var(--speed-gauge-light),
+    0 0 8px var(--speed-gauge-glow);
 }
 :where(#app) .speed-gauge-hub {
   position: absolute;
-  inset: 43.5%;
-  border: 1px solid #64747f;
+  inset: 47.3%;
+  border: 1px solid var(--speed-gauge-light);
   border-radius: 50%;
-  background: radial-gradient(
-    circle,
-    var(--speed-gauge-light) 0 15%,
-    var(--speed-gauge-color, #fff) 18% 34%,
-    #19262d 39% 51%,
-    #45545d 57% 64%,
-    #1c242b 70%
-  );
-  box-shadow: 0 1px 3px #06090d;
+  background: #171f23;
+  box-shadow: 0 0 5px var(--speed-gauge-glow);
 }
 :where(#app) .speed-gauge-readout {
   position: absolute;
@@ -929,19 +1218,21 @@ body {
 }
 :where(#app) #speed {
   color: #f6fbfd;
-  font-size: calc(var(--speed-gauge-size) * 0.22);
-  letter-spacing: -0.045em;
-  line-height: 1;
-  font-weight: 700;
+  font-size: calc(var(--speed-gauge-size) * 0.27);
+  font-style: italic;
+  font-weight: 800;
+  line-height: 0.92;
   font-variant-numeric: tabular-nums;
   text-shadow: 0 1px 3px #0b1016;
 }
 :where(#app) .speed.has-four-digits #speed {
-  font-size: calc(var(--speed-gauge-size) * 0.16);
+  font-size: calc(var(--speed-gauge-size) * 0.22);
 }
 :where(#app) .speed-gauge-unit {
   color: #dce6e9;
-  font-size: clamp(6px, calc(var(--speed-gauge-size) * 0.054), 16px);
+  font-size: clamp(7px, calc(var(--speed-gauge-size) * 0.066), 18px);
+  font-style: italic;
+  font-weight: 600;
   line-height: 1;
   letter-spacing: 0.09em;
 }
@@ -974,9 +1265,6 @@ body {
   }
 }
 @media (max-width: 760px), (max-height: 625px) {
-  :where(#app) .speed-gauge-scale > span > span {
-    display: none;
-  }
   :where(#app) .speed-gauge-readout {
     top: 56%;
     gap: 0;
@@ -1011,6 +1299,10 @@ body {
   --race-map-surface: linear-gradient(#272c30f2, #15181ced);
   --race-map-rim: #8790987a;
 }
+:where(#app) .race-map-housing.hud-card::before,
+:where(#app) .race-map-housing.hud-card::after {
+  display: none;
+}
 :where(#app) #minimap {
   position: absolute;
   right: 4vw;
@@ -1043,6 +1335,10 @@ body {
   font-size: 38px;
 }
 :where(#app) #touch {
+  --touch-signal: #73f1d3;
+  --touch-rim: #79a8a17c;
+  --touch-surface: linear-gradient(150deg, #142a2bed, #0c171ced 70%);
+
   display: none;
   position: absolute;
   bottom: max(16px, env(safe-area-inset-bottom));
@@ -1057,10 +1353,15 @@ body {
 :where(#app) [data-touch-control] {
   position: relative;
   flex-shrink: 0;
-  border: 1px solid #aeaeae66;
-  background: #1b1b1bd9;
-  color: #e8e8e8;
-  font-size: 10px;
+  border: 1px solid var(--touch-rim);
+  background: var(--touch-surface);
+  box-shadow:
+    inset 0 0 20px #9cf6ef0e,
+    0 3px 14px #0008;
+  color: #f0efec;
+  font-family: var(--hud-font, inherit);
+  font-size: 14px;
+  font-style: italic;
   font-weight: 700;
   letter-spacing: 0.09em;
   touch-action: none;
@@ -1071,103 +1372,170 @@ body {
   pointer-events: none;
 }
 :where(#app) [data-touch-control][data-active='true'] {
-  border-color: #e8e8e8;
+  border-color: #91e0d7c2;
 }
 :where(#app) .touch-steer {
-  width: clamp(132px, 38vw, 168px);
-  height: 132px;
+  width: clamp(154px, 46vw, 208px);
+  height: 106px;
+  border-radius: 56px;
 }
 :where(#app) .touch-label,
 :where(#app) .touch-airbrake {
   position: absolute;
-  left: 0;
-  right: 0;
+  left: 50%;
+  transform: translateX(-50%);
   text-align: center;
+  white-space: nowrap;
 }
 :where(#app) .touch-label {
-  top: 10px;
+  top: 5px;
 }
 :where(#app) .touch-airbrake {
-  bottom: 10px;
-  font-size: 9px;
-  color: #bcbcbc;
+  bottom: 7px;
+  padding: 3px 12px;
+  border: 1px solid var(--touch-rim);
+  border-radius: 8px;
+  background: #152527ed;
+  font-size: 12px;
+  line-height: 1;
 }
 :where(#app) .touch-directions {
   position: absolute;
-  left: 8%;
-  right: 8%;
-  top: 42%;
-  transform: translateY(-50%);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 19px;
-  font-weight: 400;
 }
-:where(#app) .touch-steer::before {
+:where(#app) .touch-steer .touch-directions {
+  left: 17px;
+  right: 17px;
+  top: 42%;
+  transform: translateY(-50%);
+}
+:where(#app) .touch-directions i {
+  width: 10px;
+  height: 10px;
+  border: solid var(--touch-signal);
+  border-width: 2px 2px 0 0;
+  filter: drop-shadow(0 0 3px #63f5d399);
+}
+:where(#app) .touch-steer .touch-directions i:first-child {
+  transform: rotate(-135deg);
+}
+:where(#app) .touch-steer .touch-directions i:last-child {
+  transform: rotate(45deg);
+}
+:where(#app) :is(.touch-steer, .touch-power)::before {
   content: '';
   position: absolute;
-  left: 22%;
-  right: 22%;
+  pointer-events: none;
+}
+:where(#app) .touch-steer::before {
+  left: 16%;
+  right: 16%;
   top: 42%;
-  border-top: 1px solid #aeaeae66;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--touch-signal) 50%,
+    transparent
+  );
 }
 :where(#app) .touch-thumb {
   position: absolute;
   left: var(--touch-x, 50%);
-  top: var(--touch-y, 42%);
-  width: 32px;
-  height: 32px;
+  top: min(var(--touch-y, 42%), calc(100% - 36px));
+  width: 31px;
+  height: 31px;
   transform: translate(-50%, -50%);
-  border: 2px solid #e8e8e8;
+  border: 1px solid #a9ffe9;
   border-radius: 50%;
-  background: #444;
+  background: linear-gradient(0deg, #268f83, #4cdcba 48%, #164946 57%);
+  box-shadow:
+    inset 0 0 6px #b7fff25e,
+    0 0 13px #61ffd880;
+}
+:where(#app) [data-touch-control][data-active='true'] .touch-thumb {
+  background: linear-gradient(0deg, #3dc6a8, #84f6d8 47%, #2b8578 55%);
+  box-shadow:
+    inset 0 0 6px #d8fff38f,
+    0 0 16px #61ffd8a1;
 }
 :where(#app) .touch-steer[data-airbrake='true'] .touch-airbrake {
-  color: #fff;
-}
-:where(#app) .touch-steer[data-airbrake='true'] .touch-thumb {
-  background: var(--hud-action-accent);
+  border-color: var(--touch-signal);
+  color: var(--touch-signal);
 }
 :where(#app) .touch-power {
-  width: 108px;
+  --touch-power-rail: 18px;
+
+  width: 116px;
   height: 176px;
   display: grid;
   grid-template-rows: repeat(4, 1fr);
+  border-radius: 22px;
+  padding: 3px;
 }
-:where(#app) .touch-power > span {
-  display: flex;
+:where(#app) .touch-power::before {
+  top: 9%;
+  bottom: 9%;
+  left: var(--touch-power-rail);
+  width: 1px;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    var(--touch-signal) 65%,
+    transparent
+  );
+}
+:where(#app) .touch-power .touch-directions {
+  top: 15px;
+  right: 10px;
+  bottom: 15px;
+  flex-direction: column;
+}
+:where(#app) .touch-power .touch-directions i {
+  width: 7px;
+  height: 7px;
+}
+:where(#app) .touch-power .touch-directions i:first-child {
+  transform: rotate(-45deg);
+}
+:where(#app) .touch-power .touch-directions i:last-child {
+  transform: rotate(135deg);
+}
+:where(#app) .touch-power > [data-power-zone] {
+  display: grid;
   align-items: center;
-  padding-left: 31px;
-  gap: 4px;
-  border-bottom: 1px solid #aeaeae33;
-}
-:where(#app) .touch-power > span:last-of-type {
-  border-bottom: 0;
-}
-:where(#app) .touch-power small {
-  font-size: 7px;
-  letter-spacing: 0;
+  padding-left: 29px;
+  border: 1px solid transparent;
+  border-bottom-color: #9bb8b73a;
+  font-size: 12px;
+  letter-spacing: 0.035em;
+  white-space: nowrap;
 }
 :where(#app) .touch-power > [data-power-zone='boost'] {
-  color: #fff;
-  background: #a810102e;
+  border-radius: 17px 17px 6px 6px;
+}
+:where(#app) .touch-power > [data-power-zone='neutral'] {
+  color: #b2c2c1;
+}
+:where(#app) .touch-power > [data-power-zone='brake'] {
+  border-radius: 6px 6px 17px 17px;
+  border-bottom-color: transparent;
 }
 :where(#app) .touch-power[data-power='boost'] > [data-power-zone='boost'],
 :where(#app) .touch-power[data-power='go'] > [data-power-zone='go'],
 :where(#app) .touch-power[data-power='brake'] > [data-power-zone='brake'] {
-  background: var(--hud-action-accent);
-  color: #fff;
+  border-color: #84efda82;
+  background: linear-gradient(90deg, #2e897759, #205c5470);
+  box-shadow: inset 0 0 9px #71f6e438;
+  color: #e9fff8;
 }
 :where(#app) .touch-power .touch-thumb {
-  left: 15px;
+  left: var(--touch-power-rail);
   top: var(--touch-y, 62.5%);
   width: 18px;
   height: 18px;
-  border-radius: 3px;
-}
-:where(#app) .touch-power[data-active='true'] .touch-thumb {
-  background: #e8e8e8;
 }
 @media (max-width: 760px) {
   :where(#app) .masthead {
@@ -1229,9 +1597,8 @@ body {
   :where(#app) .review-tag {
     display: none;
   }
-  :where(#app) .top-telemetry {
-    top: 90px;
-    gap: 22px;
+  :where(#app) .top-telemetry.hud-card {
+    padding: 8px 10px 9px 8px;
   }
   :where(#app) .telemetry {
     bottom: 155px;
@@ -1301,9 +1668,6 @@ body {
   :where(#app) .eyebrow {
     margin-bottom: 12px;
   }
-  :where(#app) .top-telemetry {
-    top: 75px;
-  }
   :where(#app) .telemetry {
     bottom: 95px;
   }
@@ -1346,8 +1710,7 @@ body {
   :where(#app) #legend {
     gap: clamp(12px, 1.5vw, 22px);
   }
-  :where(#app) kbd,
-  :where(#app) .timing small {
+  :where(#app) kbd {
     font-size: 13px;
   }
   :where(#app) #legend span,
@@ -1381,11 +1744,8 @@ body {
   :where(#app) .energy {
     --reserve-gauge-width: min(388px, 46vw);
   }
-  :where(#app) .top-telemetry span {
-    font-size: 11px;
-  }
   :where(#app) .energy span {
-    font-size: 12px;
+    font-size: 14px;
   }
 }
 
@@ -1500,12 +1860,6 @@ body {
 
 /* Shared racing and expansion review use disjoint short-landscape HUD regions. */
 @media (max-height: 570px) and (orientation: landscape) {
-  :where(#app)
-    #interface:is(.compact-landscape, .has-racing).driving
-    .top-telemetry {
-    top: 74px;
-    gap: 22px;
-  }
   :where(#app) #interface:is(.compact-landscape, .has-racing).driving .lap b {
     font-size: 32px;
   }
@@ -2429,12 +2783,16 @@ body {
     justify-items: center;
     gap: 8px;
     width: var(--race-map-width);
-    padding-top: 6px;
-    background: var(--race-map-surface);
-    border: 1px solid var(--race-map-rim);
-    border-radius: 8px;
-    box-shadow: 0 3px 8px #0007;
+    padding: 7px 1px 1px;
     pointer-events: none;
+  }
+  :where(#app)
+    #interface.has-live-race:not([data-event], [data-freestyle='true'])
+    .race-map-housing.hud-card::before,
+  :where(#app)
+    #interface.has-live-race:not([data-event], [data-freestyle='true'])
+    .race-map-housing.hud-card::after {
+    display: block;
   }
   :where(#app)
     #interface.has-live-race:not([data-event], [data-freestyle='true'])
@@ -2593,12 +2951,14 @@ body {
 @media (max-height: 570px) and (orientation: landscape) {
   :where(#app) .touch-steer {
     width: 144px;
-    height: 116px;
+    height: 96px;
   }
   :where(#app) .touch-power {
     width: 100px;
     height: 144px;
-    font-size: 9px;
+  }
+  :where(#app) .touch-power > [data-power-zone] {
+    padding-left: 25px;
   }
   :where(#app) #interface.driving .telemetry {
     left: calc(max(3vw, env(safe-area-inset-left)) + 160px);

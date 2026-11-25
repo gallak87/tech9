@@ -9,6 +9,7 @@ export function createEquipmentPresentation({ host, scene, activate }) {
   host.append(hud);
   const effects = createEquipmentEffects(scene);
   let key = '';
+  let cards = [];
   const click = (event) => {
     const button = event.target.closest('[data-equipment-slot]');
     if (button && !button.disabled) {
@@ -27,6 +28,7 @@ export function createEquipmentPresentation({ host, scene, activate }) {
       pose,
       mode,
       suspended,
+      gamepad,
       reducedMotion,
       settings,
       events,
@@ -46,32 +48,45 @@ export function createEquipmentPresentation({ host, scene, activate }) {
           Math.max(1, slots.filter(Boolean).length),
         );
         hud.innerHTML = slots
-          .map((slot, i) =>
-            slot
-              ? `<button class="equipment-hud-slot" data-equipment-slot="${i}" aria-label="Use ${equipmentById(slot.id).name}">${rewardIcon(`equipment-${slot.id}`)}<span><small>${EQUIPMENT_CONTROLS[i].label}</small><strong>${equipmentById(slot.id).name}</strong><em></em></span><i></i></button>`
-              : '',
-          )
+          .map((slot, index) => {
+            if (!slot) return '';
+            const { name } = equipmentById(slot.id);
+            const control = EQUIPMENT_CONTROLS[index];
+            const gamepadKey = control.gamepad.replace('D-pad ', '');
+            return `<button type="button" class="equipment-hud-slot hud-card" data-equipment-slot="${index}" aria-label="Use ${name}" title="${name} · ${control.label}">${rewardIcon(`equipment-${slot.id}`)}<span class="equipment-hud-copy"><strong>${name}</strong><span class="equipment-hud-state"><em></em><i class="equipment-hud-charge" aria-hidden="true"></i></span></span><kbd aria-hidden="true"><span>${control.keyboard}</span><span>${gamepadKey}</span></kbd></button>`;
+          })
           .join('');
+        cards = slots.map((slot, index) => {
+          if (!slot) return null;
+          const button = hud.querySelector(`[data-equipment-slot="${index}"]`);
+          return {
+            button,
+            status: button.querySelector('em'),
+            item: equipmentById(slot.id),
+          };
+        });
       }
-      slots.forEach((slot, i) => {
+      hud.classList.toggle('gamepad-hints', Boolean(gamepad));
+      slots.forEach((slot, index) => {
         if (!slot) return;
-        const item = equipmentById(slot.id),
-          button = hud.querySelector(`[data-equipment-slot="${i}"]`);
-        if (!button) return;
+        const { button, status, item } = cards[index];
         const ready = slot.remaining <= 0;
+        const active = slot.active > 0;
         button.disabled = !ready || mode !== 'racing' || suspended;
         button.classList.toggle('ready', ready);
-        button.classList.toggle('active', slot.active > 0);
-        button.querySelector('em').textContent =
-          slot.active > 0
-            ? `${slot.active.toFixed(1)}s active`
-            : ready
-              ? 'Ready'
+        button.classList.toggle('active', active);
+        const label = active
+          ? `${slot.active.toFixed(1)}s active`
+          : ready
+            ? 'Ready'
+            : slot.remaining < 10
+              ? `${(Math.ceil(slot.remaining * 10) / 10).toFixed(1)}s`
               : `${Math.ceil(slot.remaining)}s`;
-        button.style.setProperty(
-          '--charge',
-          `${(1 - slot.remaining / (slot.cooldown ?? item.cooldown)) * 100}%`,
-        );
+        if (status.textContent !== label) status.textContent = label;
+        const charge = active
+          ? slot.active / item.duration
+          : 1 - slot.remaining / (slot.cooldown ?? item.cooldown);
+        button.style.setProperty('--charge', `${charge * 100}%`);
       });
       effects.update({
         equipment,

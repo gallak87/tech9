@@ -10,8 +10,12 @@ const escape = (value) =>
       ],
   );
 const finite = (value) => (Number.isFinite(value) ? value : 0);
-const distance = (value) =>
-  `${(Math.max(0, finite(value)) / 1000).toFixed(2)} km`;
+const distance = (value) => {
+  const metres = Math.max(0, finite(value));
+  return metres < 1000
+    ? `${Math.round(metres)} m`
+    : `${(metres / 1000).toFixed(2)} km`;
+};
 function duration(value) {
   const tenths = Math.floor(Math.max(0, finite(value)) * 10 + 1e-6);
   return `${Math.floor(tenths / 600)}:${String(Math.floor(tenths / 10) % 60).padStart(2, '0')}.${tenths % 10}`;
@@ -50,33 +54,49 @@ export function createInterceptorPresentation({ host }) {
   const previousEvent = host.dataset.event;
   host.dataset.event = 'interceptor';
   const root = document.createElement('section');
-  root.className = 'interceptor-hud';
+  root.className = 'interceptor-hud hud-card hud-card--fade';
   root.hidden = true;
   root.setAttribute('aria-label', 'Interceptor target and squad status');
-  root.innerHTML =
-    '<span class="ic-identity">INTERCEPTOR / PURSUIT</span><div class="ic-target"><strong>TARGET</strong><span class="ic-gap">ACQUIRE TARGET</span></div><div class="ic-escape"><span>ESCAPE BOUNDARY</span><b>—</b></div><div class="ic-route"><i></i></div><p class="ic-squad">ROOK · KITE · MANTA</p><p class="ic-hit">Land Lance shots. The squad will support.</p><div class="ic-controls"><span><b>Q / X</b> FIRE LANCE</span><span><b>E / Y</b> RESERVE INJECTOR</span><span><b class="ic-boost-key">SHIFT / A</b> BOOST TO CLOSE THE GAP</span></div>';
+  root.innerHTML = `<div class="ic-identity">INTERCEPTOR <small></small></div>
+    <div class="ic-target"><span>TARGET</span> <strong>GOLIATH</strong></div>
+    <div class="ic-distances">
+      <div><span>GAP</span> <b class="ic-gap">—</b> <small class="ic-gap-direction"></small></div>
+      <div class="ic-escape"><span>ESCAPE</span> <b>—</b></div>
+    </div>
+    <div class="ic-route" aria-hidden="true"><i></i></div>
+    <div class="ic-squad"><span>ALLIES</span><span class="ic-allies" role="group" aria-label="Allied pilots"></span></div>
+    <p class="ic-hit">Land Lance shots. The squad will support.</p>
+    <div class="ic-controls"><span><b>Q / X</b> FIRE LANCE</span><span><b>E / Y</b> RESERVE INJECTOR</span><span><b class="ic-boost-key">SHIFT / A</b> BOOST TO CLOSE THE GAP</span></div>`;
   const boss = document.createElement('section');
   boss.className = 'interceptor-boss';
   boss.hidden = true;
   boss.setAttribute('aria-label', 'Goliath');
-  boss.innerHTML =
-    '<div class="ic-boss-heading"><strong>GOLIATH</strong><span>—</span></div><div class="ic-boss-meter" role="progressbar" aria-label="Goliath remaining health" aria-valuemin="0" aria-valuemax="1" aria-valuenow="0"><i></i></div>';
+  boss.innerHTML = `<div class="ic-boss-strip hud-card">
+      <strong>GOLIATH</strong>
+      <div class="ic-boss-meter" role="progressbar" aria-label="Goliath remaining health" aria-valuemin="0" aria-valuemax="1" aria-valuenow="0"><i></i></div>
+      <span class="ic-hull-value">—</span>
+    </div>`;
   const counterattack = document.createElement('p');
   counterattack.className = 'ic-counterattack';
   counterattack.setAttribute('role', 'status');
   counterattack.hidden = true;
-  root.insertBefore(counterattack, root.querySelector('.ic-controls'));
+  boss.append(counterattack);
   host.append(root, boss);
-  const gap = root.querySelector('.ic-gap'),
+  const targetLabel = root.querySelector('.ic-target strong'),
+    difficulty = root.querySelector('.ic-identity small'),
+    gap = root.querySelector('.ic-gap'),
+    gapDirection = root.querySelector('.ic-gap-direction'),
+    bossLabel = boss.querySelector('.ic-boss-strip strong'),
     health = boss.querySelector('.ic-boss-meter'),
     healthFill = health.querySelector('i'),
-    healthLabel = boss.querySelector('.ic-boss-heading span'),
+    healthLabel = boss.querySelector('.ic-hull-value'),
     escapeLabel = root.querySelector('.ic-escape b'),
     route = root.querySelector('.ic-route i'),
-    squad = root.querySelector('.ic-squad'),
+    squad = root.querySelector('.ic-allies'),
     hit = root.querySelector('.ic-hit'),
     boost = root.querySelector('.ic-boost-key');
   let disposed = false;
+  let squadKey = null;
   return {
     update(frame) {
       if (disposed) return;
@@ -87,12 +107,11 @@ export function createInterceptorPresentation({ host }) {
       const targetName = data.targetName ?? 'Goliath';
       root.dataset.boss = data.bossId ?? data.targetId;
       boss.dataset.boss = root.dataset.boss;
-      boss.querySelector('.ic-boss-heading strong').textContent =
-        targetName.toUpperCase();
+      targetLabel.textContent = targetName.toUpperCase();
+      bossLabel.textContent = targetLabel.textContent;
       boss.setAttribute('aria-label', targetName);
       health.setAttribute('aria-label', `${targetName} remaining health`);
-      root.querySelector('.ic-identity').textContent =
-        `INTERCEPTOR / ${(data.difficulty ?? 'medium').toUpperCase()}`;
+      difficulty.textContent = (data.difficulty ?? 'medium').toUpperCase();
       const phase = data.counterattack?.phase ?? 'idle';
       root.dataset.counterattack = phase;
       boss.dataset.counterattack = phase;
@@ -104,10 +123,6 @@ export function createInterceptorPresentation({ host }) {
         !data.counterattack.pressureHits;
       const resonance = data.counterattack?.resonance;
       const breakwater = data.counterattack?.breakwater;
-      if ((resonance || breakwater) && counterattack.parentNode !== boss)
-        boss.append(counterattack);
-      else if (!resonance && !breakwater && counterattack.parentNode !== root)
-        root.insertBefore(counterattack, root.querySelector('.ic-controls'));
       const ionCounter = data.counterattack;
       counterattack.textContent = breakwater
         ? breakwater.active
@@ -158,10 +173,15 @@ export function createInterceptorPresentation({ host }) {
       boss.dataset.reduced = root.dataset.reduced;
       root.dataset.close = String(Math.abs(finite(data.gap)) < 320);
       const separation = finite(data.gap);
-      gap.textContent =
-        Math.abs(separation) < 12
-          ? 'ALONGSIDE'
-          : `${Math.round(Math.abs(separation))} m ${separation >= 0 ? 'AHEAD' : 'BEHIND'}`;
+      const alongside = Math.abs(separation) < 12;
+      gap.textContent = alongside
+        ? 'ALONGSIDE'
+        : distance(Math.abs(separation));
+      gapDirection.textContent = alongside
+        ? ''
+        : separation >= 0
+          ? 'AHEAD'
+          : 'BEHIND';
       healthLabel.textContent = `${Math.ceil(remaining)} / ${Math.ceil(maximum)}`;
       health.setAttribute('aria-valuemax', String(maximum));
       health.setAttribute('aria-valuenow', String(remaining));
@@ -170,11 +190,28 @@ export function createInterceptorPresentation({ host }) {
         `${Math.ceil(remaining)} health remaining out of ${Math.ceil(maximum)}`,
       );
       healthFill.style.transform = `scaleX(${Math.min(1, remaining / maximum)})`;
-      escapeLabel.textContent = `${distance(finite(data.escapeDistance) - finite(data.targetDistance))} left`;
-      route.style.transform = `scaleX(${Math.max(0, Math.min(1, finite(data.escapeProgress)))})`;
-      squad.textContent = (data.allies ?? ['rook', 'kite', 'manta'])
-        .map((id) => name(id).toUpperCase())
-        .join(' · ');
+      escapeLabel.textContent = distance(
+        finite(data.escapeDistance) - finite(data.targetDistance),
+      );
+      const escapeProgress = Math.max(
+        0,
+        Math.min(1, finite(data.escapeProgress)),
+      );
+      route.style.transform = `translateX(${100 * (escapeProgress - 1)}%)`;
+      const allies = data.allies ?? ['rook', 'kite', 'manta'];
+      const nextSquadKey = allies.join();
+      if (nextSquadKey !== squadKey) {
+        squadKey = nextSquadKey;
+        squad.replaceChildren(
+          ...allies.map((id) => {
+            const pilot = document.createElement('span');
+            pilot.setAttribute('role', 'img');
+            pilot.setAttribute('aria-label', name(id));
+            pilot.title = name(id);
+            return pilot;
+          }),
+        );
+      }
       const recent = data.lastHit && data.elapsed - data.lastHit.elapsed < 2;
       root.dataset.hit = recent
         ? data.lastHit.source === 'player'

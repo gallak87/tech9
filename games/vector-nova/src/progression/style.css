@@ -792,81 +792,150 @@
 
 .equipment-hud {
   position: absolute;
-  left: 50%;
-  bottom: 58px;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 8px;
   z-index: 5;
+  bottom: 58px;
+  left: 50%;
+  display: grid;
+  grid-template-columns: repeat(var(--equipment-count, 2), minmax(0, 1fr));
+  gap: 7px;
+  width: max-content;
+  max-width: calc(100% - 32px);
+  transform: translateX(-50%);
 }
 .equipment-hud[hidden] {
   display: none;
 }
-.equipment-hud-slot {
+.equipment-hud .equipment-hud-slot {
+  --hud-card-cut: 5px;
+  --equipment-state: #c5a7ff;
   position: relative;
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 10px;
-  min-width: 160px;
-  padding: 9px 13px 11px;
-  background: #090d13cc;
-  border: 1px solid #ffffff35;
-  color: #ddd;
+  gap: 7px;
+  width: 154px;
+  max-width: 100%;
+  min-height: 46px;
+  padding: 6px 8px;
+  border: 0;
+  background: none;
+  color: #f4f1ef;
   text-align: left;
-  letter-spacing: normal;
+  font-family: var(--hud-font, sans-serif);
+  font-weight: 600;
+  letter-spacing: 0.025em;
 }
-.equipment-hud-slot > span {
+.equipment-hud-slot:not(:disabled):hover,
+.equipment-hud-slot:focus-visible {
+  outline: 1px solid var(--hud-accent, #ef3939);
+  outline-offset: -1px;
+  background: none;
+}
+.equipment-hud .equipment-hud-slot:disabled {
+  opacity: 1;
+  cursor: default;
+}
+.equipment-hud-copy {
   display: grid;
   gap: 3px;
 }
-.equipment-hud-slot small {
-  color: #bbb;
-  font-size: 9px;
+.equipment-hud-copy strong {
+  font-size: 14px;
+  font-style: italic;
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
 }
-.equipment-hud-slot strong {
-  font-size: 11px;
+.equipment-hud-state {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--equipment-state);
 }
-.equipment-hud-slot em {
-  color: #999;
-  font-size: 10px;
+.equipment-hud-state em {
+  flex: none;
+  font-size: 12px;
   font-style: normal;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  white-space: nowrap;
 }
-.equipment-hud-slot > i {
-  position: absolute;
-  height: 2px;
-  left: 0;
-  bottom: 0;
-  width: var(--charge);
-  background: #ffb06f;
+.equipment-hud-charge {
+  flex: 1 1 auto;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: #ffffff25;
 }
-.equipment-hud-slot.ready {
-  border-color: #ffad6a88;
+.equipment-hud-charge::before {
+  content: '';
+  display: block;
+  width: var(--charge, 0%);
+  height: 100%;
+  background: var(--equipment-state);
 }
-.equipment-hud-slot.ready em {
-  color: #ffd2a7;
+.equipment-hud-slot.ready:not(.active) {
+  --equipment-state: #62f0c3;
+}
+.equipment-hud-slot.ready:not(.active) em {
+  text-transform: uppercase;
+}
+.equipment-hud-slot.ready:not(.active) .equipment-hud-charge {
+  display: none;
 }
 .equipment-hud-slot.active {
-  border-color: #9bcaff;
-  box-shadow: 0 0 16px #70bcff26;
-}
-.equipment-hud-slot:disabled {
-  opacity: 0.7;
+  --equipment-state: #a7dbff;
 }
 .equipment-hud-slot .reward-icon {
   width: 28px;
   height: 28px;
 }
+.equipment-hud-slot kbd {
+  min-width: 23px;
+  padding: 4px;
+  border: 1px solid #ebe9e46b;
+  border-radius: 3px;
+  background: #151718b3;
+  color: #f4f1ef;
+  text-align: center;
+  font: 700 12px/1 var(--hud-font, sans-serif);
+  white-space: nowrap;
+}
+.equipment-hud:not(.gamepad-hints) kbd > :last-child,
+.equipment-hud.gamepad-hints kbd > :first-child {
+  display: none;
+}
 @media (max-width: 760px) {
   .equipment-hud {
-    bottom: 154px;
-  }
-  .equipment-hud-slot {
-    min-width: 110px;
-    padding: 8px;
+    bottom: calc(max(16px, env(safe-area-inset-bottom)) + 140px);
+    grid-template-columns: repeat(
+      min(2, var(--equipment-count, 2)),
+      minmax(0, 1fr)
+    );
     gap: 5px;
   }
-  .equipment-hud-slot strong {
+  .equipment-hud .equipment-hud-slot {
+    gap: 4px;
+    width: 124px;
+    min-height: 54px;
+    padding-inline: 6px;
+  }
+  .equipment-hud-slot .reward-icon {
+    width: 24px;
+    height: 24px;
+  }
+  .equipment-hud-copy strong,
+  .equipment-hud-slot kbd {
+    font-size: 11px;
+  }
+  .equipment-hud-state em {
     font-size: 10px;
+  }
+}
+@media (max-height: 570px) and (orientation: landscape) {
+  .equipment-hud {
+    bottom: calc(max(16px, env(safe-area-inset-bottom)) + 82px);
+    max-width: calc(100% - 292px);
   }
 }
 
@@ -909,32 +978,6 @@
     overflow-y: auto;
     overscroll-behavior: contain;
     scrollbar-width: thin;
-  }
-}
-
-.equipment-hud {
-  display: grid;
-  grid-template-columns: repeat(var(--equipment-count, 2), minmax(0, 1fr));
-  width: max-content;
-  max-width: calc(100% - 32px);
-}
-.equipment-hud-slot {
-  min-width: 0;
-  width: 150px;
-  max-width: 100%;
-}
-@media (max-width: 760px) {
-  .equipment-hud {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 5px;
-    width: 252px;
-  }
-  .equipment-hud-slot {
-    width: 124px;
-    min-height: 54px;
-  }
-  .equipment-hud-slot small {
-    font-size: 8px;
   }
 }
 

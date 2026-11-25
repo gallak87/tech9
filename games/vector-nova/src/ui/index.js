@@ -2,6 +2,7 @@ import { fullscreenSetting } from './desktop-controls.js';
 import { controllerLayout } from '../input/gamepad.js';
 import { createDevTools } from './dev-tools.js';
 import './style.css';
+import './hud.css';
 import { formatTime, formatDelta } from '../race/timing.js';
 import { presentationDistance } from '../race/course.js';
 import {
@@ -24,15 +25,15 @@ const coreReserveMarkup = `<div class="energy">
 </div>`;
 
 const SPEED_GAUGE_LIMIT = 800;
-const speedGaugeScale = [0, 200, 400, 600, SPEED_GAUGE_LIMIT]
-  .map(
-    (mark) =>
-      `<span style="--tick-position: ${mark / SPEED_GAUGE_LIMIT}"><span>${mark}</span></span>`,
-  )
-  .join('');
+const speedGaugeScale = Array.from({ length: 17 }, (_, index) => {
+  const progress = index / 16;
+  const major = index % 4 === 0;
+  return `<span${major ? ' class="speed-gauge-major"' : ''} style="--tick-position: ${progress}"></span>`;
+}).join('');
 const speedGaugeMarkup = `<div class="speed" role="group" aria-label="Speedometer">
   <div class="speed-gauge-face" aria-hidden="true">
     <div class="speed-gauge-track"></div>
+    <div class="speed-gauge-progress"></div>
     <div class="speed-gauge-scale">${speedGaugeScale}</div>
     <div class="speed-gauge-needle"></div>
     <div class="speed-gauge-hub"></div>
@@ -59,19 +60,33 @@ export function createUI(
   root.classList.toggle('jump-playtest', Boolean(playtest));
   host.append(root);
   root.innerHTML = `<header class="masthead"><a class="wordmark" href="#" aria-label="Vector Nova home">VECTOR<span>//</span>NOVA</a><div class="edition"><i></i> <span></span></div></header>
- <section id="pause-panel" class="modal hidden"><h2>Paused</h2><button id="resume" class="primary">Resume <span aria-hidden="true">→</span></button><button id="pause-results" class="hidden">Results</button><section class="pause-quick-settings" aria-label="Quick settings">${import.meta.env?.VN_DESKTOP ? fullscreenSetting() : ''}<label>Graphics <select id="quality"><option value="high">High</option><option value="low">Low</option></select></label><label>Game effects <input id="volume" type="range" min="0" max="1" step=".05" value="${settings.volume}"></label><label>Reduced motion <input id="motion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label></section><div class="pause-restart"><button id="restart">Restart race</button></div><nav class="pause-secondary" aria-label="Session options"><button id="home">Race setup</button><button id="pause-settings">Settings</button>${actions.openTunes ? '<button id="pause-tunes" aria-controls="music-panel">Tunes</button>' : ''}</nav></section>
- <section id="hud" class="hidden"><div class="top-telemetry"><div class="position hidden"><span>POSITION</span><b id="position">1 / ${RACE_FIELD_SIZE}</b><small id="position-state"></small></div><div class="lap"><span>PRACTICE LAP</span><b id="lap">01</b></div><div class="timing"><span>LAP TIME</span><b id="time">00:00.000</b><small id="time-split" class="hidden"></small><small id="last">LAST —</small><small id="best"></small></div></div><div class="telemetry">${coreReserveMarkup}${speedGaugeMarkup}</div><canvas id="minimap" width="200" height="150" aria-label="Track map"></canvas></section>
+ <section id="pause-panel" class="modal hud-card hidden">
+  <header class="pause-header"><div class="pause-brand" aria-hidden="true">VECTOR<span>//</span>NOVA</div><h2>Paused</h2></header>
+  <button id="resume" class="primary">Resume <span aria-hidden="true">→</span></button>
+  <button id="pause-results" class="hidden">Results</button>
+  <section class="pause-quick-settings pause-quick-settings--main" aria-labelledby="pause-quick-heading">
+   <h3 id="pause-quick-heading">Quick settings</h3>
+   <label>Graphics <span class="pause-choice"><select id="quality"><option value="high">High</option><option value="low">Low</option></select></span></label>
+   <label>Game effects <input id="volume" type="range" min="0" max="1" step=".05" value="${settings.volume}"></label>
+   <label>Reduced motion <input id="motion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label>
+   ${import.meta.env?.VN_DESKTOP ? fullscreenSetting() : ''}
+  </section>
+  <div class="pause-restart"><button id="restart">Restart race</button></div>
+  <nav class="pause-secondary" aria-label="Session options"><button id="home">Race setup</button><button id="pause-settings">Settings</button>${actions.openTunes ? '<button id="pause-tunes" aria-controls="music-panel">Tunes</button>' : ''}</nav>
+ </section>
+ <section id="hud" class="hidden"><div class="top-telemetry hud-card hud-card--fade"><div class="position hidden"><span>POSITION</span><b id="position">1 / ${RACE_FIELD_SIZE}</b><small id="position-state"></small></div><div class="lap"><span>PRACTICE LAP</span><b id="lap">01</b><i class="lap-progress hidden" aria-hidden="true"><i></i><i></i></i></div><div class="timing"><span>LAP TIME</span><b id="time">00:00.000</b><small id="time-split" class="hidden"></small><small id="last">LAST —</small><small id="best"></small></div></div><div class="telemetry">${coreReserveMarkup}${speedGaugeMarkup}</div><canvas id="minimap" width="200" height="150" aria-label="Track map"></canvas></section>
  ${!import.meta.env?.VN_DESKTOP ? '<footer id="legend"><div class="legend-movement"><kbd>WASD</kbd><span class="legend-or" aria-hidden="true">/</span><kbd aria-label="Arrow keys">↑←↓→</kbd><span>MOVEMENT</span></div><div class="legend-direction"><kbd>W</kbd><kbd>↑</kbd><span>THROTTLE</span></div><div class="legend-direction"><kbd>A</kbd><kbd>D</kbd><span>STEER</span></div><div class="legend-direction"><kbd>S</kbd><span>BRAKE</span></div><div><kbd>SPACE</kbd><span>AIRBRAKE</span></div><div class="legend-boost"><kbd>SHIFT</kbd><span>BOOST</span></div><div><kbd>R</kbd><span>RECOVER / RETRY</span></div><div><kbd>ESC</kbd><span>PAUSE</span></div></footer>' : ''}
  <div id="touch" class="hidden" role="group" aria-label="Touch driving controls">
   <div class="touch-steer" data-touch-control="steer" role="group" aria-label="Steering: drag left or right; pull down for airbrake. Release to center.">
-   <span class="touch-label">STEER</span><span class="touch-directions" aria-hidden="true">←<span>→</span></span><i class="touch-thumb" aria-hidden="true"></i><span class="touch-airbrake">↓ AIRBRAKE</span>
+   <span class="touch-label">STEER</span><span class="touch-directions" aria-hidden="true"><i></i><i></i></span><i class="touch-thumb" aria-hidden="true"></i><span class="touch-airbrake">↓ AIRBRAKE</span>
   </div>
   <div class="touch-power" data-touch-control="power" data-power="neutral" role="group" aria-label="Power: slide up to Go, farther up to Boost and accelerate, center for neutral, down to brake. Release to coast.">
-   <span data-power-zone="boost">BOOST <small>+ GO</small></span><span data-power-zone="go">GO</span><span data-power-zone="neutral">NEUTRAL</span><span data-power-zone="brake">BRAKE</span><i class="touch-thumb" aria-hidden="true"></i>
+   <span data-power-zone="boost">BOOST + GO</span><span data-power-zone="go">GO</span><span data-power-zone="neutral">NEUTRAL</span><span data-power-zone="brake">BRAKE</span><span class="touch-directions" aria-hidden="true"><i></i><i></i></span><i class="touch-thumb" aria-hidden="true"></i>
   </div>
  </div>`;
   const $ = (id) => root.querySelector('#' + id);
   const timeSplit = $('time-split');
+  const lapProgress = root.querySelector('.lap-progress');
   const reserveMeter = $('energy-meter');
   const speedValue = $('speed');
   const speedGauge = speedValue.closest('.speed');
@@ -166,7 +181,7 @@ export function createUI(
   roster.innerHTML = `<div class="roster-heading"><span></span><b></b></div><ol></ol><div class="roster-laps"></div><p class="roster-hint"></p>`;
   const minimap = $('minimap');
   const raceMap = document.createElement('div');
-  raceMap.className = 'race-map-housing';
+  raceMap.className = 'race-map-housing hud-card';
   minimap.before(raceMap);
   raceMap.append(minimap, roster);
   const lights = document.createElement('section');
@@ -423,10 +438,20 @@ export function createUI(
     e.preventDefault();
     actions.home();
   };
+  const volumeControl = $('volume');
+  const paintPauseVolume = () =>
+    volumeControl.style.setProperty(
+      '--pause-volume-fill',
+      `${volumeControl.valueAsNumber * 100}%`,
+    );
+  paintPauseVolume();
+  volumeControl.addEventListener('input', paintPauseVolume, {
+    signal: listeners.signal,
+  });
   $('quality').value = settings.quality;
   for (const id of ['volume', 'quality', 'motion'])
     $(id).onchange = () => {
-      settings.volume = +$('volume').value;
+      settings.volume = volumeControl.valueAsNumber;
       settings.quality = $('quality').value;
       settings.reducedMotion = $('motion').checked;
       actions.settings();
@@ -465,7 +490,8 @@ export function createUI(
       syncPauseOwnership();
     },
     syncSettings(next) {
-      $('volume').value = next.volume;
+      volumeControl.value = next.volume;
+      paintPauseVolume();
       $('quality').value = next.quality;
       $('motion').checked = next.reducedMotion;
       for (const control of root.querySelectorAll('.difficulty-picker select'))
@@ -602,6 +628,13 @@ export function createUI(
             ? 'FREE DRIVE'
             : 'RACE LAP'
           : 'PRACTICE LAP';
+      const showLapProgress =
+        !sprint && competition?.enabled && !competition.playerFinished;
+      lapProgress.classList.toggle('hidden', !showLapProgress);
+      lapProgress.classList.toggle(
+        'on-final-lap',
+        showLapProgress && r.lap >= 2,
+      );
       const speed = Math.round(s.speed * 3.6);
       const digits = String(speed).padStart(3, '0');
       if (speedValue.textContent !== digits) {
@@ -624,7 +657,7 @@ export function createUI(
       $('lap').textContent = sprint
         ? `${Math.min(r.complete ? 100 : 99, Math.max(0, Math.floor((100 * courseDistance) / track.finishDistance)))}%`
         : competition?.enabled && !competition.playerFinished
-          ? `${Math.min(r.lap, 2)}/2`
+          ? `${Math.min(r.lap, 2)} / 2`
           : String(r.lap).padStart(2, '0');
       const lowReserve = s.energy < 25;
       const reserveValue = String(Math.round(s.energy));

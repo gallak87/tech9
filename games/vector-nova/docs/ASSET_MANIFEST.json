@@ -964,8 +964,16 @@
       "id": "ui-brand",
       "source": "src/ui/",
       "creator": "VECTOR//NOVA project contributors",
-      "provenance": "Original wordmark/layout, browser system fonts",
-      "rights": "Project-authored; system fonts referenced, not redistributed",
+      "provenance": "Original Vector Nova wordmark and layout. The race HUD font is registered separately.",
+      "rights": "Project-authored",
+      "runtimeDependencies": []
+    },
+    {
+      "id": "race-hud-font",
+      "source": "src/ui/fonts/",
+      "creator": "The Barlow Project Authors",
+      "provenance": "Barlow Condensed Latin WOFF2, version 13 of the Google Fonts distribution. Semibold upright, semibold italic, bold italic and extrabold italic. Upstream distribution: https://github.com/google/fonts/tree/main/ofl/barlowcondensed",
+      "rights": "SIL Open Font License 1.1, included in public/assets/licenses/barlow-condensed.txt",
       "runtimeDependencies": []
     },
     {

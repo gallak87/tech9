@@ -14,7 +14,7 @@ export function createFreestyleOverlay({
 }) {
   const showDiagnostics = developer === true;
   const root = document.createElement('section');
-  root.className = 'freestyle-hud';
+  root.className = 'freestyle-hud hud-card hud-card--fade';
   root.setAttribute('aria-label', 'Freestyle score and transfer chain');
   root.innerHTML =
     '<div class="fs-score"><span>FREESTYLE</span><strong>0</strong><small>CHAIN <b>—</b></small></div><div class="fs-links" aria-label="Transfer chain">' +
@@ -25,7 +25,7 @@ export function createFreestyleOverlay({
       : '');
   host.append(root);
   const air = document.createElement('section');
-  air.className = 'freestyle-air-readout fs-air';
+  air.className = 'freestyle-air-readout fs-air hud-card';
   air.setAttribute('aria-label', 'Unbanked air score');
   air.hidden = true;
   air.innerHTML =

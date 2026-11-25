@@ -1,0 +1,143 @@
+@font-face {
+  font-family: 'Barlow Condensed';
+  src: url('./fonts/barlow-condensed-600-normal.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Barlow Condensed';
+  src: url('./fonts/barlow-condensed-600-italic.woff2') format('woff2');
+  font-style: italic;
+  font-weight: 600;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Barlow Condensed';
+  src: url('./fonts/barlow-condensed-700-italic.woff2') format('woff2');
+  font-style: italic;
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Barlow Condensed';
+  src: url('./fonts/barlow-condensed-800-italic.woff2') format('woff2');
+  font-style: italic;
+  font-weight: 800;
+  font-display: swap;
+}
+
+#app {
+  --hud-font: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif;
+  --hud-accent: #ef3939;
+  --hud-accent-deep: #a81010;
+  --hud-side: max(13px, 4vw);
+  --hud-top: 108px;
+}
+
+@media (max-width: 760px), (max-height: 750px) {
+  #app {
+    --hud-top: 90px;
+  }
+}
+
+@media (max-height: 570px) and (orientation: landscape) {
+  #app {
+    --hud-top: 75px;
+  }
+}
+
+:where(#app)
+  #interface
+  :is(
+    #hud,
+    #pause-panel,
+    #touch,
+    #legend,
+    #start-lights,
+    #race-finish,
+    #sprint-finish-actions
+  ) {
+  font-family: var(--hud-font);
+  font-weight: 600;
+}
+
+:where(#app) #interface :is(#hud, #legend, #start-lights, #race-finish) {
+  font-style: italic;
+}
+
+:where(#app) #interface #legend kbd {
+  font-family: inherit;
+  font-style: normal;
+}
+
+/* Separate the clipped shell from its contents so controls retain their focus rings. */
+:where(#app) .hud-card {
+  --hud-card-surface: linear-gradient(
+    146deg,
+    #2d3033fa,
+    #1c1e21f5 54%,
+    #101114ef
+  );
+  --hud-card-edge: linear-gradient(
+    151deg,
+    #b2b6b8,
+    #64686c 32%,
+    #424549 68%,
+    #75797c
+  );
+  --hud-card-outline: polygon(
+    5px 0,
+    calc(100% - var(--hud-card-cut, 11px)) 0,
+    100% var(--hud-card-cut, 11px),
+    100% calc(100% - 5px),
+    calc(100% - 5px) 100%,
+    var(--hud-card-cut, 11px) 100%,
+    0 calc(100% - var(--hud-card-cut, 11px)),
+    0 5px
+  );
+  isolation: isolate;
+  font-family: var(--hud-font);
+}
+
+:where(#app) .hud-card::before,
+:where(#app) .hud-card::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  clip-path: var(--hud-card-outline);
+}
+
+:where(#app) .hud-card::before {
+  z-index: -2;
+  inset: 0;
+  background: var(--hud-card-edge);
+}
+
+:where(#app) .hud-card::after {
+  z-index: -1;
+  inset: 1px;
+  background:
+    repeating-linear-gradient(132deg, #fff0 0 2px, #ffffff04 2px 3px),
+    var(--hud-card-surface);
+}
+
+:where(#app) .hud-card--fade {
+  --hud-card-surface: linear-gradient(
+    140deg,
+    #303236fa,
+    #1d1e22e8 50%,
+    #111215a6
+  );
+  --hud-card-edge: linear-gradient(
+    144deg,
+    #d6d8dad9,
+    #989da29c 13%,
+    #757a7f62 48%,
+    #63686d32 72%,
+    #b0b2b44f
+  );
+}

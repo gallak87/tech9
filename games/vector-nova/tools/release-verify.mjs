@@ -9,7 +9,7 @@ import {
   CAREER_SLOTS_KEY,
 } from '../src/progression/careers.js';
 import { createProfileStore } from '../src/progression/profile.js';
-import { saveShipSelection } from '../src/ships/catalog.js';
+import { getShip, saveShipSelection } from '../src/ships/catalog.js';
 import { createCupStore } from '../src/race/cup.js';
 import { RACE_ORDER } from '../src/race/roster.js';
 import { COURSE_IDS, MODE_UNLOCKS } from '../src/levels/access.js';
@@ -110,6 +110,27 @@ const ready = (page) =>
     null,
     { timeout: 90000 },
   );
+async function assertCompletionCardSkin(card) {
+  const { rim, edge, font } = await card.evaluate((element) => {
+    const border = getComputedStyle(element, '::before');
+    return {
+      rim: border.clipPath,
+      edge: border.backgroundImage,
+      font: getComputedStyle(element.querySelector('h1')).fontFamily,
+    };
+  });
+  assert.match(rim, /^polygon\(/, 'the shared divot outline is rendered');
+  assert.match(
+    edge,
+    /radial-gradient.*linear-gradient/,
+    'the rim reflects light',
+  );
+  assert.match(
+    font,
+    /Barlow Condensed/,
+    'the heading uses the menu display font',
+  );
+}
 const phase = async (page, value) => {
   await page.waitForFunction(
     (expected) =>
@@ -736,6 +757,161 @@ try {
       },
     );
     await check(
+      'completion replay draws the shared racing wake',
+      fresh,
+      async (page) => {
+        await page.route('**/completion-stage-fixture', (route) =>
+          route.fulfill({
+            contentType: 'text/html',
+            body: '<!doctype html><main id="fixture" style="position:fixed;inset:0"></main>',
+          }),
+        );
+        await page.route(/\/src\/renderer\/glide-wake\.js(?:\?|$)/, (route) => {
+          const original = new URL(route.request().url());
+          if (original.searchParams.has('release-original'))
+            return route.continue();
+          original.searchParams.set('release-original', '1');
+          return route.fulfill({
+            contentType: 'application/javascript',
+            body: `import { createGlideWake as create } from ${JSON.stringify(original.pathname + original.search)};
+          export function createGlideWake(options) {
+            const wake = create(options);
+            (window.__releaseWakeMeshes ??= []).push(wake.mesh);
+            return wake;
+          }`,
+          });
+        });
+        await page.goto(new URL('/completion-stage-fixture', base).href);
+        for (const shipId of ['needle', 'bastion']) {
+          const wake = await page.evaluate(async (shipId) => {
+            const { createCompletionStage } =
+              await import('/src/frontend/completion-stage.js');
+            const mount = document.querySelector('#fixture');
+            window.__releaseWakeMeshes = [];
+            const stage = createCompletionStage({
+              mount,
+              shipId,
+              settings: { quality: 'low' },
+            });
+            await stage.ready;
+            const meshes = window.__releaseWakeMeshes;
+            const player = meshes.find(
+              ({ name }) => name === 'Player / glide wake',
+            );
+            const visible = (mesh) =>
+              mesh.visible &&
+              mesh.parent?.isScene &&
+              mesh.geometry.drawRange.count > 0;
+            const draw = (time, reducedMotion) => {
+              const { hero, shot } = stage.draw(time, reducedMotion);
+              const { index, attributes, drawRange } = player.geometry;
+              let furthest = 0;
+              for (let i = 0; i < drawRange.count; i++) {
+                const vertex = index.getX(i);
+                furthest = Math.max(
+                  furthest,
+                  Math.hypot(
+                    attributes.position.getX(vertex) - hero.position[0],
+                    attributes.position.getY(vertex) - hero.position[1],
+                    attributes.position.getZ(vertex) - hero.position[2],
+                  ),
+                );
+              }
+              return {
+                shot,
+                furthest,
+                grounded: hero.grounded,
+                sliding: hero.effects.slide?.active === true,
+                visible: visible(player),
+              };
+            };
+            try {
+              const {
+                firstFireTime,
+                launchTime,
+                slideStartTime,
+                slideStopTime,
+              } = stage.metrics().replay.landmarks;
+              const ground = draw(0.25);
+              const visibleGround = meshes
+                .filter(visible)
+                .map(({ name }) => name)
+                .sort();
+              const color = player.material.uniforms.accent.value.getHex();
+              const cutAt = firstFireTime - 0.5;
+              const before = draw(cutAt - 0.02);
+              const cut = draw(cutAt + 0.02);
+              const flight = draw(launchTime + 0.5);
+              const slide = draw(slideStartTime + 0.25);
+              const stop = draw(slideStopTime + 0.95);
+              const seekBack = draw(0.25);
+              draw(0.3, true);
+              const reduced = meshes.some(visible);
+              stage.dispose();
+              return {
+                visibleGround,
+                color,
+                ground,
+                before,
+                cut,
+                flight,
+                slide,
+                stop,
+                seekBack,
+                reduced,
+                disposed:
+                  meshes.every(({ parent }) => !parent) &&
+                  !mount.querySelector('canvas'),
+              };
+            } finally {
+              stage.dispose();
+            }
+          }, shipId);
+          assert.deepEqual(wake.visibleGround, [
+            'Manta / glide wake',
+            'Player / glide wake',
+            'Rook / glide wake',
+          ]);
+          assert.equal(
+            wake.color,
+            getShip(shipId).liveryAccent,
+            `${shipId}: livery color`,
+          );
+          assert.equal(wake.ground.grounded, true);
+          assert.notEqual(wake.before.shot, wake.cut.shot);
+          assert.equal(wake.flight.grounded, false);
+          assert.equal(wake.slide.sliding, true);
+          for (const shot of [
+            wake.ground,
+            wake.before,
+            wake.cut,
+            wake.flight,
+            wake.slide,
+            wake.seekBack,
+          ])
+            assert.ok(
+              shot.visible && shot.furthest > 0 && shot.furthest < 70,
+              `${shipId}: ${shot.shot} wake stays on the recorded path`,
+            );
+          assert.equal(
+            wake.stop.visible,
+            false,
+            `${shipId}: wake fades after stopping`,
+          );
+          assert.equal(
+            wake.reduced,
+            false,
+            `${shipId}: reduced motion suppresses every wake`,
+          );
+          assert.equal(
+            wake.disposed,
+            true,
+            `${shipId}: stage releases the mesh and canvas`,
+          );
+        }
+      },
+    );
+    await check(
       'all four cups won still advertises the two Time Trial unlocks',
       trialsRemaining,
       async (page) => {
@@ -1010,7 +1186,9 @@ try {
         );
         try {
           await page.goto(url(), { waitUntil: 'domcontentloaded' });
-          await page.locator('.completion-loading').waitFor();
+          const loading = page.locator('.completion-loading');
+          await loading.waitFor();
+          await assertCompletionCardSkin(loading);
           const root = page.locator('.completion-cinematic');
           assert.equal(await root.count(), 1);
           assert.equal(await root.getAttribute('role'), 'dialog');
@@ -1044,6 +1222,7 @@ try {
           );
           await padButton(page, 1);
           assert.equal((await state(page)).completion.phase, 'credits');
+          await assertCompletionCardSkin(root.locator('.completion-card'));
           assert.equal(
             (await state(page)).career.state.completion.acknowledged,
             false,

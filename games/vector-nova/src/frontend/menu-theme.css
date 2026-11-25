@@ -156,7 +156,7 @@
   outline-color: var(--menu-focus);
 }
 
-:where(#app) .loading-copy.menu-card {
+:where(#app) :is(.loading-copy, .completion-loading).menu-card {
   padding: clamp(14px, 3vw, 26px);
 }
 
@@ -169,20 +169,29 @@
   opacity: 0.8;
 }
 
-:where(#app) .loading-copy .transfer-status progress {
+:where(#app) :is(.loading-copy, .completion-loading) .transfer-status progress {
   height: 3px;
   background: #454646;
 }
 
-:where(#app) .loading-copy .transfer-status progress::-webkit-progress-bar {
+:where(#app)
+  :is(.loading-copy, .completion-loading)
+  .transfer-status
+  progress::-webkit-progress-bar {
   background: #454646;
 }
 
-:where(#app) .loading-copy .transfer-status progress::-webkit-progress-value {
+:where(#app)
+  :is(.loading-copy, .completion-loading)
+  .transfer-status
+  progress::-webkit-progress-value {
   background: var(--menu-red);
 }
 
-:where(#app) .loading-copy .transfer-status progress::-moz-progress-bar {
+:where(#app)
+  :is(.loading-copy, .completion-loading)
+  .transfer-status
+  progress::-moz-progress-bar {
   background: var(--menu-red);
 }
 
@@ -360,17 +369,6 @@
 
 :where(#app) .cup-scores .cup-standings {
   background: var(--card-enamel-light), var(--card-enamel-surface);
-}
-
-:where(#app) .completion-card.menu-card {
-  border: 0;
-  background: transparent;
-  box-shadow: none;
-}
-
-:where(#app) .completion-card.menu-card::before {
-  inset: 0;
-  height: auto;
 }
 
 @media (max-width: 760px) {

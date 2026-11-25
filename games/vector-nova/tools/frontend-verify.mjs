@@ -1775,7 +1775,8 @@ try {
         assert.equal(pending.career.state.finishedCourses.length, 9);
         assert.match(
           await page
-            .locator('.completion-loading .completion-eyebrow')
+            .getByRole('dialog', { name: 'Career collection complete' })
+            .getByRole('status')
             .textContent(),
           /37 \/ 37 · CAREER COMPLETE/,
         );

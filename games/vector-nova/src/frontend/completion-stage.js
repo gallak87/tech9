@@ -1,15 +1,21 @@
 import { Quaternion, Vector3 } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { createShip } from '../ships/index.js';
+import { getShip } from '../ships/catalog.js';
 import { createRivalPreview } from '../ships/rivals.js';
 import { createRenderer } from '../renderer/index.js';
+import { createGlideWake } from '../renderer/glide-wake.js';
 import createShatterlineLevel from '../levels/shatterline/index.js';
 import { createFinishMarker } from '../race/finish-marker.js';
+import { createRivalWake } from '../race/rival-wake.js';
 import { createLevelPresentation } from '../levels/presentation.js';
 import { createLifetime } from '../core/lifecycle.js';
 import { createCompletionEffects } from './completion-effects.js';
 import { loadCompletionRun, sampleCompletionRun } from './completion-run.js';
 import { createCompletionDirector } from './completion-timeline.js';
+
+const wakePrerollSeconds = 1.25;
+const wakePrerollFrameRate = 60;
 
 // Replay the production race and its choreographed post-finish drift at 1× in
 // the production Shatterline world. The director controls only the camera.
@@ -24,10 +30,13 @@ export function createCompletionStage({
   const readSettings = () =>
     typeof settings === 'function' ? settings() : (settings ?? {});
   const lifetime = createLifetime(),
-    loading = new AbortController(),
-    models = new Map();
+    loading = new AbortController();
+  const models = new Map(),
+    wakes = new Map();
   const localRoll = new Quaternion(),
+    wakeOrientation = new Quaternion(),
     forward = new Vector3(0, 0, 1);
+  const { liveryAccent } = getShip(shipId);
   let disposed = false,
     prepared = false,
     view,
@@ -39,7 +48,7 @@ export function createCompletionStage({
   let previousTime = 0,
     requestedTime = 0,
     lastSample = null;
-  let appliedQuality, appliedMotion;
+  let appliedQuality, appliedMotion, wakeTime;
   const abort = () => loading.abort(signal?.reason);
   if (signal?.aborted) abort();
   else signal?.addEventListener('abort', abort, { once: true });
@@ -54,6 +63,68 @@ export function createCompletionStage({
     loading.signal.throwIfAborted();
     view?.graphics.check();
   };
+  function poseAndWake(id, model, actor, time, reducedMotion = false) {
+    model.group.position.fromArray(actor.position);
+    wakeOrientation.fromArray(actor.quaternion);
+    model.group.quaternion.copy(wakeOrientation);
+    if (actor.steeringBank) {
+      localRoll.setFromAxisAngle(forward, actor.state.steer * 0.08);
+      model.group.quaternion.multiply(localRoll);
+    }
+    const wake = wakes.get(id);
+    const { state, effects } = actor;
+    const quaternion = actor.grounded
+      ? wakeOrientation
+      : model.group.quaternion;
+    const boost = Number(Boolean(state.boosting || effects.vectorActive));
+    if (id === 'hero') {
+      wake.update({
+        active: !actor.recovering,
+        time,
+        resetCount: state.resetCount,
+        position: model.group.position,
+        quaternion,
+        bounds: model.group.userData.bounds,
+        accent: liveryAccent,
+        speed: state.speed,
+        boost,
+        reducedMotion,
+      });
+    } else {
+      wake?.update({
+        opponent: { state: { time, resetCount: state.resetCount } },
+        quaternion,
+        recovering: actor.recovering,
+        blend: 1,
+        speed: state.speed,
+        boost: effects.equipment?.slipstreamRemaining > 0 ? 1 : boost,
+        mode: 'racing',
+        reducedMotion,
+        cameraPosition: view.camera.position,
+      });
+    }
+  }
+  function restoreWakeHistory(sample) {
+    if (
+      wakeTime != null &&
+      sample.time >= wakeTime &&
+      sample.time - wakeTime <= 0.1 + run.step
+    )
+      return;
+    // Rebuild recent poses on an explicit seek. Regular playback and camera
+    // cuts keep the existing world paths and the race's distance falloff.
+    for (const wake of wakes.values()) wake.reset();
+    const start = Math.max(0, sample.time - wakePrerollSeconds);
+    for (
+      let frame = Math.ceil(start * wakePrerollFrameRate);
+      frame / wakePrerollFrameRate < sample.time;
+      frame++
+    ) {
+      const past = sampleCompletionRun(run, frame / wakePrerollFrameRate);
+      for (const [id, model] of models)
+        poseAndWake(id, model, past[id], past.time);
+    }
+  }
   function positionScene(sample, reducedMotion = false) {
     const next = readSettings();
     if (next.quality !== appliedQuality || reducedMotion !== appliedMotion) {
@@ -62,14 +133,18 @@ export function createCompletionStage({
       appliedMotion = reducedMotion;
       view.apply();
     }
+    const directed = director.sample(sample.time, sample, view.camera.aspect);
+    Object.assign(sample, { shot: directed.shot, title: directed.title });
+    view.camera.position.copy(directed.position);
+    view.camera.up.copy(directed.up);
+    view.camera.fov = directed.fov;
+    view.camera.lookAt(directed.target);
+    view.camera.updateProjectionMatrix();
+    if (!reducedMotion) restoreWakeHistory(sample);
+    wakeTime = reducedMotion ? undefined : sample.time;
     for (const [id, model] of models) {
       const actor = sample[id];
-      model.group.position.fromArray(actor.position);
-      model.group.quaternion.fromArray(actor.quaternion);
-      if (actor.steeringBank) {
-        localRoll.setFromAxisAngle(forward, actor.state.steer * 0.08);
-        model.group.quaternion.multiply(localRoll);
-      }
+      poseAndWake(id, model, actor, sample.time, reducedMotion);
       model.update({
         speed: actor.state.speed,
         boost: actor.state.boosting,
@@ -81,13 +156,6 @@ export function createCompletionStage({
         reducedMotion,
       });
     }
-    const directed = director.sample(sample.time, sample, view.camera.aspect);
-    Object.assign(sample, { shot: directed.shot, title: directed.title });
-    view.camera.position.copy(directed.position);
-    view.camera.up.copy(directed.up);
-    view.camera.fov = directed.fov;
-    view.camera.lookAt(directed.target);
-    view.camera.updateProjectionMatrix();
     effects.update(sample, { models, reducedMotion, camera: view.camera });
     const hero = models.get('hero');
     const frame = {
@@ -131,6 +199,7 @@ export function createCompletionStage({
     signal?.removeEventListener('abort', abort);
     lifetime.dispose();
     models.clear();
+    wakes.clear();
     run = null;
   }
   const renderSettings = { ...readSettings() };
@@ -224,6 +293,19 @@ export function createCompletionStage({
         models.set(id, model);
         view.scene.add(model.group);
         lifetime.defer(() => model.group.removeFromParent());
+        if (id === 'hero') {
+          const wake = own(createGlideWake());
+          wake.mesh.name = 'Player / glide wake';
+          view.scene.add(wake.mesh);
+          wakes.set(id, wake);
+        } else {
+          const wake = createRivalWake(
+            view.scene,
+            model.group,
+            model.specification,
+          );
+          if (wake) wakes.set(id, own(wake));
+        }
         onProgress?.(0.62 + models.size * 0.06);
       }
       await Promise.all([
@@ -254,8 +336,12 @@ export function createCompletionStage({
             if (material?.isMeshStandardMaterial) material.envMap = reflection;
         });
       world.setReflection(reflection);
-      lastSample = sampleCompletionRun(run, requestedTime);
-      positionScene(lastSample, Boolean(readSettings().reducedMotion));
+      // Prime the real ribbons before warmup so their first draw cannot stall
+      // playback. The first presented frame still uses the requested time.
+      positionScene(
+        sampleCompletionRun(run, Math.max(requestedTime, run.step * 3)),
+        Boolean(readSettings().reducedMotion),
+      );
       onProgress?.(0.86);
       await view.warm();
       check();

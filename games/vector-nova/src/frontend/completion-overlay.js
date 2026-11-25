@@ -38,27 +38,27 @@ export function createCompletionOverlay({
   element.innerHTML = `
     <div class="completion-stage"></div>
     <div class="completion-letterbox" aria-hidden="true"></div>
-    <div class="completion-wordmark" aria-hidden="true">VECTOR<span>//</span>NOVA</div>
+    <div class="completion-wordmark menu-wordmark" aria-hidden="true">VECTOR<span>//</span>NOVA</div>
     <button type="button" class="completion-skip" data-completion-skip>Skip cinematic <span aria-hidden="true">↗</span></button>
-    <div class="completion-loading" role="status" aria-live="polite">
-      <span class="completion-eyebrow">37 / 37 · CAREER COMPLETE</span>
+    <div class="completion-loading menu-card" role="status" aria-live="polite">
+      <span class="kicker">37 / 37 · CAREER COMPLETE</span>
       <h1>Loading…</h1>
-      <progress max="1" value="0" aria-label="Loading"></progress>
+      <div class="transfer-status"><progress max="1" value="0" aria-label="Loading"></progress></div>
       <span class="completion-progress" aria-hidden="true">0%</span>
     </div>
     <div class="completion-credits" hidden>
       <div class="completion-card menu-card">
         <div class="completion-medal" aria-hidden="true"><i></i><b>V</b><i></i></div>
-        <span class="completion-eyebrow">THE NEXT CHAPTER</span>
+        <span class="kicker">THE NEXT CHAPTER</span>
         <h1 id="completion-thanks">Thx for playing, 3 Encore courses unlocked!</h1>
         <p class="completion-next">Oriel <span>·</span> Ravel <span>·</span> Nomad</p>
         <div class="completion-credit-lines">
-          <p><span>DEV</span><strong>George Allakhverdyan</strong><small>Studio name TBD</small></p>
-          <p><span>HOMIES WHO HELPED TEST THE GAME</span><strong>Noyan Gunday</strong></p>
+          <p><span class="kicker">DEV</span><strong>George Allakhverdyan</strong><small>Studio name TBD</small></p>
+          <p><span class="kicker">HOMIES WHO HELPED TEST THE GAME</span><strong>Noyan Gunday</strong></p>
         </div>
         <p class="completion-error" role="alert" hidden>The cinematic couldn’t load. Your unlocks are still available.</p>
         <button type="button" class="completion-retry" data-completion-retry hidden>Reload and retry</button>
-        <button type="button" class="primary completion-close" data-completion-close>Close <span aria-hidden="true">↗</span></button>
+        <button type="button" class="completion-close" data-completion-close>Close <span aria-hidden="true">↗</span></button>
       </div>
     </div>`;
   const stageHost = element.querySelector('.completion-stage');

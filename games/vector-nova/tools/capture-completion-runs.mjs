@@ -4,6 +4,7 @@ import path from 'node:path';
 import { createRequire } from 'node:module';
 import { createHash } from 'node:crypto';
 import { gzipSync, gunzipSync } from 'node:zlib';
+import { parseArgs } from 'node:util';
 import assert from 'node:assert/strict';
 import * as T from 'three';
 import { getCollisionHull } from '../src/ships/collision-hulls.js';
@@ -17,6 +18,9 @@ import {
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const directory = path.join(root, 'public', COMPLETION_CAPTURE.directory);
+const {
+  values: { 'refresh-finish-rule-id': refreshFinishRuleId },
+} = parseArgs({ options: { 'refresh-finish-rule-id': { type: 'boolean' } } });
 const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex');
 async function sources(file, retained = new Map()) {
   if (retained.has(file)) return retained;
@@ -36,13 +40,29 @@ async function sources(file, retained = new Map()) {
   return retained;
 }
 
-function prefix(run) {
+function prefix(run, replacer) {
   const crossingTick =
     Math.ceil(run.landmarks.finishTime / run.step) * run.step;
-  return JSON.stringify({
-    frames: run.frames.filter((frame) => frame.time <= crossingTick + 1e-9),
-    events: run.events.filter((event) => event.time <= crossingTick + 1e-9),
-  });
+  return JSON.stringify(
+    {
+      frames: run.frames.filter((frame) => frame.time <= crossingTick + 1e-9),
+      events: run.events.filter((event) => event.time <= crossingTick + 1e-9),
+    },
+    replacer,
+  );
+}
+
+// An explicit metadata refresh can adopt a new sprint rule identity only when
+// the native recording is otherwise identical through the checker crossing.
+function omitSprintFinishRuleId(_key, value) {
+  if (
+    value?.type !== 'sprint-complete' ||
+    typeof value.payload?.rulesId !== 'string'
+  )
+    return value;
+  const payload = { ...value.payload };
+  delete payload.rulesId;
+  return { ...value, payload };
 }
 function validateSlide(run, track) {
   const frames = run.frames.filter(
@@ -176,6 +196,7 @@ function validateSlide(run, track) {
 await mkdir(directory, { recursive: true });
 const track = createLevel().createTrack();
 const entries = {};
+const compareFinish = refreshFinishRuleId ? omitSprintFinishRuleId : undefined;
 for (const shipId of COMPLETION_SHIPS) {
   const previous = JSON.parse(
     gunzipSync(
@@ -184,8 +205,8 @@ for (const shipId of COMPLETION_SHIPS) {
   );
   const run = await generateCompletionRun({ track, shipId });
   assert.equal(
-    prefix(run),
-    prefix(previous),
+    prefix(run, compareFinish),
+    prefix(previous, compareFinish),
     'all native poses, controls and events through the real checker stay byte-equivalent',
   );
   const slide = validateSlide(run, track);

@@ -12,6 +12,17 @@ import { halcyonGraphicsDefaults } from '../progression/index.js';
 import { deviceCSSColor } from '../pickups/theme.js';
 import { getShip } from '../ships/catalog.js';
 
+const RESERVE_SEGMENT_COUNT = 10;
+const reserveSegments = Array.from(
+  { length: RESERVE_SEGMENT_COUNT },
+  (_, index) =>
+    `<i aria-hidden="true" style="--reserve-segment: ${index}"></i>`,
+).join('');
+const coreReserveMarkup = `<div class="energy">
+  <span id="energy-label">CORE RESERVE</span>
+  <div id="energy-meter" class="energy-track" style="--reserve-segments: ${RESERVE_SEGMENT_COUNT}; --reserve-color: ${deviceCSSColor('vector')}" role="meter" aria-labelledby="energy-label" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100" aria-valuetext="100% remaining">${reserveSegments}</div>
+</div>`;
+
 const SPEED_GAUGE_LIMIT = 800;
 const speedGaugeScale = [0, 200, 400, 600, SPEED_GAUGE_LIMIT]
   .map(
@@ -49,7 +60,7 @@ export function createUI(
   host.append(root);
   root.innerHTML = `<header class="masthead"><a class="wordmark" href="#" aria-label="Vector Nova home">VECTOR<span>//</span>NOVA</a><div class="edition"><i></i> <span></span></div></header>
  <section id="pause-panel" class="modal hidden"><h2>Paused</h2><button id="resume" class="primary">Resume <span aria-hidden="true">→</span></button><button id="pause-results" class="hidden">Results</button><section class="pause-quick-settings" aria-label="Quick settings">${import.meta.env?.VN_DESKTOP ? fullscreenSetting() : ''}<label>Graphics <select id="quality"><option value="high">High</option><option value="low">Low</option></select></label><label>Game effects <input id="volume" type="range" min="0" max="1" step=".05" value="${settings.volume}"></label><label>Reduced motion <input id="motion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label></section><div class="pause-restart"><button id="restart">Restart race</button></div><nav class="pause-secondary" aria-label="Session options"><button id="home">Race setup</button><button id="pause-settings">Settings</button>${actions.openTunes ? '<button id="pause-tunes" aria-controls="music-panel">Tunes</button>' : ''}</nav></section>
- <section id="hud" class="hidden"><div class="top-telemetry"><div class="position hidden"><span>POSITION</span><b id="position">1 / ${RACE_FIELD_SIZE}</b><small id="position-state"></small></div><div class="lap"><span>PRACTICE LAP</span><b id="lap">01</b></div><div class="timing"><span>LAP TIME</span><b id="time">00:00.000</b><small id="time-split" class="hidden"></small><small id="last">LAST —</small><small id="best"></small></div></div><div class="telemetry"><div class="energy"><span id="energy-label">CORE RESERVE</span><div id="energy-meter" class="energy-track" style="--reserve-color: ${deviceCSSColor('vector')}" role="meter" aria-labelledby="energy-label" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100" aria-valuetext="100% remaining"><i aria-hidden="true"></i></div></div>${speedGaugeMarkup}</div><canvas id="minimap" width="200" height="150" aria-label="Track map"></canvas></section>
+ <section id="hud" class="hidden"><div class="top-telemetry"><div class="position hidden"><span>POSITION</span><b id="position">1 / ${RACE_FIELD_SIZE}</b><small id="position-state"></small></div><div class="lap"><span>PRACTICE LAP</span><b id="lap">01</b></div><div class="timing"><span>LAP TIME</span><b id="time">00:00.000</b><small id="time-split" class="hidden"></small><small id="last">LAST —</small><small id="best"></small></div></div><div class="telemetry">${coreReserveMarkup}${speedGaugeMarkup}</div><canvas id="minimap" width="200" height="150" aria-label="Track map"></canvas></section>
  ${!import.meta.env?.VN_DESKTOP ? '<footer id="legend"><div class="legend-movement"><kbd>WASD</kbd><span class="legend-or" aria-hidden="true">/</span><kbd aria-label="Arrow keys">↑←↓→</kbd><span>MOVEMENT</span></div><div class="legend-direction"><kbd>W</kbd><kbd>↑</kbd><span>THROTTLE</span></div><div class="legend-direction"><kbd>A</kbd><kbd>D</kbd><span>STEER</span></div><div class="legend-direction"><kbd>S</kbd><span>BRAKE</span></div><div><kbd>SPACE</kbd><span>AIRBRAKE</span></div><div class="legend-boost"><kbd>SHIFT</kbd><span>BOOST</span></div><div><kbd>R</kbd><span>RECOVER / RETRY</span></div><div><kbd>ESC</kbd><span>PAUSE</span></div></footer>' : ''}
  <div id="touch" class="hidden" role="group" aria-label="Touch driving controls">
   <div class="touch-steer" data-touch-control="steer" role="group" aria-label="Steering: drag left or right; pull down for airbrake. Release to center.">

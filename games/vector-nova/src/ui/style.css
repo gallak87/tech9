@@ -729,29 +729,49 @@ body {
   width: 250px;
 }
 :where(#app) .energy span {
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.17em;
   display: block;
 }
 :where(#app) .energy-track {
-  height: 8px;
+  display: grid;
+  grid-template-columns: repeat(var(--reserve-segments), minmax(0, 1fr));
+  gap: clamp(1px, 0.26vw, 4px);
+  height: clamp(15px, 2vw, 21px);
   margin-top: 7px;
+  padding: clamp(2px, 0.3vw, 3px) 6px;
   border: 1px solid #61666a;
+  border-radius: 999px;
   background: #181b1ee6;
 }
 :where(#app) .energy-track.is-low {
   border-color: #ed835b;
   background: #4c251be6;
 }
-:where(#app) .energy-track i {
-  display: block;
-  height: 100%;
+:where(#app) .energy-track > i {
+  position: relative;
+  background: #343b40;
+}
+:where(#app) .energy-track > i::before {
+  content: '';
+  position: absolute;
+  inset: 0;
   background: var(--reserve-color);
-  transform: scaleX(clamp(0, var(--reserve-level, 1), 1));
+  box-shadow: 0 0 4px color-mix(in srgb, var(--reserve-color) 58%, transparent);
+  transform: scaleX(
+    clamp(
+      0,
+      calc(
+        var(--reserve-level, 1) * var(--reserve-segments) -
+          var(--reserve-segment)
+      ),
+      1
+    )
+  );
   transform-origin: left center;
 }
 :where(#app) .speed {
-  --speed-gauge-size: clamp(92px, min(12.7vw, calc(100dvh - 575px)), 184px);
+  --speed-gauge-size: clamp(92px, min(20.3vw, calc(100dvh - 575px)), 294px);
   --speed-gauge-start: -135deg;
   --speed-gauge-sweep: 270deg;
   --speed-gauge-angle: calc(
@@ -851,7 +871,7 @@ body {
 :where(#app) .speed-gauge-scale > span > span {
   top: 17%;
   color: #e0e8eb;
-  font-size: clamp(7px, calc(var(--speed-gauge-size) * 0.065), 12px);
+  font-size: clamp(7px, calc(var(--speed-gauge-size) * 0.065), 19px);
   font-variant-numeric: tabular-nums;
   transform: translate(-50%, -50%) rotate(calc(-1 * var(--gauge-tick-angle)));
 }
@@ -914,14 +934,14 @@ body {
 }
 :where(#app) .speed-gauge-unit {
   color: #dce6e9;
-  font-size: clamp(6px, calc(var(--speed-gauge-size) * 0.054), 10px);
+  font-size: clamp(6px, calc(var(--speed-gauge-size) * 0.054), 16px);
   line-height: 1;
   letter-spacing: 0.09em;
 }
 :where(#app) #boost-status {
   margin-top: 1px;
   color: #c3ced4;
-  font-size: clamp(6px, calc(var(--speed-gauge-size) * 0.048), 9px);
+  font-size: clamp(6px, calc(var(--speed-gauge-size) * 0.048), 14px);
   font-style: normal;
   font-weight: 700;
   line-height: 1;
@@ -933,17 +953,17 @@ body {
 }
 @media (max-height: 700px) {
   :where(#app) .speed {
-    --speed-gauge-size: clamp(64px, calc(100dvh - 500px), 136px);
+    --speed-gauge-size: clamp(64px, calc(100dvh - 500px), 170px);
   }
 }
 @media (max-width: 760px) {
   :where(#app) .speed {
-    --speed-gauge-size: 72px;
+    --speed-gauge-size: 76px;
   }
 }
 @media (max-height: 570px) and (orientation: landscape) {
   :where(#app) .speed {
-    --speed-gauge-size: 84px;
+    --speed-gauge-size: clamp(58px, calc(100dvh - 304px), 134px);
   }
 }
 @media (max-width: 760px), (max-height: 625px) {
@@ -970,9 +990,6 @@ body {
   }
 }
 @media (max-height: 350px) and (orientation: landscape) {
-  :where(#app) .speed {
-    --speed-gauge-size: 58px;
-  }
   :where(#app) #boost-status {
     position: absolute;
     width: 1px;
@@ -1213,7 +1230,7 @@ body {
     bottom: 155px;
   }
   :where(#app) .energy {
-    width: 160px;
+    width: 200px;
   }
   :where(#app) #minimap {
     top: 90px;
@@ -1355,11 +1372,13 @@ body {
     min-width: 24px;
   }
   :where(#app) .energy {
-    width: 310px;
+    width: min(388px, 46vw);
   }
-  :where(#app) .top-telemetry span,
-  :where(#app) .energy span {
+  :where(#app) .top-telemetry span {
     font-size: 11px;
+  }
+  :where(#app) .energy span {
+    font-size: 12px;
   }
 }
 
@@ -1507,7 +1526,7 @@ body {
     #interface:is(.compact-landscape, .has-racing).driving
     .energy
     span {
-    font-size: 8px;
+    font-size: 9px;
     letter-spacing: 0.08em;
   }
   :where(#app) #interface:is(.compact-landscape, .has-racing).driving #legend,
@@ -1530,7 +1549,7 @@ body {
     line-height: 1.2;
   }
   :where(#app) #interface.portrait-compact-hud.driving .energy span {
-    font-size: 8px;
+    font-size: 9px;
   }
   :where(#app) #interface.portrait-compact-hud.driving .energy-track {
     margin-top: 6px;
@@ -2134,7 +2153,7 @@ body {
   grid-template-columns: 22px 1fr auto;
   align-items: center;
   gap: 8px;
-  padding: 8px 0 8px 8px;
+  padding: 8px 5px 8px 8px;
   border-left: 3px solid var(--racer-color);
   margin-bottom: 5px;
   font-size: 11px;
@@ -2459,7 +2478,7 @@ body {
     grid-template-columns: 14px 1fr auto;
     gap: 4px;
     margin-bottom: 2px;
-    padding: 2px 0 2px 4px;
+    padding: 2px 4px;
     line-height: 1.1;
   }
   :where(#app) #race-roster:not(.in-paddock) li,

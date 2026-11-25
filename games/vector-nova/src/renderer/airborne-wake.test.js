@@ -45,7 +45,7 @@ function drawnRows(mesh) {
   );
   const lastVertex = Math.max(...drawn);
   const rows = [];
-  for (let i = 0; i <= lastVertex; i += 2) {
+  for (let i = 0; i <= lastVertex; i += 4) {
     const left = new Vector3().fromBufferAttribute(attributes.position, i);
     const right = new Vector3().fromBufferAttribute(attributes.position, i + 1);
     rows.push(left.add(right).multiplyScalar(0.5));
@@ -80,11 +80,62 @@ test('The world-space wake follows the banked underside along a bounded curved p
   let length = 0;
   for (let i = 1; i < rows.length; i++)
     length += rows[i - 1].distanceTo(rows[i]);
-  assert.ok(Math.abs(length - 30) < 1e-4, `wake follows ${length}m of the arc`);
+  assert.ok(Math.abs(length - 42) < 1e-4, `wake follows ${length}m of the arc`);
+  const { along, fade } = mesh.geometry.attributes;
+  const olderRow = rows.findIndex((_, i) => along.getX(i * 4) >= 36);
+  assert.ok(olderRow > 0 && fade.getX(olderRow * 4) > 0.05);
   const middle = rows[Math.floor(rows.length / 2)];
   const chord = rows.at(-1).clone().sub(rows[0]);
   const fromHead = middle.clone().sub(rows[0]);
   assert.ok(fromHead.cross(chord).length() / chord.length() > 0.06);
+});
+
+test('Scallop phase repeats over the emitted path distance', (t) => {
+  const { mesh, state, tick } = harness(t);
+  tick();
+  state.position.z += 0.9;
+  tick();
+  const { ripplePhase } = mesh.material.uniforms;
+  const phase = ripplePhase.value;
+  const sample = drawnRows(mesh)[0];
+  assert.ok(phase > 0);
+
+  state.position.z += 3.1;
+  tick();
+  assert.ok(Math.abs(ripplePhase.value - phase) < 1e-9);
+  assert.ok(drawnRows(mesh)[1].distanceTo(sample) < 1e-5);
+});
+
+test('An airborne trick leaves both hull-local axes of each emitted row in the wake', (t) => {
+  const { mesh, state, tick } = harness(t);
+  const hullFrames = [0, Math.PI / 2, Math.PI].map((roll) =>
+    new Quaternion().setFromEuler(new Euler(0.2, 0.35, roll)),
+  );
+  for (const frame of hullFrames) {
+    state.position.z += 1.5;
+    state.quaternion.copy(frame);
+    tick();
+  }
+
+  assert.equal(drawnRows(mesh).length, hullFrames.length);
+  const { position, fade } = mesh.geometry.attributes;
+  for (const [row, frame] of hullFrames.toReversed().entries()) {
+    const vertex = row * 4;
+    const right = new Vector3()
+      .fromBufferAttribute(position, vertex + 1)
+      .sub(new Vector3().fromBufferAttribute(position, vertex));
+    const up = new Vector3()
+      .fromBufferAttribute(position, vertex + 3)
+      .sub(new Vector3().fromBufferAttribute(position, vertex + 2));
+    const expectedRight = new Vector3(1, 0, 0).applyQuaternion(frame);
+    const expectedUp = new Vector3(0, 1, 0).applyQuaternion(frame);
+    assert.ok(right.length() > 1);
+    assert.ok(up.length() > 0.2 && up.length() < right.length());
+    assert.ok(right.normalize().dot(expectedRight) > 0.99999);
+    assert.ok(up.normalize().dot(expectedUp) > 0.99999);
+    assert.ok(fade.getX(vertex + 2) > 0);
+    assert.ok(fade.getX(vertex + 2) < fade.getX(vertex));
+  }
 });
 
 test('Pause freezes the flight trace and landing fades its last rows in place', (t) => {

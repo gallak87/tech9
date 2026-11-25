@@ -82,7 +82,7 @@ test('the film is broad over the banked road and fades within a bounded distance
   const head = spanAt(points, front);
   const tail = spanAt(points, end);
   const travelled = Math.hypot(front - end, (head.center - tail.center) / 0.8);
-  assert.ok(Math.abs(travelled - 30) < 1e-4, 'history stays bounded to 30 m');
+  assert.ok(Math.abs(travelled - 42) < 1e-4, 'history stays bounded to 42 m');
   assert.ok(Math.abs(head.width - 4.6 * 0.6) < 1e-4);
   assert.ok(Math.abs(head.width - tail.width) < 1e-4, 'film fades in place');
   assert.ok(head.center > tail.center, 'older trace stays on the driven path');
@@ -92,14 +92,15 @@ test('the film is broad over the banked road and fades within a bounded distance
   assert.ok(points.some(({ fade }) => fade > 0.26) && tail.fade < 1e-6);
 });
 
-test('the trail reaches 20 m at 80 km/h, 25 m at 100, and 30 m at 120+', (t) => {
+test('the player wake grows with speed and caps at 42 m', (t) => {
   const trail = createGlideTrail({ track });
   t.after(() => trail.dispose());
   for (const [kmh, length, visibleDepth] of [
     [80, 20, 15],
     [100, 25, 19],
     [120, 30, 23],
-    [240, 30, 23],
+    [168, 42, 32],
+    [240, 42, 32],
   ]) {
     const speed = kmh / 3.6;
     for (let frame = 0; frame <= 140; frame++) {
@@ -116,9 +117,9 @@ test('the trail reaches 20 m at 80 km/h, 25 m at 100, and 30 m at 120+', (t) => 
   }
 });
 
-test('a dimmer wake keeps the same reach and fades with per-racer visibility', (t) => {
+test('the dimmer rival wake keeps a 30 m reach and fades with visibility', (t) => {
   const player = createGlideTrail({ track });
-  const rival = createGlideTrail({ track, strengthScale: 0.46 });
+  const rival = createGlideTrail({ track, strengthScale: 0.46, reach: 30 });
   t.after(() => {
     player.dispose();
     rival.dispose();
@@ -131,8 +132,13 @@ test('a dimmer wake keeps the same reach and fades with per-racer visibility', (
     update(rival, time, distance, 0, { visibility: 0.5 });
   }
   const points = stripVertices(rival.mesh);
+  const playerPoints = stripVertices(player.mesh);
   assert.ok(Math.abs(points[0].z - points.at(-1).z - 30) < 1e-4);
-  assert.deepEqual(points, stripVertices(player.mesh));
+  assert.ok(Math.abs(playerPoints[0].z - playerPoints.at(-1).z - 42) < 1e-4);
+  assert.deepEqual(
+    spanAt(points, points[0].z),
+    spanAt(playerPoints, points[0].z),
+  );
   assert.equal(player.mesh.material.uniforms.opacityScale.value, 1);
   assert.equal(rival.mesh.material.uniforms.opacityScale.value, 0.23);
   update(rival, 0.7, 90, 0, { visibility: 0.75 });
@@ -177,14 +183,21 @@ test('surface samples stay on the deposited path as the wake fades', (t) => {
   update(trail, 0.2, 120, 2);
   const atDeposit = ({ z }) => Math.abs(z - 109.55) < 1e-4;
   const coordinates = ({ x, y, z, phase }) => [x, y, z, phase];
+  const { leadingFade, ripplePhase } = trail.mesh.material.uniforms;
+  const scallopAt = ({ phase }) => {
+    const along = leadingFade.value.x - phase;
+    return Math.sin((along * 2 * Math.PI) / 3.1 - ripplePhase.value);
+  };
   const old = stripVertices(trail.mesh).filter(atDeposit);
   assert.ok(old.length > 0);
+  const oldScallop = scallopAt(old[0]);
   assert.ok(
     old.every(({ phase }) => Math.abs(phase - Math.hypot(10, 1)) < 1e-5),
   );
   update(trail, 0.3, 130, 3, { boost: 1 });
   const retained = stripVertices(trail.mesh).filter(atDeposit);
   assert.deepEqual(retained.map(coordinates), old.map(coordinates));
+  assert.ok(Math.abs(scallopAt(retained[0]) - oldScallop) < 1e-9);
   assert.ok(retained[0].fade < old[0].fade);
 
   update(trail, 0.85, 185, 4, { grounded: false });

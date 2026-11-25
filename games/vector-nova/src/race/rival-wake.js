@@ -4,6 +4,8 @@ import { createGlideTrail } from '../renderer/glide-trail.js';
 import { interpolateSurfaceLateral } from '../track/surface.js';
 import { RACER_COLORS } from './roster.js';
 
+const rivalWakeReach = 30;
+
 export function createRivalWake(scene, track, surface, ship, specification) {
   const accent = specification.color ?? RACER_COLORS[specification.id];
   const { bounds } = ship.userData;
@@ -13,8 +15,13 @@ export function createRivalWake(scene, track, surface, ship, specification) {
     track,
     ...surface,
     strengthScale: 0.55,
+    reach: rivalWakeReach,
   });
-  const air = createAirborneWake({ strengthScale: 0.65 });
+  const air = createAirborneWake({
+    strengthScale: 0.65,
+    reach: rivalWakeReach,
+    duration: 0.6,
+  });
   ground.mesh.name = `${specification.name} / ground glide trail`;
   air.mesh.name = `${specification.name} / airborne glide wake`;
   scene.add(ground.mesh, air.mesh);

@@ -13,16 +13,21 @@ import {
   Vector3,
 } from 'three';
 import { glideWakeAnchor } from './glide-trail.js';
+import {
+  playerWakeReach,
+  wakeProfileGLSL,
+  wakeRipplePhase,
+} from './wake-profile.js';
 
-const reach = 30;
-const life = 0.6;
 const landingFade = 0.2;
-const capacity = Math.ceil(life * 240) + 2;
+const verticesPerRow = 4;
+const indicesPerSegment = 12;
 
 function wakeSample() {
   return {
     point: new Vector3(),
     edge: new Vector3(),
+    depth: new Vector3(),
     time: -Infinity,
     fade: 0,
   };
@@ -30,18 +35,27 @@ function wakeSample() {
 
 // The air wake carries copies of the rendered hull pose in scene space. The
 // road wake can therefore remain on the deck when this ribbon lifts away.
-export function createAirborneWake({ strengthScale = 1 } = {}) {
+export function createAirborneWake({
+  strengthScale = 1,
+  reach = playerWakeReach,
+  duration = 0.72,
+} = {}) {
   const geometry = new BufferGeometry();
-  const positions = new Float32BufferAttribute(capacity * 6, 3);
-  const fades = new Float32BufferAttribute(capacity * 2, 1);
-  const distances = new Float32BufferAttribute(capacity * 2, 1);
-  const across = new Float32Array(capacity * 2);
-  const indices = new Uint16Array((capacity - 1) * 6);
+  const capacity = Math.ceil(duration * 240) + 2;
+  const vertexCapacity = capacity * verticesPerRow;
+  const positions = new Float32BufferAttribute(vertexCapacity * 3, 3);
+  const fades = new Float32BufferAttribute(vertexCapacity, 1);
+  const distances = new Float32BufferAttribute(vertexCapacity, 1);
+  const across = new Float32Array(vertexCapacity);
+  const indices = new Uint16Array((capacity - 1) * indicesPerSegment);
   for (let i = 0; i < capacity; i++) {
-    const a = i * 2;
-    across.set([-1, 1], a);
-    if (i < capacity - 1)
-      indices.set([a, a + 1, a + 2, a + 1, a + 3, a + 2], i * 6);
+    const a = i * verticesPerRow;
+    across.set([-1, 1, -1, 1], a);
+    if (i === capacity - 1) break;
+    const b = a + verticesPerRow;
+    const index = i * indicesPerSegment;
+    indices.set([a, a + 1, b, a + 1, b + 1, b], index);
+    indices.set([a + 2, a + 3, b + 2, a + 3, b + 3, b + 2], index + 6);
   }
   for (const [name, attribute] of [
     ['position', positions],
@@ -57,12 +71,14 @@ export function createAirborneWake({ strengthScale = 1 } = {}) {
   const accentColor = new Color(0x9ed9ec);
   const length = { value: 0 };
   const opacity = { value: 0 };
+  const ripplePhase = { value: 0 };
   const material = new ShaderMaterial({
     uniforms: {
       ...UniformsUtils.clone(UniformsLib.fog),
       accent: { value: accentColor },
       wakeLength: length,
       opacity,
+      ripplePhase,
     },
     transparent: true,
     depthWrite: false,
@@ -82,15 +98,16 @@ export function createAirborneWake({ strengthScale = 1 } = {}) {
       }`,
     fragmentShader: `
       uniform vec3 accent;
-      uniform float wakeLength, opacity;
+      uniform float wakeLength, opacity, ripplePhase;
       varying vec3 wake;
       #include <fog_pars_fragment>
+      ${wakeProfileGLSL}
       void main() {
-        float edge = 1.0 - smoothstep(0.08, 1.0, abs(wake.x));
+        vec4 profile = wakeProfile(accent, wake.x, wake.y, ripplePhase);
         float front = smoothstep(0.0, 0.45, wake.y);
-        float tail = 1.0 - smoothstep(0.18, 1.0, wake.y / max(wakeLength, 0.001));
-        vec3 glow = accent * (1.18 + 0.28 * edge);
-        gl_FragColor = vec4(glow, opacity * wake.z * sqrt(edge) * front * tail);
+        float tail = 1.0 - smoothstep(0.41, 1.0, wake.y / max(wakeLength, 0.001));
+        float alpha = opacity * wake.z * front * tail * profile.a;
+        gl_FragColor = vec4(profile.rgb, clamp(alpha, 0.0, 1.0));
         #include <colorspace_fragment>
         #include <fog_fragment>
       }`,
@@ -106,6 +123,7 @@ export function createAirborneWake({ strengthScale = 1 } = {}) {
   const ground = wakeSample();
   const point = new Vector3();
   const edge = new Vector3();
+  const depth = new Vector3();
   const origin = new Vector3();
   const side = new Vector3();
   let head = -1;
@@ -123,6 +141,7 @@ export function createAirborneWake({ strengthScale = 1 } = {}) {
     geometry.setDrawRange(0, 0);
     mesh.visible = false;
     opacity.value = 0;
+    ripplePhase.value = 0;
   }
 
   function reset() {
@@ -133,39 +152,50 @@ export function createAirborneWake({ strengthScale = 1 } = {}) {
     landedAt = -Infinity;
   }
 
-  function store(sample, point, edge, time, fade) {
+  function store(sample, point, edge, depth, time, fade) {
     sample.point.copy(point);
     sample.edge.copy(edge);
+    sample.depth.copy(depth);
     sample.time = time;
     sample.fade = fade;
   }
 
-  function append(point, edge, time, fade) {
+  function append(point, edge, depth, time, fade, distance = 0) {
+    // New travel offsets the shader's head-relative distance, so each scallop
+    // stays on the part of the path that emitted it.
+    ripplePhase.value = wakeRipplePhase(distance, ripplePhase.value);
     head = (head + 1) % capacity;
     count = Math.min(capacity, count + 1);
-    store(samples[head], point, edge, time, fade);
+    store(samples[head], point, edge, depth, time, fade);
   }
 
   function draw(time) {
-    let rows = 0;
+    let vertices = 0;
     let metres = 0;
-    function row(near, far, mix, metres) {
-      point.copy(near.point).lerp(far.point, mix);
-      side.copy(near.edge).lerp(far.edge, mix);
-      const age = time - MathUtils.lerp(near.time, far.time, mix);
-      const fade =
-        MathUtils.lerp(near.fade, far.fade, mix) *
-        (1 - MathUtils.smoothstep(age, life * 0.35, life));
-      for (const sign of [-1, 1]) {
+    function writePair(fade, distance) {
+      for (let sign = -1; sign <= 1; sign += 2) {
         positions.setXYZ(
-          rows,
+          vertices,
           point.x + sign * side.x,
           point.y + sign * side.y,
           point.z + sign * side.z,
         );
-        distances.setX(rows, metres);
-        fades.setX(rows++, fade);
+        distances.setX(vertices, distance);
+        fades.setX(vertices++, fade);
       }
+    }
+    function row(near, far, mix, distance) {
+      point.copy(near.point).lerp(far.point, mix);
+      const age = time - MathUtils.lerp(near.time, far.time, mix);
+      const fade =
+        MathUtils.lerp(near.fade, far.fade, mix) *
+        (1 - MathUtils.smoothstep(age, duration * 0.35, duration));
+      side.copy(near.edge).lerp(far.edge, mix);
+      writePair(fade, distance);
+      // The shallow second ribbon keeps the wake visible when the wide ribbon
+      // turns edge-on, using the same historical hull frame.
+      side.copy(near.depth).lerp(far.depth, mix);
+      writePair(fade * 0.55, distance);
     }
 
     for (let i = 0; i < count - 1; i++) {
@@ -175,7 +205,7 @@ export function createAirborneWake({ strengthScale = 1 } = {}) {
       const fraction = Math.min(
         1,
         (reach - metres) / segment,
-        (life - (time - near.time)) / (near.time - far.time),
+        (duration - (time - near.time)) / (near.time - far.time),
       );
       if (fraction <= 0) break;
       if (i === 0) row(near, near, 0, 0);
@@ -184,13 +214,14 @@ export function createAirborneWake({ strengthScale = 1 } = {}) {
       if (fraction < 1) break;
     }
     length.value = metres;
-    const visible = rows >= 4;
-    geometry.setDrawRange(0, visible ? (rows / 2 - 1) * 6 : 0);
+    const rows = vertices / verticesPerRow;
+    const visible = rows >= 2;
+    geometry.setDrawRange(0, visible ? (rows - 1) * indicesPerSegment : 0);
     mesh.visible = visible;
     if (!visible) return;
     for (const attribute of [positions, fades, distances]) {
       attribute.clearUpdateRanges();
-      attribute.addUpdateRange(0, rows * attribute.itemSize);
+      attribute.addUpdateRange(0, vertices * attribute.itemSize);
       attribute.needsUpdate = true;
     }
   }
@@ -228,8 +259,10 @@ export function createAirborneWake({ strengthScale = 1 } = {}) {
         .set(0, bottom - 0.12, glideWakeAnchor(tail))
         .applyQuaternion(quaternion)
         .add(position);
-      edge.set((bounds.max[0] - left) * 0.25, 0, 0).applyQuaternion(quaternion);
-      const fade = 0.22 * strengthScale * MathUtils.smoothstep(speed, 15, 36);
+      const halfWidth = (bounds.max[0] - left) * 0.25;
+      edge.set(halfWidth * 1.16, 0, 0).applyQuaternion(quaternion);
+      depth.set(0, halfWidth * 0.24, 0).applyQuaternion(quaternion);
+      const fade = 0.34 * strengthScale * MathUtils.smoothstep(speed, 15, 36);
       if (airborne) {
         const previous = lastAirborne ? samples[head] : ground;
         const elapsed = time - previous.time;
@@ -237,8 +270,15 @@ export function createAirborneWake({ strengthScale = 1 } = {}) {
         const adjacent = elapsed <= 0.12 && distance <= 3 + 2 * speed * elapsed;
         if (!lastAirborne || !adjacent) clearPath();
         if (!lastAirborne && adjacent && distance > 0.015)
-          append(ground.point, ground.edge, ground.time, ground.fade);
-        if (!count || distance > 0.015) append(origin, edge, time, fade);
+          append(
+            ground.point,
+            ground.edge,
+            ground.depth,
+            ground.time,
+            ground.fade,
+          );
+        if (!count || distance > 0.015)
+          append(origin, edge, depth, time, fade, count ? distance : 0);
         accentColor.set(accent);
         opacity.value = visibility;
         draw(time);
@@ -250,7 +290,7 @@ export function createAirborneWake({ strengthScale = 1 } = {}) {
             (1 - MathUtils.smoothstep(time - landedAt, 0, landingFade));
           if (opacity.value === 0) clearPath();
         }
-        store(ground, origin, edge, time, fade);
+        store(ground, origin, edge, depth, time, fade);
       }
       lastAirborne = airborne;
       lastTime = time;

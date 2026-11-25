@@ -13,14 +13,17 @@ import {
   Vector2,
   Vector3,
 } from 'three';
+import {
+  playerWakeReach,
+  wakeProfileGLSL,
+  wakeRipplePhase,
+} from './wake-profile.js';
 
 const onset = 75 / 3.6;
 const life = 0.9;
-const reach = 30;
 const headFeather = 0.45;
 const historySize = Math.ceil(life * 120) + 4;
 const rowSpacing = 0.58;
-const rowLimit = historySize + Math.ceil(reach / rowSpacing);
 const columns = 9;
 const strips = columns - 1;
 const projectionOptions = { geometryOnly: true };
@@ -55,7 +58,9 @@ export function createGlideTrail({
   surfaceStep = 0,
   coverageAt,
   strengthScale = 1,
+  reach = playerWakeReach,
 } = {}) {
+  const rowLimit = historySize + Math.ceil(reach / rowSpacing);
   const geometry = new BufferGeometry();
   const positions = new Float32BufferAttribute(rowLimit * columns * 3, 3);
   const fades = new Float32BufferAttribute(rowLimit * columns, 1);
@@ -78,12 +83,14 @@ export function createGlideTrail({
   const accentColor = new Color(0x9ed9ec);
   const leadingFade = new Vector2(0, headFeather);
   const opacityScale = { value: strengthScale };
+  const ripplePhase = { value: 0 };
   const material = new ShaderMaterial({
     uniforms: {
       ...UniformsUtils.clone(UniformsLib.fog),
       accent: { value: accentColor },
       leadingFade: { value: leadingFade },
       opacityScale,
+      ripplePhase,
     },
     transparent: true,
     depthWrite: false,
@@ -107,18 +114,16 @@ export function createGlideTrail({
     fragmentShader: `
       uniform vec3 accent;
       uniform vec2 leadingFade;
-      uniform float opacityScale;
+      uniform float opacityScale, ripplePhase;
       varying vec3 trail;
       #include <fog_pars_fragment>
+      ${wakeProfileGLSL}
       void main() {
-        float lateral = abs(trail.x);
-        float edge = 1.0 - smoothstep(0.48, 1.0, lateral);
-        float band = 1.0 - smoothstep(0.25, 0.9, lateral);
-        float halo = sqrt(edge);
-        vec3 livery = accent * (1.12 + 0.29 * band);
-        float lead = smoothstep(0., leadingFade.y, abs(trail.z - leadingFade.x));
-        float opacity = min(0.8, opacityScale * trail.y * lead * (0.63 * edge + 0.18 * halo));
-        gl_FragColor = vec4(livery, opacity);
+        float along = abs(trail.z - leadingFade.x);
+        float lead = smoothstep(0.0, leadingFade.y, along);
+        vec4 profile = wakeProfile(accent, trail.x, along, ripplePhase);
+        float opacity = min(0.8, opacityScale * trail.y * lead * profile.a);
+        gl_FragColor = vec4(profile.rgb, opacity);
         #include <colorspace_fragment>
         #include <fog_fragment>
       }`,
@@ -333,6 +338,9 @@ export function createGlideTrail({
     // Evaluate the feather between vertices so its length remains constant as
     // adjacent frames need different numbers of deck samples.
     leadingFade.set(travelled[head] ?? 0, headFeather);
+    // Cancel the advancing head distance so the ripples stay where they
+    // were deposited on the deck.
+    ripplePhase.value = wakeRipplePhase(leadingFade.x);
     let previousRow = -1;
     let previousStation = 0,
       previousLateral = 0,
@@ -535,6 +543,7 @@ export function createGlideTrail({
           strengthAt(speed, pressure) * MathUtils.clamp(fadeScale, 0, 1);
         const length = origin + 6.3;
         leadingFade.set(origin, headFeather);
+        ripplePhase.value = wakeRipplePhase(origin);
         let previous = -1;
         for (let row = 0; row <= 12; row++) {
           const fraction = row / 12;

@@ -15,6 +15,9 @@ const playIcon = icon(
   '<path d="m9 5 11 7-11 7Z" fill="currentColor" stroke="none"/>',
 );
 const pauseIcon = icon('<path d="M8 5v14M16 5v14" stroke-width="4"/>');
+const slidersIcon = icon(
+  '<path d="M4 6h5m4 0h7M4 12h9m4 0h3M4 18h3m4 0h9M11 3.5v5M15 9.5v5M9 15.5v5"/>',
+);
 
 // Shared music transport. Independent of race time and the effects mix.
 export function createMusicPlayer(
@@ -63,7 +66,7 @@ export function createMusicPlayer(
         <div class="music-eyebrow"><span>TUNES</span><span class="music-status" role="status">Ready</span></div>
         <select class="music-song menu-select menu-select--compact" aria-label="Song"></select>
       </div>
-      <div class="music-keyed"><button type="button" class="music-expand" aria-expanded="true" aria-controls="music-controls" aria-label="Collapse music player" aria-keyshortcuts="/" title="Collapse · /">${icon('<path d="m7 14 5-5 5 5"/>')}</button><kbd aria-hidden="true">/</kbd></div>
+      <div class="music-keyed"><button type="button" class="music-expand" aria-expanded="true" aria-controls="music-controls" aria-label="Hide playback controls" aria-keyshortcuts="/" title="Hide playback controls · /">${slidersIcon}</button><kbd aria-hidden="true">/</kbd></div>
     </header>
     <div id="music-controls">
       <div class="music-timeline">
@@ -288,11 +291,11 @@ export function createMusicPlayer(
     controls.hidden = collapsed;
     root.classList.toggle('is-collapsed', collapsed);
     expand.setAttribute('aria-expanded', String(!collapsed));
-    expand.setAttribute(
-      'aria-label',
-      collapsed ? 'Expand music player' : 'Collapse music player',
-    );
-    expand.title = collapsed ? 'Expand · /' : 'Collapse · /';
+    const expandLabel = collapsed
+      ? 'Show playback controls'
+      : 'Hide playback controls';
+    expand.setAttribute('aria-label', expandLabel);
+    expand.title = `${expandLabel} · /`;
     compactToggle.setAttribute('aria-expanded', String(!collapsed));
     compactToggle.setAttribute(
       'aria-label',

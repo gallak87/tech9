@@ -145,8 +145,8 @@
 .music-player .music-expand {
   width: 22px;
 }
-.is-collapsed .music-expand svg {
-  transform: rotate(180deg);
+.music-player .music-expand[aria-expanded='true']:not(:disabled) {
+  color: var(--menu-focus, #ff7771);
 }
 .music-timeline {
   margin-top: 3px;

@@ -132,24 +132,58 @@ def build_harbor(context):
             return 235
         return 115
 
+    def omit_horizontal_face(record, height):
+        # The builder records collision before returning this render piece.
+        # Its vertices are in Blender coordinates, where Z is elevation.
+        elevation = water_y + height
+        record['faces'] = [
+            face for face in record['faces']
+            if any(abs(record['vertices'][i][2] - elevation) > 1e-4 for i in face)
+        ]
+
+    def quay_surface(name, side, inner, outer, start, end, material):
+        vertices = [p(side * x, 12, z) for x, z in (
+            (inner, start), (inner, end), (outer, end), (outer, start))]
+        face = (0, 1, 2, 3) if side > 0 else (3, 2, 1, 0)
+        record = mesh('Blackstart harbor / ' + name, vertices, [face], material)
+        # The generic box builder recalculates normals. This open cap still
+        # needs its authored upward winding for the baked lighting and UVs.
+        record['faces'] = [face]
+
     # Recessed berths replace an unbroken rectangular display pad. Each quay
     # remains a continuous strip of working land with an actual water-facing
     # bulkhead, differentiated paved courts and rail connections.
     for side in [-1, 1]:
         intervals = [(-260, 80, 115), (80, 360, 205), (360, 1220, 115)] if side < 0 else [(-260, 500, 115), (500, 950, 235), (950, 1220, 115)]
+        accepted = set()
         for start, end, edge in intervals:
             length, station = end - start, (start + end) / 2
             width = 510 - edge
             center = p(side * (edge + width / 2), -5, station)
             if not available('stepped terminal quay', center, (width, 34, length)):
                 continue
-            block('continuous founded terminal quay', center, (width, 34, length), concrete, solid=True)
-            block('quay water retaining face', p(side * edge, -1, station),
-                  (3, 26, length), aggregate, solid=True)
+            accepted.add((start, end))
+            foundation = block('continuous founded terminal quay', center,
+                               (width, 34, length), concrete, solid=True)
+            omit_horizontal_face(foundation, 12)
+            retaining_face = block('quay water retaining face', p(side * edge, -1, station),
+                                   (3, 26, length), aggregate, solid=True)
+            omit_horizontal_face(retaining_face, 12)
             block('quay coping course', p(side * edge, 11.5, station),
                   (5, 1.4, length), limestone)
-            block('working waterside apron', p(side * (edge + 48), 12.15, station),
-                  (90, .2, length - 4), aggregate)
+            # Fill only the exposed concrete. The apron and coping occupy
+            # cutouts, so a distant camera never compares stacked deck faces.
+            for inner, outer, first, last in [
+                (edge + 2.5, 510, start, start + 2),
+                (edge + 2.5, edge + 3, start + 2, end - 2),
+                (edge + 93, 510, start + 2, end - 2),
+                (edge + 2.5, 510, end - 2, end),
+            ]:
+                quay_surface('exposed quay deck', side, inner, outer,
+                             first, last, concrete)
+            apron = block('working waterside apron', p(side * (edge + 48), 12.125, station),
+                          (90, .25, length - 4), aggregate)
+            omit_horizontal_face(apron, 12)
             for offset in [31, 59]:
                 block('quayside crane rail', p(side * (edge + offset), 12.4, station),
                       (.55, .5, length - 12), wear)
@@ -159,9 +193,21 @@ def build_harbor(context):
                          .65, 2.2, steel, up, 12)
         # The berth returns have real retaining walls rather than floating
         # trim where the water cuts into the terminal.
-        for station, depth in ([(80, 90), (360, 90)] if side < 0 else [(500, 120), (950, 120)]):
-            block('berth return retaining wall', p(side * (115 + depth / 2), -1, station),
-                  (depth, 26, 3), aggregate, solid=True)
+        for previous, following in zip(intervals, intervals[1:]):
+            station = previous[1]
+            shallow, recessed = sorted((previous[2], following[2]))
+            depth = recessed - shallow
+            wall = block('berth return retaining wall', p(side * (shallow + depth / 2), -1, station),
+                         (depth, 26, 3), aggregate, solid=True)
+            quay = previous if previous[2] == shallow else following
+            if quay[:2] not in accepted:
+                continue
+            # Only the half over the recessed berth is exposed. The rest of
+            # this wall's cap would be coplanar with the adjoining quay deck.
+            omit_horizontal_face(wall, 12)
+            first, last = (station, station + 1.5) if quay == previous else (station - 1.5, station)
+            quay_surface('exposed berth return cap', side, shallow, recessed,
+                         first, last, aggregate)
         block('port perimeter service street', p(side * 507, 12.3, 480),
               (6, .25, 1460), aggregate)
         summary['quays'] += 1

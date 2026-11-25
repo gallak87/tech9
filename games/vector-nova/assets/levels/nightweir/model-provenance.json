@@ -1,13 +1,13 @@
 {
-  "generator": "Blender 5.1.1 project-authored deterministic build",
+  "generator": "Blender 5.2.3 LTS project-authored deterministic build",
   "seed": 773,
   "source": "nightweir-city.blend",
   "runtime": "nightweir-city.glb.gz",
   "encoding": {
     "compression": "gzip",
-    "decompressedSha256": "c3316110c0fb676b45d8eee23bef9a30d08a1d33b0b92ff84c3a966629b43200"
+    "decompressedSha256": "e81a9cf91f63ed2bff0a7152209bc20a70374eb337f0b3b8f7cece3e971e9925"
   },
-  "triangles": 1733312,
+  "triangles": 1733324,
   "districts": 17,
   "solidTriangles": 286448,
   "inhabitedTerraces": 187,

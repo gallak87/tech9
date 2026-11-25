@@ -14,8 +14,8 @@
   "runtimeAssets": [
     {
       "file": "public/assets/levels/nightweir/nightweir-city.glb.gz",
-      "bytes": 28340762,
-      "sha256": "175261f4961e6a451ac7b2b3eade826d2d298680ecc813f07c5546e9ac3f0d11"
+      "bytes": 28337643,
+      "sha256": "206022606602224ce10ad484652581a81f48d699d9d52dcffbfbe79f01f822e4"
     },
     {
       "file": "public/assets/levels/nightweir/sky-v1.png",
@@ -43,7 +43,7 @@
       "sha256": "dabbcda1836edb06be359f5a197e02af8b499d666852fc67166f4e49e8ebdc0c"
     }
   ],
-  "updatedDate": "2026-10-15",
+  "updatedDate": "2026-11-25",
   "authoring": {
     "seed": 773,
     "routeGeometry": "nightweir-sprint-v3",
@@ -106,13 +106,13 @@
   "authoringFiles": [
     {
       "file": "assets/levels/nightweir/nightweir-city.blend",
-      "bytes": 41108792,
-      "sha256": "a86bd51e66049fd786148b658fcbfd9b86e32013e4a28dd34d01e95d59a221ec"
+      "bytes": 41110656,
+      "sha256": "01e22b5e3aec3c131ea70703ef5a10641a6f402c3f72c44f46b6d8aabc22828e"
     },
     {
       "file": "assets/levels/nightweir/build_assets.py",
-      "bytes": 143891,
-      "sha256": "8d7a92c46e6166257d193302162e3d93ce7925665bbd8056fe20d2c67c1d88ce"
+      "bytes": 143842,
+      "sha256": "126cc295f44b38715e1a71061e8b13eff98390cf0bf9d3d59dbf9a99594f0931"
     },
     {
       "file": "assets/levels/nightweir/export-route.mjs",
@@ -136,8 +136,8 @@
     },
     {
       "file": "assets/levels/nightweir/model-provenance.json",
-      "bytes": 993,
-      "sha256": "cf7207f3ab510bf69b193c42e5ba92960dd8eb9ad952040452d32534de49ed97"
+      "bytes": 997,
+      "sha256": "19fad9ef284f32a9c3fc69cbe9aa4c8329833ed82b1d72659081523d7244ea66"
     },
     {
       "file": "assets/levels/nightweir/blackstart_canal.py",
@@ -151,8 +151,8 @@
     },
     {
       "file": "assets/levels/nightweir/blackstart_harbor.py",
-      "bytes": 28878,
-      "sha256": "72f27f6919e465343a5fcb532a15e493ae539e1357f5d8073a26caf1a6e15e10"
+      "bytes": 31344,
+      "sha256": "79c3e8d66e85d3ee99d31df11ab1d2a005c8e823b8040f79eddbcf8e76732470"
     },
     {
       "file": "assets/levels/nightweir/blackstart_lower_works.py",

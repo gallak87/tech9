@@ -663,7 +663,6 @@ export async function createFrontend(
     focusMenu(
       [...shell.querySelectorAll('main button, main input, main select')].find(
         (control) =>
-          control.dataset.action !== 'resume-session' &&
           !control.disabled &&
           control.tabIndex >= 0 &&
           !control.hasAttribute('data-controller-skip') &&
@@ -986,7 +985,11 @@ export async function createFrontend(
   };
   const hasResumableSession = sessionNavigation.canResume;
   const sessionReturn = () => {
-    if (!hasResumableSession()) return '';
+    if (
+      (screen === 'settings' && settingsBack === 'editor') ||
+      !hasResumableSession()
+    )
+      return '';
     const name = sessionCup
       ? 'Cup Race'
       : sessionIntent === 'freestyle'
@@ -1000,7 +1003,9 @@ export async function createFrontend(
               : sessionIntent === 'practice'
                 ? 'Practice'
                 : 'Quick Race';
-    return `<aside class="session-return"><button data-action="resume-session"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 4-5 5 5 5M4 9h10a6 6 0 0 1 0 12h-2"/></svg><span><strong>Resume ${name}</strong><small>${escape(loadedLevel().name)}</small></span></button></aside>`;
+    const course = escape(loadedLevel().name);
+    const label = `Resume ${name} · ${course}`;
+    return `<button type="button" class="session-return" data-action="resume-session" aria-label="${label}" title="${label}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 4-5 5 5 5M4 9h10a6 6 0 0 1 0 12h-2"/></svg><span class="session-return-copy"><strong>Resume ${name}</strong><small>${course}</small></span><span class="session-return-short" aria-hidden="true">Resume</span></button>`;
   };
   const toolMenu = () =>
     !tool
@@ -1068,7 +1073,7 @@ export async function createFrontend(
       career && onSwitchCareer
         ? '<button class="menu-switch-career" data-action="switch-career">Switch career <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 14-5-5 5-5M4 9h10a6 6 0 0 1 6 6v5"/></svg></button>'
         : '';
-    return `<header class="menu-topbar"><span class="menu-wordmark">VECTOR<span>//</span>NOVA</span><nav class="menu-top-tabs" aria-label="Main navigation">${tabs.map(([action, label]) => `<button data-action="${action}" ${action === 'tunes' ? 'aria-expanded="false" aria-controls="music-panel"' : `aria-pressed="${active === action}"`}>${label}</button>`).join('')}${switchCareer}</nav></header>`;
+    return `<header class="menu-topbar"><span class="menu-wordmark">VECTOR<span>//</span>NOVA</span>${sessionReturn()}<nav class="menu-top-tabs" aria-label="Main navigation">${tabs.map(([action, label]) => `<button data-action="${action}" ${action === 'tunes' ? 'aria-expanded="false" aria-controls="music-panel"' : `aria-pressed="${active === action}"`}>${label}</button>`).join('')}${switchCareer}</nav></header>`;
   };
   const headerObserver = new ResizeObserver(updateHeaderClearance);
   life.signal.addEventListener('abort', () => headerObserver.disconnect(), {
@@ -1086,9 +1091,7 @@ export async function createFrontend(
     headerObserver.disconnect();
     const header = shell.querySelector('.menu-topbar');
     if (header) {
-      const main = shell.querySelector('.front-content');
-      if (main && !main.querySelector('.session-return'))
-        main.insertAdjacentHTML('afterbegin', sessionReturn());
+      music?.setCompactMenu(!!header.querySelector('.session-return'));
       updateHeaderClearance();
       headerObserver.observe(header);
     }
@@ -1178,11 +1181,16 @@ export async function createFrontend(
   }
   function render() {
     if (disposed) return;
+    if (shell.hidden || !(choosingSession() || utilityPage()))
+      music?.setCompactMenu(false);
     headerObserver.disconnect();
     disposeControllerSettings?.();
     disposeControllerSettings = null;
     syncMenuBackdrop();
-    if (shell.hidden) return;
+    if (shell.hidden) {
+      if (screen === 'editor') shell.querySelector('.session-return')?.remove();
+      return;
+    }
     if (choosingSession()) {
       renderMenu();
       return;
@@ -3231,6 +3239,7 @@ export async function createFrontend(
     game = null;
     inspector?.dispose();
     inspector = null;
+    music?.setCompactMenu(false);
     music?.close();
     if (!sharedMusic) music?.dispose();
     sounds?.dispose();

@@ -58,7 +58,9 @@ await (async () => {
     const assertSettingsResume = async (name) => {
       await page.locator('[data-action="settings-back"]').waitFor();
       assert.equal(
-        await page.locator('.session-return').count(),
+        await page
+          .locator('.menu-topbar [data-action="resume-session"]')
+          .count(),
         Number(!!name),
       );
       assert.equal(
@@ -67,8 +69,8 @@ await (async () => {
       );
       if (name)
         assert.equal(
-          await page.locator('.session-return strong').textContent(),
-          `Resume ${name}`,
+          await page.getByRole('button', { name: `Resume ${name}` }).count(),
+          1,
         );
       assert.ok(
         await page.evaluate(

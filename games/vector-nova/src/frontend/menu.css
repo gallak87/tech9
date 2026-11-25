@@ -54,27 +54,6 @@
   align-items: start;
   gap: clamp(24px, 4vw, 64px);
 }
-.front-content.menu-wide:has(> .session-return) {
-  align-content: start;
-  row-gap: 0;
-}
-/* The track library starts alongside the retained session. */
-.menu-wide:has(> .session-return ~ .menu-track-picker > .course-sources) {
-  grid-template-areas:
-    'resume tracks'
-    'setup tracks';
-  grid-template-rows: auto 1fr;
-}
-.menu-wide:has(> .menu-track-picker > .course-sources) > .session-return {
-  grid-area: resume;
-  margin-bottom: 8px;
-}
-.front-content.menu-wide:has(> .menu-track-picker > .course-sources)
-  > .session-return
-  + .race-menu {
-  grid-area: setup;
-  padding-top: 0;
-}
 .race-menu {
   padding-top: 40px;
   max-width: 450px;
@@ -270,60 +249,6 @@
     padding-inline: 8px;
   }
 }
-/* A retained session is the first action, with its own quiet gold accent. */
-.menu-layout .session-return {
-  width: min(100%, 370px);
-  margin-bottom: 16px;
-}
-:where(#app) .session-return button {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  min-height: 54px;
-  padding: 10px 12px;
-  border: 1px solid #b69a4e9c;
-  background: #d6b65c10;
-  color: #f3d783;
-  text-align: left;
-}
-:where(#app) .session-return button:hover {
-  border-color: #d6b65c;
-  background: #d6b65c20;
-}
-:where(#app) .session-return button:focus-visible {
-  outline: 2px solid #f3d783;
-  outline-offset: 3px;
-}
-.session-return svg {
-  flex: 0 0 22px;
-  width: 22px;
-  height: 22px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.6;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-.session-return button > span {
-  min-width: 0;
-}
-.session-return strong,
-.session-return small {
-  display: block;
-}
-.session-return strong {
-  font-size: 14px;
-  line-height: 1.3;
-  font-weight: 600;
-}
-.session-return small {
-  margin-top: 3px;
-  color: #c6bfa9;
-  font-size: 11px;
-  line-height: 1.35;
-  overflow-wrap: anywhere;
-}
 .menu-transfer {
   max-width: 370px;
 }
@@ -335,13 +260,6 @@
   height: auto;
   display: flex;
   flex-direction: column;
-}
-.menu-wide > .session-return ~ .menu-picker {
-  padding-top: 8px;
-}
-.menu-wide > .session-return ~ .menu-track-picker:has(> .course-sources) {
-  grid-area: tracks;
-  padding-top: 4px;
 }
 .picker-tabs {
   display: flex;
@@ -610,12 +528,6 @@
 }
 .menu-narrow > .race-menu {
   padding-top: 25px;
-}
-.menu-narrow > .session-return:has(+ .race-menu) {
-  margin-bottom: 8px;
-}
-.menu-narrow > .session-return + .race-menu {
-  padding-top: 0;
 }
 .menu-narrow .menu-picker {
   max-width: 850px;
@@ -1363,6 +1275,120 @@
 @media (max-width: 360px) {
   .menu-topbar > :is(.menu-wordmark, .entry-wordmark) {
     font-size: 19px;
+  }
+}
+.menu-topbar:has(> .session-return) {
+  display: grid;
+  grid-template-columns: max-content max-content minmax(0, 1fr);
+  justify-items: start;
+  align-items: center;
+  gap: 8px 16px;
+}
+#front-shell .session-return {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  max-width: 176px;
+  padding: 4px 10px;
+  border: 1px solid #b69a4e82;
+  background: #d6b65c10;
+  color: #f3d783;
+  font:
+    600 12px/1.2 Arial,
+    sans-serif;
+  letter-spacing: normal;
+  text-align: left;
+  white-space: nowrap;
+}
+#front-shell .session-return:hover {
+  border-color: #d6b65c;
+  background: #d6b65c20;
+}
+#front-shell .session-return:focus-visible {
+  outline-color: #f3d783;
+}
+.session-return svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+.session-return-copy {
+  min-width: 0;
+}
+.session-return-copy :is(strong, small) {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.session-return-copy small {
+  margin-top: 3px;
+  color: #c6bfa9;
+  font-size: 10px;
+  font-weight: 400;
+}
+.session-return-short {
+  display: none;
+}
+@media (max-width: 1380px) {
+  .menu-topbar:has(> .session-return) {
+    right: clamp(24px, 4vw, 64px);
+    grid-template-columns: max-content minmax(0, 1fr);
+    column-gap: 10px;
+  }
+  .menu-topbar:has(> .session-return) > .menu-top-tabs {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+}
+@media (max-width: 700px) {
+  #front-shell .session-return {
+    gap: 6px;
+    padding-inline: 8px;
+  }
+  .session-return-copy {
+    display: none;
+  }
+  .session-return-short {
+    display: block;
+  }
+}
+@media (min-width: 521px) and (max-width: 700px) {
+  body:has(#front-shell:not([hidden]) > .menu-topbar > .session-return)
+    .music-player:not(.is-compact) {
+    width: 41vw;
+  }
+}
+@media (max-width: 520px) {
+  .menu-topbar:has(> .session-return) {
+    top: 16px;
+    left: 16px;
+  }
+  body:has(#front-shell:not([hidden]) > .menu-topbar > .session-return)
+    .music-player.is-compact
+    .music-compact-toggle {
+    height: 42px;
+  }
+}
+@media (max-width: 360px) {
+  .menu-topbar:has(> .session-return) {
+    column-gap: 8px;
+  }
+  #front-shell .session-return {
+    gap: 5px;
+    padding-inline: 5px;
+  }
+}
+@media (max-width: 319px) {
+  .menu-topbar:has(> .session-return) {
+    column-gap: 6px;
+  }
+  .menu-topbar:has(> .session-return) > .menu-wordmark {
+    font-size: 16px;
+  }
+  .session-return svg {
+    display: none;
   }
 }
 .menu-top-tabs {

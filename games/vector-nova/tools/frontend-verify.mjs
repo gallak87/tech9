@@ -181,6 +181,52 @@ const fleetCheck = (name, fn, viewport, settings, deviceScaleFactor) =>
   check(name, fn, viewport, settings, deviceScaleFactor, fleetSeed);
 const endgameCheck = (name, fn, viewport, settings, deviceScaleFactor) =>
   check(name, fn, viewport, settings, deviceScaleFactor, endgameSeed);
+
+async function assertHeaderResume(page, name, { wrapped, tunes = false } = {}) {
+  const resume = page.getByRole('button', { name });
+  assert.equal(await page.locator('[data-action="resume-session"]').count(), 1);
+  assert.equal(
+    await resume.count(),
+    1,
+    'Resume names the retained mode and circuit',
+  );
+  const layout = await resume.evaluate((button) => {
+    const bounds = (element) => element?.getBoundingClientRect().toJSON();
+    const header = button.closest('.menu-topbar');
+    return {
+      button: bounds(button),
+      logo: bounds(header?.querySelector('.menu-wordmark')),
+      tabs: bounds(header?.querySelector('.menu-top-tabs')),
+      tunes: bounds(document.querySelector('[data-music-player]')),
+      width: innerWidth,
+    };
+  });
+  const { button, logo, tabs, width } = layout;
+  assert.ok(logo && tabs, 'Resume belongs to the shared menu header');
+  assert.ok(
+    button.left >= logo.right - 1 &&
+      button.top < logo.bottom &&
+      button.bottom > logo.top &&
+      button.right <= width + 1,
+    'Resume fits to the right of the logo in the same row',
+  );
+  const navBelow = tabs.top >= button.bottom - 1;
+  assert.ok(
+    navBelow || tabs.left >= button.right - 1,
+    'Resume precedes the tabs',
+  );
+  if (wrapped !== undefined)
+    assert.equal(navBelow, wrapped, 'only the tab strip moves to the next row');
+  if (tunes) {
+    const dock = layout.tunes;
+    assert.ok(dock?.width > 0 && dock?.height > 0, 'the Tunes dock is visible');
+    assert.ok(
+      button.right <= dock.left + 1 || button.top >= dock.bottom - 1,
+      'Resume clears the Tunes dock',
+    );
+  }
+}
+
 // Normal spacing may need outer scrolling; every control must remain reachable.
 async function menuFits(page) {
   const layout = await page.evaluate(() => {
@@ -3170,36 +3216,7 @@ try {
         });
         await page.locator('#home').click();
         assert.equal((await front(page)).screen, 'home');
-        const setupLayout = await page
-          .locator('.menu-wide')
-          .evaluate((layout) => {
-            const resume = layout.querySelector(
-              '[data-action="resume-session"]',
-            );
-            const tabs = layout.querySelector('.course-sources button');
-            const modes = layout.querySelector('.mode-picker');
-            const textTop = (element) => {
-              const range = document.createRange();
-              range.selectNodeContents(element);
-              return range.getBoundingClientRect().top;
-            };
-            const resumeBounds = resume.getBoundingClientRect();
-            return {
-              modeGap: modes.getBoundingClientRect().top - resumeBounds.bottom,
-              tabOffset:
-                textTop(tabs) - textTop(resume.querySelector('strong')),
-              sideBySide:
-                tabs.getBoundingClientRect().left > resumeBounds.right,
-            };
-          });
-        assert.ok(
-          setupLayout.modeGap >= 4 && setupLayout.modeGap <= 12,
-          `Mode grid should sit just below Resume, got ${setupLayout.modeGap}px`,
-        );
-        assert.ok(
-          setupLayout.sideBySide && Math.abs(setupLayout.tabOffset) <= 8,
-          `Track sources should sit beside the Resume title, got ${setupLayout.tabOffset}px offset`,
-        );
+        await assertHeaderResume(page, /^Resume Quick Race.*Halcyon Speedway/);
         await page.locator('[data-action="resume-session"]').click();
         assert.ok(
           await page.evaluate(() => window.__VN === window.retainedRuntime),
@@ -3877,7 +3894,7 @@ try {
     await check(
       'active cup race stays suspended across menus and resumes through the shared action',
       async (page) => {
-        await page.goto(url('level=halcyon&music=0'));
+        await page.goto(url('level=halcyon'));
         await page.locator('[data-action="cup-hub"]').click();
         await page.locator('[data-cup="founders"]').click();
         await page.locator('[data-action="cup-start"]').click();
@@ -3936,11 +3953,11 @@ try {
           ) <= 1,
           'Settings retains its scroll position through another top-level tab',
         );
-        const retained = async () => {
-          assert.equal(
-            await page.locator('[data-action="resume-session"]').count(),
-            1,
-          );
+        const retained = async (wrapped) => {
+          await assertHeaderResume(page, /^Resume Cup Race.*Halcyon Speedway/, {
+            wrapped,
+            tunes: true,
+          });
           assert.equal(
             await page
               .locator('#front-shell')
@@ -3982,15 +3999,32 @@ try {
           { width: 2560, height: 1080 },
         ]) {
           await page.setViewportSize(viewport);
-          await retained();
+          const wrapped =
+            viewport.width === 1440 ? undefined : viewport.width === 1024;
+          await retained(wrapped);
           for (const action of ['settings', 'career', 'garage-tab']) {
             await page.locator(`[data-action="${action}"]`).click();
-            await retained();
+            await retained(wrapped);
           }
           await page.locator('[data-action="race-tab"]').click();
           await page.locator('[data-action="records"]').click();
-          await retained();
+          await retained(wrapped);
           await page.locator('[data-action="race-tab"]').click();
+          await page.locator('[data-action="track-editor"]').click();
+          const exitEditor = page.locator('[data-editor-action="exit"]');
+          await exitEditor.waitFor({ timeout: 90000 });
+          assert.equal((await front(page)).screen, 'editor');
+          assert.equal(
+            await page
+              .locator('[data-action="resume-session"]:visible')
+              .count(),
+            0,
+            'the Editor omits the retained race action',
+          );
+          await exitEditor.focus();
+          await page.keyboard.press('Enter');
+          assert.equal((await front(page)).screen, 'home');
+          await retained();
         }
         const fullscreenEnabled = await page.evaluate(
           () => document.fullscreenEnabled,

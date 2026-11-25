@@ -34,15 +34,18 @@ export function createMusicPlayer(
   let shuffled = preferences.shuffle === true;
   let queue = musicTracks;
   let driving = false;
+  let compactMenu = false;
   let returnFocus = null;
   const compact = matchMedia('(max-width: 760px)');
+  const narrowMenu = matchMedia('(max-width: 520px)');
   const compactEditor = matchMedia(
     '(max-width: 760px), (max-width: 900px) and (max-height: 540px)',
   );
   const isCompact = () =>
     document.body.dataset.screen === 'editor'
       ? compactEditor.matches
-      : compact.matches && (driving || !isMenuVisible());
+      : (compact.matches && (driving || !isMenuVisible())) ||
+        (compactMenu && narrowMenu.matches);
   const root = document.createElement('aside');
   root.className = 'music-player';
   root.dataset.musicPlayer = '';
@@ -328,14 +331,15 @@ export function createMusicPlayer(
     if (controls.hidden) open();
     else close();
   }
+  function syncCompactLayout() {
+    if (root.classList.contains('is-compact') === isCompact()) return;
+    expand.disabled = driving && !isCompact();
+    close();
+  }
   listen(expand, 'click', toggleExpanded);
   listen(compactToggle, 'click', toggleExpanded);
-  for (const query of [compact, compactEditor])
-    listen(query, 'change', () => {
-      if (root.classList.contains('is-compact') === isCompact()) return;
-      expand.disabled = driving && !isCompact();
-      close();
-    });
+  for (const query of [compact, compactEditor, narrowMenu])
+    listen(query, 'change', syncCompactLayout);
   function dismissOutside(event) {
     if (!root.contains(event.target) && root.hasAttribute('data-menu-active'))
       close(false);
@@ -509,6 +513,10 @@ export function createMusicPlayer(
       root.classList.toggle('is-compact', isCompact());
       expand.disabled = value && !isCompact();
       if (value) close();
+    },
+    setCompactMenu(value) {
+      compactMenu = value;
+      syncCompactLayout();
     },
     setSuspended(value) {
       suspended = !!value;

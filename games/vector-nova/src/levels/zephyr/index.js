@@ -1,6 +1,6 @@
 import { createZephyrCollisionWorld } from './collision.js';
 import { createZephyrTrack, createZephyrRoad } from './track/index.js';
-import { createZephyrEnvironment } from './environment/index.js';
+import { createZephyrEnvironment, zephyrModels } from './environment/index.js';
 import { createZephyrBackdrop } from './backdrop/index.js';
 import { createZephyrOverlay } from './overlay.js';
 import { createZephyrRuntime } from './runtime.js';
@@ -50,6 +50,7 @@ export default function createLevel({ shape = false } = {}) {
     },
     railContactSparks: true,
     practiceSectionsUntimed: true,
+    preloadModels: zephyrModels,
     createTrack() {
       const track = createZephyrTrack();
       track.interiors = [

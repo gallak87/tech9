@@ -98,6 +98,7 @@ import {
 } from '../progression/index.js';
 import { createMusicPlayer } from '../audio/player.js';
 import { createMenuBackdrop } from './menu-backdrop.js';
+import { simulationLoadStages, waitForLoadPaint } from '../core/load-yield.js';
 import { createCompletionOverlay } from './completion-overlay.js';
 import { assetURL } from '../assets/url.js';
 import { TRACK_CHALLENGES, trackChallenge } from './track-challenge.js';
@@ -378,6 +379,7 @@ export async function createFrontend(
   const loadStages = [
     'Reading circuit',
     'Preparing route',
+    ...Object.values(simulationLoadStages),
     'Preparing graphics',
     'Building world',
     'Building road',
@@ -775,10 +777,7 @@ export async function createFrontend(
     completion = null;
     completionPending = null;
     music?.setSuspended(false);
-    menuBackdrop.configure({
-      active: !disposed && !shell.hidden && menuVisible(),
-      reducedMotion: settings.reducedMotion,
-    });
+    syncMenuBackdrop();
   }
   function closeCompletion() {
     if (disposed) return;
@@ -1165,16 +1164,24 @@ export async function createFrontend(
     updateStatus();
     desktopControls?.mount(shell);
   }
+  function syncMenuBackdrop() {
+    menuBackdrop.configure({
+      active:
+        !disposed &&
+        !completion &&
+        !completionPending &&
+        !shell.hidden &&
+        menuVisible(),
+      paused: screen === 'loading',
+      reducedMotion: settings.reducedMotion,
+    });
+  }
   function render() {
     if (disposed) return;
     headerObserver.disconnect();
     disposeControllerSettings?.();
     disposeControllerSettings = null;
-    menuBackdrop.configure({
-      active:
-        !completion && !completionPending && !shell.hidden && menuVisible(),
-      reducedMotion: settings.reducedMotion,
-    });
+    syncMenuBackdrop();
     if (shell.hidden) return;
     if (choosingSession()) {
       renderMenu();
@@ -1602,7 +1609,6 @@ export async function createFrontend(
       loading || preload.loading || !preload.failed?.length;
     const retry = shell.querySelector('[data-action="retry"]');
     if (retry) retry.hidden = !error || !!invalidLevel;
-    shell.querySelector('.loading-card')?.classList.toggle('failed', !!error);
   }
   function updateResults(data) {
     if (disposed || !data) return;
@@ -1698,7 +1704,7 @@ export async function createFrontend(
     const promise = (async () => {
       await previous?.catch(() => {});
       await workshopClosing;
-      signal.throwIfAborted();
+      await waitForLoadPaint(signal);
       game?.dispose();
       game = null;
       sessionCup = false;
@@ -1897,9 +1903,9 @@ export async function createFrontend(
           throw failure;
         saveSettings({ quality: 'low' });
         progress = 'Retrying with Low graphics';
+        loadStep = 0;
         updateStatus();
-        await new Promise((resolve) => setTimeout(resolve, 0));
-        signal.throwIfAborted();
+        await waitForLoadPaint(signal);
         created = await createGame(gameOptions);
       }
       if (signal.aborted || token !== generation) {
@@ -2033,6 +2039,8 @@ export async function createFrontend(
       },
     });
     const promise = (async () => {
+      await waitForLoadPaint(life.signal);
+      if (token !== workshopGeneration) return;
       const { createWorkshop } = await import('../editor/workshop.js');
       await workshopClosing;
       if (disposed || token !== workshopGeneration) return;
@@ -2127,7 +2135,7 @@ export async function createFrontend(
     inspectorHost.inert = true;
     const promise = (async () => {
       await previous?.catch(() => {});
-      signal.throwIfAborted();
+      await waitForLoadPaint(signal);
       const { createInspector } = await import('../ships/inspector.js');
       signal.throwIfAborted();
       return createInspector({
@@ -3251,11 +3259,7 @@ export async function createFrontend(
   });
   unsubscribeSettings = subscribeSettings((next) => {
     settings = { ...next };
-    menuBackdrop.configure({
-      active:
-        !completion && !completionPending && !shell.hidden && menuVisible(),
-      reducedMotion: settings.reducedMotion,
-    });
+    syncMenuBackdrop();
     sounds?.configure();
     inspector?.configure(settings);
     document.body.classList.toggle('reduced-motion', settings.reducedMotion);

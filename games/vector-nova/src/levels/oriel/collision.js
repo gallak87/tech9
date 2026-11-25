@@ -40,6 +40,7 @@ export function createOrielCollisionWorld({ track }) {
     id: 'oriel-civic-road-solids',
     geometryId: `oriel-v2-full-deck-two-open-transfers:${track.challengeVersion}`,
     fullDeck: true,
+    deferSweepIndex: true,
     road,
     uvScale: 1,
     select(object) {

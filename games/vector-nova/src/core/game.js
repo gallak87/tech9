@@ -10,7 +10,7 @@ import {
   withLandingFeedback,
 } from '../presentation/landing-feedback.js';
 import { createLandingVfx } from '../presentation/landing-vfx.js';
-import { createRaceGrid, RACE_ORDER } from '../race/roster.js';
+import { createRaceGrid, RACE_OPPONENTS, RACE_ORDER } from '../race/roster.js';
 import {
   createEliminatorEvent,
   qualifiedEliminatorFinishTime,
@@ -36,6 +36,7 @@ import { raceRivalBuild, replayRivalBuild } from './rival-setup.js';
 import { interpolateSurfaceLateral } from '../track/surface.js';
 import * as T from 'three';
 import { createFleetShip } from '../ships/fleet.js';
+import { createRivalPreview, rivalModelURL } from '../ships/rivals.js';
 import { loadShipSelection, saveShipSelection } from '../ships/catalog.js';
 import { createRenderer } from '../renderer/index.js';
 import { createGlideWake } from '../renderer/glide-wake.js';
@@ -70,7 +71,9 @@ import { discoverLevels } from '../levels/catalog.js';
 import { levelAvailable, lockedLevelMessage } from '../levels/access.js';
 import { circuitURL } from '../levels/contract.js';
 import { createLevelPresentation } from '../levels/presentation.js';
+import { preloadLevelModels } from '../assets/level-preload.js';
 import { createLifetime } from './lifecycle.js';
+import { simulationLoadStages, waitForLoadPaint } from './load-yield.js';
 import { createSimulationWorld, createSimulationActors } from './simulation.js';
 import {
   captureSimulationCheckpoint,
@@ -117,7 +120,7 @@ export async function createGame({
     signal?.throwIfAborted();
     graphics?.check();
     onProgress(label);
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await waitForLoadPaint(signal);
     signal?.throwIfAborted();
     graphics?.check();
   }
@@ -201,9 +204,32 @@ export async function createGame({
     let interceptor = null;
     const pendingMissionFire = [];
     const settings = loadSettings();
+    const preloadRivals =
+      !blockout &&
+      !freestyle &&
+      definition.racing &&
+      !definition.racing.loadRival &&
+      (!customCourse || customMode === 'race');
+    const modelURLs = blockout ? [] : [...(definition.preloadModels ?? [])];
+    if (preloadRivals)
+      modelURLs.push(...RACE_OPPONENTS.map(({ id }) => rivalModelURL(id)));
+    const preparedModels = modelURLs.length
+      ? lifetime.own(preloadLevelModels(modelURLs, { signal }))
+      : null;
     await checkpoint('Preparing route');
     const simulation = lifetime.own(
-      await createSimulationWorld(definition, { shape: blockout, signal }),
+      await createSimulationWorld(definition, {
+        shape: blockout,
+        signal,
+        onStage(stage) {
+          const label = simulationLoadStages[stage];
+          if (
+            label &&
+            (stage !== 'collision' || definition.createCollisionWorld)
+          )
+            return checkpoint(label);
+        },
+      }),
     );
     const { track, collisionWorld, dynamics, racingEnabled } = simulation;
     if (definition.event?.finishAtCourseEnd && track.closed !== false)
@@ -291,6 +317,9 @@ export async function createGame({
         host,
         settings,
         checkpoint,
+        loadEnvironmentAsset: definition.preloadModels?.length
+          ? preparedModels?.loadAsset
+          : undefined,
         developer: access.developer,
         ...(freestyle && access.developer
           ? {
@@ -590,8 +619,10 @@ export async function createGame({
                 }
               : {}),
           });
-    const racerModule = racers ? await import('../race/racers.js') : null;
-    const racerPresentation = racers
+    // Freestyle retains its CPU checkpoint layout, but its sessions are solo.
+    const racerModule =
+      racers && !freestyle ? await import('../race/racers.js') : null;
+    const racerPresentation = racerModule
       ? lifetime.own(
           await racerModule.createRacerPresentation({
             racers,
@@ -599,10 +630,18 @@ export async function createGame({
             track,
             combat,
             settings,
-            loadRival: definition.racing.loadRival,
+            loadRival: preloadRivals
+              ? (id, options) =>
+                  createRivalPreview(id, {
+                    ...options,
+                    loadAsset: preparedModels.loadAsset,
+                  })
+              : definition.racing.loadRival,
+            signal,
           }),
         )
       : null;
+    preparedModels?.dispose();
     const interceptorEffects = interceptor
       ? lifetime.own(
           createInterceptorEffects({

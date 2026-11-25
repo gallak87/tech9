@@ -7,6 +7,9 @@ import { finishWorldspireMineral } from './mineral-materials.js';
 import { createWorldspireClouds } from './clouds.js';
 import resonance from '../../../../assets/levels/worldspire/resonance-kit.json' with { type: 'json' };
 import { finishZephyrMaterial } from '../../zephyr/environment/materials.js';
+export const worldspireModel = assetURL(
+  'assets/levels/worldspire/worldspire-environment.glb',
+);
 function release(group, borrowed = new Set()) {
   const gs = new Set(),
     ms = new Set(),
@@ -40,7 +43,7 @@ export async function createWorldspireEnvironment({
   group.name = 'Worldspire / the monolith and its mineral heart';
   if (shape) return { group, dispose: () => group.clear() };
   const loaded = await Promise.allSettled([
-    loadAsset(assetURL('assets/levels/worldspire/worldspire-environment.glb')),
+    loadAsset(worldspireModel),
     loadTexture(assetURL('assets/levels/worldspire/mineral-v2.png')),
     loadTexture(assetURL('assets/levels/worldspire/fractured-obsidian-v1.png')),
   ]);

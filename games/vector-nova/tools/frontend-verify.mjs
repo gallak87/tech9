@@ -1154,7 +1154,7 @@ try {
   ];
   for (const viewport of loadingViewports)
     await check(
-      `loading waves retain the menu backdrop and cancellation focus ${viewport.width}×${viewport.height}`,
+      `loading holds the menu backdrop and restores cancellation focus ${viewport.width}×${viewport.height}`,
       async (page) => {
         await page.goto(url('level=halcyon&music=0'));
         await page.locator('.menu-backdrop canvas').waitFor();
@@ -1221,10 +1221,20 @@ try {
           const frame = () =>
             page.evaluate(() => window.loadingBackdropCanvas.toDataURL());
           const first = await frame();
+          const card = page.locator('.loading-card');
+          const opacity = () =>
+            card.evaluate((element) => getComputedStyle(element).opacity);
+          const initialOpacity = await opacity();
           await page.waitForTimeout(250);
-          assert.ok(
-            (await frame()) !== first,
-            'the red waves continue while the runtime import waits',
+          assert.equal(
+            await frame(),
+            first,
+            'loading holds the last menu wave frame while its import waits',
+          );
+          assert.equal(
+            await opacity(),
+            initialOpacity,
+            'the preview keeps a steady brightness',
           );
           await page.emulateMedia({ reducedMotion: 'reduce' });
           await page.evaluate(
@@ -1257,6 +1267,13 @@ try {
                 window.loadingBackdropCanvas,
             ),
             true,
+          );
+          assert.equal(await frame(), still, 'reduced motion stays still');
+          await page.emulateMedia({ reducedMotion: 'no-preference' });
+          await page.waitForFunction(
+            (heldFrame) =>
+              window.loadingBackdropCanvas.toDataURL() !== heldFrame,
+            still,
           );
         } finally {
           release();
@@ -4178,6 +4195,46 @@ try {
       { width: 1529, height: 906 },
       { quality: 'high', reducedMotion: false },
       2,
+    );
+    await check(
+      'race loader can cancel at a simulation checkpoint',
+      async (page) => {
+        await page.addInitScript(() => {
+          const observer = new MutationObserver(() => {
+            const status = document.querySelector(
+              '#front-shell.loading-page .transfer-status [role="status"]',
+            );
+            if (!status?.textContent.includes('Preparing track boundaries'))
+              return;
+            observer.disconnect();
+            requestAnimationFrame(() => {
+              const cancel = document.querySelector(
+                '#front-shell.loading-page [data-action="cancel"]',
+              );
+              window.observedPhysicsStage = cancel?.getClientRects().length > 0;
+              cancel?.click();
+            });
+          });
+          observer.observe(document, { childList: true, subtree: true });
+        });
+        await page.goto(url('level=halcyon&music=0'));
+        const launch = page.locator('[data-action="launch"]');
+        await launch.focus();
+        await page.keyboard.press('Enter');
+        await page.waitForFunction(
+          () =>
+            window.observedPhysicsStage &&
+            window.__VN_FRONTEND.getState().screen === 'home' &&
+            !window.__VN_FRONTEND.getState().loading,
+        );
+        assert.equal(await page.locator('canvas#world').count(), 0);
+        assert.equal(
+          await launch.evaluate(
+            (control) => control === document.activeElement,
+          ),
+          true,
+        );
+      },
     );
     await check('unknown circuit recovery and cancelled load', async (page) => {
       await page.goto(url('level=does-not-exist&dev=1'));

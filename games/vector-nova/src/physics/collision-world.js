@@ -1,5 +1,10 @@
 import * as T from 'three';
 import { VEHICLE_HULL, hullAxes } from './hull.js';
+import {
+  createSweepIndex,
+  packSweepBounds,
+  sweepCandidates,
+} from './collision-sweep-index.js';
 
 export const COLLISION_RULES = Object.freeze({
   version: 1,
@@ -99,32 +104,6 @@ function sweepTriangle(shape, before, after, hull, inflation) {
   };
 }
 
-function tree(shapes) {
-  const bounds = new T.Box3();
-  for (const shape of shapes) bounds.union(shape.bounds);
-  if (shapes.length <= 12) return { bounds, shapes };
-  const size = bounds.getSize(new T.Vector3());
-  const axis =
-    size.x >= size.y && size.x >= size.z ? 'x' : size.y >= size.z ? 'y' : 'z';
-  shapes.sort((a, b) => a.center[axis] - b.center[axis] || a.order - b.order);
-  const middle = shapes.length >> 1;
-  return {
-    bounds,
-    left: tree(shapes.slice(0, middle)),
-    right: tree(shapes.slice(middle)),
-  };
-}
-function candidates(node, bounds, result) {
-  if (!node.bounds.intersectsBox(bounds)) return;
-  if (node.shapes) {
-    for (const shape of node.shapes)
-      if (shape.bounds.intersectsBox(bounds)) result.push(shape);
-  } else {
-    candidates(node.left, bounds, result);
-    candidates(node.right, bounds, result);
-  }
-}
-
 function makeSweepShape(triangle) {
   const points = triangle.points.map((point) => new T.Vector3(...point));
   const edges = [
@@ -132,13 +111,10 @@ function makeSweepShape(triangle) {
     points[2].clone().sub(points[1]),
     points[0].clone().sub(points[2]),
   ];
-  const bounds = new T.Box3().setFromPoints(points);
   return {
     points,
     edges,
     normal: edges[0].clone().cross(edges[1]).normalize(),
-    bounds,
-    center: bounds.getCenter(new T.Vector3()),
     order: triangle.order,
     info: Object.freeze({ ...triangle, points: undefined }),
   };
@@ -222,6 +198,51 @@ function validateTriangles(triangles, adoptTriangles) {
   return Object.freeze(result);
 }
 
+function prepareInWorker(triangles) {
+  // Smaller courses can build the index faster than starting another module.
+  // Native and CPU-only verifiers retain the synchronous query interface.
+  if (
+    triangles.length < 50_000 ||
+    typeof window === 'undefined' ||
+    typeof Worker !== 'function'
+  )
+    return null;
+  let worker;
+  try {
+    worker = new Worker(
+      new URL('./collision-sweep-worker.js', import.meta.url),
+      {
+        type: 'module',
+      },
+    );
+  } catch {
+    return null;
+  }
+  let settle;
+  const result = new Promise((resolve) => {
+    settle = resolve;
+  });
+  function finish(index = null) {
+    if (!worker) return;
+    worker.terminate();
+    worker = null;
+    settle(index);
+  }
+  worker.addEventListener('message', ({ data }) => finish(data));
+  worker.addEventListener('messageerror', () => finish());
+  worker.addEventListener('error', (event) => {
+    event.preventDefault();
+    finish();
+  });
+  try {
+    const bounds = packSweepBounds(triangles);
+    worker.postMessage(bounds, [bounds.buffer]);
+  } catch {
+    finish();
+  }
+  return { result, dispose: () => finish() };
+}
+
 // Level factories provide asset-free triangle data. The immutable world owns
 // only its acceleration index, never a racer state or presentation resources.
 export function createCollisionWorld({
@@ -243,23 +264,56 @@ export function createCollisionWorld({
     );
   // Preserve triangle order so a Rapier subshape maps back to route metadata.
   const validated = validateTriangles(triangles, adoptTriangles);
-  let root = deferSweepIndex ? null : tree(validated.map(makeSweepShape));
+  const job = deferSweepIndex ? null : prepareInWorker(validated);
+  let index = null;
+  function ensureIndex() {
+    if (index) return;
+    job?.dispose();
+    index = createSweepIndex(packSweepBounds(validated));
+  }
+  // Only swept candidates need their local vectors, normals and edge axes.
+  const shapes = new Map();
   let disposed = false;
+  if (job)
+    void job.result.then((built) => {
+      if (!disposed && built) index ??= built;
+    });
+  else if (!deferSweepIndex) ensureIndex();
   return Object.freeze({
     id,
     version,
     rulesId: `${geometryId}:${JSON.stringify(COLLISION_RULES)}`,
     triangleCount: validated.length,
     triangles: validated,
+    ...(job && {
+      async prepareSweepIndex(signal) {
+        if (signal?.aborted) job.dispose();
+        signal?.throwIfAborted();
+        signal?.addEventListener('abort', job.dispose, { once: true });
+        try {
+          await job.result;
+          signal?.throwIfAborted();
+          if (!disposed) ensureIndex();
+        } finally {
+          signal?.removeEventListener('abort', job.dispose);
+        }
+      },
+    }),
     sweepHull(before, after, hull = VEHICLE_HULL) {
       if (disposed) return null;
-      root ??= tree(validated.map(makeSweepShape));
+      ensureIndex();
       const radius = Math.hypot(hull.halfWidth, hull.hover, hull.halfLength);
       const bounds = new T.Box3()
         .setFromPoints([before.position, after.position])
         .expandByScalar(radius + COLLISION_RULES.skin);
-      const nearby = [];
-      candidates(root, bounds, nearby);
+      const nearby = sweepCandidates(index, bounds).map((face) => {
+        let shape = shapes.get(face);
+        if (!shape) {
+          shape = makeSweepShape(validated[face]);
+          shapes.set(face, shape);
+        }
+        return shape;
+      });
       const angle = before.quaternion.angleTo(after.quaternion);
       const count = Math.max(1, Math.ceil(angle / COLLISION_RULES.angularStep));
       const inflation =
@@ -289,7 +343,9 @@ export function createCollisionWorld({
     },
     dispose() {
       disposed = true;
-      root = null;
+      job?.dispose();
+      index = null;
+      shapes.clear();
     },
   });
 }

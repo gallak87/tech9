@@ -14,6 +14,7 @@ export function collectProductionSolids({
   uvScale = 16,
   additionalTriangles = [],
   fullDeck = false,
+  deferSweepIndex = false,
 }) {
   const group = road.group ?? road;
   const corridors = track.jumps.map((jump) => {
@@ -184,6 +185,7 @@ export function collectProductionSolids({
     version: 1,
     geometryId: `${track.geometryVersion}:${geometryId}${fullDeck ? ':full-deck-v1' : ''}`,
     triangles,
+    deferSweepIndex,
   });
   return Object.freeze({ ...world, targets: Object.freeze(targets) });
 }

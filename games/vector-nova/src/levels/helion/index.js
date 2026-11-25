@@ -2,7 +2,7 @@ import { createHelionCollisionWorld } from './collision.js';
 import * as T from 'three';
 import { createDevices } from './devices.js';
 import { createHelionTrack, buildHelionRoad } from './track/index.js';
-import { createHelionEnvironment } from './environment/index.js';
+import { createHelionEnvironment, helionModel } from './environment/index.js';
 import { createHelionBackdrop } from './backdrop/index.js';
 import { createHelionRuntime } from './runtime.js';
 import { createHelionOverlay } from './overlay.js';
@@ -52,13 +52,17 @@ export default function createLevel({
     railContactSparks: !shape,
     practiceSectionsUntimed: true,
     createTrack: createHelionTrack,
+    preloadModels: [helionModel],
     createRoad: ({ track, settings, view }) =>
       buildHelionRoad(track, { shape, settings, renderer: view?.renderer }),
     createEnvironment: async (context) =>
       withShipHeatEffects(
         shape
           ? { group: new T.Group(), dispose() {} }
-          : await createHelionEnvironment(context, environmentOptions),
+          : await createHelionEnvironment(context, {
+              ...environmentOptions,
+              loadAsset: environmentOptions?.loadAsset ?? context.loadAsset,
+            }),
         telemetry,
       ),
     createBackdrop: (context) =>

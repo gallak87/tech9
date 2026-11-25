@@ -2,7 +2,10 @@ import { createWorldspireTrack } from './track/model.js';
 import { createWorldspireRoad } from './track/road.js';
 import { createWorldspireRuntime, WORLDSPIRE_RULES } from './runtime.js';
 import { createDevices } from './devices.js';
-import { createWorldspireEnvironment } from './environment/index.js';
+import {
+  createWorldspireEnvironment,
+  worldspireModel,
+} from './environment/index.js';
 import { createWorldspireBackdrop } from './backdrop/index.js';
 import { createWorldspireCollisionWorld } from './collision.js';
 // Large drops need a gentle camera pullback while the view still follows the
@@ -59,6 +62,7 @@ export default function createLevel({ shape = false } = {}) {
       }),
     },
     createTrack: createWorldspireTrack,
+    preloadModels: [worldspireModel],
     createRoad: (c) =>
       createWorldspireRoad({ ...c, shape, renderer: c.view?.renderer }),
     createEnvironment: (c) => createWorldspireEnvironment({ ...c, shape }),

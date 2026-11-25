@@ -344,7 +344,7 @@ body {
   overflow: hidden;
   margin-bottom: 0;
   background: #111;
-  animation: loading-breathe 2.4s ease-in-out infinite alternate;
+  opacity: 0.65;
 }
 :where(#app) .loading-transfer {
   margin-bottom: 26px;
@@ -370,19 +370,6 @@ body {
   width: 100px;
   height: 70px;
   padding: 0;
-}
-@keyframes loading-breathe {
-  from {
-    opacity: 0.45;
-  }
-  to {
-    opacity: 0.8;
-  }
-}
-:where(#app) .loading-card.failed,
-.reduced-motion :where(#app) .loading-card {
-  animation: none;
-  opacity: 0.6;
 }
 :where(#app) .settings-layout {
   display: grid;

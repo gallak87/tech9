@@ -30,6 +30,7 @@ export async function createFreestyleCollisionWorld({
     track,
     id: `${id}-solids`,
     geometryId: track.geometryVersion,
+    deferSweepIndex: true,
     road: createSkywellRoad({ track, shape: true }),
     select: (object) =>
       object.userData.drivingSurface

@@ -30,6 +30,9 @@ const FILES = [
   'broken-halo',
   'abbey-quarter',
 ];
+export const zephyrModels = FILES.map((name) =>
+  assetURL(`assets/levels/zephyr/${name}.glb`),
+);
 function release(group) {
   const geometries = new Set(),
     materials = new Set(),
@@ -71,9 +74,7 @@ export async function createZephyrEnvironment({
       },
     };
   const loaded = await Promise.allSettled([
-    ...FILES.map((name) =>
-      loadAsset(assetURL(`assets/levels/zephyr/${name}.glb`)),
-    ),
+    ...zephyrModels.map((url) => loadAsset(url)),
     loadTexture(assetURL('assets/levels/zephyr/zephyr-limestone-v1.png')),
   ]);
   if (loaded.some((r) => r.status === 'rejected')) {

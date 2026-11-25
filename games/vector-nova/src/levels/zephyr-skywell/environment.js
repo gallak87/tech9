@@ -31,6 +31,9 @@ const FILES = [
   'waterfall',
   'waterfall-curtain',
 ];
+export const skywellModels = FILES.map((name) =>
+  assetURL(`assets/levels/zephyr/${name}.glb`),
+);
 const UP = new T.Vector3(0, 1, 0);
 
 // Canonical Zephyr stone, cultivated islands, hydrology and sky become a new
@@ -43,6 +46,7 @@ export async function createSkywellEnvironment({
   shape = false,
   loadAsset = (url) => new GLTFLoader().loadAsync(url),
   loadTexture = (url) => new T.TextureLoader().loadAsync(url),
+  onGroveLayout,
 }) {
   const group = new T.Group();
   group.name = 'Zephyr Skywell / suspended water gardens';
@@ -53,10 +57,14 @@ export async function createSkywellEnvironment({
         group.clear();
       },
     };
+  const gardenLayoutReady = onGroveLayout
+    ? null
+    : import('./garden-layout.json', { with: { type: 'json' } }).then(
+        ({ default: layout }) => layout,
+        () => null,
+      );
   const loaded = await Promise.allSettled([
-    ...FILES.map((name) =>
-      loadAsset(assetURL(`assets/levels/zephyr/${name}.glb`)),
-    ),
+    ...skywellModels.map((url) => loadAsset(url)),
     loadTexture(assetURL('assets/levels/zephyr/zephyr-limestone-v1.png')),
   ]);
   const borrowed = new Set(),
@@ -307,7 +315,17 @@ export async function createSkywellEnvironment({
     });
     group.add(arrivalArt.group);
     blockers.push(arrivalArt.group);
-    gardens = await createSkywellGardens({ terraces, loadTexture });
+    const gardenLayout = await gardenLayoutReady;
+    gardens = await createSkywellGardens({
+      terraces,
+      loadTexture,
+      onGroveLayout,
+      bakedGroves:
+        gardenLayout?.version === 1 &&
+        gardenLayout.geometryVersion === track.geometryVersion
+          ? gardenLayout.groves
+          : undefined,
+    });
     const geometries = new Set();
     for (const object of placements)
       object.traverse((mesh) => {

@@ -23,7 +23,13 @@ export async function createLevelPresentation(definition, context) {
     const environment = await acquire(
       definition.createEnvironment,
       'environment',
-      { ...context, road },
+      {
+        ...context,
+        road,
+        ...(context.loadEnvironmentAsset
+          ? { loadAsset: context.loadEnvironmentAsset }
+          : {}),
+      },
     );
     const overlay = definition.createOverlay
       ? lifetime.own(await definition.createOverlay(context))

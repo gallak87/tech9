@@ -23,11 +23,20 @@ function randomSource(seed) {
   };
 }
 
+const matrixElements = 16;
+const unpackMatrices = (encoded) =>
+  new Float32Array(
+    Uint8Array.from(atob(encoded), (character) => character.charCodeAt(0))
+      .buffer,
+  );
+
 // The canonical kit supplies geometry/materials/images. Skywell owns its small
 // cultivated groves, seated on the actual top triangles of authored islands.
 export async function createSkywellGardens({
   terraces,
   loadTexture = (url) => new T.TextureLoader().loadAsync(url),
+  bakedGroves,
+  onGroveLayout,
 }) {
   const group = new T.Group();
   group.name = 'Skywell / cultivated Worldkit terrace gardens';
@@ -89,6 +98,57 @@ export async function createSkywellGardens({
     });
     kit.materials.wood.color.set('#bfb6a3');
     kit.materials.leaf.color.set('#c4ceb7');
+    function addGrove({
+      index,
+      seed,
+      targetTrees,
+      targetShrubs,
+      trees,
+      shrubs,
+    }) {
+      const grove = new T.Group();
+      grove.name = `Skywell / rooted grove ${index + 1}`;
+      const prototype = kit.prototypes[(seed >>> 0) % kit.prototypes.length];
+      function batch(parts, placements, category) {
+        if (!placements.length) return;
+        for (const part of parts) {
+          const mesh = new T.InstancedMesh(
+            part.geometry,
+            part.material,
+            placements.length / matrixElements,
+          );
+          instances.add(mesh);
+          mesh.instanceMatrix.array.set(placements);
+          mesh.name = `Skywell / ${category} ${part.kind} / terrace ${index + 1}`;
+          mesh.instanceMatrix.needsUpdate = true;
+          mesh.computeBoundingBox();
+          mesh.computeBoundingSphere();
+          mesh.castShadow = false;
+          mesh.receiveShadow = true;
+          grove.add(mesh);
+        }
+      }
+      batch(prototype.treeParts, trees, 'garden trees');
+      batch(kit.shrubParts, shrubs, 'garden shrubs');
+      if (grove.children.length) {
+        group.add(grove);
+        grove.updateWorldMatrix(true, true);
+        groves.push({ grove, bounds: new T.Box3().setFromObject(grove) });
+      }
+      group.userData.treeCount += trees.length / matrixElements;
+      group.userData.shrubCount += shrubs.length / matrixElements;
+      group.userData.targetTreeCount += targetTrees;
+      group.userData.targetShrubCount += targetShrubs;
+    }
+    if (bakedGroves) {
+      for (const grove of bakedGroves)
+        addGrove({
+          ...grove,
+          trees: unpackMatrices(grove.trees),
+          shrubs: unpackMatrices(grove.shrubs),
+        });
+      return { group, update, dispose };
+    }
     const ray = new T.Raycaster(),
       inverse = new T.Matrix4(),
       normalMatrix = new T.Matrix3(),
@@ -126,7 +186,6 @@ export async function createSkywellGardens({
         structures = [],
         center = localBounds.getCenter(new T.Vector3()),
         half = localBounds.getSize(new T.Vector3()).multiplyScalar(0.5),
-        grove = new T.Group(),
         trees = [],
         shrubs = [],
         roots = [];
@@ -140,7 +199,6 @@ export async function createSkywellGardens({
         });
         structures.push({ bounds, meshes });
       }
-      grove.name = `Skywell / rooted grove ${index + 1}`;
       const turn = garden.rotation ?? random() * Math.PI * 2,
         cosine = Math.cos(turn),
         sine = Math.sin(turn);
@@ -228,8 +286,6 @@ export async function createSkywellGardens({
           shrubLimit,
           garden.shrubs ?? 16 + Math.floor(random() * 9),
         );
-      group.userData.targetTreeCount += targetTrees;
-      group.userData.targetShrubCount += targetShrubs;
       const prototype = kit.prototypes[(seed >>> 0) % kit.prototypes.length];
       const plantBounds = (parts) => {
         const result = new T.Box3();
@@ -246,7 +302,7 @@ export async function createSkywellGardens({
       function plant(target, shrub, placements) {
         for (
           let attempt = 0;
-          placements.length < target && attempt < target * 9;
+          placements.length / matrixElements < target && attempt < target * 9;
           attempt++
         ) {
           const clumps = garden.clumps ?? CLUMPS;
@@ -281,40 +337,22 @@ export async function createSkywellGardens({
             )
               continue;
           }
-          placements.push(matrix.clone());
+          placements.push(...matrix.elements);
           roots.push(point);
         }
       }
       plant(targetTrees, false, trees);
       plant(targetShrubs, true, shrubs);
-      function batch(parts, placements, category) {
-        if (!placements.length) return;
-        for (const part of parts) {
-          const mesh = new T.InstancedMesh(
-            part.geometry,
-            part.material,
-            placements.length,
-          );
-          instances.add(mesh);
-          placements.forEach((placement, i) => mesh.setMatrixAt(i, placement));
-          mesh.name = `Skywell / ${category} ${part.kind} / terrace ${index + 1}`;
-          mesh.instanceMatrix.needsUpdate = true;
-          mesh.computeBoundingBox();
-          mesh.computeBoundingSphere();
-          mesh.castShadow = false;
-          mesh.receiveShadow = true;
-          grove.add(mesh);
-        }
-      }
-      batch(prototype.treeParts, trees, 'garden trees');
-      batch(kit.shrubParts, shrubs, 'garden shrubs');
-      if (grove.children.length) {
-        group.add(grove);
-        grove.updateWorldMatrix(true, true);
-        groves.push({ grove, bounds: new T.Box3().setFromObject(grove) });
-      }
-      group.userData.treeCount += trees.length;
-      group.userData.shrubCount += shrubs.length;
+      const layout = {
+        index,
+        seed,
+        targetTrees,
+        targetShrubs,
+        trees: new Float32Array(trees),
+        shrubs: new Float32Array(shrubs),
+      };
+      addGrove(layout);
+      onGroveLayout?.(layout);
     }
     return { group, update, dispose };
   } catch (error) {

@@ -74,6 +74,12 @@ export function validateMetadata(metadata, id = metadata?.id) {
 
 export function validateDefinition(definition, id = 'circuit') {
   if (
+    definition.preloadModels !== undefined &&
+    (!Array.isArray(definition.preloadModels) ||
+      definition.preloadModels.some((url) => typeof url !== 'string' || !url))
+  )
+    throw new Error(`Invalid ${id}.preloadModels`);
+  if (
     definition.event !== undefined &&
     (!definition.event ||
       !['eliminator', 'interceptor'].includes(definition.event.type) ||

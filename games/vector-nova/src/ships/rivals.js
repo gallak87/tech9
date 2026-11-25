@@ -1,5 +1,5 @@
 import { assetURL } from '../assets/url.js';
-import { Box3 } from 'three';
+import { Box3, LoadingManager } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { resourcesFor } from './index.js';
 import { createRivalPropulsion } from './rival-propulsion.js';
@@ -90,21 +90,42 @@ export const RIVAL_SHIPS = Object.freeze([
   }),
 ]);
 
+async function loadRivalGLTF(url, signal) {
+  signal?.throwIfAborted();
+  const manager = new LoadingManager();
+  const abort = () => manager.abort();
+  signal?.addEventListener('abort', abort, { once: true });
+  try {
+    return await new GLTFLoader(manager).loadAsync(url);
+  } finally {
+    signal?.removeEventListener('abort', abort);
+  }
+}
+
+export const rivalModelURL = (id) =>
+  assetURL(`assets/ships/rivals/${id}/${id}.glb`);
+
 export async function createRivalPreview(
   id,
-  { loadAsset = (url) => new GLTFLoader().loadAsync(url), settings = {} } = {},
+  { loadAsset, settings = {}, signal } = {},
 ) {
   const specification = RIVAL_SHIPS.find((craft) => craft.id === id);
   if (!specification) throw new Error(`Unknown rival: ${id}`);
-  const { scene: group } = await loadAsset(
-    assetURL(`assets/ships/rivals/${id}/${id}.glb`),
-  );
+  signal?.throwIfAborted();
+  const url = rivalModelURL(id);
+  const { scene: group } = await (loadAsset
+    ? loadAsset(url)
+    : loadRivalGLTF(url, signal));
   const resources = resourcesFor(group);
   const releaseResources = () => {
     resources.geometries.forEach((resource) => resource.dispose());
     resources.materials.forEach((resource) => resource.dispose());
     resources.textures.forEach((resource) => resource.dispose());
   };
+  if (signal?.aborted) {
+    releaseResources();
+    signal.throwIfAborted();
+  }
   group.name = `${specification.name} / AI racer preview`;
   group.traverse((object) => {
     if (object.isMesh) object.castShadow = object.receiveShadow = true;

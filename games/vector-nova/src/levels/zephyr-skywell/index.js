@@ -1,6 +1,6 @@
 import { createSkywellTrack } from './track/model.js';
 import { createSkywellRoad } from './track/road.js';
-import { createSkywellEnvironment } from './environment.js';
+import { createSkywellEnvironment, skywellModels } from './environment.js';
 import { createSkywellRuntime, createSkywellDynamics } from './runtime.js';
 import { createSkywellDevices } from './devices.js';
 import { createZephyrBackdrop } from '../zephyr/backdrop/index.js';
@@ -35,6 +35,7 @@ export default function createLevel() {
       lookAhead: 55,
       flightViewScale: 1.06,
     },
+    preloadModels: skywellModels,
     createTrack: createSkywellTrack,
     createRoad(context) {
       const road = createSkywellRoad(context);

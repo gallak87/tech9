@@ -3,10 +3,12 @@ import { createRivalPreview } from '../ships/rivals.js';
 import { createHitFeedback } from '../pickups/hit-feedback.js';
 import { createRivalPickups } from './rival-pickups.js';
 import { readRuntimeFrame } from '../core/session-runtime.js';
+import { createLifetime } from '../core/lifecycle.js';
 import { createRivalWake } from './rival-wake.js';
 
 const up = new Vector3(0, 1, 0);
 const forward = new Vector3(0, 0, 1);
+const rivalBatchSize = 3;
 
 // These GLBs already own their materials, geometry and textures. The race
 // borrows their authored chassis rather than substituting player ship meshes.
@@ -17,42 +19,64 @@ export async function createRacerPresentation({
   combat = null,
   settings = {},
   loadRival = createRivalPreview,
+  signal,
 }) {
+  const lifetime = createLifetime();
   const ships = [];
   try {
-    for (const opponent of racers.opponents) {
-      const ship = await loadRival(opponent.specification.id, { settings });
-      ship.group.name = `${opponent.specification.name} / racing`;
-      ship.group.visible = false;
-      scene.add(ship.group);
-      const entry = {
-        ship,
-        opponent,
-        hitFeedback: null,
-        pickups: null,
-        wake: null,
-        trackOrientation: new Quaternion(),
-        roll: new Quaternion(),
-      };
-      ships.push(entry);
-      entry.hitFeedback =
-        combat && opponent.specification.team !== 'quarry'
-          ? createHitFeedback(ship.group, settings)
-          : null;
-      entry.pickups = createRivalPickups(
-        ship.group,
-        opponent.runtime,
-        settings,
+    for (
+      let start = 0;
+      start < racers.opponents.length;
+      start += rivalBatchSize
+    ) {
+      signal?.throwIfAborted();
+      const batch = racers.opponents.slice(start, start + rivalBatchSize);
+      // Settle all started loads so a successful sibling is still released on
+      // failure or cancellation. Scene attachment follows roster order.
+      const loaded = await Promise.allSettled(
+        batch.map(async (opponent) => ({
+          opponent,
+          ship: lifetime.own(
+            await loadRival(opponent.specification.id, { settings, signal }),
+          ),
+        })),
       );
-      entry.wake = createRivalWake(scene, ship.group, opponent.specification);
+      signal?.throwIfAborted();
+      const failed = loaded.find((result) => result.status === 'rejected');
+      if (failed) throw failed.reason;
+      for (const {
+        value: { opponent, ship },
+      } of loaded) {
+        ship.group.name = `${opponent.specification.name} / racing`;
+        ship.group.visible = false;
+        scene.add(ship.group);
+        lifetime.defer(() => ship.group.removeFromParent());
+        const hitFeedback =
+          combat && opponent.specification.team !== 'quarry'
+            ? lifetime.own(createHitFeedback(ship.group, settings))
+            : null;
+        const pickups = lifetime.own(
+          createRivalPickups(ship.group, opponent.runtime, settings),
+        );
+        const wake = createRivalWake(scene, ship.group, opponent.specification);
+        if (wake) lifetime.own(wake);
+        ships.push({
+          ship,
+          opponent,
+          hitFeedback,
+          pickups,
+          wake,
+          trackOrientation: new Quaternion(),
+          roll: new Quaternion(),
+        });
+      }
     }
   } catch (error) {
-    ships.forEach(({ ship, hitFeedback, pickups, wake }) => {
-      wake?.dispose();
-      pickups?.dispose();
-      hitFeedback?.dispose();
-      ship.dispose();
-    });
+    try {
+      lifetime.dispose();
+    } catch (cleanupError) {
+      if (error instanceof Error) error.cause ??= cleanupError;
+    }
     throw error;
   }
   let disposed = false;
@@ -238,12 +262,7 @@ export async function createRacerPresentation({
     dispose() {
       if (disposed) return;
       disposed = true;
-      ships.forEach(({ ship, hitFeedback, pickups, wake }) => {
-        wake?.dispose();
-        pickups.dispose();
-        hitFeedback?.dispose();
-        ship.dispose();
-      });
+      lifetime.dispose();
     },
   };
 }

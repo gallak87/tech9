@@ -11,7 +11,9 @@ import { finishThermalMaterial } from './materials.js';
 import { createThermalSurfaces } from './thermal-surfaces.js';
 import { createPlasmaVolume } from './plasma-volume.js';
 
-const URL = assetURL('assets/levels/helion/thermal-observatory.glb');
+export const helionModel = assetURL(
+  'assets/levels/helion/thermal-observatory.glb',
+);
 
 function release(...groups) {
   const geometries = new Set();
@@ -63,8 +65,8 @@ export async function createHelionEnvironment(
   const group = new T.Group();
   group.name = 'Helion / working thermal observatory';
   const asset = await (loadAsset
-    ? loadAsset(URL)
-    : new GLTFLoader().loadAsync(URL));
+    ? loadAsset(helionModel)
+    : new GLTFLoader().loadAsync(helionModel));
   const templates = Object.fromEntries(
     asset.scene.children.map((part) => [part.name, part]),
   );

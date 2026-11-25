@@ -2,13 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGraphicsContext } from './graphics-context.js';
 
-function fixture(compileAsync = async () => {}) {
+function fixture(compileAsync = async () => {}, context = {}) {
   let lost = false;
   const renderer = {
     domElement: new EventTarget(),
-    getContext: () => ({ isContextLost: () => lost }),
+    getContext: () => gl,
     compileAsync,
   };
+  const gl = { isContextLost: () => lost, ...context };
   const controller = new AbortController();
   const graphics = createGraphicsContext(renderer, controller.signal);
   return {
@@ -64,4 +65,74 @@ test('real compiler failures are not misclassified as context loss', async () =>
   });
   await assert.rejects(f.graphics.compile(), (failure) => failure === error);
   f.graphics.dispose();
+});
+
+function fenceFixture(...statuses) {
+  const fence = {};
+  const calls = [];
+  return {
+    ...fixture(undefined, {
+      SYNC_GPU_COMMANDS_COMPLETE: 'commands complete',
+      ALREADY_SIGNALED: 'signaled',
+      CONDITION_SATISFIED: 'satisfied',
+      TIMEOUT_EXPIRED: 'waiting',
+      fenceSync(condition, flags) {
+        calls.push(['fence', condition, flags]);
+        return fence;
+      },
+      flush: () => calls.push(['flush']),
+      clientWaitSync(sync, flags, timeout) {
+        calls.push(['poll', sync, flags, timeout]);
+        return statuses.shift() ?? 'waiting';
+      },
+      deleteSync: (sync) => calls.push(['delete', sync]),
+    }),
+    fence,
+    calls,
+  };
+}
+
+test('graphics warmup waits for submitted work with zero-timeout polling', async () => {
+  const f = fenceFixture('waiting', 'satisfied');
+  const ready = f.graphics.waitForGPU();
+  // Creating and flushing the fence does not poll within the submission turn.
+  await Promise.resolve();
+  assert.deepEqual(f.calls, [['fence', 'commands complete', 0], ['flush']]);
+  await ready;
+  assert.deepEqual(f.calls.slice(2), [
+    ['poll', f.fence, 0, 0],
+    ['poll', f.fence, 0, 0],
+    ['delete', f.fence],
+  ]);
+  f.graphics.dispose();
+});
+
+test('graphics warmup disposes the fence after an unsuccessful GPU wait', async () => {
+  const f = fenceFixture('failed');
+  await assert.rejects(f.graphics.waitForGPU(), /synchronization failed/);
+  assert.deepEqual(f.calls.at(-1), ['delete', f.fence]);
+  f.graphics.dispose();
+});
+
+test('cancel, dispose and context loss interrupt a pending GPU wait and free its fence', async (t) => {
+  const cases = [
+    ['cancel', (f) => f.controller.abort(), 'AbortError'],
+    ['dispose', (f) => f.graphics.dispose(), 'AbortError'],
+    ['context loss', (f) => f.lose(), 'GraphicsContextLostError'],
+  ];
+  for (const [label, stop, name] of cases)
+    await t.test(label, async () => {
+      const f = fenceFixture();
+      const ready = f.graphics.waitForGPU();
+      await Promise.resolve();
+      stop(f);
+      await assert.rejects(ready, { name });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      assert.deepEqual(f.calls, [
+        ['fence', 'commands complete', 0],
+        ['flush'],
+        ['delete', f.fence],
+      ]);
+      f.graphics.dispose();
+    });
 });

@@ -27,6 +27,9 @@ const FILES = [
   'receiver-primary',
   'receiver-condenser',
 ];
+export const shatterlineModels = FILES.map((name) =>
+  assetURL(`assets/levels/shatterline/${name}.glb`),
+);
 export async function createShatterlineEnvironment({
   track,
   shape = false,
@@ -57,9 +60,7 @@ export async function createShatterlineEnvironment({
       }
     });
   const loaded = await Promise.allSettled([
-    ...FILES.map((name) =>
-      loadAsset(assetURL(`assets/levels/shatterline/${name}.glb`)),
-    ),
+    ...shatterlineModels.map((url) => loadAsset(url)),
     loadTexture(assetURL('assets/levels/shatterline/limestone-v1.png')),
   ]);
   for (const result of loaded)

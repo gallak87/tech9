@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { Buffer } from 'node:buffer';
 import { readFile } from 'node:fs/promises';
 import * as T from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -21,6 +22,53 @@ function terrace() {
   object.add(ground, furniture);
   return object;
 }
+
+test('baked placements reproduce the procedural draw buffers without raycasts', async () => {
+  const object = terrace();
+  const terraces = [{ object, seed: 57 }];
+  const loadTexture = async () => new T.Texture();
+  const bakedGroves = [];
+  const original = await createSkywellGardens({
+    terraces,
+    loadTexture,
+    onGroveLayout({ trees, shrubs, ...metadata }) {
+      bakedGroves.push({
+        ...metadata,
+        trees: Buffer.from(trees.buffer).toString('base64'),
+        shrubs: Buffer.from(shrubs.buffer).toString('base64'),
+      });
+    },
+  });
+  object.traverse((mesh) => {
+    if (mesh.isMesh)
+      mesh.raycast = () => assert.fail('bake requested a raycast');
+  });
+  const baked = await createSkywellGardens({
+    terraces,
+    loadTexture,
+    bakedGroves,
+  });
+  const batches = (group) => {
+    const matrices = [];
+    group.traverse((object) => {
+      if (object.isInstancedMesh)
+        matrices.push({
+          name: object.name,
+          values: object.instanceMatrix.array,
+        });
+    });
+    return matrices;
+  };
+  assert.ok(batches(original.group).length > 0);
+  assert.deepEqual(batches(baked.group), batches(original.group));
+  assert.deepEqual(baked.group.userData, original.group.userData);
+  baked.dispose();
+  original.dispose();
+  object.traverse((mesh) => {
+    mesh.geometry?.dispose();
+    mesh.material?.dispose();
+  });
+});
 
 test('cultivated roots sit on actual transformed terrace tops and avoid masonry furniture', async () => {
   const object = terrace(),

@@ -38,29 +38,68 @@ export function createGraphicsContext(renderer, signal) {
   const onAbort = () => cancel(signal.reason);
   canvas.addEventListener('webglcontextlost', onLost);
   signal?.addEventListener('abort', onAbort);
+  async function interruptible(work) {
+    check();
+    let rejectPending;
+    const interrupted = new Promise((_, reject) => {
+      rejectPending = reject;
+      waiting.add(reject);
+    });
+    try {
+      await Promise.race([
+        interrupted,
+        Promise.resolve().then(() => {
+          check();
+          return work();
+        }),
+      ]);
+      check();
+    } catch (error) {
+      throw normalize(error);
+    } finally {
+      waiting.delete(rejectPending);
+    }
+  }
   return {
     check,
     normalize,
-    async compile(scene, camera, targetScene) {
-      check();
-      let rejectPending;
-      const interrupted = new Promise((_, reject) => {
-        rejectPending = reject;
-        waiting.add(reject);
-      });
+    compile(scene, camera, targetScene) {
+      return interruptible(() =>
+        renderer.compileAsync(scene, camera, targetScene),
+      );
+    },
+    async waitForGPU() {
+      const gl = renderer.getContext();
+      let fence, timer;
       try {
-        await Promise.race([
-          interrupted,
-          Promise.resolve().then(() => {
-            check();
-            return renderer.compileAsync(scene, camera, targetScene);
-          }),
-        ]);
-        check();
-      } catch (error) {
-        throw normalize(error);
+        await interruptible(() => {
+          fence = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
+          if (!fence) throw new Error('Could not synchronize graphics warmup.');
+          gl.flush();
+          return new Promise((resolve, reject) => {
+            function poll() {
+              try {
+                check();
+                const status = gl.clientWaitSync(fence, 0, 0);
+                if (status === gl.TIMEOUT_EXPIRED) timer = setTimeout(poll, 8);
+                else if (
+                  status === gl.ALREADY_SIGNALED ||
+                  status === gl.CONDITION_SATISFIED
+                )
+                  resolve();
+                else
+                  reject(new Error('Graphics warmup synchronization failed.'));
+              } catch (error) {
+                reject(error);
+              }
+            }
+            // A WebGL fence can signal once control has returned to the browser.
+            timer = setTimeout(poll, 0);
+          });
+        });
       } finally {
-        waiting.delete(rejectPending);
+        clearTimeout(timer);
+        if (fence) gl.deleteSync(fence);
       }
     },
     dispose() {

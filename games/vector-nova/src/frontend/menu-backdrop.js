@@ -8,6 +8,7 @@ export function createMenuBackdrop(signal) {
   const context = canvas.getContext('2d', { alpha: false });
   const motion = matchMedia('(prefers-reduced-motion: reduce)');
   let active = false,
+    paused = false,
     reducedMotion = false,
     frame = 0,
     previous = 0,
@@ -93,6 +94,7 @@ export function createMenuBackdrop(signal) {
     if (
       context &&
       active &&
+      !paused &&
       !reducedMotion &&
       !motion.matches &&
       !document.hidden &&
@@ -124,6 +126,7 @@ export function createMenuBackdrop(signal) {
     configure(options) {
       const entering = options.active && !active;
       active = options.active;
+      paused = options.paused ?? false;
       reducedMotion = options.reducedMotion;
       if (entering) resize();
       sync();

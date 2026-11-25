@@ -3,7 +3,10 @@ import { createShatterlineRoad } from './track/road.js';
 import { createShatterlineCollisionWorld } from './collision.js';
 import { createShatterlineRuntime, SHATTERLINE_RULES } from './runtime.js';
 import { createDevices } from './devices.js';
-import { createShatterlineEnvironment } from './environment/index.js';
+import {
+  createShatterlineEnvironment,
+  shatterlineModels,
+} from './environment/index.js';
 import { createShatterlineBackdrop } from './backdrop/index.js';
 
 export default function createLevel({ shape = false } = {}) {
@@ -38,6 +41,7 @@ export default function createLevel({ shape = false } = {}) {
       flightChaseBlend: 0.65,
       safeFrame: { left: -0.86, right: 0.86, bottom: -0.6, top: 0.8 },
     },
+    preloadModels: shatterlineModels,
     createTrack: createShatterlineTrack,
     createRoad: (context) => createShatterlineRoad({ ...context, shape }),
     createEnvironment: (context) =>

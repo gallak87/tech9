@@ -63,6 +63,9 @@ export async function createSimulationWorld(
         await definition.createDynamics({ track, collisionWorld }),
       );
     }
+    // The live sweep index can build beside native collider setup. Join it
+    // before starting actors, which may enter the fallback query immediately.
+    await collisionWorld?.prepareSweepIndex?.(signal);
     signal?.throwIfAborted();
     return {
       definition,

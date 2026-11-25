@@ -7,6 +7,7 @@ import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { createLifetime } from '../core/lifecycle.js';
+import { waitForLoadPaint } from '../core/load-yield.js';
 import { ExhaustHeatPass } from '../ships/exhaust-heat-pass.js';
 import { configureShipTextures } from '../ships/texture-loader.js';
 import { textureMemory } from './texture-memory.js';
@@ -460,6 +461,18 @@ export async function createRenderer(
         }
         renderer.info.reset();
         renderer.shadowMap.needsUpdate = true;
+
+        // Exercise direct (Low) and HDR draws before readiness. Shader
+        // compilation alone leaves first-use resource uploads until a draw.
+        try {
+          renderer.setRenderTarget(null);
+          drawUnculledScene(scene, () => renderer.render(scene, camera));
+        } finally {
+          renderer.setRenderTarget(retainedTarget);
+        }
+        await waitForLoadPaint(signal);
+        graphics.check();
+
         // Compile deferred passes before readiness. The speed blur starts at
         // zero strength, but still needs its shader before the first acceleration.
         // Level pass owners likewise provide an inert initial state.
@@ -471,24 +484,19 @@ export async function createRenderer(
         try {
           for (const [pass] of enabled) pass.enabled = true;
           composer.renderToScreen = false;
-          drawUnculledScene(scene, () => {
-            // Exercise both direct (Low) and HDR (High/world-effect) draws.
-            // compileAsync alone leaves some first-use driver work until racing.
-            renderer.setRenderTarget(null);
-            renderer.render(scene, camera);
-            composer.render(0);
-          });
+          drawUnculledScene(scene, () => composer.render(0));
         } finally {
           composer.renderToScreen = renderToScreen;
           renderer.setRenderTarget(retainedTarget);
           for (const [pass, active] of enabled) pass.enabled = active;
         }
+        await waitForLoadPaint(signal);
+        graphics.check();
         // Replace the temporary all-visible draw before loading can disappear.
         composer.render(0);
         // Startup-only synchronization: readiness follows actual first-pass work,
         // including shadow, AO and antialias programs, not just submission.
-        renderer.getContext().finish();
-        graphics.check();
+        await graphics.waitForGPU();
         renderer.info.reset();
       },
       resetMetrics() {

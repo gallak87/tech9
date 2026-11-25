@@ -2,6 +2,7 @@ import { createTrackEditor } from './index.js';
 import { resolveEditorTestStart } from './test-drive.js';
 import { editorRouteOutline } from './route-outline.js';
 import { environmentThumbnailPath } from './environment-thumbnails.js';
+import { waitForLoadPaint } from '../core/load-yield.js';
 import './workshop.css';
 
 // The workshop owns a separate practice session. Career races stay suspended.
@@ -123,7 +124,7 @@ export function createWorkshop(
     });
     const task = (async () => {
       await previous?.catch(() => {});
-      signal.throwIfAborted();
+      await waitForLoadPaint(signal);
       sessionHost.replaceChildren();
       const { createGame } = await import('../core/game.js');
       signal.throwIfAborted();

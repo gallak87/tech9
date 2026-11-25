@@ -16,6 +16,127 @@ import { createVehicleState } from '../physics/index.js';
 import { createTrack } from '../levels/halcyon/track/model.js';
 import { createHalcyonDevices } from '../levels/halcyon/devices.js';
 
+function deferredRoster(signal) {
+  const opponents = RACE_OPPONENTS.slice(0, 7).map((specification) => ({
+    specification,
+    runtime: {},
+  }));
+  const ids = opponents.map(({ specification }) => specification.id);
+  const names = opponents.map(
+    ({ specification }) => `${specification.name} / racing`,
+  );
+  const gates = ids.map(() => Promise.withResolvers());
+  const arrivals = ids.map(() => Promise.withResolvers());
+  const scene = new Scene();
+  const started = [];
+  const disposed = [];
+  const ready = createRacerPresentation({
+    racers: { opponents },
+    scene,
+    signal,
+    settings: { quality: 'low' },
+    loadRival(id, options) {
+      assert.equal(options.signal, signal);
+      const index = ids.indexOf(id);
+      started.push(id);
+      arrivals[index].resolve();
+      return gates[index].promise;
+    },
+  });
+  const acquire = (index) =>
+    gates[index].resolve({
+      group: new Group(),
+      dispose() {
+        disposed.push(ids[index]);
+      },
+    });
+  return {
+    ids,
+    names,
+    gates,
+    arrivals,
+    scene,
+    started,
+    disposed,
+    ready,
+    acquire,
+  };
+}
+
+test(
+  'rival acquisition starts three at a time and attaches in roster order',
+  { timeout: 5000 },
+  async (t) => {
+    const { ids, names, arrivals, scene, started, disposed, ready, acquire } =
+      deferredRoster();
+    const attachedNames = () => scene.children.map(({ name }) => name);
+    assert.deepEqual(started, ids.slice(0, 3));
+    acquire(2);
+    acquire(0);
+    assert.equal(scene.children.length, 0);
+    acquire(1);
+    await arrivals[3].promise;
+    assert.deepEqual(started, ids.slice(0, 6));
+    assert.deepEqual(attachedNames(), names.slice(0, 3));
+
+    for (const index of [5, 3, 4]) acquire(index);
+    await arrivals[6].promise;
+    assert.deepEqual(started, ids);
+    assert.deepEqual(attachedNames(), names.slice(0, 6));
+    acquire(6);
+    const presentation = await ready;
+    t.after(() => presentation.dispose());
+    assert.deepEqual(attachedNames(), names);
+    presentation.dispose();
+    assert.equal(scene.children.length, 0);
+    assert.deepEqual(disposed.toSorted(), ids.toSorted());
+  },
+);
+
+for (const cancelled of [false, true]) {
+  test(
+    `rival acquisition releases attached ships and late siblings after ${cancelled ? 'cancellation' : 'failure'}`,
+    { timeout: 5000 },
+    async () => {
+      const controller = new AbortController();
+      const roster = deferredRoster(controller.signal);
+      const {
+        ids,
+        names,
+        gates,
+        arrivals,
+        scene,
+        started,
+        disposed,
+        ready,
+        acquire,
+      } = roster;
+      const error = cancelled
+        ? new DOMException('Race loading cancelled', 'AbortError')
+        : new Error('Rival model could not be loaded');
+      const rejected = assert.rejects(ready, (failure) => failure === error);
+      for (const index of [0, 1, 2]) acquire(index);
+      await arrivals[3].promise;
+      assert.deepEqual(
+        scene.children.map(({ name }) => name),
+        names.slice(0, 3),
+      );
+
+      acquire(3);
+      if (cancelled) controller.abort(error);
+      gates[4].reject(error);
+      await Promise.resolve();
+      // A decoder can produce a successful sibling after the failure.
+      acquire(5);
+      await rejected;
+      assert.deepEqual(started, ids.slice(0, 6));
+      assert.equal(scene.children.length, 0);
+      const acquired = [0, 1, 2, 3, 5].map((index) => ids[index]);
+      assert.deepEqual(disposed.toSorted(), acquired.toSorted());
+    },
+  );
+}
+
 test('rivals follow their own speed, boost/Vector, simulation clock and live graphics tier', async () => {
   const frames = [];
   let vectorActive = false;

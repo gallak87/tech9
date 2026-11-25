@@ -2025,59 +2025,129 @@ body {
   font-size: 10px;
 }
 :where(#app) #start-lights {
+  --start-light-size: clamp(20px, 4.6vmin, 30px);
+  --start-housing-cut: clamp(10px, 2.8vmin, 17px);
+  --start-light-color: #d93531;
+  --start-light-edge: #ff9b82;
+  --start-light-glow: #ff5d42;
   position: absolute;
-  top: 185px;
+  top: clamp(130px, 20.5vh, 185px);
   left: 50%;
   transform: translateX(-50%);
-  width: 260px;
-  padding: 16px 20px;
+  width: clamp(108px, 25vmin, 184px);
   text-align: center;
-  background: #151515ec;
-  border: 1px solid #c9c9c94d;
   pointer-events: none;
 }
-:where(#app) #start-lights > span {
-  font-size: 9px;
-  letter-spacing: 0.18em;
-  color: #cbcbcb;
-}
-:where(#app) #start-lights > div {
+:where(#app) .start-light-housing {
+  position: relative;
+  isolation: isolate;
   display: flex;
-  justify-content: center;
-  gap: 16px;
-  margin: 14px 0 10px;
+  justify-content: space-evenly;
+  padding: clamp(5px, 1vmin, 8px) var(--start-housing-cut);
+  background: linear-gradient(#969c9e, #535b60 34%, #292e32);
+  clip-path: polygon(
+    var(--start-housing-cut) 0,
+    calc(100% - var(--start-housing-cut)) 0,
+    100% 50%,
+    calc(100% - var(--start-housing-cut)) 100%,
+    var(--start-housing-cut) 100%,
+    0 50%
+  );
+}
+:where(#app) .start-light-housing::before {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  z-index: -1;
+  background: linear-gradient(#3b4145, #191c1f 41%, #23282c);
+  clip-path: inherit;
 }
 :where(#app) #start-lights i {
-  width: 30px;
-  height: 30px;
+  box-sizing: border-box;
+  width: var(--start-light-size);
+  height: var(--start-light-size);
+  flex: none;
   border-radius: 50%;
-  background: #292929;
-  border: 2px solid #4d4d4d;
+  border: 2px solid #111417;
+  background: linear-gradient(#293033, #40454a);
+  box-shadow:
+    inset 0 0 0 1px #64676a,
+    0 1px 1px #6c717480;
 }
 :where(#app) #start-lights i.lit {
-  background: #c41c1c;
-  border-color: #c41c1c;
-  box-shadow: 0 0 16px #c41c1c99;
+  background-color: var(--start-light-color);
+  background-image: radial-gradient(
+    circle at 50% 34%,
+    #fff3 0%,
+    transparent 68%
+  );
+  box-shadow:
+    inset 0 0 0 1px var(--start-light-edge),
+    0 0 6px var(--start-light-glow);
 }
 :where(#app) #start-lights b {
   display: block;
-  font-size: 30px;
-  line-height: 1.1;
+  margin-top: 5px;
+  color: #fff;
+  font-size: clamp(24px, 5.4vmin, 34px);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  text-shadow:
+    0 1px 2px #111,
+    0 2px 5px #111;
 }
-:where(#app) #start-lights.go b {
-  color: #83e8a4;
+:where(#app) #start-lights.go {
+  --start-light-color: #3bbf69;
+  --start-light-edge: #c3ffd6;
+  --start-light-glow: #66ec93;
 }
 :where(#app) #start-lights.go i.lit {
-  background: #3bbf69;
-  border-color: #83e8a4;
-  box-shadow: 0 0 16px #3bbf6980;
+  animation: start-light-release 220ms ease-out;
 }
-:where(#app) #start-lights small {
-  display: block;
-  margin-top: 8px;
-  font-size: 8px;
-  letter-spacing: 0.05em;
-  color: #cbcbcb;
+@keyframes start-light-release {
+  from {
+    box-shadow:
+      inset 0 0 4px 2px var(--start-light-edge),
+      0 0 12px var(--start-light-glow);
+  }
+}
+.reduced-motion :where(#app) #start-lights.go i.lit {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  :where(#app) #start-lights.go i.lit {
+    animation: none;
+  }
+}
+@media (max-height: 570px) and (orientation: landscape) {
+  :where(#app) #start-lights {
+    top: 148px;
+  }
+}
+@media (max-width: 620px) and (orientation: landscape) {
+  :where(#app) #start-lights {
+    top: 160px;
+  }
+  /* Fit the signal between the steering pad and the race order column. */
+  :where(#app) #interface.has-racing #start-lights {
+    left: 38.5%;
+  }
+}
+@media (max-width: 760px) and (orientation: portrait) {
+  :where(#app) #start-lights {
+    top: clamp(180px, 23vh, 225px);
+  }
+}
+@media (max-width: 760px) and (orientation: portrait),
+  (max-width: 620px) and (orientation: landscape) {
+  :where(#app)
+    #interface:is([data-event], [data-freestyle='true'])
+    #start-lights {
+    left: auto;
+    right: max(4vw, env(safe-area-inset-right));
+    z-index: 6;
+    transform: none;
+  }
 }
 
 :where(#app) #race-finish {

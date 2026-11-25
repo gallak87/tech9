@@ -130,8 +130,11 @@ export function createUI(
   lights.id = 'start-lights';
   lights.className = 'hidden';
   lights.setAttribute('role', 'status');
+  lights.setAttribute('aria-label', 'Race start countdown');
   lights.innerHTML =
-    '<span>START SEQUENCE</span><div aria-hidden="true"><i></i><i></i><i></i></div><b>3</b><small>HOLD THROTTLE · GREEN TO GO</small>';
+    '<div class="start-light-housing" aria-hidden="true"><i></i><i></i><i></i></div><b></b>';
+  const startLamps = lights.querySelectorAll('i');
+  const startLabel = lights.querySelector('b');
   root.append(lights);
   const finish = document.createElement('section');
   finish.id = 'race-finish';
@@ -740,10 +743,9 @@ export function createUI(
       lights.classList.toggle('hidden', step === null);
       lights.dataset.step = String(step);
       lights.classList.toggle('go', step === 0);
-      lights.querySelector('b').textContent = step === 0 ? 'GO' : String(step);
-      lights.querySelector('small').textContent =
-        step === 0 ? 'GREEN · GO' : 'HOLD THROTTLE · GREEN TO GO';
-      [...lights.querySelectorAll('i')].forEach((light, index) =>
+      const label = step === 0 ? 'GO' : String(step ?? '');
+      if (startLabel.textContent !== label) startLabel.textContent = label;
+      startLamps.forEach((light, index) =>
         light.classList.toggle(
           'lit',
           step === 0 || (step > 0 && index < 4 - step),

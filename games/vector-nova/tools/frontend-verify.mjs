@@ -523,10 +523,19 @@ try {
                   standings: [
                     {
                       id: 'player',
+                      name: 'You',
                       position: won ? 1 : 10,
                       finished: true,
                       valid: true,
                       totalTime: 65,
+                    },
+                    {
+                      id: 'rook',
+                      name: 'Rook',
+                      position: won ? 2 : 1,
+                      finished: true,
+                      valid: true,
+                      totalTime: won ? 66 : 64,
                     },
                   ],
                   score: 12500,
@@ -568,6 +577,15 @@ try {
             assert.ok(appearance.centered, label);
             assert.match(appearance.bevel, /^polygon\(/, label);
             assert.match(appearance.headingFont, /Barlow Condensed/, label);
+            if (mode === 'race' || mode === 'eliminator') {
+              const colors = await panel
+                .locator('li[data-racer]')
+                .evaluateAll((rows) =>
+                  rows.map((row) => getComputedStyle(row).backgroundColor),
+                );
+              assert.equal(new Set(colors).size, 2, label);
+              for (const color of colors) assert.match(color, /\/ 0\.12\)$/u);
+            }
             const primary = page.locator('.front-content .primary');
             assert.equal(await primary.count(), 1, label);
             assert.equal(
@@ -1096,25 +1114,26 @@ try {
         for (const action of ['circuits', 'ship-step']) {
           const summarySelector = `.menu-selection[data-action="${action}"]`;
           const summary = page.locator(summarySelector);
+          const accent = 'rgb(239, 57, 57)';
           const accentSettled = () =>
             page.waitForFunction(
-              (selector) =>
-                getComputedStyle(document.querySelector(selector))
-                  .borderLeftColor === 'rgb(208, 24, 24)',
-              summarySelector,
+              ({ selector, color }) =>
+                getComputedStyle(document.querySelector(selector), '::before')
+                  .borderLeftColor === color,
+              { selector: summarySelector, color: accent },
             );
           await page.mouse.move(0, 0);
           await page.evaluate(() => document.activeElement?.blur());
           const before = await summary.evaluate((button) => {
             const style = getComputedStyle(button),
+              edge = getComputedStyle(button, '::before'),
               rect = button.getBoundingClientRect();
             return {
               left: rect.left,
               right: rect.right,
               width: rect.width,
               padding: Number.parseFloat(style.paddingLeft),
-              border: Number.parseFloat(style.borderLeftWidth),
-              color: style.borderLeftColor,
+              border: Number.parseFloat(edge.borderLeftWidth),
             };
           });
           assert.equal(
@@ -1135,9 +1154,9 @@ try {
           await accentSettled();
           assert.equal(
             await summary.evaluate(
-              (button) => getComputedStyle(button).borderLeftColor,
+              (button) => getComputedStyle(button, '::before').borderLeftColor,
             ),
-            'rgb(208, 24, 24)',
+            accent,
             'hover lights the red left accent',
           );
           await page.mouse.move(0, 0);
@@ -1145,12 +1164,12 @@ try {
           await summary.focus();
           await accentSettled();
           const focused = await summary.evaluate((button) => ({
-            color: getComputedStyle(button).borderLeftColor,
+            color: getComputedStyle(button, '::before').borderLeftColor,
             width: button.getBoundingClientRect().width,
           }));
           assert.equal(
             focused.color,
-            'rgb(208, 24, 24)',
+            accent,
             'keyboard focus lights the same accent',
           );
           assert.equal(
@@ -3472,6 +3491,7 @@ try {
                   id: row.dataset.racer,
                   color:
                     getComputedStyle(row).getPropertyValue('--racer-color'),
+                  background: getComputedStyle(row).backgroundColor,
                 }),
               ),
             };
@@ -3482,6 +3502,12 @@ try {
           new Set(layout.rows.map(({ color }) => color)).size,
           RACE_FIELD_SIZE,
         );
+        assert.equal(
+          new Set(layout.rows.map(({ background }) => background)).size,
+          RACE_FIELD_SIZE,
+        );
+        for (const { background } of layout.rows)
+          assert.match(background, /\/ 0\.12\)$/u);
         assert.equal(
           layout.rows.find(({ id }) => id === 'player').color,
           layout.shipAccent,
@@ -4636,11 +4662,17 @@ try {
             .selectOption('shrike');
           await press('Escape', '[data-action="records"]');
           await page.locator('.menu-top-tabs [data-action="settings"]').focus();
-          await page.waitForFunction(
-            () =>
-              getComputedStyle(document.activeElement).borderBottomColor ===
-              'rgb(208, 24, 24)',
-          );
+          await page.waitForFunction(() => {
+            const focused = document.activeElement;
+            const { outlineColor, outlineStyle, outlineWidth } =
+              getComputedStyle(focused);
+            return (
+              focused.matches('[data-action="settings"]:focus-visible') &&
+              outlineColor === 'rgb(255, 119, 113)' &&
+              outlineStyle === 'solid' &&
+              Number.parseFloat(outlineWidth) >= 2
+            );
+          });
           await press('Space', '[data-action="settings-back"]');
           await press('Tab', '[data-setting="quality"]');
           await press('Escape', '[data-action="settings"]');
@@ -4678,7 +4710,15 @@ try {
             (await page.locator('.menu-top-tabs button').allTextContents()).map(
               (text) => text.trim(),
             ),
-            ['Race', 'Garage', 'Settings', 'Career', 'Tunes', 'Switch career'],
+            [
+              'Race',
+              'Garage',
+              'Editor',
+              'Settings',
+              'Career',
+              'Tunes',
+              'Switch career',
+            ],
           );
           assert.equal(
             await page
@@ -4736,7 +4776,7 @@ try {
                 width: accent.width,
               };
             }),
-            { color: 'rgb(208, 24, 24)', width: '2px' },
+            { color: 'rgb(239, 57, 57)', width: '2px' },
             'the selected circuit keeps its red left accent after the pointer leaves',
           );
           await compactWidthFits(page);
@@ -4865,7 +4905,15 @@ try {
           (await page.locator('.menu-top-tabs button').allTextContents()).map(
             (text) => text.trim(),
           ),
-          ['Race', 'Garage', 'Settings', 'Career', 'Tunes', 'Switch career'],
+          [
+            'Race',
+            'Garage',
+            'Editor',
+            'Settings',
+            'Career',
+            'Tunes',
+            'Switch career',
+          ],
         );
         await page.evaluate(() => {
           window.retainedMusic = document.querySelector('[data-music-player]');
@@ -5069,6 +5117,13 @@ try {
         await page.keyboard.press('ArrowRight');
         assert.equal(
           await tab('garage-tab').evaluate(
+            (el) => el === document.activeElement,
+          ),
+          true,
+        );
+        await page.keyboard.press('ArrowRight');
+        assert.equal(
+          await tab('track-editor').evaluate(
             (el) => el === document.activeElement,
           ),
           true,

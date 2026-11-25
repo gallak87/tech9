@@ -6,10 +6,10 @@ import './style.css';
 import './hud.css';
 import { formatTime, formatDelta } from '../race/timing.js';
 import { presentationDistance } from '../race/course.js';
-import { raceHudColors, RACE_FIELD_SIZE } from '../race/roster.js';
+import { RACE_FIELD_SIZE } from '../race/roster.js';
 import { halcyonGraphicsDefaults } from '../progression/index.js';
 import { deviceCSSColor } from '../pickups/theme.js';
-import { getShip } from '../ships/catalog.js';
+import { classificationColors } from './race-classification.js';
 
 const RESERVE_SEGMENT_COUNT = 10;
 const reserveSegments = Array.from(
@@ -65,7 +65,7 @@ export function createUI(
   <section class="pause-quick-settings pause-quick-settings--main" aria-labelledby="pause-quick-heading">
    <h3 id="pause-quick-heading">Quick settings</h3>
    <label>Graphics <span class="pause-choice"><select id="quality"><option value="high">High</option><option value="low">Low</option></select></span></label>
-   <label>Game effects <input id="volume" type="range" min="0" max="1" step=".05" value="${settings.volume}"></label>
+   <label>Game SFX <input id="volume" type="range" min="0" max="1" step=".05" value="${settings.volume}"></label>
    <label>Reduced motion <input id="motion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label>
    ${import.meta.env?.VN_DESKTOP ? fullscreenSetting() : ''}
   </section>
@@ -90,7 +90,7 @@ export function createUI(
   const speedGauge = speedValue.closest('.speed');
   const boostStatus = $('boost-status');
   let hudShipId = null;
-  let racerColors = raceHudColors(getShip().liveryAccent);
+  let racerColors = classificationColors();
   if (sprint) {
     root.classList.add('sprint-course');
     $('restart').textContent = 'Restart sprint';
@@ -269,15 +269,10 @@ export function createUI(
       : 'GAP TO YOU';
     const entries = rows.map((entry) => {
       const row = document.createElement('li');
+      row.className = 'classification-row';
       row.dataset.racer = entry.id;
       row.style.setProperty('--racer-color', racerColors[entry.id]);
       row.classList.toggle('is-player', entry.id === 'player');
-      row.classList.toggle(
-        'is-nearby',
-        !showingResults &&
-          (entry.id === data.relative?.ahead?.id ||
-            entry.id === data.relative?.behind?.id),
-      );
       const place = document.createElement('b');
       place.textContent =
         entry.position === null ? '—' : String(entry.position).padStart(2, '0');
@@ -605,7 +600,7 @@ export function createUI(
       currentCompetition = competition;
       if (hudShipId !== s.shipId) {
         hudShipId = s.shipId;
-        racerColors = raceHudColors(getShip(hudShipId).liveryAccent);
+        racerColors = classificationColors(hudShipId);
         speedGauge.style.setProperty('--speed-gauge-color', racerColors.player);
       }
       $('pause-race-settings')?.classList.toggle(

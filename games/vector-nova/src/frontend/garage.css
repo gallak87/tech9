@@ -34,26 +34,23 @@
 }
 .garage-fleet button {
   min-width: 0;
-  padding: 0 0 7px;
-  border: 0;
-  border-left: 2px solid transparent;
+  padding: 3px 0 8px;
+  border: 1px solid #ffffff30;
+  border-radius: 4px;
   text-align: left;
-  background: #131313;
-}
-.garage-fleet button[data-preview='true'] {
-  background: #262626;
-  border-left-color: #888;
 }
 .garage-fleet button img {
   display: block;
   width: 100%;
   height: 44px;
   object-fit: contain;
+  mix-blend-mode: lighten;
 }
 .garage-fleet button strong {
   display: block;
   padding: 0 10px;
-  font-size: 13px;
+  font: italic 800 16px/1 var(--menu-display, 'Barlow Condensed', sans-serif);
+  text-transform: uppercase;
   margin-top: 4px;
 }
 .garage-main {
@@ -61,7 +58,7 @@
 }
 .garage-studio {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 240px;
+  grid-template-columns: minmax(0, 1fr) minmax(275px, 28%);
   gap: 24px;
 }
 .dedicated-garage .ship-details {
@@ -70,14 +67,14 @@
 }
 .dedicated-garage h1 {
   margin: 0;
-  font-size: clamp(32px, 3.5vw, 46px);
-  line-height: 1.1;
-  letter-spacing: -0.045em;
+  font: italic 800 clamp(44px, 4.8vw, 68px) / 0.95
+    var(--menu-display, 'Barlow Condensed', sans-serif);
+  letter-spacing: 0.015em;
   text-transform: uppercase;
 }
 .garage-role {
-  color: #aaa;
-  margin: 6px 0 0;
+  color: #c4c4c7;
+  margin: 8px 0 0;
   font-size: 13px;
 }
 .dedicated-garage .ship-preview-slot {
@@ -101,12 +98,17 @@
   color: #aaa;
 }
 .garage-performance {
-  padding-top: 5px;
+  --hud-card-cut: 15px;
+  align-self: start;
+  padding: clamp(12px, 1.7vw, 22px);
   min-width: 0;
 }
 .garage-performance > .kicker {
-  font-size: 10px;
-  color: #aaa;
+  margin: 0;
+  color: #f3f2ef;
+  font: italic 800 26px/0.98 var(--menu-display, 'Barlow Condensed', sans-serif);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 .garage-upgrades {
   position: relative;
@@ -121,8 +123,8 @@
 }
 .garage-upgrades-heading h2 {
   margin: 0;
-  font-size: 11px;
-  font-weight: 500;
+  font: italic 700 15px/1 var(--menu-display, 'Barlow Condensed', sans-serif);
+  text-transform: uppercase;
 }
 .garage-upgrades-heading > span {
   color: #999;
@@ -184,18 +186,26 @@
 }
 .garage-performance .performance-grid {
   grid-template-columns: 1fr;
-  gap: 12px;
-  margin-top: 12px;
+  gap: 14px;
+  margin-top: 14px;
+}
+.garage-performance .performance-label {
+  font: 600 15px/1.05 var(--menu-display, 'Barlow Condensed', sans-serif);
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
 }
 .garage-performance .performance-label b {
-  font-size: 12px;
+  font: italic 700 17px/1 var(--menu-display, 'Barlow Condensed', sans-serif);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  text-transform: none;
 }
 .garage-legend {
   display: flex;
   gap: 14px;
   margin-top: 14px;
-  color: #999;
-  font-size: 10px;
+  color: #c3c3c7;
+  font-size: 11px;
 }
 .garage-legend span::before {
   content: '';
@@ -210,8 +220,8 @@
 }
 .garage-equipment {
   margin-top: 12px;
-  padding-top: 10px;
-  border-top: 1px solid #ffffff24;
+  padding-top: 11px;
+  border-top: 1px solid #ffffff31;
 }
 .garage-equipment-heading {
   display: flex;
@@ -222,17 +232,16 @@
   margin-bottom: 8px;
 }
 .garage-equipment-heading h2 {
-  font-size: 14px;
   margin: 0;
-  font-weight: 500;
+  font: italic 800 20px/1 var(--menu-display, 'Barlow Condensed', sans-serif);
+  text-transform: uppercase;
 }
 .garage-equipment-count {
   font-size: 11px;
   color: #aaa;
 }
 .garage-equipment-count b {
-  font-size: 14px;
-  font-weight: 500;
+  font: italic 700 16px/1 var(--menu-display, 'Barlow Condensed', sans-serif);
   color: #eee;
   font-variant-numeric: tabular-nums;
 }
@@ -262,9 +271,8 @@
   min-height: 52px;
   padding: 7px;
   text-align: left;
-  border: 1px solid transparent;
-  border-left-width: 2px;
-  background: #131313b8;
+  border: 1px solid #ffffff30;
+  border-radius: 4px;
 }
 .garage-equipment-card > .reward-icon {
   width: 28px;
@@ -276,19 +284,14 @@
 }
 .garage-equipment-card strong {
   display: block;
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 1.2;
+  font: italic 700 16px/1.05 var(--menu-display, 'Barlow Condensed', sans-serif);
+  text-transform: uppercase;
 }
 .garage-equipment-card .garage-equipment-status {
   display: block;
   font-size: 10px;
   color: #999;
   margin-top: 4px;
-}
-.garage-equipment-card[aria-pressed='true'] {
-  border-left-color: #ce2529;
-  background: #28221bd9;
 }
 .garage-equipment-card[aria-pressed='true'] .reward-icon,
 .garage-equipment-card[aria-pressed='true'] .garage-equipment-status {
@@ -521,9 +524,6 @@
   color: #fff;
   border-bottom-color: #d01818;
 }
-.garage-fleet button[aria-pressed='true'] {
-  border-left-color: #ce2529;
-}
 .garage-footer {
   padding-top: 0;
   border: 0;
@@ -553,29 +553,31 @@
   }
 }
 
-.front-content.dedicated-garage .garage-fleet button {
-  background: #131313;
-  border-left-color: transparent;
+.front-content.dedicated-garage
+  :is(.garage-fleet button, .garage-equipment-card) {
+  background: var(--menu-grain), var(--menu-button-surface);
 }
 .front-content.dedicated-garage .garage-fleet button[data-preview='true'] {
-  background: #262626;
-  border-left-color: #888;
-}
-.front-content.dedicated-garage .garage-fleet button[aria-pressed='true'] {
-  border-left-color: #ce2529;
-}
-.front-content.dedicated-garage .garage-equipment-card {
-  background: #131313b8;
-  border-color: transparent;
-}
-.front-content.dedicated-garage .garage-equipment-card[aria-pressed='true'] {
-  background: #28221bd9;
-  border-left-color: #ce2529;
+  border-color: #aaaab28c;
+  background: var(--menu-grain), #2a2a2d;
 }
 .front-content.dedicated-garage
-  .garage-equipment-card:is(:hover, :focus-visible) {
-  background: #ffffff12;
-  border-left-color: #ce2529;
+  :is(.garage-fleet button, .garage-equipment-card)[aria-pressed='true'] {
+  border-color: #ed535778;
+  box-shadow: inset 2px 0 var(--menu-red, #ed2832);
+}
+.front-content.dedicated-garage .garage-equipment-card[aria-pressed='true'] {
+  background: var(--menu-grain), linear-gradient(120deg, #4b2b27, #252324 66%);
+}
+.front-content.dedicated-garage
+  :is(.garage-fleet button, .garage-equipment-card):not(:disabled):is(
+    :hover,
+    :focus-visible
+  ) {
+  border-color: var(--menu-red, #ed2832);
+  box-shadow:
+    inset 2px 0 var(--menu-red, #ed2832),
+    0 0 12px #ed283236;
 }
 .menu-top-tabs button {
   letter-spacing: normal;

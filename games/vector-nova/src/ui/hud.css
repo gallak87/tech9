@@ -76,7 +76,7 @@
 }
 
 /* Separate the clipped shell from its contents so controls retain their focus rings. */
-:where(#app) .hud-card {
+:where(#app) :is(.hud-card, .menu-card) {
   --hud-card-surface: linear-gradient(
     146deg,
     #2d3033fa,
@@ -101,24 +101,39 @@
     0 5px
   );
   isolation: isolate;
+}
+
+:where(#app) .hud-card {
   font-family: var(--hud-font);
 }
 
-:where(#app) .hud-card::before,
-:where(#app) .hud-card::after {
+:where(#app) .classification-row {
+  background-color: color-mix(
+    in srgb,
+    var(--racer-color, #e7edf0) 12%,
+    transparent
+  );
+}
+
+:where(#app) :is(li.classification-row, tr.classification-row > :first-child) {
+  border-inline-start: 3px solid var(--racer-color, #e7edf0);
+}
+
+:where(#app) :is(.hud-card, .menu-card)::before,
+:where(#app) :is(.hud-card, .menu-card)::after {
   content: '';
   position: absolute;
   pointer-events: none;
   clip-path: var(--hud-card-outline);
 }
 
-:where(#app) .hud-card::before {
+:where(#app) :is(.hud-card, .menu-card)::before {
   z-index: -2;
   inset: 0;
   background: var(--hud-card-edge);
 }
 
-:where(#app) .hud-card::after {
+:where(#app) :is(.hud-card, .menu-card)::after {
   z-index: -1;
   inset: 1px;
   background:

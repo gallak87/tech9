@@ -17,10 +17,12 @@ import './garage.css';
 import '../progression/style.css';
 import '../audio/player.css';
 import '../ui/style.css';
+import '../ui/hud.css';
 import './style.css';
 import './menu.css';
 import './cup-art.css';
 import './entry.css';
+import './menu-theme.css';
 
 const wordmark =
   '<span class="entry-wordmark">VECTOR<span>//</span>NOVA</span>';
@@ -136,7 +138,7 @@ export async function startEntry(host) {
     const launch = editing
       ? ''
       : `<button class="entry-profile${slot.empty ? ' entry-profile-empty' : ''}" data-career-slot="${slot.id}" aria-labelledby="${titleId} ${actionId}" aria-describedby="${detailId}" aria-pressed="${active}" ${slot.unavailable ? 'disabled' : ''}></button>`;
-    return `<div class="entry-profile-row${editing ? ' entry-profile-row-editing' : ''}" data-career-id="${slot.id}">${launch}<span class="entry-slot-number">0${slot.id}</span><div class="entry-profile-copy">${name}<div id="${detailId}">${detail}</div></div>${editing ? '' : `<span id="${actionId}" class="entry-profile-action">${slot.empty ? 'Create +' : 'Continue →'}</span>`}</div>`;
+    return `<div class="entry-profile-row menu-card${editing ? ' entry-profile-row-editing' : ''}" data-career-id="${slot.id}">${launch}<span class="entry-slot-number">0${slot.id}</span><div class="entry-profile-copy">${name}<div id="${detailId}">${detail}</div></div>${editing ? '' : `<span id="${actionId}" class="entry-profile-action">${slot.empty ? 'Create +' : 'Continue →'}</span>`}</div>`;
   }
   function render() {
     if (!shell || entryLife?.signal.aborted) return;
@@ -151,13 +153,14 @@ export async function startEntry(host) {
     const heading = stage === 'profiles' ? 'Choose your career' : 'Settings';
     const content =
       stage === 'intro'
-        ? `<section class="entry-intro"><div class="entry-identity"><h1>${wordmark}</h1><button class="entry-continue" data-entry-action="profiles">Start</button></div><div class="entry-ship" aria-hidden="true"></div></section>`
+        ? `<section class="entry-intro"><div class="entry-identity"><h1>${wordmark}</h1><button class="entry-continue" data-entry-action="profiles">Start <span aria-hidden="true">→</span></button></div><div class="entry-ship" aria-hidden="true"></div></section>`
         : `<section class="entry-page ${stage === 'profiles' ? 'entry-careers' : 'entry-utility'}"><header class="entry-page-heading"><h1>${heading}</h1>${stage === 'profiles' ? '' : '<button class="entry-back" data-entry-action="profiles">← Careers</button>'}</header>${stage === 'profiles' ? `<div class="entry-profile-grid">${careers.list().map(slotView).join('')}</div><p id="entry-career-notice" class="entry-notice" role="status">${escapeHTML(message || careers.snapshotNotice())}</p>` : `<div class="entry-utility-content">${stage === 'settings' ? settingsView(loadSettings()) : ''}</div>`}</section>`;
     shell.innerHTML = navigation() + content;
     backdrop.mount(shell);
     backdrop.configure({ active: true, reducedMotion: reducedMotion() });
     headerObserver?.disconnect();
     const header = shell.querySelector('.entry-topbar');
+    music?.setCompactMenu(Boolean(header));
     headerObserver = header ? new ResizeObserver(measureHeader) : null;
     if (header) {
       headerObserver.observe(header);
@@ -334,6 +337,28 @@ export async function startEntry(host) {
         shell.querySelector('.entry-notice').textContent = '';
       },
       { signal: entryLife.signal },
+    );
+    // Expanded Tunes handles Escape at window capture. The title also needs
+    // Escape from the collapsed transport, which is outside the entry shell.
+    document.addEventListener(
+      'keydown',
+      (event) => {
+        if (
+          stage !== 'intro' ||
+          event.code !== 'Escape' ||
+          event.defaultPrevented ||
+          event.ctrlKey ||
+          event.metaKey ||
+          event.altKey
+        )
+          return;
+        const start = shell.querySelector('.entry-continue');
+        if (!start || start === document.activeElement) return;
+        event.preventDefault();
+        event.stopPropagation();
+        start.focus({ preventScroll: true });
+      },
+      { capture: true, signal: entryLife.signal },
     );
     shell.addEventListener(
       'keydown',

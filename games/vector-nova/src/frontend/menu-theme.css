@@ -1,0 +1,529 @@
+#app {
+  --menu-display: var(--hud-font);
+  --menu-red: var(--hud-accent);
+  --menu-surface: linear-gradient(146deg, #27292c, #1a1b1d 57%, #111214);
+  --menu-edge: linear-gradient(
+    145deg,
+    #999da0,
+    #626569 32%,
+    #383a3e 74%,
+    #686c70
+  );
+  --menu-button-surface: linear-gradient(105deg, #ffffff08, #ffffff16), #18191b;
+  --menu-grain: repeating-linear-gradient(
+    132deg,
+    transparent 0 2px,
+    #ffffff05 2px 3px
+  );
+  --menu-focus: #ff7771;
+  --menu-divider: #ffffff26;
+}
+
+:where(#app) .menu-card {
+  --hud-card-edge: var(--menu-edge);
+  --hud-card-surface: var(--menu-surface);
+  position: relative;
+}
+
+:where(#app)
+  :is(
+    .front-heading h1,
+    .utility-heading h1,
+    .career-page .progression-header h1,
+    .cup-victory h1,
+    .cup-hero-caption .cup-title,
+    .completion-loading h1,
+    .completion-card h1
+  ) {
+  font-family: var(--menu-display);
+  font-style: italic;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+:where(#app) :is(.utility-heading h1, .career-page .progression-header h1) {
+  font-size: clamp(33px, 4.2vw, 55px);
+}
+
+:where(#app) .menu-top-tabs button {
+  font-family: var(--menu-display);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+:where(#app) .menu-top-tabs button[aria-pressed='true'] {
+  box-shadow: inset 0 -2px var(--menu-red);
+  background: linear-gradient(0deg, #ef393925, transparent 80%);
+}
+
+:where(#app) #front-shell .session-return {
+  background: var(--menu-grain), linear-gradient(110deg, #d6b65c27, #231f1a);
+}
+
+:where(#app) .session-return-copy strong {
+  font-family: var(--menu-display);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.035em;
+}
+
+:where(#app)
+  :is(.front-actions, .cup-management, .career-transfer, .progression-confirm)
+  button,
+:where(#app)
+  :is(.utility-heading, .career-page .progression-header, .front-header)
+  > button:not(.front-brand),
+:where(#app) :is(.completion-skip, .completion-close, .completion-retry) {
+  border-color: #ffffff42;
+  border-radius: 3px;
+  background: var(--menu-grain), var(--menu-button-surface);
+  font-family: var(--menu-display);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.075em;
+  text-transform: uppercase;
+}
+
+:where(#app)
+  :is(.front-actions, .cup-management, .career-transfer, .progression-confirm)
+  button:hover,
+:where(#app)
+  :is(.utility-heading, .career-page .progression-header, .front-header)
+  > button:not(.front-brand):hover,
+:where(#app) :is(.completion-skip, .completion-close, .completion-retry):hover {
+  border-color: var(--menu-focus);
+  color: #fff;
+}
+
+:where(#app)
+  #front-shell
+  :is(.front-actions, .cup-management, .career-transfer, .progression-confirm)
+  button:focus-visible,
+:where(#app)
+  #front-shell
+  :is(.utility-heading, .career-page .progression-header, .front-header)
+  > button:not(.front-brand):focus-visible,
+:where(#app) .completion-cinematic button:focus-visible {
+  outline-color: var(--menu-focus);
+}
+
+:where(#app)
+  :is(
+    .front-actions button.primary,
+    .progression-confirm [data-confirm-import],
+    .completion-close
+  ) {
+  border-color: var(--menu-red);
+  background: var(--menu-grain), linear-gradient(100deg, #ba2424, #711b1a 85%);
+  color: #fff;
+}
+
+:where(#app) :is(.front-actions button.primary, .completion-close):hover {
+  background: var(--menu-grain), linear-gradient(100deg, #d02c2b, #861f1d 85%);
+}
+
+:where(#app) .music-player {
+  background: var(--menu-grain), var(--menu-surface);
+  border-color: #ffffff45;
+  box-shadow:
+    inset 0 1px #ffffff0e,
+    0 5px 18px #0004;
+}
+
+:where(#app) .music-player :is(.music-eyebrow, .music-song, .music-times) {
+  font-family: var(--menu-display);
+}
+
+:where(#app) .music-player .music-song {
+  font-size: 15px;
+  letter-spacing: 0.025em;
+}
+
+:where(#app) .music-player .music-song option {
+  font-family: system-ui, sans-serif;
+}
+
+:where(#app) .music-player :is(button:hover, :focus-visible) {
+  border-color: var(--menu-focus);
+  outline-color: var(--menu-focus);
+}
+
+:where(#app) .loading-copy.menu-card {
+  padding: clamp(14px, 3vw, 26px);
+}
+
+:where(#app) .loading-copy .loading-card {
+  border: 1px solid var(--menu-divider);
+  opacity: 1;
+}
+
+:where(#app) .loading-copy .loading-card img {
+  opacity: 0.8;
+}
+
+:where(#app) .loading-copy .transfer-status progress {
+  height: 3px;
+  background: #454646;
+}
+
+:where(#app) .loading-copy .transfer-status progress::-webkit-progress-bar {
+  background: #454646;
+}
+
+:where(#app) .loading-copy .transfer-status progress::-webkit-progress-value {
+  background: var(--menu-red);
+}
+
+:where(#app) .loading-copy .transfer-status progress::-moz-progress-bar {
+  background: var(--menu-red);
+}
+
+:where(#app) .career-page .career-summary {
+  align-items: center;
+  gap: 12px 0;
+  margin-top: 12px;
+  padding: 12px 22px 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+:where(#app) .career-page .career-summary strong {
+  flex: auto;
+  padding-right: 16px;
+  font: italic 800 34px/1 var(--menu-display);
+  white-space: nowrap;
+}
+
+:where(#app) .career-page .career-summary small {
+  font: italic 600 16px/1 var(--menu-display);
+  color: #e2e2e2;
+  text-transform: uppercase;
+}
+
+:where(#app) .career-page .career-summary > span:not(.career-summary-meter) {
+  flex: auto;
+  padding-inline: 15px;
+  border-left: 1px solid #ffffff4a;
+  color: #e2e2e2;
+  font: italic 600 clamp(14px, 1.4vw, 20px)/1.15 var(--menu-display);
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  :where(#app) .career-page .career-summary {
+    padding-inline: 16px;
+    gap: 10px 14px;
+  }
+
+  :where(#app) .career-page .career-summary > span:not(.career-summary-meter) {
+    padding: 0;
+    border: 0;
+  }
+}
+
+:where(#app) .career-summary-meter {
+  flex: 0 0 100%;
+  height: 5px;
+  background:
+    repeating-linear-gradient(112deg, transparent 0 8px, #1d1e20 8px 10px),
+    linear-gradient(90deg, var(--menu-red), #ac2429) 0 0 /
+      var(--career-complete) 100% no-repeat,
+    #44464a;
+}
+
+:where(#app) .career-page .career-collection-heading h2 {
+  font: italic 700 25px/1 var(--menu-display);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+:where(#app) .career-page .career-reward-group > header,
+:where(#app) .career-page .career-course-group h3 {
+  border-color: var(--menu-divider);
+  color: #d9d9d9;
+}
+
+:where(#app) .career-reward-group h2 {
+  font: italic 700 20px/1.2 var(--menu-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+:where(#app) .career-page .reward-milestone {
+  padding-block: 6px;
+}
+
+:where(#app) .career-page .reward-milestone strong {
+  font: 600 15px/1.2 var(--menu-display);
+}
+
+:where(#app) .career-page .reward-milestone.locked > div {
+  opacity: 0.9;
+}
+
+:where(#app) .career-page .reward-milestone p {
+  margin-block: 2px;
+}
+
+:where(#app) .career-page .career-course-card {
+  background: linear-gradient(118deg, #ffffff08, transparent);
+  border-inline: 0;
+  border-bottom: 0;
+}
+
+:where(#app) .career-page .progression-confirm {
+  background: var(--menu-grain), var(--menu-surface);
+  border-left-color: var(--menu-red);
+}
+
+:where(#app) .career-page .progression-body[inert] {
+  opacity: 0.42;
+}
+
+:where(#app) .progression-confirm h3 {
+  font: italic 700 28px/1.1 var(--menu-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+:where(#app)
+  :is(.cup-card-label strong, .cup-table caption, .cup-confirm strong) {
+  font-family: var(--menu-display);
+  font-size: clamp(16px, 1.5vw, 22px);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+:where(#app) .menu-layout .cup-picker .cup-card[aria-pressed='true'] {
+  border-color: var(--menu-red);
+  box-shadow: inset 3px 0 var(--menu-red);
+}
+
+:where(#app) .menu-layout .cup-picker .cup-card:focus-visible {
+  outline-color: var(--menu-focus);
+}
+
+@media (min-width: 901px) {
+  :where(#app) .cup-menu-panel .cup-route:has(> li:nth-child(5)) li {
+    min-height: 48px;
+    padding-block: 5px;
+  }
+}
+
+:where(#app) .cup-menu-panel .cup-route [aria-current] {
+  border-left-color: var(--menu-red);
+  background: linear-gradient(90deg, #ef393924, #ffffff08 70%);
+}
+
+:where(#app) .cup-confirm.menu-card {
+  background: transparent;
+  border: 0;
+  padding-inline: clamp(12px, 2vw, 20px);
+}
+
+:where(#app) .cup-victory .front-actions button {
+  font: 700 15px/1.15 var(--menu-display);
+  white-space: normal;
+}
+
+:where(#app) .completion-card.menu-card {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+:where(#app) .completion-card.menu-card::before {
+  top: 0;
+  left: 0;
+  right: 0;
+  height: auto;
+  background: var(--menu-edge);
+}
+
+@media (max-width: 760px) {
+  :where(#app) .menu-top-tabs button {
+    font-size: 14px;
+  }
+}
+
+@media (max-height: 550px) {
+  :where(#app) .loading-copy .loading-card {
+    height: clamp(70px, 26dvh, 140px);
+  }
+  :where(#app) .loading-copy .loading-transfer {
+    margin-bottom: 12px;
+  }
+  :where(#app) .loading-copy .front-actions {
+    margin-top: 0;
+    padding-top: 10px;
+  }
+}
+
+:where(#app)
+  .front-content
+  .career-page
+  :is(.career-transfer, .progression-confirm, .progression-header)
+  button:not(.primary, [data-career-rename], .career-name-actions button) {
+  min-height: 44px;
+  border: 1px solid #ffffff37;
+  background: var(--menu-grain), var(--menu-button-surface);
+  font: 600 15px/1.1 var(--menu-display);
+  letter-spacing: 0.06em;
+}
+
+:where(#app)
+  .front-content
+  .career-page
+  :is(.career-transfer, .progression-confirm, .progression-header)
+  button:not(.primary, [data-career-rename], .career-name-actions button):is(
+    :hover,
+    :focus-visible
+  ) {
+  border-color: var(--menu-focus);
+}
+
+:where(#app) .menu-top-tabs button:is(:hover, :focus-visible) {
+  color: #fff;
+}
+
+:where(#app)
+  .menu-top-tabs
+  button:not([aria-pressed='true']):is(
+    :hover,
+    :focus-visible,
+    [aria-expanded='true']
+  ) {
+  border-color: transparent;
+}
+
+:where(#app) .menu-top-tabs button[aria-expanded='true'] {
+  box-shadow: inset 0 0 0 1px #ef39396e;
+  background: #ef39391a;
+  color: #fff;
+}
+
+:where(#app) #front-shell .menu-top-tabs button:focus-visible {
+  outline-color: var(--menu-focus);
+}
+
+:where(#app) .front-content .career-page .career-transfer button {
+  min-width: min(136px, 100%);
+  font-style: italic;
+  text-align: left;
+}
+
+:where(#app)
+  .front-content
+  .career-page
+  :is(
+    .career-transfer [data-export],
+    .progression-confirm [data-confirm-import]
+  ):not(.primary) {
+  border-color: var(--menu-red);
+  background: var(--menu-grain), linear-gradient(100deg, #ba2424, #711b1a 85%);
+  color: #fff;
+}
+
+:where(#app)
+  .front-content
+  .career-page
+  .career-transfer
+  [data-export]:is(:hover, :focus-visible) {
+  border-color: var(--menu-focus);
+  background: var(--menu-grain), linear-gradient(100deg, #d02c2b, #861f1d 85%);
+}
+
+:where(#app) .loading-copy .transfer-status > span {
+  color: #bebebe;
+  font-size: 11px;
+}
+
+:where(#app) .loading-copy .transfer-status.failed > span {
+  color: #ffa4a0;
+}
+
+@media (max-width: 520px) {
+  :where(#app) .menu-topbar {
+    top: 16px;
+  }
+
+  :where(#app) .menu-top-tabs {
+    gap: 1px;
+    scrollbar-width: thin;
+    scrollbar-color: #686b70 transparent;
+  }
+
+  :where(#app) .menu-top-tabs button {
+    flex: 1 0 auto;
+    min-width: 0;
+    padding-inline: clamp(4px, 1vw, 8px);
+    font-size: clamp(13px, 3.55vw, 15px);
+    letter-spacing: 0.025em;
+    text-align: center;
+  }
+
+  :where(#app) .menu-top-tabs .menu-switch-career {
+    justify-content: center;
+  }
+
+  :where(#app)
+    .menu-top-tabs
+    .menu-switch-career
+    :is(.menu-switch-career-suffix, svg) {
+    display: none;
+  }
+
+  body:has(#front-shell:not([hidden]) > .menu-topbar)
+    .music-player.is-compact
+    .music-compact-toggle {
+    height: 42px;
+  }
+
+  body:has(#front-shell:not([hidden]) > .menu-topbar)
+    .music-player.is-compact
+    #music-panel {
+    top: 104px;
+    background: var(--menu-grain), var(--menu-surface);
+    border-color: #ffffff45;
+  }
+
+  :where(#app) .career-page .career-transfer {
+    align-items: stretch;
+  }
+
+  :where(#app) .front-content .career-page .career-transfer button {
+    flex: 1 1 0;
+    min-width: 0;
+    padding-inline: 6px;
+    font-size: 14px;
+    letter-spacing: 0.03em;
+    text-align: center;
+  }
+}
+
+@media (max-width: 375px) {
+  :where(#app) .menu-topbar {
+    left: 12px;
+    right: 12px;
+  }
+}
+
+@media (max-width: 350px) {
+  :where(#app) .menu-top-tabs button {
+    padding-inline: 4px;
+    font-size: 12px;
+  }
+}
+
+@media (521px <= width <= 960px) {
+  body:has(#front-shell:not([hidden]) > .menu-topbar)
+    .music-player:not(.is-compact, .is-collapsed) {
+    top: 126px;
+    max-height: calc(100dvh - 142px);
+  }
+}

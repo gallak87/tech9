@@ -492,9 +492,8 @@ body {
   font-size: 13px;
   font-variant-numeric: tabular-nums;
 }
-:where(#app) .results-list li.you {
-  border-left: 3px solid #bc1717;
-  background: #221515;
+:where(#app) .results-list li.you > b {
+  color: var(--racer-color);
 }
 :where(#app) .results-list li > span:first-child {
   color: #999;
@@ -633,10 +632,6 @@ body[data-screen='results'] :where(#app) .front-footer {
   border-bottom-color: #ffffff26;
   padding: 7px 10px;
   font-size: 14px;
-}
-:where(#app) .result-panel .results-list li.you {
-  border-left-color: var(--hud-accent);
-  background: #d0181826;
 }
 :where(#app) .result-panel .results-list {
   max-height: min(36vh, 340px);
@@ -992,11 +987,8 @@ body[data-screen='results'] :where(#app) #interface {
 :where(#app) .cup-table thead {
   color: #aaa;
 }
-:where(#app) .cup-table .you {
-  background: #262626;
-  box-shadow: inset 2px 0 #d01818;
-}
 :where(#app) .cup-table .you th {
+  color: var(--racer-color);
   font-weight: 700;
 }
 :where(#app) .cup-panel summary {
@@ -1156,7 +1148,7 @@ body[data-screen='results'] :where(#app) #interface {
 :where(#app) .cup-results-panel .cup-table :is(th, td):last-child {
   text-align: right;
 }
-:where(#app) .cup-results-panel .cup-table .you :is(th, td) {
+:where(#app) .cup-results-panel .cup-table .you td {
   color: #fff;
 }
 :where(#app) .cup-results-panel .cup-standings tbody td:last-child {

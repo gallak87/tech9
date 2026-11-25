@@ -1,4 +1,4 @@
-.workshop-profile {
+.workshop-profile.menu-card {
   position: absolute;
   z-index: 7;
   inset: 12px 0 auto;
@@ -7,9 +7,7 @@
   max-height: calc(100% - 24px);
   overflow: auto;
   color: #eee;
-  background: #101010fa;
-  border: 1px solid #505050;
-  box-shadow: 0 6px 24px #0007;
+  filter: drop-shadow(0 8px 16px #0009);
 }
 .workshop-profile header {
   display: flex;
@@ -17,13 +15,11 @@
   justify-content: space-between;
   gap: 8px;
   padding: 7px 10px 7px 13px;
-  border-bottom: 1px solid #383838;
-  background: #171717;
+  border-bottom: 1px solid var(--workshop-rule);
 }
 .workshop-profile h2 {
   margin: 0;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 16px;
 }
 .track-workshop [data-editor-action='profile-close'] {
   min-height: 25px;
@@ -113,7 +109,7 @@
 }
 .workshop-profile-controls input {
   width: clamp(85px, 15vw, 150px);
-  accent-color: #e5e5e5;
+  accent-color: var(--workshop-accent);
 }
 .workshop-profile-controls output {
   flex: 1 0 auto;

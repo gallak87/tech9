@@ -97,7 +97,7 @@
   touch-action: none;
 }
 .workshop-point-track:focus-within {
-  outline: 2px solid #f0eeee;
+  outline: 2px solid var(--workshop-focus);
   outline-offset: 1px;
 }
 .workshop-point-address input,
@@ -172,7 +172,7 @@
   touch-action: none;
 }
 .workshop-scrub-grip:focus-within {
-  outline: 2px solid #f0eeee;
+  outline: 2px solid var(--workshop-focus);
   outline-offset: 1px;
 }
 .track-workshop .workshop-point-workspace input[type='number'] {

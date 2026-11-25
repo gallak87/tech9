@@ -72,7 +72,7 @@ export function sampleElevationProfile(doc, fractions, preparedCurve) {
   };
 }
 
-export const elevationProfileMarkup = `<section class="workshop-profile" id="workshop-elevation-profile" data-editor-profile hidden role="dialog" aria-labelledby="workshop-elevation-title">
+export const elevationProfileMarkup = `<section class="workshop-profile menu-card" id="workshop-elevation-profile" data-editor-profile hidden role="dialog" aria-labelledby="workshop-elevation-title">
   <header>
     <h2 id="workshop-elevation-title">Elevation profile</h2>
     <button type="button" data-editor-action="profile-close" aria-label="Close elevation profile">×</button>

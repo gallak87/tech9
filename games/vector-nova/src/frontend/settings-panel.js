@@ -8,6 +8,7 @@ import {
   controllerSettingsView,
   bindControllerSettings,
 } from './controller-settings.js';
+import './preferences-theme.css';
 
 export function settingsView(
   settings,
@@ -15,7 +16,7 @@ export function settingsView(
 ) {
   const audio = [
     ['masterVolume', 'Master volume'],
-    ['volume', 'Game effects'],
+    ['volume', 'Game SFX'],
     ['musicVolume', 'Tunes'],
   ]
     .map(
@@ -23,7 +24,7 @@ export function settingsView(
         `<label><span>${label}</span><span class="audio-volume-control"><output for="setting-${key}" data-setting-output="${key}">${Math.round(settings[key] * 100)}%</output><input id="setting-${key}" aria-label="${label}" data-setting="${key}" type="range" min="0" max="1" step=".01" value="${settings[key]}"></span></label>`,
     )
     .join('');
-  return `<div class="settings-layout"><section class="settings-form"><label><span>Graphics</span><select data-setting="quality"><option value="high">High</option><option value="low">Low</option></select></label>${audio}<label><span>Reduced motion</span><input data-setting="reducedMotion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label>${controllerSettingsView(settings, { freestyle })}</section><section class="keyboard-guide" aria-label="Keyboard shortcuts"><h2>Keyboard</h2>${[
+  return `<div class="settings-layout"><section class="settings-form"><div class="settings-preferences menu-card" role="group" aria-label="Preferences"><label><span>Graphics</span><select data-setting="quality"><option value="high">High</option><option value="low">Low</option></select></label>${audio}<label><span>Reduced motion</span><input data-setting="reducedMotion" type="checkbox" ${settings.reducedMotion ? 'checked' : ''}></label></div>${controllerSettingsView(settings, { freestyle })}</section><section class="keyboard-guide" aria-label="Keyboard shortcuts"><h2>Keyboard</h2>${[
     [
       freestyle ? 'Freestyle' : 'Driving',
       [
@@ -130,6 +131,19 @@ export function bindSettingsPanel(
   root.addEventListener('change', (event) => save(event.target), {
     signal: life.signal,
   });
+  root.addEventListener(
+    'keydown',
+    (event) => {
+      // The open picker owns Escape before the surrounding Settings page.
+      if (
+        event.code === 'Escape' &&
+        CSS.supports('selector(select:open)') &&
+        event.target.closest('select:open')
+      )
+        event.stopPropagation();
+    },
+    { signal: life.signal },
+  );
   root.addEventListener(
     'click',
     (event) => {

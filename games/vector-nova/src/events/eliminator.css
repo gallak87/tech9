@@ -164,9 +164,9 @@
   font-size: 11px;
   color: #99958d;
 }
-.eliminator-results li.is-player {
-  background: #a54f2324;
-  color: #fff1da;
+.eliminator-results li.is-player > span {
+  color: var(--racer-color);
+  font-weight: 700;
 }
 .eliminator-results li[data-status='winner'] > small {
   color: #adcfb3;

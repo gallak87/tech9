@@ -294,7 +294,7 @@ export function createTrackEditor(
       <div class="workshop-document-actions" role="group" aria-label="Track commands">
         <div class="workshop-file-control">
           ${button('tab-library', 'File', 'aria-expanded="false" aria-controls="workshop-file-panel"')}
-          <section class="workshop-header-popover workshop-file-menu" id="workshop-file-panel" data-editor-section="library" aria-label="File" hidden><div data-editor-section-body="library"></div></section>
+          <section class="workshop-header-popover workshop-file-menu menu-card" id="workshop-file-panel" data-editor-section="library" aria-label="File" hidden><div data-editor-section-body="library"></div></section>
         </div>
         ${button('save', 'Save')}
         ${button('test', 'Test drive', 'class="workshop-primary"')}
@@ -335,7 +335,7 @@ export function createTrackEditor(
       <main class="workshop-main">
         <div class="workshop-viewport-toolbar" role="group" aria-label="Viewport tools">${renderToolModes()}${renderCameraControls()}</div>
         <div class="workshop-canvas">
-          <div class="workshop-map-wrap workshop-map-popover" data-editor-map-wrap hidden role="dialog" aria-label="2D route map">
+          <div class="workshop-map-wrap workshop-map-popover menu-card" data-editor-map-wrap hidden role="dialog" aria-label="2D route map">
             <div class="workshop-map-heading"><strong>Route map</strong>${button('map-close', '×', 'aria-label="Close route map"')}</div>
             <div class="workshop-map-surface"><svg id="workshop-route-map" viewBox="0 0 1000 680" role="img" tabindex="0" aria-label="Top-down road editor. Click points to select them; Draw road adds points."></svg></div>
             <span class="workshop-map-help">Shift-click to select a span · Drag a grip to change height or roll</span>
@@ -343,9 +343,9 @@ export function createTrackEditor(
           ${elevationProfileMarkup}
           <div class="workshop-world" data-editor-world><span class="workshop-fly-badge" data-editor-fly-badge hidden>FREE CAMERA · ESC / B TO EXIT</span></div>
           <div class="workshop-preview-status" data-editor-preview-status></div>
-      <section class="workshop-validation" id="workshop-warnings" aria-label="Track warnings" data-editor-section="warnings" data-editor-validation hidden></section>
+          <section class="workshop-validation menu-card" id="workshop-warnings" aria-label="Track warnings" data-editor-section="warnings" data-editor-validation hidden></section>
           <div class="workshop-viewport-hint" data-editor-view-hint></div>
-          <div class="workshop-empty-hint" data-editor-empty><strong data-editor-empty-title>Click the ground to start.</strong><span data-editor-empty-copy>Draw a few points. We build the road and supports.</span></div>
+          <div class="workshop-empty-hint menu-card" data-editor-empty><strong data-editor-empty-title>Click the ground to start.</strong><span data-editor-empty-copy>Draw a few points. We build the road and supports.</span></div>
         </div>
         ${pointWorkspaceMarkup}
         <div class="workshop-camera-help" data-editor-camera-help role="status"></div>

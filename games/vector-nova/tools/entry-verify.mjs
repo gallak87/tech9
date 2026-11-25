@@ -936,11 +936,45 @@ async function activeCareerRename(page, { touch, initialName, pickerPencil }) {
       0,
       'the old body switch button is removed',
     );
+    assert.equal(
+      await switcher()
+        .and(page.getByRole('button', { name: 'Switch career', exact: true }))
+        .count(),
+      1,
+      'Switch career keeps its full accessible name',
+    );
+    if (page.viewportSize().width <= 520) {
+      assert.equal(
+        (await switcher().innerText()).trim().toLowerCase(),
+        'switch',
+      );
+      assert.ok(await switcher().locator('svg').isHidden());
+      const labels = await page
+        .locator('.menu-top-tabs button')
+        .evaluateAll((buttons) =>
+          buttons.map((button) => {
+            const range = document.createRange();
+            range.selectNodeContents(button);
+            const text = range.getBoundingClientRect();
+            const box = button.getBoundingClientRect();
+            return (
+              text.width > 0 &&
+              text.left >= box.left - 1 &&
+              text.right <= box.right + 1 &&
+              text.top >= box.top - 1 &&
+              text.bottom <= box.bottom + 1
+            );
+          }),
+        );
+      assert.ok(
+        labels.every(Boolean),
+        'compact tab labels fit inside their buttons',
+      );
+      return;
+    }
     const placement = await switcher().evaluate((button) => {
       const icon = button.querySelector('svg');
-      const text = [...button.childNodes].find(
-        (node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim(),
-      );
+      const text = button.querySelector(':scope > span');
       if (!icon || !text) return null;
       const range = document.createRange();
       range.selectNodeContents(text);
@@ -952,6 +986,7 @@ async function activeCareerRename(page, { touch, initialName, pickerPencil }) {
     });
     assert.ok(placement, 'Switch career contains its text and arrow');
     assert.equal(placement.label, 'Switch career');
+    assert.ok(placement.icon.width > 0, 'desktop arrow is visible');
     assert.ok(
       placement.icon.left >= placement.text.right - 1,
       'back arrow sits to the right of the label',

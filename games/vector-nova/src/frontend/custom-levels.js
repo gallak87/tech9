@@ -28,7 +28,7 @@ export function customLevelPanel({
       : error
         ? escape(error)
         : 'Save a track in the Editor to race it here.';
-    return `<section class="custom-library-empty" aria-live="polite"><h2>${title}</h2>${detail ? `<p>${detail}</p>` : ''}${loading ? '' : error ? retry : '<button class="primary" data-action="create-level">Create level →</button>'}</section>`;
+    return `<section class="custom-library-empty menu-card" aria-live="polite"><h2>${title}</h2>${detail ? `<p>${detail}</p>` : ''}${loading ? '' : error ? retry : '<button class="primary" data-action="create-level">Create level →</button>'}</section>`;
   }
   const course = courses.get(selected);
   const actions = `<div class="custom-library-actions">${course ? edit : ''}${create}</div>`;

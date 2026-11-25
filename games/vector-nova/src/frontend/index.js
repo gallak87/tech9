@@ -44,6 +44,10 @@ import {
 import { bindDesktopControls } from '../ui/desktop-controls.js';
 import { controllerLayout } from '../input/gamepad.js';
 import { escapeHTML as escape } from '../ui/html.js';
+import {
+  classificationColors,
+  classificationRowAttributes,
+} from '../ui/race-classification.js';
 import { settingsView, bindSettingsPanel } from './settings-panel.js';
 import {
   CUPS,
@@ -114,6 +118,7 @@ import '../freestyle/style.css';
 import './menu.css';
 import './cup-art.css';
 import './completion-cinematic.css';
+import './menu-theme.css';
 
 const stamp = formatTime;
 const button = (action, label, primary = false) =>
@@ -553,7 +558,7 @@ export async function createFrontend(
   const loadedLevel = () =>
     loadedCustom ?? catalog.find((l) => l.id === loadedId) ?? level();
   const difficultyControls = () =>
-    `<fieldset class="race-difficulty"${intent === 'interceptor' ? '' : ' aria-describedby="race-difficulty-description"'}><legend>${intent === 'interceptor' ? 'Encounter difficulty' : 'Opponent difficulty'}</legend>${['easy', 'medium', 'hard'].map((d) => `<button data-difficulty="${d}" aria-pressed="${settings.difficulty === d}" tabindex="${settings.difficulty === d ? 0 : -1}">${d}</button>`).join('')}</fieldset>${intent === 'interceptor' ? '' : difficultyDescriptionView(settings.difficulty, 'race-difficulty-description')}`;
+    `<fieldset class="race-difficulty"${intent === 'interceptor' ? '' : ' aria-describedby="race-difficulty-description"'}>${intent === 'interceptor' ? '<legend>Encounter difficulty</legend>' : '<legend class="sr-only">Opponent difficulty</legend>'}${['easy', 'medium', 'hard'].map((d) => `<button data-difficulty="${d}" aria-pressed="${settings.difficulty === d}" tabindex="${settings.difficulty === d ? 0 : -1}">${d}</button>`).join('')}</fieldset>${intent === 'interceptor' ? '' : difficultyDescriptionView(settings.difficulty, 'race-difficulty-description')}`;
   const facts = () =>
     `<span>${route() ? (route().length / 1000).toFixed(2) + ' KM' : 'CIRCUIT'}</span> <span>${intent === 'freestyle' ? `${transferCount()} TRANSFERS` : intent === 'eliminator' ? 'SURVIVE THE CUT' : intent === 'interceptor' ? '2-LAP PURSUIT' : route()?.closed === false ? 'POINT TO POINT' : intent === 'practice' ? 'OPEN PRACTICE' : intent === 'time-trial' ? 'UNLIMITED LAPS' : '2 LAPS'}</span> <span>${intent === 'interceptor' ? '4 HUNTERS · 1 TARGET' : ['race', 'cup', 'eliminator'].includes(intent) ? `${RACE_FIELD_SIZE} PILOTS` : 'SOLO'}</span>`;
   function remember() {
@@ -1031,7 +1036,7 @@ export async function createFrontend(
           ? `${customCourses.get(selected).biome} · ${isSprint() ? 'Downhill' : 'Custom circuit'}`
           : 'Track library'
         : `${trackChallenge(selected)} · ${modeUnlockRequirement(intent)?.label ?? (isSprint() ? 'Downhill sprint' : 'Circuit')}`;
-    return `<section class="race-menu" aria-label="Session setup">${import.meta.env?.VN_EDITION === 'demo' ? '<p class="demo-edition">DEMO · Kestrel · 2 courses · Unlimited play</p>' : ''}${toolMenu()}${modePicker()}<button class="menu-selection" data-action="circuits"><span>${cup ? 'Cup' : 'Track'}</span><div><strong>${escape(selectionName)}</strong><small>${escape(selectionDetail)}</small></div><b aria-hidden="true">›</b></button><button class="menu-selection" data-action="ship-step"><span>Ship</span><div><strong>${selectedCraft.name}</strong><small>${lockedCup() ? 'Locked for this cup' : selectedCraft.role}</small></div><b aria-hidden="true">${lockedCup() ? '—' : '›'}</b></button>${raceActions()}<div class="menu-extras"><button data-action="records" aria-pressed="${screen === 'records'}">Time Trial records</button>${developer ? button('inspect', 'Ship inspector') : ''}</div>${careerProgressView(profile())}${cupCabinet(cupCollection.snapshot(), cups())}${import.meta.env?.VN_DESKTOP === true ? `<nav class="menu-links" aria-label="Application">${button('desktop-quit', 'Quit game')}</nav>` : ''}<div class="transfer-slot menu-transfer"></div>${savedCup && !cup ? `<aside class="saved-cup">${button('saved-cup', `${cupDefinition(savedCup.cupId).name} · ${savedCup.results.length}/${cupDefinition(savedCup.cupId).tracks.length} scored →`)}</aside>` : ''}</section>`;
+    return `<section class="race-menu" aria-label="Session setup">${import.meta.env?.VN_EDITION === 'demo' ? '<p class="demo-edition">DEMO · Kestrel · 2 courses · Unlimited play</p>' : ''}${toolMenu()}${modePicker()}<button class="menu-selection" data-action="circuits"><span>${cup ? 'Cup' : 'Track'}</span><div><strong>${escape(selectionName)}</strong><small>${escape(selectionDetail)}</small></div><b aria-hidden="true">›</b></button><button class="menu-selection" data-action="ship-step"><span>Ship</span><div><strong>${selectedCraft.name}</strong><small>${lockedCup() ? 'Locked for this cup' : selectedCraft.role}</small></div><b aria-hidden="true">${lockedCup() ? '—' : '›'}</b></button>${raceActions()}<div class="menu-extras"><button data-action="records" aria-pressed="${screen === 'records'}">Time Trial records</button>${developer ? button('inspect', 'Ship inspector') : ''}</div>${careerProgressView(profile())}${cupCabinet(cupCollection.snapshot(), cups())}${savedCup && !cup ? `<aside class="saved-cup">${button('saved-cup', `${cupDefinition(savedCup.cupId).name} · ${savedCup.results.length}/${cupDefinition(savedCup.cupId).tracks.length} scored`)}</aside>` : ''}${import.meta.env?.VN_DESKTOP === true ? `<nav class="menu-links" aria-label="Application">${button('desktop-quit', 'Quit game')}</nav>` : ''}<div class="transfer-slot menu-transfer"></div></section>`;
   };
   function cupPanel(withActions) {
     const cup = currentCup();
@@ -1072,7 +1077,7 @@ export async function createFrontend(
     ];
     const switchCareer =
       career && onSwitchCareer
-        ? '<button class="menu-switch-career" data-action="switch-career">Switch career <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 14-5-5 5-5M4 9h10a6 6 0 0 1 6 6v5"/></svg></button>'
+        ? '<button class="menu-switch-career" data-action="switch-career" aria-label="Switch career"><span>Switch<span class="menu-switch-career-suffix"> career</span></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 14-5-5 5-5M4 9h10a6 6 0 0 1 6 6v5"/></svg></button>'
         : '';
     return `<header class="menu-topbar"><span class="menu-wordmark">VECTOR<span>//</span>NOVA</span>${sessionReturn()}<nav class="menu-top-tabs" aria-label="Main navigation">${tabs.map(([action, label]) => `<button data-action="${action}" ${action === 'tunes' ? 'aria-expanded="false" aria-controls="music-panel"' : `aria-pressed="${active === action}"`}>${label}</button>`).join('')}${switchCareer}</nav></header>`;
   };
@@ -1092,7 +1097,7 @@ export async function createFrontend(
     headerObserver.disconnect();
     const header = shell.querySelector('.menu-topbar');
     if (header) {
-      music?.setCompactMenu(!!header.querySelector('.session-return'));
+      music?.setCompactMenu(true);
       updateHeaderClearance();
       headerObserver.observe(header);
     }
@@ -1257,7 +1262,7 @@ export async function createFrontend(
         (inspecting ? 'PREPARING STUDIO' : 'LOADING CIRCUIT');
       const title =
         workshopLoad?.title ?? (inspecting ? 'Ship inspector' : level().name);
-      content.innerHTML = `<section class="loading-copy">${loadingRoute ? `<div class="loading-card">${picture(loadingRoute)}${routeArt(loadingRoute)}</div>` : ''}<div class="transfer-slot loading-transfer"></div>${heading(kicker, escape(title))}${circuit ? `<div class="session-facts">${facts()}</div><div class="loading-rewards">${goalBadges()}</div>` : ''}<div class="front-actions">${button('cancel', 'Cancel')}${button('retry', 'Try again', true)}</div></section>`;
+      content.innerHTML = `<section class="loading-copy menu-card">${loadingRoute ? `<div class="loading-card">${picture(loadingRoute)}${routeArt(loadingRoute)}</div>` : ''}<div class="transfer-slot loading-transfer"></div>${heading(kicker, escape(title))}${circuit ? `<div class="session-facts">${facts()}</div><div class="loading-rewards">${goalBadges()}</div>` : ''}<div class="front-actions">${button('cancel', 'Cancel')}${button('retry', 'Try again', true)}</div></section>`;
     } else if (screen === 'settings') {
       content.innerHTML = `${settingsView(settings, {
         developer: parameters.get('dev') === '1',
@@ -1275,7 +1280,7 @@ export async function createFrontend(
             notice: cupCollection.snapshot().notice,
           })
         : !lastResults.final
-          ? cupWaitingView(lastResults)
+          ? cupWaitingView(lastResults, resultShipId(lastResults))
           : cupView({
               ...cupStore.snapshot(),
               collection: cupCollection.snapshot().cups,
@@ -1297,6 +1302,7 @@ export async function createFrontend(
     } else if (screen === 'results' && lastResults?.mode === 'eliminator') {
       content.innerHTML = eliminatorResultsView(lastResults, {
         courseName: loadedLevel().name,
+        shipId: resultShipId(lastResults),
       });
     } else if (screen === 'results' && lastResults?.mode === 'interceptor') {
       content.innerHTML = interceptorResultsView(lastResults, {
@@ -1628,6 +1634,9 @@ export async function createFrontend(
     const retry = shell.querySelector('[data-action="retry"]');
     if (retry) retry.hidden = !error || !!invalidLevel;
   }
+  function resultShipId(data) {
+    return data.shipId ?? game?.getSnapshot().vehicle?.shipId ?? shipId;
+  }
   function updateResults(data) {
     if (disposed || !data) return;
     lastResults = data;
@@ -1654,7 +1663,7 @@ export async function createFrontend(
         const waiting = shell.querySelector('.cup-waiting');
         cupResultsKey = key;
         if (!data.final && waiting) {
-          updateCupWaitingView(waiting, data);
+          updateCupWaitingView(waiting, data, resultShipId(data));
           return;
         }
         const focused = focusSelector();
@@ -1678,10 +1687,11 @@ export async function createFrontend(
     const list = shell.querySelector('.results-list');
     if (!list || (key === resultsKey && list.children.length)) return;
     resultsKey = key;
+    const colors = classificationColors(resultShipId(data));
     list.innerHTML = data.standings
       .map(
         (e) =>
-          `<li class="${e.id === 'player' ? 'you' : ''}"><span>${e.position == null || (e.finished && !e.valid) ? '—' : String(e.position).padStart(2, '0')}</span><b>${e.id === 'player' ? 'YOU' : escape(e.name)}</b><span>${e.finished ? (e.valid ? stamp(e.totalTime) : 'UNTIMED') : 'ON TRACK'}</span></li>`,
+          `<li ${classificationRowAttributes(e.id, colors)}><span>${e.position == null || (e.finished && !e.valid) ? '—' : String(e.position).padStart(2, '0')}</span><b>${e.id === 'player' ? 'YOU' : escape(e.name)}</b><span>${e.finished ? (e.valid ? stamp(e.totalTime) : 'UNTIMED') : 'ON TRACK'}</span></li>`,
       )
       .join('');
     const note = shell.querySelector('.results-note');

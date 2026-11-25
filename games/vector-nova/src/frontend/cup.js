@@ -14,6 +14,10 @@ import { formatTime } from '../race/timing.js';
 import { trackChallenge } from './track-challenge.js';
 import { assetURL } from '../assets/url.js';
 import { escapeHTML as esc } from '../ui/html.js';
+import {
+  classificationColors,
+  classificationRowAttributes,
+} from '../ui/race-classification.js';
 import { difficultyDescriptionView } from './difficulty.js';
 const button = (action, label, primary = false) =>
   `<button data-action="${action}" class="${primary ? 'primary' : ''}">${label}</button>`;
@@ -23,31 +27,31 @@ function nearby(rows, complete = false) {
   const player = rows.findIndex((row) => row.id === 'player');
   return complete ? rows : rows.slice(Math.max(0, player - 2), player + 3);
 }
-function raceTable(rows, complete) {
+function raceTable(rows, complete, colors) {
   return `<table class="cup-table"><caption>Race classification</caption><thead><tr><th scope="col">Pos</th><th scope="col">Pilot</th><th scope="col">Time</th><th scope="col">Pts</th></tr></thead><tbody>${nearby(
     cupRaceRows(rows),
     complete,
   )
     .map(
       (r) =>
-        `<tr class="${r.id === 'player' ? 'you' : ''}"><td>${r.position ?? '—'}</td><th scope="row">${r.name}</th><td>${r.status === 'finished' ? time(r.timeMs) : r.status === 'dnf' ? 'DNF' : 'Invalid'}</td><td>+${r.points}</td></tr>`,
+        `<tr ${classificationRowAttributes(r.id, colors)}><td>${r.position ?? '—'}</td><th scope="row">${r.name}</th><td>${r.status === 'finished' ? time(r.timeMs) : r.status === 'dnf' ? 'DNF' : 'Invalid'}</td><td>+${r.points}</td></tr>`,
     )
     .join('')}</tbody></table>`;
 }
-function standingsTable(rows, complete) {
+function standingsTable(rows, complete, colors) {
   return `<table class="cup-table cup-standings"><caption>${complete ? 'Final cup standings' : 'Cup standings'}</caption><thead><tr><th scope="col">Pos</th><th scope="col">Pilot</th><th scope="col">Pts</th></tr></thead><tbody>${nearby(
     rows,
     complete,
   )
     .map(
       (r) =>
-        `<tr class="${r.id === 'player' ? 'you' : ''}"><td>${r.position}</td><th scope="row">${esc(r.name)}</th><td>${r.points}</td></tr>`,
+        `<tr ${classificationRowAttributes(r.id, colors)}><td>${r.position}</td><th scope="row">${esc(r.name)}</th><td>${r.points}</td></tr>`,
     )
     .join('')}</tbody></table>`;
 }
 function confirmation(action) {
   const abandon = action === 'abandon';
-  return `<div class="cup-confirm" role="group" aria-label="Confirm ${action}"><p><strong>${abandon ? 'Abandon this cup?' : 'Restart this cup?'}</strong> Saved scores will be deleted.</p><div class="front-actions">${button('cup-cancel', 'Cancel')}${button('cup-confirm', abandon ? 'Abandon cup' : 'Restart cup', true)}</div></div>`;
+  return `<div class="cup-confirm menu-card" role="group" aria-label="Confirm ${action}"><p><strong>${abandon ? 'Abandon this cup?' : 'Restart this cup?'}</strong> Saved scores will be deleted.</p><div class="front-actions">${button('cup-cancel', 'Cancel')}${button('cup-confirm', abandon ? 'Abandon cup' : 'Restart cup', true)}</div></div>`;
 }
 
 function gridSummary(state, cup) {
@@ -67,6 +71,7 @@ function resultsView({
   title,
   complete,
   standings,
+  colors,
   trackName,
   eventFormat,
   routes,
@@ -86,7 +91,7 @@ function resultsView({
     : confirm
       ? confirmation(confirm)
       : `<div class="cup-result-actions"><div class="front-actions">${button('cup-next', 'Next race →', true)}${button('cup-retry', 'Retry race')}${button('home', 'Back to setup')}</div><details class="cup-options"><summary>Cup options</summary><div class="front-actions">${button('cup-restart', 'Restart cup')}${button('cup-abandon', 'Abandon cup')}</div></details></div>`;
-  return `<section class="cup-panel cup-results-panel" aria-label="${esc(cup.name)}"><div class="cup-result-heading"><div class="front-heading"><span class="kicker">${complete ? esc(cup.name.toUpperCase()) + ' / FINAL' : `CHAMPIONSHIP / RACE ${state.eventIndex + 1} OF ${cup.tracks.length}`}</span><h1 tabindex="-1">${title}</h1></div><dl class="cup-personal"><div><dt>Race finish</dt><dd>${player.position ? `<span class="cup-place-prefix">P</span>${String(player.position).padStart(2, '0')}` : player.status === 'dnf' ? 'DNF' : 'Invalid'}</dd></div><div><dt>Points</dt><dd>+${player.points}</dd></div><div><dt>Race time</dt><dd class="cup-personal-time">${player.status === 'finished' ? time(player.timeMs) : '—'}</dd></div></dl></div>${actions}${gridSummary(state, cup)}${route}${notice ? `<p class="cup-save" role="status">${esc(notice)}</p>` : ''}${standingsTable(standings, complete)}<details class="cup-race-details"><summary>Race results</summary>${state.results.map((rows, i) => `<section><h2>Race ${i + 1} · ${esc(trackName(cup.tracks[i]))}</h2>${raceTable(rows, complete)}</section>`).join('')}</details></section>`;
+  return `<section class="cup-panel cup-results-panel" aria-label="${esc(cup.name)}"><div class="cup-result-heading"><div class="front-heading"><span class="kicker">${complete ? esc(cup.name.toUpperCase()) + ' / FINAL' : `CHAMPIONSHIP / RACE ${state.eventIndex + 1} OF ${cup.tracks.length}`}</span><h1 tabindex="-1">${title}</h1></div><dl class="cup-personal"><div><dt>Race finish</dt><dd>${player.position ? `<span class="cup-place-prefix">P</span>${String(player.position).padStart(2, '0')}` : player.status === 'dnf' ? 'DNF' : 'Invalid'}</dd></div><div><dt>Points</dt><dd>+${player.points}</dd></div><div><dt>Race time</dt><dd class="cup-personal-time">${player.status === 'finished' ? time(player.timeMs) : '—'}</dd></div></dl></div>${actions}${gridSummary(state, cup)}${route}${notice ? `<p class="cup-save" role="status">${esc(notice)}</p>` : ''}${standingsTable(standings, complete, colors)}<details class="cup-race-details"><summary>Race results</summary>${state.results.map((rows, i) => `<section><h2>Race ${i + 1} · ${esc(trackName(cup.tracks[i]))}</h2>${raceTable(rows, complete, colors)}</section>`).join('')}</details></section>`;
 }
 // The primary action follows the saved championship phase.
 export function cupLaunch(state, cupId, live = false) {
@@ -141,6 +146,7 @@ export function cupView({
     !!collection[cup.id] || !!(complete && cupChampion(state)),
   );
   const standings = state ? cupStandings(state) : [];
+  const colors = classificationColors(state?.shipId ?? shipId);
   const player = standings.find((r) => r.id === 'player');
   const tied =
     complete &&
@@ -155,6 +161,7 @@ export function cupView({
       title,
       complete,
       standings,
+      colors,
       trackName,
       eventFormat,
       routes,
@@ -174,7 +181,7 @@ export function cupView({
     actions = `<div class="front-actions cup-actions">${next ? button('cup-next', `Continue → ${esc(trackName(cup.tracks[state.eventIndex + 1]))}`, true) : button('cup-resume', `${live ? 'Resume' : 'Start'} race ${state.eventIndex + 1} →`, true)}${button('cup-retry', `Retry race ${state.eventIndex + 1}`)}${button('cup-restart', 'Restart cup')}${button('cup-abandon', 'Abandon cup')}${button('home', 'Save & return to setup')}</div>`;
   }
   const scores = state?.results.length
-    ? `<div class="cup-results-grid"><section>${state.results.map((rows, i) => `<details><summary>Race ${i + 1} · ${esc(trackName(cup.tracks[i]))} · ${eventFormat(cup.tracks[i])}</summary>${raceTable(rows, complete)}</details>`).join('')}</section><section>${standingsTable(standings, complete)}</section></div>`
+    ? `<div class="cup-results-grid"><section>${state.results.map((rows, i) => `<details><summary>Race ${i + 1} · ${esc(trackName(cup.tracks[i]))} · ${eventFormat(cup.tracks[i])}</summary>${raceTable(rows, complete, colors)}</details>`).join('')}</section><section>${standingsTable(standings, complete, colors)}</section></div>`
     : '';
   if (menu) {
     const picker = !state
@@ -191,22 +198,23 @@ export function cupView({
   return `<section class="cup-panel"><div class="front-heading"><span class="kicker">CHAMPIONSHIP / ${esc(cup.name.toUpperCase())}</span><h1 tabindex="-1">${title}</h1></div>${!state ? `<fieldset class="cup-picker"><legend>Choose a championship</legend>${cups.map((entry) => cupCard(entry, cup.id, collection)).join('')}</fieldset>` : ''}${route}${gridSummary(state, cup)}<p class="cup-summary">${state ? `${esc(SHIPS.find((s) => s.id === state.shipId).name)} · ${state.difficulty} · locked for this cup · ${state.results.length}/${cup.tracks.length} races scored${complete ? ` · ${player.points} points` : ''}` : `${cup.tracks.length} races · 10 pilots`}</p>${modeUnlock ? `<p class="cup-mode-unlock">${modeUnlock}</p>` : ''}${notice ? `<p class="cup-save" role="status">${esc(notice)}</p>` : ''}${!state ? `<section class="cup-setup" aria-label="Cup setup"><fieldset><legend>Ship for all ${cup.tracks.length} races</legend>${SHIPS.map((s) => `<button data-ship="${s.id}" aria-pressed="${shipId === s.id}">${s.name}</button>`).join('')}</fieldset><fieldset aria-describedby="cup-difficulty-description"><legend>Opponent difficulty</legend>${['easy', 'medium', 'hard'].map((d) => `<button data-difficulty="${d}" aria-pressed="${difficulty === d}">${d}</button>`).join('')}</fieldset>${difficultyDescriptionView(difficulty, 'cup-difficulty-description')}</section>` : ''}${actions}${scores}</section>`;
 }
 
-function waitingRows(data) {
+function waitingRows(data, shipId) {
+  const colors = classificationColors(shipId);
   return nearby(data.standings)
     .map(
       (r) =>
-        `<li class="${r.id === 'player' ? 'you' : ''}"><span>${r.finished && r.valid ? r.position : '—'}</span><b>${r.id === 'player' ? 'YOU' : esc(r.name)}</b><span>${r.finished ? (r.valid ? formatTime(r.totalTime) : 'INVALID') : 'ON TRACK'}</span></li>`,
+        `<li ${classificationRowAttributes(r.id, colors)}><span>${r.finished && r.valid ? r.position : '—'}</span><b>${r.id === 'player' ? 'YOU' : esc(r.name)}</b><span>${r.finished ? (r.valid ? formatTime(r.totalTime) : 'INVALID') : 'ON TRACK'}</span></li>`,
     )
     .join('');
 }
 const waitingNote = (data) => `Waiting for the field · ${data.remaining}s`;
-export function cupWaitingView(data) {
-  return `<section class="result-panel cup-waiting"><div class="front-heading"><span class="kicker">CUP / ${data.courseFormat === 'sprint' ? 'SPRINT' : 'RACE'} FINISH</span><h1 tabindex="-1">${data.playerValid ? 'Race finished.' : 'Unranked finish.'}</h1></div><p>Your time: ${formatTime(data.playerTotalTime)}</p><ol class="results-list" aria-label="Live race classification">${waitingRows(data)}</ol><p class="results-note" role="status">${waitingNote(data)}</p><div class="front-actions">${button('cup-hub', 'Cup hub · pause waiting', true)}${button('cup-retry', 'Retry this race')}</div></section>`;
+export function cupWaitingView(data, shipId = data.shipId) {
+  return `<section class="result-panel cup-waiting"><div class="front-heading"><span class="kicker">CUP / ${data.courseFormat === 'sprint' ? 'SPRINT' : 'RACE'} FINISH</span><h1 tabindex="-1">${data.playerValid ? 'Race finished.' : 'Unranked finish.'}</h1></div><p>Your time: ${formatTime(data.playerTotalTime)}</p><ol class="results-list" aria-label="Live race classification">${waitingRows(data, shipId)}</ol><p class="results-note" role="status">${waitingNote(data)}</p><div class="front-actions">${button('cup-hub', 'Cup hub · pause waiting', true)}${button('cup-retry', 'Retry this race')}</div></section>`;
 }
-export function updateCupWaitingView(panel, data) {
+export function updateCupWaitingView(panel, data, shipId = data.shipId) {
   // Keep the animated panel and focused controls mounted as rivals finish.
   const list = panel.querySelector('.results-list');
-  const rows = waitingRows(data);
+  const rows = waitingRows(data, shipId);
   if (list.innerHTML !== rows) list.innerHTML = rows;
   panel.querySelector('.results-note').textContent = waitingNote(data);
 }

@@ -212,7 +212,7 @@ try {
       await tap(0);
       for (const [key, label] of [
         ['masterVolume', 'Master volume'],
-        ['volume', 'Game effects'],
+        ['volume', 'Game SFX'],
         ['musicVolume', 'Tunes'],
       ]) {
         const range = settingsRange(key);
@@ -306,7 +306,7 @@ try {
       approximate(
         (await stored()).volume,
         effects,
-        'Tunes adjustment preserves Game effects',
+        'Tunes adjustment preserves Game SFX',
       );
       await tap(1);
       assert.ok(

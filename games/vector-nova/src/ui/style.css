@@ -2506,7 +2506,6 @@ body {
   align-items: center;
   gap: 8px;
   padding: 8px 5px 8px 8px;
-  border-left: 3px solid var(--racer-color);
   margin-bottom: 5px;
   font-size: 11px;
 }
@@ -2518,16 +2517,6 @@ body {
   color: #a9a9a9;
   font-weight: 600;
   font-size: 10px;
-}
-:where(#app) #race-roster li.is-player {
-  background: #c41c1c14;
-}
-:where(#app) #race-roster:not(.in-paddock) li.is-nearby {
-  background: color-mix(in srgb, var(--racer-color) 9%, transparent);
-  color: #fff;
-}
-:where(#app) #race-roster:not(.in-paddock) li.is-player {
-  background: color-mix(in srgb, var(--racer-color) 15%, transparent);
 }
 :where(#app) .position small {
   display: block;
@@ -2925,6 +2914,80 @@ body {
 }
 :where(#app) #interface.inspecting {
   touch-action: none;
+}
+#inspection-panel .inspect-title {
+  font-family: var(--menu-display, 'Barlow Condensed', sans-serif);
+  font-style: italic;
+  font-weight: 800;
+  letter-spacing: 0.005em;
+}
+#inspection-panel .ship-picker-label {
+  color: #f2f1ed;
+  font-weight: 600;
+}
+:where(#app)
+  #interface
+  #inspection-panel
+  :is(
+    .inspection-tabs button,
+    .ship-picker button,
+    .actions button,
+    #inspection-tools button
+  ) {
+  border: 1px solid #ffffff39;
+  border-radius: 4px;
+  background: var(
+    --menu-button-surface,
+    linear-gradient(135deg, #28292c, #17181b)
+  );
+}
+#inspection-panel
+  :is(.inspection-tabs button, .actions button, #inspection-tools button),
+#inspection-panel .ship-picker button b {
+  font-family: var(--menu-display, 'Barlow Condensed', sans-serif);
+  font-style: italic;
+  font-weight: 700;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+}
+#inspection-panel :is(.inspection-tabs, #inspection-tools) button {
+  font-size: 13px;
+}
+#inspection-panel .ship-picker button b {
+  font-size: 13px;
+}
+#inspection-panel .actions button {
+  font-size: 16px;
+}
+:where(#app)
+  #interface
+  #inspection-panel
+  button:is(
+    [aria-selected='true'],
+    [aria-checked='true'],
+    [aria-pressed='true']
+  ) {
+  border-color: #ee495595;
+  background: linear-gradient(110deg, #651c234d, #251a1e);
+  box-shadow: inset 2px 0 var(--menu-red, #ed2832);
+}
+:where(#app)
+  #interface
+  #inspection-panel
+  button:not(:disabled):is(:hover, :focus-visible) {
+  border-color: var(--menu-red, #ed2832);
+}
+:where(#app) #interface #inspection-panel button:focus-visible {
+  outline-color: var(--menu-focus, #ff7771);
+}
+#inspection-panel .ship-stats {
+  padding: 7px 8px;
+  border: 1px solid #ffffff2b;
+  border-radius: 4px;
+  background: var(
+    --menu-button-surface,
+    linear-gradient(135deg, #28292c, #17181b)
+  );
 }
 @media (min-width: 761px) and (min-height: 571px) {
   :where(#app) #inspection-tools {

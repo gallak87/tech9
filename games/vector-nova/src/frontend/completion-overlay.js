@@ -47,7 +47,7 @@ export function createCompletionOverlay({
       <span class="completion-progress" aria-hidden="true">0%</span>
     </div>
     <div class="completion-credits" hidden>
-      <div class="completion-card">
+      <div class="completion-card menu-card">
         <div class="completion-medal" aria-hidden="true"><i></i><b>V</b><i></i></div>
         <span class="completion-eyebrow">THE NEXT CHAPTER</span>
         <h1 id="completion-thanks">Thx for playing, 3 Encore courses unlocked!</h1>

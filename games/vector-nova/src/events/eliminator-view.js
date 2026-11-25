@@ -1,3 +1,7 @@
+import {
+  classificationColors,
+  classificationRowAttributes,
+} from '../ui/race-classification.js';
 import './eliminator.css';
 
 const escape = (value) =>
@@ -27,7 +31,7 @@ function duration(value) {
 // Pure menu markup: world loading remains owned by the selected game session.
 export function eliminatorResultsView(
   result,
-  { courseName = 'Eliminator' } = {},
+  { courseName = 'Eliminator', shipId = result?.shipId } = {},
 ) {
   const rows = Array.isArray(result?.standings) ? result.standings : [];
   const won = result?.won === true;
@@ -40,7 +44,8 @@ export function eliminatorResultsView(
       ? 'Last racer standing'
       : `Eliminated · ${ordinal(result?.playerPosition)}`;
   const survivors = rows.filter((row) => !row.eliminated).length;
-  return `<section class="result-panel eliminator-results"><div class="front-heading"><span class="kicker">ELIMINATOR / ${escape(courseName)}</span><h1 tabindex="-1">${heading}${result?.playerValid === false ? ' · Unranked' : ''}</h1></div><div class="eliminator-summary"><span><b>${ordinal(result?.playerPosition)}</b>place</span><span><b>${duration(result?.elapsed ?? result?.time)}</b>${atFinish ? 'race time' : 'survived'}</span><span><b>${survivors}</b>${atFinish ? 'racers remaining' : won ? 'racer remaining' : 'racers still active'}</span></div><ol aria-label="Eliminator classification">${rows.map((row) => `<li class="${row.id === 'player' ? 'is-player' : ''}" data-status="${escape(row.status)}"><b>${escape(row.position)}</b><span>${escape(row.name ?? row.id)}</span><small>${row.eliminated ? `Eliminated · ${duration(row.eliminatedAt)}` : row.status === 'winner' ? (atFinish ? 'Reached the lead deck' : 'Last racer standing') : atFinish ? 'Still in the convoy' : 'Surviving at your cut'}</small></li>`).join('')}</ol><p class="results-note">${atFinish ? 'The lead carrier’s finish ended the race.' : won ? 'Every other racer was cut. You survived every cut.' : 'The last active racer is removed at each cut. The remaining field is shown at the moment of your elimination.'}${result?.playerValid === false ? ' This run is unranked.' : ''}</p><div class="front-actions results-actions"><button class="primary" data-action="change">Race setup →</button><button data-action="retry-race">Retry Eliminator</button></div></section>`;
+  const colors = classificationColors(shipId);
+  return `<section class="result-panel eliminator-results"><div class="front-heading"><span class="kicker">ELIMINATOR / ${escape(courseName)}</span><h1 tabindex="-1">${heading}${result?.playerValid === false ? ' · Unranked' : ''}</h1></div><div class="eliminator-summary"><span><b>${ordinal(result?.playerPosition)}</b>place</span><span><b>${duration(result?.elapsed ?? result?.time)}</b>${atFinish ? 'race time' : 'survived'}</span><span><b>${survivors}</b>${atFinish ? 'racers remaining' : won ? 'racer remaining' : 'racers still active'}</span></div><ol aria-label="Eliminator classification">${rows.map((row) => `<li ${classificationRowAttributes(row.id, colors, 'is-player')} data-status="${escape(row.status)}"><b>${escape(row.position)}</b><span>${escape(row.name ?? row.id)}</span><small>${row.eliminated ? `Eliminated · ${duration(row.eliminatedAt)}` : row.status === 'winner' ? (atFinish ? 'Reached the lead deck' : 'Last racer standing') : atFinish ? 'Still in the convoy' : 'Surviving at your cut'}</small></li>`).join('')}</ol><p class="results-note">${atFinish ? 'The lead carrier’s finish ended the race.' : won ? 'Every other racer was cut. You survived every cut.' : 'The last active racer is removed at each cut. The remaining field is shown at the moment of your elimination.'}${result?.playerValid === false ? ' This run is unranked.' : ''}</p><div class="front-actions results-actions"><button class="primary" data-action="change">Race setup →</button><button data-action="retry-race">Retry Eliminator</button></div></section>`;
 }
 
 function createExtractionMarks(T, scene) {

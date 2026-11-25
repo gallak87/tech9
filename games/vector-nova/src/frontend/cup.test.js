@@ -10,7 +10,8 @@ import {
   cupVictoryView,
 } from './cup-art.js';
 import { assetURL } from '../assets/url.js';
-import { RACE_OPPONENTS } from '../race/roster.js';
+import { raceHudColors, RACE_OPPONENTS } from '../race/roster.js';
+import { getShip } from '../ships/catalog.js';
 
 function stateAt(
   position,
@@ -47,8 +48,8 @@ function ranks(html) {
   const table = html.match(
     /<table class="cup-table cup-standings">(.*?)<\/table>/s,
   )[1];
-  return [...table.matchAll(/<tr class="[^"]*"><td>(\d+)<\/td>/g)].map(
-    (match) => Number(match[1]),
+  return [...table.matchAll(/<tr\b[^>]*><td>(\d+)<\/td>/g)].map((match) =>
+    Number(match[1]),
   );
 }
 test('new cup difficulty controls describe the selected rival rules without adding a focus stop', () => {
@@ -181,8 +182,15 @@ for (const [position, expected] of [
   });
 }
 test('final standings include the complete field', () => {
-  const html = resultAt(5, { complete: true });
+  const state = stateAt(5, { complete: true });
+  const html = cupView({ state, catalog: [], routes: [], shipId: 'shrike' });
   assert.deepEqual(ranks(html), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+  const standings = html.split('<details class="cup-race-details">')[0];
+  const colors = raceHudColors(getShip(state.shipId).liveryAccent);
+  for (const [id, color] of Object.entries(colors))
+    assert.ok(
+      standings.includes(`data-racer="${id}" style="--racer-color:${color}"`),
+    );
   assert.match(html, /Final cup standings/);
   assert.doesNotMatch(html, /Next grid:/);
   assert.match(html, /data-action="cup-hub"[^>]*>Choose another cup/);

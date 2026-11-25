@@ -1,0 +1,293 @@
+#front-shell .settings-layout {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.92fr);
+  gap: clamp(28px, 5.4vw, 74px);
+}
+
+#front-shell [data-page='settings'] .utility-heading h1 {
+  font: italic 800 clamp(35px, 4vw, 54px)/1
+    var(--menu-display, 'Arial Narrow', Arial, sans-serif);
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+}
+
+#front-shell [data-page='settings'] .settings-layout {
+  margin-top: 0;
+}
+
+#front-shell
+  :is(
+    .entry-utility .entry-page-heading,
+    [data-page='settings'] .utility-heading
+  )
+  h1::after {
+  content: '';
+  display: block;
+  width: 24px;
+  height: 2px;
+  margin-top: 10px;
+  background: var(--menu-red, #d01818);
+  transform: skewX(-24deg);
+}
+
+#front-shell .settings-preferences {
+  --hud-card-cut: 18px;
+  min-width: 0;
+  padding: 4px clamp(16px, 2.25vw, 28px);
+}
+
+#front-shell .settings-form label {
+  min-width: 0;
+  gap: clamp(12px, 2vw, 25px);
+  padding: 14px 0;
+  border-bottom-color: #ffffff21;
+  font-size: 15px;
+}
+
+#front-shell .settings-preferences > label {
+  min-height: 66px;
+  box-sizing: border-box;
+}
+
+#front-shell .settings-preferences > label:last-child {
+  border-bottom: 0;
+}
+
+#front-shell .settings-form label > span:first-child {
+  font: italic 700 18px/1.2
+    var(--menu-display, 'Arial Narrow', Arial, sans-serif);
+  letter-spacing: 0.065em;
+  text-transform: uppercase;
+}
+
+#front-shell .settings-form label > span:first-child small {
+  font:
+    12px/1.4 Arial,
+    sans-serif;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+#front-shell .settings-form select {
+  --select-chevron: #c9c9cc;
+  --select-divider: linear-gradient(#ffffff30, #ffffff30) right 33px center /
+    1px 58% no-repeat;
+  appearance: none;
+  box-sizing: border-box;
+  width: clamp(120px, 14vw, 166px);
+  min-height: 44px;
+  padding: 7px 40px 7px 12px;
+  border: 1px solid #62646a;
+  border-radius: 3px;
+  background:
+    linear-gradient(
+        45deg,
+        transparent 42%,
+        var(--select-chevron) 44% 66%,
+        transparent 68%
+      )
+      right 18px center / 5px 5px no-repeat,
+    linear-gradient(
+        -45deg,
+        transparent 42%,
+        var(--select-chevron) 44% 66%,
+        transparent 68%
+      )
+      right 13px center / 5px 5px no-repeat,
+    var(--select-divider),
+    var(--menu-grain),
+    var(--menu-button-surface);
+  color: #f0edeb;
+  box-shadow: inset 0 1px #ffffff13;
+  font: 600 18px/1.15 var(--menu-display, 'Arial Narrow', Arial, sans-serif);
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+  cursor: pointer;
+  color-scheme: dark;
+}
+
+#front-shell .settings-form select:is(:hover, :focus-visible) {
+  --select-chevron: var(--menu-focus);
+  border-color: var(--menu-focus);
+}
+
+@supports (appearance: base-select) and selector(::picker(select)) {
+  @media (hover: hover) and (pointer: fine) {
+    #front-shell .settings-form select,
+    #front-shell .settings-form select::picker(select) {
+      appearance: base-select;
+    }
+
+    #front-shell .settings-form select {
+      align-items: center;
+      padding-inline-end: 15px;
+      background:
+        var(--select-divider), var(--menu-grain), var(--menu-button-surface);
+    }
+
+    #front-shell .settings-form select::picker-icon {
+      content: '';
+      width: 7px;
+      height: 7px;
+      flex: none;
+      margin-inline-start: auto;
+      border-right: 2px solid var(--select-chevron);
+      border-bottom: 2px solid var(--select-chevron);
+      rotate: 45deg;
+      translate: 0 -2px;
+    }
+
+    #front-shell .settings-form select:open {
+      --select-chevron: var(--menu-focus);
+      border-color: var(--menu-focus);
+    }
+
+    #front-shell .settings-form select:open::picker-icon {
+      rotate: 225deg;
+      translate: 0 2px;
+    }
+
+    #front-shell .settings-form select::picker(select) {
+      margin-block: 4px;
+      padding: 3px;
+      border: 1px solid #676970;
+      border-radius: 3px;
+      background: var(--menu-grain), var(--menu-surface);
+      box-shadow: 0 8px 22px #000a;
+    }
+
+    #front-shell .settings-form select option {
+      min-height: 40px;
+      padding: 7px 9px;
+      border-radius: 2px;
+      color: #f0edeb;
+    }
+
+    #front-shell .settings-form select option:checked {
+      background-color: #ef393924;
+    }
+
+    #front-shell .settings-form select option:is(:hover, :focus-visible) {
+      background-color: #513033;
+      outline: 1px solid var(--menu-focus);
+      outline-offset: -1px;
+    }
+
+    #front-shell .settings-form select option::checkmark {
+      color: var(--menu-focus);
+    }
+  }
+}
+
+@media (forced-colors: active) {
+  #front-shell .settings-form select {
+    appearance: auto;
+    padding-inline-end: 12px;
+    border-color: ButtonText;
+    background: ButtonFace;
+    color: ButtonText;
+  }
+}
+
+#front-shell .settings-form input {
+  color-scheme: dark;
+  accent-color: var(--menu-red, #d01818);
+}
+
+#front-shell .settings-form input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  margin-inline-end: 3px;
+}
+
+#front-shell .settings-form :is(select, input):focus-visible {
+  outline: 2px solid #ff7067;
+  outline-offset: 3px;
+}
+
+#front-shell .settings-form .audio-volume-control {
+  gap: 12px;
+  color: #d4d2d0;
+  font-variant-numeric: tabular-nums;
+}
+
+#front-shell .settings-form .audio-volume-control input {
+  width: clamp(82px, 11vw, 175px);
+}
+
+#front-shell .settings-layout :is(.keyboard-guide, .controller-settings) h2 {
+  margin: 0 0 14px;
+  font: italic 800 28px/1.05
+    var(--menu-display, 'Arial Narrow', Arial, sans-serif);
+  letter-spacing: 0.065em;
+  text-transform: uppercase;
+}
+
+#front-shell .settings-layout .keyboard-guide h3 {
+  margin-block: 22px 5px;
+  color: #c2bfbb;
+  font: italic 700 14px/1.1
+    var(--menu-display, 'Arial Narrow', Arial, sans-serif);
+}
+
+#front-shell .settings-layout .keyboard-guide dl > div {
+  grid-template-columns: minmax(88px, min(44%, 160px)) minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  min-height: 39px;
+  margin: 0;
+  padding: 5px 0;
+  border-bottom: 1px solid #ffffff1c;
+  color: #cbc9c7;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+#front-shell .settings-layout .keyboard-guide kbd {
+  display: inline-block;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 3px 6px;
+  border: 1px solid #ffffff33;
+  border-radius: 3px;
+  background: #ffffff0b;
+  color: #eeebe6;
+  font-size: 12px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+#front-shell .controller-settings > button {
+  min-height: 42px;
+  padding: 10px 14px;
+  border: 1px solid #ffffff46;
+  border-radius: 3px;
+  background: var(--menu-button-surface, #222326);
+  font: italic 700 17px/1 var(--menu-display, 'Arial Narrow', Arial, sans-serif);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  text-align: left;
+}
+
+#front-shell
+  .settings-form
+  .controller-settings
+  > button:is(:hover, :focus-visible) {
+  border-color: #ff7067;
+  background: linear-gradient(100deg, #632a2a, #242225);
+  box-shadow: inset 0 0 0 1px #ff706744;
+}
+
+@media (max-width: 760px) {
+  #front-shell .settings-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  #front-shell .settings-form .audio-volume-control input {
+    width: min(42vw, 170px);
+  }
+}
+
+@media (max-width: 600px) {
+  #front-shell .settings-form .audio-volume-control input {
+    width: auto;
+  }
+}

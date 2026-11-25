@@ -1,7 +1,9 @@
 import { listPackage, extractFile, statFile } from '@electron/asar';
 import { getCurrentFuseWire, FuseV1Options } from '@electron/fuses';
-import { resolve, join } from 'node:path';
+import { readFile } from 'node:fs/promises';
+import { dirname, resolve, join } from 'node:path';
 import assert from 'node:assert/strict';
+import { barlowNoticeFile } from './notices.mjs';
 import {
   editionPolicy,
   includePublic,
@@ -26,6 +28,11 @@ export async function auditPackage(directory, edition, platform) {
   assert.deepEqual(manifest.levels, policy.levels);
   assert.deepEqual(manifest.ships, policy.ships);
   assert.equal(manifest.devTools, false);
+  assert.deepEqual(
+    await readFile(join(dirname(archive), barlowNoticeFile)),
+    extractFile(archive, `notices/${barlowNoticeFile}`),
+    'The Barlow Condensed notice must also be readable beside app.asar',
+  );
   const expectedFiles = new Set([
     ...manifest.files.map(({ path }) => path),
     'release-manifest.json',

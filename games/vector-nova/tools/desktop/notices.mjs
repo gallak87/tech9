@@ -2,6 +2,8 @@ import { cp, mkdir } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+export const barlowNoticeFile = 'barlow-condensed.txt';
+
 // Preserve package-relative links and original metadata, without shipping source
 // code, editable Blender projects, or another copy of the runtime art.
 const WORLDKIT_NOTICES = [

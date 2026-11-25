@@ -103,7 +103,11 @@ async function checkTitle() {
     `!!document.querySelector('[data-entry-stage="intro"] .entry-continue')`,
   );
   assert.equal(
-    await evaluate(`document.querySelector('.entry-continue').textContent`),
+    await evaluate(`(() => {
+      const label = document.querySelector('.entry-continue').cloneNode(true);
+      label.querySelectorAll('[aria-hidden="true"]').forEach(node => node.remove());
+      return label.textContent.trim();
+    })()`),
     'Start',
   );
   assert.equal(
@@ -174,7 +178,7 @@ async function checkFinaleOffline() {
   );
   assert.equal(
     await evaluate(`document.querySelector('#completion-thanks').textContent`),
-    'Thx for playing, 3 new courses unlocked!',
+    'Thx for playing, 3 Encore courses unlocked!',
   );
   await press('Enter');
   await wait(`!document.querySelector('.completion-cinematic')`);
@@ -229,26 +233,34 @@ async function checkClassificationWorkerOffline() {
   );
 }
 async function checkCollection() {
-  const total = manifest.edition === 'demo' ? 4 : 28;
-  const claims =
-    JSON.parse(await readCareer('vector-nova.career.v1'))?.claims ?? [];
+  const profile = JSON.parse(await readCareer('vector-nova.career.v1'));
+  const demoRewards = [
+    'speed-1',
+    'equipment-jump',
+    'equipment-deflector',
+    'boost-1',
+  ];
+  const demo = manifest.edition === 'demo';
+  const total = demo ? demoRewards.length : 37;
+  const saved = demo
+    ? demoRewards.filter((id) => profile?.claims?.includes(id)).length
+    : (
+        await import('../../src/progression/completion.js')
+      ).careerUnlockProgress(profile).collected;
   const progress = await evaluate(`(() => {
     const bar = document.querySelector('.career-progress-bar');
-    const claims = ${JSON.stringify(claims)};
-    const available = ${JSON.stringify(manifest.edition === 'demo' ? ['speed-1', 'equipment-jump', 'equipment-deflector', 'boost-1'] : null)};
     return {
       collected: Number(bar?.getAttribute('aria-valuenow')),
       total: Number(bar?.getAttribute('aria-valuemax')),
       notches: bar?.children.length,
       active: bar?.querySelectorAll('.is-earned').length,
-      saved: available ? claims.filter(id => available.includes(id)).length : claims.length,
       styled: getComputedStyle(bar?.firstElementChild).backgroundImage.includes('linear-gradient'),
     };
   })()`);
   assert.equal(progress.total, total, 'collection uses the edition catalogue');
   assert.equal(progress.notches, total);
-  assert.equal(progress.collected, progress.saved);
-  assert.equal(progress.active, progress.saved);
+  assert.equal(progress.collected, saved);
+  assert.equal(progress.active, saved);
   assert.equal(progress.styled, true, 'collection styles ship in Electron');
 }
 async function run() {
@@ -350,12 +362,24 @@ async function run() {
   );
   assert.deepEqual(
     await evaluate('Object.keys(window.vectorNovaDesktop).sort()'),
-    ['getFullscreen', 'onFullscreenChange', 'quit', 'toggleFullscreen'],
+    [
+      'getFullscreen',
+      'onFullscreenChange',
+      'quit',
+      'toggleFullscreen',
+      'tracks',
+    ],
   );
-  const expected = [...manifest.levels].sort();
-  const initialLevels = expected.filter(
-    (id) => !['ravel', 'nomad', 'oriel'].includes(id),
+  assert.deepEqual(
+    await evaluate('Object.keys(window.vectorNovaDesktop.tracks).sort()'),
+    ['export', 'import', 'list', 'read', 'remove', 'save'],
   );
+  const { BONUS_LEVEL_IDS, COURSE_IDS } =
+    await import('../../src/levels/access.js');
+  const expected = manifest.levels
+    .filter((id) => !COURSE_IDS.includes(id))
+    .sort();
+  const initialLevels = expected.filter((id) => !BONUS_LEVEL_IDS.includes(id));
   assert.deepEqual(
     await evaluate(
       `[...document.querySelectorAll('button[data-level]')].map(b=>b.dataset.level).sort()`,
@@ -420,7 +444,7 @@ async function run() {
   await click('[data-action="circuits"]');
   const levels = process.env.VN_PROBE_LEVELS
     ? process.env.VN_PROBE_LEVELS.split(',')
-    : manifest.levels;
+    : expected;
   for (const level of levels) {
     await click(`[data-level="${level}"]`);
     await click('[data-action="practice"]');

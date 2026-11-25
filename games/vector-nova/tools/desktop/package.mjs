@@ -6,6 +6,7 @@ import { execFileSync } from 'node:child_process';
 import { buildDesktop, root, files } from './build.mjs';
 import { createHash } from 'node:crypto';
 import { auditPackage } from './audit.mjs';
+import { barlowNoticeFile } from './notices.mjs';
 
 const [edition, ...args] = process.argv.slice(2);
 const option = (name, fallback) => {
@@ -30,6 +31,7 @@ const outputs = await packager({
   platform,
   arch,
   asar: true,
+  extraResource: resolve(stage, 'notices', barlowNoticeFile),
   overwrite: true,
   prune: false,
   icon: resolve(

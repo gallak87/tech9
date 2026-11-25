@@ -974,7 +974,8 @@
       "creator": "The Barlow Project Authors",
       "provenance": "Barlow Condensed Latin WOFF2, version 13 of the Google Fonts distribution. Semibold upright, semibold italic, bold italic and extrabold italic. Upstream distribution: https://github.com/google/fonts/tree/main/ofl/barlowcondensed",
       "rights": "SIL Open Font License 1.1, included in public/assets/licenses/barlow-condensed.txt",
-      "runtimeDependencies": []
+      "runtimeDependencies": [],
+      "runtimeAsset": "public/assets/licenses/barlow-condensed.txt"
     },
     {
       "id": "halcyon-sky",

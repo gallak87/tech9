@@ -5,7 +5,7 @@ import { resolve, dirname, relative } from 'node:path';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { menuCatalog } from '../menu-catalog.mjs';
-import { copyWorldkitNotices } from './notices.mjs';
+import { barlowNoticeFile, copyWorldkitNotices } from './notices.mjs';
 import {
   editionPolicy,
   includePublic,
@@ -189,6 +189,10 @@ export async function buildDesktop(edition) {
   const notices = resolve(stage, 'notices');
   await mkdir(notices, { recursive: true });
   await cp(resolve(root, 'docs/licenses'), notices, { recursive: true });
+  await cp(
+    resolve(root, 'public/assets/licenses', barlowNoticeFile),
+    resolve(notices, barlowNoticeFile),
+  );
   const worldkitNotices = await copyWorldkitNotices(notices, policy);
   for (const [name, license] of [
     ['three', 'LICENSE'],
